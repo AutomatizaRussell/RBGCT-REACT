@@ -1,18 +1,15 @@
 import { useState } from 'react'; 
 import { Sidebar } from '../components/layout/Sidebar';
-import { Link, useLocation } from 'react-router-dom'; // 1. Usamos useLocation para detectar la URL
-import { Users, Activity, ShieldAlert, Zap, Database, Clock, Search, UserPlus } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Users, Activity, ShieldAlert, Zap, Database, UserPlus } from 'lucide-react'; // Search removido
 
 import UserTable from '../components/users/UserTable';
-import CreateUserPage from '../components/users/CreateUserPage'; // 2. Importamos el formulario
+import CreateUserPage from '../components/users/CreateUserPage';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const location = useLocation(); // 3. Detectamos dónde estamos
+  const location = useLocation();
 
-  // 4. Lógica de renderizado inteligente:
-  // Si la URL es la de crear, mostramos CreateUserPage. 
-  // Si no, seguimos con tu lógica de activeTab.
   const renderContent = () => {
     if (location.pathname === '/admin/usuarios/nuevo') {
       return <CreateUserPage />;
@@ -77,11 +74,7 @@ const AdminDashboard = () => {
 
           {activeTab === 'users' && location.pathname !== '/admin/usuarios/nuevo' && (
             <div className="flex items-center gap-4 animate-in fade-in duration-300">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <input type="text" placeholder="Buscar..." className="pl-10 pr-4 py-2 bg-slate-100 border-transparent focus:bg-white rounded-xl text-sm outline-none w-64" />
-              </div>
-              
+              {/* Buscador removido de aquí */}
               <Link to="/admin/usuarios/nuevo" className="bg-[#001e33] text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-slate-800 shadow-lg shadow-blue-900/20 transition-all">
                 <UserPlus size={16} /> Añadir Registro
               </Link>
@@ -97,7 +90,7 @@ const AdminDashboard = () => {
   );
 };
 
-// --- TUS COMPONENTES SE MANTIEENEN IGUAL ---
+// --- COMPONENTES (INTACTOS) ---
 const StatCard = ({ label, value, icon, subtext, color = "text-[#001e33]" }) => (
   <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:border-slate-300 transition-all duration-300 overflow-hidden">
     <div className="flex-shrink-0 p-3 bg-slate-50 rounded-xl border border-slate-100 text-[#001e33]">{icon}</div>
