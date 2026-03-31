@@ -13,29 +13,30 @@ const UserTable = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .schema('rbgct')
-        .from('datos_empleado')
-        .select(`
-          id_empleado,
-          correo_corporativo,
-          fecha_ingreso,
-          estado,
-          datos_personales (
-            id_cc,
-            nom_empleado,
-            ape_empleado,
-            telefono,
-            rh,
-            genero,
-            direccion
-          ),
-          administracion:id_admin (
-            nom_area,
-            salario
-          )
-        `);
-
+        const { data, error } = await supabase
+          .schema('rbgct')
+          .from('datos_empleado')
+          .select(`
+            id_empleado,
+            correo_corporativo,
+            fecha_ingreso,
+            estado,
+            datos_personales:id_personales (
+              id_cc,
+              nom_empleado,
+              ape_empleado,
+              telefono,
+              rh,
+              genero,
+              direccion
+            ),
+            administracion:id_admin (
+              id_rev,
+              nom_area,
+              salario
+            )
+          `);
+          
       if (error) {
         console.error('Error de Supabase:', error.message);
         return;
