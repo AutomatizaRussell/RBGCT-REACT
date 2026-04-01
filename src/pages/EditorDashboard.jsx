@@ -100,6 +100,8 @@ const StatCard = ({ label, value, icon, subtext, color = "text-[#001e33]" }) => 
   </div>
 );
 
+
+
 const ContentRow = ({ title, author, status, time }) => (
   <div className="flex items-center justify-between py-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 px-3 rounded-2xl transition-colors">
     <div className="flex items-center gap-4">
