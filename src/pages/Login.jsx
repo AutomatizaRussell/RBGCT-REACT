@@ -1,252 +1,337 @@
-import { useState } from 'react';
-import { supabase } from "../lib/supabase"; 
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { registrarIntentoRecuperacion } from '../lib/db.js';
+import { Building2, Eye, EyeOff, Loader2, Mail, Lock, AlertTriangle, X } from 'lucide-react';
 
-function Login() {
+const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-
-  // --- ESTADOS PARA EL MODAL DE OLVIDO DE CLAVE ---
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
-  const [resetStatus, setResetStatus] = useState({ loading: false, success: false, error: '' });
-
+  const [error, setError] = useState('');
+  const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState(null);
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  
   const navigate = useNavigate();
+  const { login, userRole, isAuthenticated } = useAuth();
 
-  const bgImageUrl = "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1600";
-  const isFormValid = email.trim() !== '' && password.trim() !== '';
+  // Redirigir automáticamente si ya está autenticado
+  useEffect(() => {
+    // Si necesita completar perfil, redirigir a completar-perfil
+    if (needsProfileCompletion) {
+      navigate('/completar-perfil', { replace: true });
+      return;
+    }
+    
+    if (isAuthenticated && userRole) {
+      switch (userRole) {
+        case 'superadmin':
+          navigate('/admin', { replace: true });
+          break;
+        case 'admin':
+          navigate('/admin2', { replace: true });
+          break;
+        case 'editor':
+          navigate('/editor', { replace: true });
+          break;
+        case 'usuario':
+          navigate('/app', { replace: true });
+          break;
+        default:
+          navigate('/app', { replace: true });
+      }
+    }
+  }, [isAuthenticated, userRole, navigate, needsProfileCompletion]);
 
-  const openForgotPasswordModal = () => {
-    setResetEmail('');
-    setResetStatus({ loading: false, success: false, error: '' });
-    setIsModalOpen(true);
+  const handleForgotPassword = () => {
+    setShowRecoveryModal(true);
+    setRecoveryEmail('');
+    setRecoveryMessage(null);
   };
 
-  // --- FUNCIÓN PARA ENVIAR SOLICITUD (CORREO -> ID -> ALERTA) ---
-  const handleSendResetRequest = async (e) => {
+  const handleRecoverySubmit = async (e) => {
     e.preventDefault();
-    if (!resetEmail.trim()) return;
-
-    setResetStatus({ ...resetStatus, loading: true, error: '' });
-
+    
+    if (!recoveryEmail) {
+      setRecoveryMessage({ type: 'error', text: 'Ingresa tu correo electrónico' });
+      return;
+    }
+    
+    setRecoveryLoading(true);
+    
     try {
-      // 1. Buscamos el id_empleado en rbgct.datos_empleado usando el correo
-      const { data: empleado, error: errorBusqueda } = await supabase
-        .from('datos_empleado')
-        .select('id_empleado')
-        .eq('correo_corporativo', resetEmail.trim())
-        .single();
-
-      if (errorBusqueda || !empleado) {
-        throw new Error('El correo ingresado no pertenece a un colaborador activo.');
-      }
-
-      // 2. Insertamos en rbgct.solicitudes_password vinculando el ID (Cero redundancia)
-      const { error: errorInsert } = await supabase
-        .from('solicitudes_password')
-        .insert([
-          { 
-            id_empleado: empleado.id_empleado,
-            fecha_solicitud: new Date().toISOString() 
-          }
-        ]);
-
-      if (errorInsert) throw errorInsert;
+      const response = await registrarIntentoRecuperacion(recoveryEmail);
+      console.log('Respuesta de recuperación:', response);
       
-      setResetStatus({ loading: false, success: true, error: '' });
-
-    } catch (error) {
-      setResetStatus({ 
-        loading: false, 
-        success: false, 
-        error: error.message || 'No se pudo enviar la solicitud.' 
-      });
+      if (response && response.alerta) {
+        const alerta = response.alerta;
+        if (alerta.existe_en_sistema) {
+          setRecoveryMessage({ 
+            type: 'success', 
+            text: `Usuario encontrado: ${alerta.nombre}. El administrador ha sido notificado.` 
+          });
+        } else {
+          setRecoveryMessage({ 
+            type: 'warning', 
+            text: 'Usuario no registrado en el sistema. El administrador ha sido notificado.' 
+          });
+        }
+      } else {
+        setRecoveryMessage({ 
+          type: 'success', 
+          text: 'Solicitud enviada. El administrador ha sido notificado.' 
+        });
+      }
+      
+      // Cerrar modal después de 3 segundos
+      setTimeout(() => {
+        setShowRecoveryModal(false);
+        setRecoveryMessage(null);
+        setRecoveryEmail('');
+      }, 3000);
+      
+    } catch (err) {
+      console.error('Error al registrar intento:', err);
+      setRecoveryMessage({ type: 'error', text: 'Error al procesar la solicitud. Intenta de nuevo.' });
+    } finally {
+      setRecoveryLoading(false);
     }
   };
 
-  const handleLogin = async (e) => {
+  const closeRecoveryModal = () => {
+    setShowRecoveryModal(false);
+    setRecoveryEmail('');
+    setRecoveryMessage(null);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setErrorMessage('');
+    setError('');
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (authError) throw authError;
-
-      const userRole = authData.user?.user_metadata?.role;
-
-      if (userRole === 'admin' || authData.user?.is_super_admin) {
-        navigate('/admin');
-        return; 
-      }
-
-      const { data: empleado, error: dbError } = await supabase
-        .from('datos_empleado') 
-        .select('auth_id')
-        .eq('auth_id', authData.user.id)
-        .single();
-
-      if (dbError || !empleado) {
-        setErrorMessage("Acceso denegado. Su cuenta no está vinculada al registro de empleados.");
-        await supabase.auth.signOut();
+      const result = await login(email, password);
+      
+      // Si requiere verificación de código (primer login)
+      if (result?.requiereVerificacion) {
+        // Redirigir a página de verificación de código
+        navigate('/verify-code', {
+          replace: true,
+          state: {
+            email,
+            password,
+            userId: result.empleadoData.id_empleado,
+            id_permisos: result.empleadoData.id_permisos
+          }
+        });
         return;
       }
-
-      if (userRole === 'user') {
-        navigate('/app');
-      } else {
-        setErrorMessage("Perfil no autorizado.");
-        await supabase.auth.signOut();
+      
+      // Verificar si es primer login y necesita completar datos (después de verificación)
+      if (result?.primerLogin) {
+        setNeedsProfileCompletion(true);
+        return;
       }
-
-    } catch (error) {
-      setErrorMessage("Credenciales inválidas.");
+      
+      // La redirección automática se maneja en el useEffect cuando userRole se actualiza
+    } catch (err) {
+      if (err.message?.includes('no autorizado')) {
+        setError('Acceso denegado. Su cuenta no está vinculada al registro de empleados o está inactiva.');
+      } else if (err.message?.includes('Invalid login credentials')) {
+        setError('Credenciales inválidas. Por favor verifique su correo y contraseña.');
+      } else {
+        setError(err.message || 'Error al iniciar sesión.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row font-sans antialiased text-slate-800 bg-white relative">
-      
-      {/* SECCIÓN IZQUIERDA */}
-      <div className="w-full lg:w-1/2 bg-[#001e33] flex flex-col items-center lg:items-start justify-center p-10 lg:p-20 relative overflow-hidden h-[30vh] lg:h-auto z-10">
-        <img src={bgImageUrl} alt="Office" className="absolute inset-0 w-full h-full object-cover opacity-10" />
-        <div className="relative z-10 flex flex-col items-center lg:items-start text-center lg:text-left">
-          <h1 className="text-4xl md:text-6xl lg:text-8xl font-black text-white leading-[0.9] tracking-tighter uppercase">
-            Russell<br/><span className="text-slate-400">Bedford</span>
+    <div className="min-h-screen bg-[#f1f5f9] flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-[#001e33] rounded-2xl mb-4 shadow-xl shadow-blue-900/20">
+            <Building2 className="text-white" size={40} />
+          </div>
+          <h1 className="text-2xl font-black text-[#001e33] tracking-tight">
+            RUSSELL <span className="text-slate-400 font-light">BEDFORD</span>
           </h1>
-          <p className="hidden sm:block text-sm lg:text-xl text-slate-400 mt-4 lg:mt-8 tracking-[0.2em] font-light uppercase border-l-0 lg:border-l lg:border-slate-700 lg:pl-6">
-            Global Network
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">
+            Portal GCT - Gestión Corporativa
           </p>
         </div>
-      </div>
 
-      {/* SECCIÓN DERECHA */}
-      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 sm:p-12 lg:p-16 z-10">
-        <div className="w-full max-w-sm">
-          <header className="mb-8 lg:mb-12 text-center lg:text-left">
-            <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight">Iniciar sesión</h2>
-            <p className="text-slate-500 mt-2 font-medium">Plataforma de Intranet Corporativa</p>
-          </header>
+        {/* Formulario */}
+        <div className="bg-white rounded-[32px] border border-slate-100 shadow-xl p-8">
+          <h2 className="text-lg font-black text-[#001e33] mb-6">Iniciar Sesión</h2>
+          
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-medium">
+              {error}
+            </div>
+          )}
 
-          <form className="space-y-5 lg:space-y-7" onSubmit={handleLogin}>
-            {errorMessage && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold border border-red-100 text-center">
-                {errorMessage}
-              </div>
-            )}
-
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email */}
             <div className="space-y-2">
-              <label className="text-[10px] lg:text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Correo Electrónico</label>
+              <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <Mail size={12} /> Correo Corporativo
+              </label>
               <input
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-                className="w-full p-3 lg:p-4 bg-slate-50 border border-slate-200 rounded-xl lg:rounded-2xl outline-none transition-all focus:bg-white focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 text-slate-900 disabled:opacity-50"
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
                 placeholder="usuario@russellbedford.com.co"
               />
             </div>
 
+            {/* Password */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center ml-1">
-                <label className="text-[10px] lg:text-xs font-bold text-slate-500 uppercase tracking-widest">Contraseña</label>
-                <button type="button" onClick={openForgotPasswordModal} className="text-[10px] lg:text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors">
-                  ¿Olvidó su clave?
+              <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <Lock size={12} /> Contraseña
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium pr-12"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#001e33] transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                className="w-full p-3 lg:p-4 bg-slate-50 border border-slate-200 rounded-xl lg:rounded-2xl outline-none transition-all focus:bg-white focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 text-slate-900 disabled:opacity-50"
-                placeholder="••••••••"
-              />
             </div>
 
+            {/* Botón */}
             <button
               type="submit"
-              disabled={!isFormValid || loading}
-              className={`w-full py-3.5 lg:py-4 rounded-xl lg:rounded-2xl font-bold text-xs lg:text-sm tracking-widest uppercase transition-all ${
-                isFormValid && !loading ? 'bg-slate-900 text-white hover:bg-black shadow-xl shadow-slate-900/20 active:scale-[0.95]' : 'bg-slate-100 text-slate-300'
-              }`}
+              disabled={loading}
+              className="w-full bg-[#001e33] text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-blue-900/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading ? 'Verificando...' : 'Entrar al Sistema'}
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Verificando...
+                </>
+              ) : (
+                'Ingresar al Sistema'
+              )}
             </button>
           </form>
 
-          <footer className="mt-12 lg:mt-20 pt-8 border-t border-slate-100 text-center">
-            <p className="text-[9px] lg:text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
-              © 2026 Russell Bedford GCT S.A.S
-            </p>
-          </footer>
+          {/* Mensaje de recuperación */}
+          {recoveryMessage && (
+            <div className={`mt-4 p-3 rounded-lg flex items-center gap-2 text-sm ${
+              recoveryMessage.type === 'warning' 
+                ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}>
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>{recoveryMessage.text}</span>
+            </div>
+          )}
+
+          {/* Links */}
+          <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+            <button 
+              onClick={handleForgotPassword}
+              className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-[#001e33] transition-colors"
+              type="button"
+            >
+              ¿Olvidó su contraseña?
+            </button>
+          </div>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-6">
+          © 2026 Russell Bedford RBG. Todos los derechos reservados.
+        </p>
       </div>
 
-      {/* MODAL DE RECUPERACIÓN */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-6" onClick={() => setIsModalOpen(false)}>
-          <div className="bg-white p-8 sm:p-10 rounded-3xl shadow-2xl w-full max-w-lg relative animate-fade-in" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-900 transition-colors p-2 rounded-full hover:bg-slate-100">✕</button>
+      {/* Modal de Recuperación de Contraseña */}
+      {showRecoveryModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative animate-in fade-in zoom-in duration-200">
+            {/* Cerrar */}
+            <button 
+              onClick={closeRecoveryModal}
+              className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-colors"
+            >
+              <X size={20} className="text-slate-500" />
+            </button>
 
-            <header className="mb-10 text-center">
-              <h3 className="text-3xl font-bold text-slate-900 tracking-tight">Recuperar Contraseña</h3>
-              <p className="text-slate-500 mt-2 font-medium">Introduce tu correo corporativo registrado.</p>
-            </header>
-
-            {!resetStatus.success ? (
-              <form className="space-y-7" onSubmit={handleSendResetRequest}>
-                {resetStatus.error && (
-                  <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs font-bold border border-red-100 text-center">
-                    {resetStatus.error}
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <label className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Correo Electrónico Corporativo</label>
-                  <input
-                    type="email"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                    required
-                    disabled={resetStatus.loading}
-                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none transition-all focus:bg-white focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 text-slate-900"
-                    placeholder="tesoreria.gct@rbcol.co"
-                  />
-                </div>
-                <div className="flex gap-4 pt-4">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="w-1/2 py-4 rounded-2xl font-bold text-xs uppercase text-slate-600 bg-slate-100 hover:bg-slate-200">Cancelar</button>
-                  <button type="submit" disabled={resetStatus.loading || !resetEmail.trim()} className="w-1/2 py-4 rounded-2xl font-bold text-xs uppercase bg-slate-900 text-white hover:bg-black shadow-lg">
-                    {resetStatus.loading ? 'Validando...' : 'Enviar Alerta'}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="text-center py-8 space-y-6">
-                <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-50"><span className="text-5xl">✅</span></div>
-                <p className="text-slate-700 font-semibold">Solicitud vinculada a tu ID de empleado. El Administrador ha sido notificado.</p>
-                <button onClick={() => setIsModalOpen(false)} className="py-4 px-8 rounded-2xl font-bold text-xs uppercase bg-slate-900 text-white">Cerrar</button>
+            {/* Header */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle size={32} className="text-amber-600" />
               </div>
-            )}
+              <h2 className="text-xl font-bold text-[#001e33] mb-2">Recuperar Contraseña</h2>
+              <p className="text-sm text-slate-500">
+                Ingresa tu correo electrónico corporativo. El administrador será notificado.
+              </p>
+            </div>
+
+            {/* Formulario */}
+            <form onSubmit={handleRecoverySubmit} className="space-y-4">
+              <div className="relative">
+                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="email"
+                  value={recoveryEmail}
+                  onChange={(e) => setRecoveryEmail(e.target.value)}
+                  placeholder="correo@russellbedford.com"
+                  className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none transition-all text-sm"
+                  required
+                />
+              </div>
+
+              {/* Mensaje */}
+              {recoveryMessage && (
+                <div className={`p-3 rounded-lg text-sm ${
+                  recoveryMessage.type === 'success' 
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : recoveryMessage.type === 'warning'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {recoveryMessage.text}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={recoveryLoading}
+                className="w-full bg-[#001e33] text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {recoveryLoading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Enviando...
+                  </>
+                ) : (
+                  'Enviar Solicitud'
+                )}
+              </button>
+            </form>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes fade-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
-      `}</style>
     </div>
   );
-}
+};
 
 export default Login;

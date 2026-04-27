@@ -1,4 +1,4 @@
-import { useState } from 'react'; 
+import { useState, useEffect } from 'react'; 
 import { useLocation, Outlet, Link, useNavigate } from 'react-router-dom';
 import { 
   ClipboardList, 
@@ -12,6 +12,7 @@ import {
 
 // Importamos el Sidebar exclusivo de usuario
 import { UserSidebar } from '../components/layout/UserSidebar';
+import TaskCalendar from '../components/tasks/TaskCalendar';
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -20,6 +21,22 @@ const UserDashboard = () => {
 
   // Detectamos si estamos en la raíz /app
   const isHome = location.pathname === '/app' || location.pathname === '/app/';
+
+  // Sincronizar activeTab con la ruta actual
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes('auto-gestion')) {
+      setActiveTab('tasks');
+    } else if (path.includes('perfil')) {
+      setActiveTab('profile');
+    } else if (path.includes('manuales')) {
+      setActiveTab('manuales');
+    } else if (path.includes('comunicados')) {
+      setActiveTab('comunicados');
+    } else {
+      setActiveTab('dashboard');
+    }
+  }, [location.pathname]);
 
   return (
     <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001e33]">
@@ -35,7 +52,10 @@ const UserDashboard = () => {
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5">Portal del Empleado</p>
             <h2 className="text-xl font-black text-[#001e33] tracking-tight">
               {isHome ? 'Mi Resumen Diario' : 
-               location.pathname.includes('auto-gestion') ? 'Auto Gestión de Tareas' : 'Mi Configuración'}
+               location.pathname.includes('auto-gestion') ? 'Auto Gestión de Tareas' : 
+               location.pathname.includes('perfil') ? 'Mi Configuración' :
+               location.pathname.includes('manuales') ? 'Manuales de Cargo' :
+               location.pathname.includes('comunicados') ? 'Comunicados Internos' : 'Portal Empleado'}
             </h2>
           </div>
 
@@ -76,107 +96,10 @@ const UserDashboard = () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Calendario Real de Actividades */}
-              <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
-                {(() => {
-                  // LÓGICA DE CALENDARIO REAL
-                  const hoy = new Date();
-                  const mesActual = hoy.getMonth();
-                  const añoActual = hoy.getFullYear();
-
-                  // Nombres para mostrar
-                  const nombreMes = new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(hoy);
-                  const diasSemana = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
-
-                  // Cálculos de fechas
-                  const primerDiaMes = new Date(añoActual, mesActual, 1).getDay(); // Qué día de la semana empieza
-                  const diasEnMes = new Date(añoActual, mesActual + 1, 0).getDate(); // Cuántos días tiene
-
-                  // Simulación de eventos (Esto vendrá de tu DB a futuro)
-                  const eventos = [5, 12, 15, 25]; 
-                
-                  return (
-                    <>
-                      <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
-                        <div>
-                          <h3 className="font-bold text-lg text-[#001e33] capitalize">
-                            Calendario de {nombreMes}
-                          </h3>
-                          <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
-                            Año {añoActual} • Russell Bedford Portal
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <div className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold uppercase border border-emerald-100">
-                            Hoy: {hoy.getDate()}
-                          </div>
-                        </div>
-                      </div>
-                  
-                      <div className="grid grid-cols-7 gap-2">
-                        {/* Cabecera de Días */}
-                        {diasSemana.map(dia => (
-                          <div key={dia} className="text-center text-[10px] font-black text-slate-300 uppercase pb-2">
-                            {dia}
-                          </div>
-                        ))}
-
-                        {/* Espacios vacíos para meses que no empiezan en Domingo */}
-                        {Array.from({ length: primerDiaMes }).map((_, i) => (
-                          <div key={`emp-${i}`} className="h-16 bg-slate-50/30 rounded-2xl opacity-30 border border-transparent"></div>
-                        ))}
-
-                        {/* Render real de los días del mes */}
-                        {Array.from({ length: diasEnMes }).map((_, i) => {
-                          const dia = i + 1;
-                          const esHoy = dia === hoy.getDate() && mesActual === hoy.getMonth();
-                          const tieneEvento = eventos.includes(dia);
-                        
-                          return (
-                            <div 
-                              key={dia} 
-                              className={`h-16 border rounded-2xl p-2 transition-all cursor-pointer relative group
-                                ${esHoy 
-                                  ? 'border-indigo-500 bg-indigo-50/50 shadow-sm shadow-indigo-100' 
-                                  : 'border-slate-50 hover:border-indigo-200 hover:bg-slate-50'}
-                              `}
-                            >
-                              <span className={`text-xs font-bold ${esHoy ? 'text-indigo-600' : 'text-slate-400'}`}>
-                                {dia}
-                              </span>
-                                
-                              {/* Punto de evento programado por Admin */}
-                              {tieneEvento && (
-                                <div className="absolute bottom-3 left-2 right-2">
-                                  <div className="h-1 w-full bg-indigo-500 rounded-full"></div>
-                                  <p className="hidden group-hover:block absolute -top-10 left-0 bg-[#001e33] text-white text-[8px] p-1 rounded shadow-xl whitespace-nowrap z-10">
-                                    Tarea programada
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      
-                      {/* LEYENDA */}
-                      <div className="mt-6 flex items-center gap-6 pt-4 border-t border-slate-50">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                          <span className="text-[9px] font-bold text-slate-500 uppercase">Actividades</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-indigo-200 rounded-full"></div>
-                          <span className="text-[9px] font-bold text-slate-500 uppercase">Hoy</span>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
+              {/* Calendario Dinámico de Tareas */}
+              <div className="lg:col-span-2">
+                <TaskCalendar readOnly={true} />
               </div>
-
-
-              
 
                 {/* Accesos Rápidos */}
                 <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm flex flex-col gap-6">

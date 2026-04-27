@@ -9,14 +9,32 @@ import {
   UserCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 export const EditorSidebar = ({ activeTab, setActiveTab }) => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
-  // Función para navegar dentro del módulo de Editor
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      navigate('/');
+    }
+  };
+
   const handleNavigation = (tab) => {
     setActiveTab(tab);
-    navigate('/editor'); // Regresa a la base del dashboard del editor
+    switch (tab) {
+      case 'dashboard': navigate('/editor'); break;
+      case 'content':   navigate('/editor/articulos'); break;
+      case 'media':     navigate('/editor/biblioteca'); break;
+      case 'tasks':     navigate('/editor/tareas'); break;
+      case 'perfil':    navigate('/editor/perfil'); break;
+      default:          navigate('/editor');
+    }
   };
 
   return (
@@ -32,7 +50,7 @@ export const EditorSidebar = ({ activeTab, setActiveTab }) => {
         </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
         <p className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Escritorio</p>
         
         {/* PANEL GENERAL */}
@@ -71,12 +89,20 @@ export const EditorSidebar = ({ activeTab, setActiveTab }) => {
           <ImageIcon size={18}/> Multimedia
         </button>
 
-        {/* SECCIONES BLOQUEADAS / PRÓXIMAMENTE */}
+        {/* SECCIONES DE PLANIFICACIÓN */}
         <div className="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Planificación</div>
-        
-        <div className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-600 cursor-not-allowed opacity-50 text-sm">
-          <Calendar size={18}/> Calendario Post
-        </div>
+
+        <button
+          onClick={() => handleNavigation('tasks')}
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
+            activeTab === 'tasks'
+            ? 'bg-white/10 text-white shadow-lg'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Calendar size={18}/> Calendario Tareas
+        </button>
+
         <div className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-600 cursor-not-allowed opacity-50 text-sm">
           <History size={18}/> Historial Cambios
         </div>
@@ -97,7 +123,7 @@ export const EditorSidebar = ({ activeTab, setActiveTab }) => {
       {/* Logout */}
       <div className="p-6 border-t border-white/5">
         <button 
-          onClick={() => navigate('/')} 
+          onClick={handleLogout}
           className="flex items-center gap-3 text-slate-400 hover:text-red-400 transition-colors text-sm font-medium w-full text-left px-4"
         >
           <LogOut size={16} /> Cerrar Sesión

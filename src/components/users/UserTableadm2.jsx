@@ -64,8 +64,8 @@ const UserTable = () => {
       if (error) throw error;
       setUsers(users.filter(user => user.datos_personales.id_cc !== id));
       setDeletingUser(null);
-    } catch (error) {
-      alert("Error al eliminar: " + error.message);
+    } catch (err) {
+      alert("Error al eliminar: " + err.message);
     }
   };
 
@@ -214,7 +214,7 @@ const UserTable = () => {
                     <button onClick={() => setEditingUser(user)} className="p-2 hover:bg-blue-50 hover:text-blue-600 text-slate-400 rounded-lg transition-colors">
                       <Edit2 size={14} />
                     </button>
-                    <button onClick={() => setDeletingUser(user)} className="p-2 hover:bg-red-50 hover:text-red-600 text-slate-400 rounded-lg transition-colors">
+                    <button onClick={() => { setDeletingUser(user); if(deletingUser || confirm('¿Eliminar este usuario?')) handleDelete(user.datos_personales.id_cc); }} className="p-2 hover:bg-red-50 hover:text-red-600 text-slate-400 rounded-lg transition-colors">
                       <Trash2 size={14} />
                     </button>
                   </div>

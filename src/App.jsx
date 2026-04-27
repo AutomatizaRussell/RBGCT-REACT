@@ -1,9 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 // Vistas principales
 import Login from './pages/Login';
-import AdminDashboard from './pages/AdminDashboard'; // Este es tu SUPER ADMIN
-import Admin2Dashboard from './pages/Admin2Dashboard'; // Este es el ADMIN NORMAL
+import CompleteProfile from './pages/CompleteProfile';
+import VerifyCode from './pages/VerifyCode';
+import AdminDashboard from './pages/AdminDashboard';
+import Admin2Dashboard from './pages/Admin2Dashboard';
 import UserDashboard from './pages/UserDashboard';
 import EditorDashboard from './pages/EditorDashboard';
 
@@ -13,9 +17,11 @@ import CreateUserPage from './components/users/CreateUserPage';
 
 // Componentes de USUARIO
 import AutoGestion from './components/users/AutoGestion'; 
+import UserProfile from './components/users/UserProfile';
+import ManualesCargo from './components/users/ManualesCargo';
+import ComunicadosInternos from './components/users/ComunicadosInternos';
 
 // --- COMPONENTES LOCALES / PLACEHOLDERS ---
-const MyProfile = () => <div className="p-8">Configuración de mi perfil...</div>;
 const WelcomeUser = () => (
   <div className="p-8 text-slate-400 uppercase font-bold text-xs tracking-widest">
     Bienvenido al Portal. Selecciona una opción del menú.
@@ -28,41 +34,79 @@ const MediaLibrary = () => <div className="p-8 font-bold text-slate-700">Bibliot
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* 1. LOGIN */}
-        <Route path="/" element={<Login />} />
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* 1. LOGIN - Público */}
+          <Route path="/" element={<Login />} />
 
-        {/* 2. RUTA DE SUPER ADMINISTRADOR (Control Total) */}
-        <Route path="/admin" element={<AdminDashboard />}>
-          <Route index element={<UserTable />} />
-          <Route path="usuarios/nuevo" element={<CreateUserPage />} />
-        </Route>
+          {/* 2. COMPLETAR PERFIL - Primer login */}
+          <Route path="/completar-perfil" element={<CompleteProfile />} />
+          
+          {/* 2.5. VERIFICACIÓN DE CÓDIGO - Primer login */}
+          <Route path="/verify-code" element={<VerifyCode />} />
 
-        {/* 3. RUTA DE ADMINISTRADOR NORMAL (Gestión Operativa) */}
-        <Route path="/admin2" element={<Admin2Dashboard />}>
-          <Route index element={<UserTable />} />
-          <Route path="usuarios/nuevo" element={<CreateUserPage />} />
-        </Route>
+          {/* 3. RUTA DE SUPER ADMINISTRADOR (Control Total) */}
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute allowedRoles={['superadmin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<UserTable />} />
+            <Route path="usuarios/nuevo" element={<CreateUserPage />} />
+          </Route>
 
-        {/* 4. RUTA DE EDITOR (Contenido) */}
-        <Route path="/editor" element={<EditorDashboard />}>
-          <Route index element={<ContentList />} />
-          <Route path="biblioteca" element={<MediaLibrary />} />
-          <Route path="perfil" element={<MyProfile />} />
-        </Route>
+          {/* 3. RUTA DE ADMINISTRADOR NORMAL (Gestión Operativa) */}
+          <Route 
+            path="/admin2" 
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                <Admin2Dashboard />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<UserTable />} />
+            <Route path="usuarios/nuevo" element={<CreateUserPage />} />
+          </Route>
 
-        {/* 5. RUTA DE EMPLEADO (Portal Usuario) */}
-        <Route path="/app" element={<UserDashboard />}>
-          <Route index element={<WelcomeUser />} />
-          <Route path="auto-gestion" element={<AutoGestion />} />
-          <Route path="perfil" element={<MyProfile />} />
-        </Route>
+          {/* 4. RUTA DE EDITOR (Contenido) */}
+          <Route 
+            path="/editor" 
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin', 'editor']}>
+                <EditorDashboard />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<ContentList />} />
+            <Route path="biblioteca" element={<MediaLibrary />} />
+            <Route path="perfil" element={<UserProfile />} />
+          </Route>
 
-        {/* 6. SEGURIDAD: Redirección por defecto */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </Router>
+          {/* 5. RUTA DE EMPLEADO (Portal Usuario) */}
+          <Route 
+            path="/app" 
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin', 'editor', 'usuario']}>
+                <UserDashboard />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<WelcomeUser />} />
+            <Route path="auto-gestion" element={<AutoGestion />} />
+            <Route path="perfil" element={<UserProfile />} />
+            <Route path="manuales" element={<ManualesCargo />} />
+            <Route path="comunicados" element={<ComunicadosInternos />} />
+          </Route>
+
+          {/* 6. SEGURIDAD: Redirección por defecto */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

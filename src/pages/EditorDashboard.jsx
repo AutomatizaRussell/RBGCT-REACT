@@ -10,6 +10,7 @@ import {
   Send,
   Eye
 } from 'lucide-react';
+import TaskDashboard from '../components/tasks/TaskDashboard';
 
 const EditorDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -59,6 +60,15 @@ const EditorDashboard = () => {
       );
     }
 
+    // Si la pestaña es 'tasks', mostramos el calendario
+    if (activeTab === 'tasks') {
+      return (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <TaskDashboard />
+        </div>
+      );
+    }
+
     // Para cualquier otra sub-ruta (/editor/biblioteca, /editor/perfil)
     return <Outlet />;
   };
@@ -73,7 +83,8 @@ const EditorDashboard = () => {
           <div>
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5">Editor Workspace</p>
             <h2 className="text-xl font-black text-[#001e33] tracking-tight">
-              {location.pathname === '/editor' ? 'Panel de Edición' : 
+              {activeTab === 'tasks' ? 'Calendario de Tareas' :
+               location.pathname === '/editor' ? 'Panel de Edición' : 
                location.pathname.includes('biblioteca') ? 'Biblioteca de Medios' : 'Mi Perfil'}
             </h2>
           </div>

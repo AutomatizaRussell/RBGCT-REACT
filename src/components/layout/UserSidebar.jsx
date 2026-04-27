@@ -4,12 +4,26 @@ import {
   UserCircle, 
   Bell, 
   LogOut,
-  FileText 
+  FileText,
+  BookOpen,
+  Megaphone
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 export const UserSidebar = ({ activeTab, setActiveTab }) => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      navigate('/');
+    }
+  };
 
   // FUNCIÓN ÚNICA DE NAVEGACIÓN
   const handleNavigation = (tab) => {
@@ -25,6 +39,12 @@ export const UserSidebar = ({ activeTab, setActiveTab }) => {
         break;
       case 'profile':
         navigate('/app/perfil');
+        break;
+      case 'manuales':
+        navigate('/app/manuales');
+        break;
+      case 'comunicados':
+        navigate('/app/comunicados');
         break;
       default:
         navigate('/app');
@@ -44,7 +64,7 @@ export const UserSidebar = ({ activeTab, setActiveTab }) => {
         </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
         <p className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mi Espacio</p>
         
         {/* BOTÓN: MI RESUMEN (Dashboard) */}
@@ -83,22 +103,38 @@ export const UserSidebar = ({ activeTab, setActiveTab }) => {
           <UserCircle size={18}/> Mi Configuración
         </button>
 
-        {/* RECURSOS BLOQUEADOS O INFORMATIVOS */}
-        <div className="pt-6 pb-2 px-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Recursos</div>
+        {/* RECURSOS */}
+        <div className="pt-6 pb-2 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Recursos</div>
         
-        <div className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-600 opacity-50 cursor-not-allowed text-sm">
-          <FileText size={18}/> Manuales de Cargo
-        </div>
+        {/* BOTÓN: MANUALES DE CARGO */}
+        <button 
+          onClick={() => handleNavigation('manuales')}
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
+            activeTab === 'manuales'
+            ? 'bg-white/10 text-white shadow-lg' 
+            : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <BookOpen size={18}/> Manuales de Cargo
+        </button>
 
-        <div className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-600 opacity-50 cursor-not-allowed text-sm">
-          <Bell size={18}/> Comunicados internos
-        </div>
+        {/* BOTÓN: COMUNICADOS INTERNOS */}
+        <button 
+          onClick={() => handleNavigation('comunicados')}
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
+            activeTab === 'comunicados'
+            ? 'bg-white/10 text-white shadow-lg' 
+            : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Megaphone size={18}/> Comunicados Internos
+        </button>
       </nav>
 
       {/* SALIR */}
       <div className="p-6 border-t border-white/5">
         <button 
-          onClick={() => navigate('/')} 
+          onClick={handleLogout}
           className="flex items-center gap-3 text-slate-400 hover:text-red-400 transition-colors text-sm font-medium w-full text-left"
         >
           <LogOut size={16} /> Salir del Portal
