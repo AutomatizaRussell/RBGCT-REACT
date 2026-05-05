@@ -39,6 +39,7 @@ class SuperAdmin(models.Model):
     estado = models.CharField(max_length=20, default='ACTIVA')
     created_at = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(blank=True, null=True)
+    fecha_ingreso = models.DateField(blank=True, null=True, help_text='Fecha de ingreso a la empresa')
 
     class Meta:
         db_table = 'superadmin'
@@ -202,11 +203,20 @@ class SolicitudesPassword(models.Model):
 
 
 class Curso(models.Model):
+    VISIBILIDAD_CHOICES = [
+        ('todos', 'Todos'),
+        ('area', 'Área Específica'),
+        ('persona', 'Persona Específica'),
+    ]
+
     id = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True, default='')
     orden = models.IntegerField(default=0)
     activo = models.BooleanField(default=True)
+    visibilidad = models.CharField(max_length=20, choices=VISIBILIDAD_CHOICES, default='todos')
+    area = models.ForeignKey(DatosArea, on_delete=models.SET_NULL, db_column='area_id', blank=True, null=True)
+    empleado_asignado = models.ForeignKey(DatosEmpleado, on_delete=models.SET_NULL, db_column='empleado_asignado_id', blank=True, null=True, related_name='cursos_asignados')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -217,6 +227,32 @@ class Curso(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class CursoHistorial(models.Model):
+    ACCION_CHOICES = [
+        ('crear', 'Curso Creado'),
+        ('editar', 'Curso Editado'),
+        ('eliminar', 'Curso Eliminado'),
+        ('agregar_contenido', 'Contenido Agregado'),
+        ('eliminar_contenido', 'Contenido Eliminado'),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    curso = models.ForeignKey(Curso, on_delete=models.SET_NULL, blank=True, null=True, related_name='historial')
+    curso_nombre = models.CharField(max_length=200, blank=True, default='')
+    accion = models.CharField(max_length=20, choices=ACCION_CHOICES)
+    descripcion = models.TextField(blank=True, default='')
+    usuario_nombre = models.CharField(max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'curso_historial'
+        managed = True
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.accion} — {self.curso_nombre}"
 
 
 class CursoContenido(models.Model):
@@ -320,3 +356,70 @@ class Alerta(models.Model):
     
     def __str__(self):
         return f"Alerta {self.id} - {self.tipo} - {self.email_solicitante}"
+
+
+class N8nLog(models.Model):
+    STATUS_CHOICES = [
+        ('SUCCESS', 'Exitoso'),
+        ('ERROR', 'Error'),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    workflow_name = models.CharField(max_length=255)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    message = models.TextField(blank=True, null=True)
+    destinatario = models.EmailField(max_length=255, blank=True, null=True)
+    tipo_evento = models.CharField(max_length=100, blank=True, null=True)
+    response_data = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'n8n_log'
+        managed = True
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"N8nLog {self.id} - {self.workflow_name} - {self.status}"
+
+
+class ApiKey(models.Model):
+    """API Keys para automatizaciones externas (n8n, scripts, integraciones)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    key = models.CharField(max_length=64, unique=True, editable=False)
+    nombre = models.CharField(max_length=100, help_text="Nombre descriptivo de la API key")
+    descripcion = models.TextField(blank=True, null=True)
+    creado_por = models.ForeignKey(SuperAdmin, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(blank=True, null=True)
+    uso_count = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    permisos = models.JSONField(default=dict, blank=True, help_text="Permisos específicos: {'read': true, 'write': false, 'delete': false}")
+    ip_permitidas = models.JSONField(default=list, blank=True, help_text="Lista de IPs permitidas. Vacío = todas")
+
+    class Meta:
+        db_table = 'api_key'
+        managed = True
+        ordering = ['-created_at']
+        verbose_name = 'API Key'
+        verbose_name_plural = 'API Keys'
+
+    def __str__(self):
+        return f"{self.nombre} ({self.key[:8]}...)"
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = self.generate_key()
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def generate_key():
+        """Genera una API key única de 32 caracteres"""
+        import secrets
+        return secrets.token_urlsafe(32)
+
+    def mark_used(self):
+        """Marca la key como usada y actualiza contadores"""
+        from django.utils import timezone
+        self.last_used_at = timezone.now()
+        self.uso_count += 1
+        self.save(update_fields=['last_used_at', 'uso_count'])

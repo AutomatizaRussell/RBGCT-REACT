@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'; 
 import { Sidebar } from '../components/layout/Sidebar';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Users, Activity, ShieldAlert, Zap, Database, KeyRound, Check, Plus, X, AlertTriangle, Eye, Trash2, CheckCircle, Lock, Edit3 } from 'lucide-react';
+import { Users, Activity, ShieldAlert, Zap, Database, KeyRound, Check, Plus, X, AlertTriangle, Eye, Trash2, CheckCircle, Lock, Edit3, Clock, Building2, Phone, MapPin } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { 
-  getAllEmpleados, 
-  getActividadReciente, 
+import {
+  getAllEmpleados,
+  getActividadReciente,
   getAlertasRecuperacion,
   atenderAlerta,
   eliminarAlerta,
   actualizarPasswordEmpleado,
-  habilitarEdicionMasivaSuperAdmin
+  habilitarEdicionMasivaSuperAdmin,
+  n8nProxyStatus
 } from '../lib/db';
 
 // Componentes comunes de Gestión de Usuarios
@@ -20,7 +21,8 @@ import CreateUserPage from '../components/users/CreateUserPage';
 // Componentes de Tareas/Calendario
 import TaskDashboard from '../components/tasks/TaskDashboard'; 
 import N8nLogs from '../components/users/N8nLogs'; 
-import SystemSettings from '../components/users/SystemSettings'; 
+import SystemSettings from '../components/users/SystemSettings';
+import ApiKeyManager from '../components/admin/ApiKeyManager'; 
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -36,7 +38,8 @@ const AdminDashboard = () => {
   const [adminPassword, setAdminPassword] = useState('');
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [concurrentUsers, setConcurrentUsers] = useState(0);
-  const [n8nStatus, setN8nStatus] = useState({ connected: false, ping: null, loading: true }); 
+  const [n8nStatus, setN8nStatus] = useState({ connected: false, ping: null, loading: true });
+  const [alertDetail, setAlertDetail] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { isSuperAdmin, user } = useAuth();
@@ -57,28 +60,14 @@ const AdminDashboard = () => {
 
   const checkN8nStatus = async () => {
     try {
-      const start = performance.now();
-      await fetch('http://localhost:5678/healthz', { 
-        method: 'GET',
-        mode: 'no-cors',
-        cache: 'no-cache',
-        signal: AbortSignal.timeout(3000) // 3 segundos timeout
+      const data = await n8nProxyStatus();
+      setN8nStatus({
+        connected: data?.connected ?? false,
+        ping: data?.ping ?? null,
+        loading: false,
       });
-      const end = performance.now();
-      const ping = Math.round(end - start);
-      
-      setN8nStatus({ 
-        connected: true, 
-        ping: ping || 42, 
-        loading: false 
-      });
-    } catch (error) {
-      console.error('Error al verificar estado de n8n:', error);
-      setN8nStatus({ 
-        connected: false, 
-        ping: null, 
-        loading: false 
-      });
+    } catch {
+      setN8nStatus({ connected: false, ping: null, loading: false });
     }
   };
 
@@ -95,32 +84,8 @@ const AdminDashboard = () => {
     }
   };
 
-  // Función para mostrar detalle de alerta
   const showAlertDetail = (alerta) => {
-    if (alerta.empleado_info) {
-      const emp = alerta.empleado_info;
-      alert(`DETALLE DEL EMPLEADO:
-
-Nombre: ${emp.nombre_completo}
-Email: ${emp.correo}
-Teléfono: ${emp.telefono}
-Área: ${emp.area}
-Cargo: ${emp.cargo}
-Dirección: ${emp.direccion}, ${emp.barrio}
-Ubicación: ${emp.municipio}, ${emp.departamento}
-Estado: ${emp.estado}
-Fecha Ingreso: ${emp.fecha_ingreso ? new Date(emp.fecha_ingreso).toLocaleDateString() : 'N/A'}
-
-Este usuario existe en el sistema y solicitó recuperar contraseña.`);
-    } else {
-      alert(`USUARIO NO REGISTRADO:
-
-Email: ${alerta.email}
-Nombre: ${alerta.nombre}
-Rol: ${alerta.rol}
-
-Este correo NO existe en el sistema.`);
-    }
+    if (alerta) setAlertDetail(alerta);
   };
 
   const fetchConcurrentUsers = async () => {
@@ -131,18 +96,25 @@ Este correo NO existe en el sistema.`);
   const fetchAllActivity = async () => {
     try {
       setLoading(true);
-      const actividad = await getActividadReciente();
-      
-      // Combinar activos (en línea), recientes (desconectados) y alertas de recuperación
-      const alertasData = alertasRecuperacion.map(alerta => ({
+      const [actividad, alertasResponse] = await Promise.all([
+        getActividadReciente(),
+        getAlertasRecuperacion(),
+      ]);
+
+      // Actualizar alertas desde la respuesta directa (evita race condition con estado)
+      const alertasList = alertasResponse?.alertas || [];
+      setAlertasRecuperacion(alertasList);
+      setAlertasCount(alertasResponse?.total || alertasList.length);
+
+      const alertasData = alertasList.map(alerta => ({
         id: alerta.id,
         name: alerta.nombre,
         role: alerta.rol,
         time: alerta.timestamp,
-        action: `Intento de recuperación: ${alerta.email}`,
+        action: `Recuperación: ${alerta.email}`,
         type: 'alert',
         estado: 'alerta',
-        email: alerta.email
+        email: alerta.email,
       }));
       
       const allActivity = [
@@ -401,6 +373,8 @@ Este correo NO existe en el sistema.`);
         return <N8nLogs />;
       case 'settings': 
         return <SystemSettings />;
+      case 'apikeys':
+        return <ApiKeyManager />;
       default:
         return <div className="animate-in fade-in slide-in-from-bottom-2 duration-500"><UserTable /></div>;
     }
@@ -412,6 +386,7 @@ Este correo NO existe en el sistema.`);
       case 'dashboard': return 'Panel General';
       case 'users': return 'Gestión de Personal';
       case 'tasks': return 'Calendario de Tareas';
+      case 'apikeys': return 'Gestión de API Keys';
       case 'logs': return 'Monitoreo de n8n';
       case 'settings': return 'Ajustes del Sistema';
       default: return 'Panel de Control';
@@ -453,6 +428,29 @@ Este correo NO existe en el sistema.`);
         onEliminar={handleEliminarAlerta}
         onChangePassword={openPasswordModal}
       />
+
+      {/* Modal de detalle de alerta */}
+      {alertDetail && (
+        <AlertDetailModal
+          alerta={alertDetail}
+          onClose={() => setAlertDetail(null)}
+          onMarcarTerminado={async () => {
+            await handleMarkAsRead(alertDetail.id);
+            setAlertDetail(null);
+          }}
+          onEliminar={async () => {
+            if (!confirm('¿Eliminar esta alerta permanentemente?')) return;
+            await eliminarAlerta(alertDetail.id);
+            fetchAlertsCount();
+            fetchAllActivity();
+            setAlertDetail(null);
+          }}
+          onChangePassword={(emp) => {
+            setAlertDetail(null);
+            openPasswordModal(emp);
+          }}
+        />
+      )}
 
       {/* Modal de Actualizar Contraseña */}
       <PasswordModal
@@ -776,6 +774,108 @@ const PasswordModal = ({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// --- MODAL DE DETALLE DE ALERTA ---
+
+const AlertDetailModal = ({ alerta, onClose, onMarcarTerminado, onEliminar, onChangePassword }) => {
+  const [procesando, setProcesando] = useState(false);
+  const emp = alerta.empleado_info;
+
+  const handleTerminar = async () => {
+    setProcesando(true);
+    await onMarcarTerminado();
+    setProcesando(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+
+        {/* Header */}
+        <div className={`px-6 pt-6 pb-5 border-b ${alerta.usuario_existe ? 'bg-red-50/60 border-red-100' : 'bg-amber-50/60 border-amber-100'}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-lg ${alerta.usuario_existe ? 'bg-red-500' : 'bg-amber-500'}`}>
+                {alerta.nombre?.charAt(0).toUpperCase() || '?'}
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-[#001e33]">{alerta.nombre || 'Desconocido'}</h3>
+                <p className="text-xs text-slate-500">{alerta.email}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${alerta.usuario_existe ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}>
+                {alerta.usuario_existe ? 'Usuario Existe' : 'No Registrado'}
+              </span>
+              <button onClick={onClose} className="p-2 hover:bg-white/60 rounded-xl transition-colors">
+                <X size={18} className="text-slate-400" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Cuerpo */}
+        <div className="p-6 space-y-4">
+
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <Clock size={13} />
+            Solicitado el {new Date(alerta.timestamp).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
+          </div>
+
+          {emp ? (
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'Área',       value: emp.area },
+                { label: 'Cargo',      value: emp.cargo },
+                { label: 'Teléfono',   value: emp.telefono },
+                { label: 'Estado',     value: emp.estado },
+                { label: 'Dirección',  value: emp.direccion },
+                { label: 'Municipio',  value: emp.municipio },
+              ].filter(f => f.value).map(f => (
+                <div key={f.label} className="px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{f.label}</p>
+                  <p className="text-xs font-semibold text-[#001e33] mt-0.5 truncate">{f.value}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="px-4 py-3 bg-amber-50 rounded-xl border border-amber-100">
+              <p className="text-xs text-amber-700 font-semibold">Este correo no está registrado en el sistema.</p>
+              {alerta.rol && <p className="text-[10px] text-amber-600 mt-0.5">Rol solicitado: {alerta.rol}</p>}
+            </div>
+          )}
+
+          {/* Acciones */}
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+            {alerta.usuario_existe && emp && (
+              <button
+                onClick={() => onChangePassword(emp)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#001e33] text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-colors"
+              >
+                <Lock size={13} /> Cambiar Contraseña
+              </button>
+            )}
+            <button
+              onClick={handleTerminar}
+              disabled={procesando}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white text-xs font-black rounded-xl hover:bg-emerald-600 disabled:opacity-50 transition-all shadow-sm shadow-emerald-100"
+            >
+              <CheckCircle size={13} />
+              {procesando ? 'Procesando...' : 'Marcar como Terminado'}
+            </button>
+            <button
+              onClick={onEliminar}
+              className="flex items-center gap-2 px-4 py-2.5 bg-red-100 text-red-700 text-xs font-bold rounded-xl hover:bg-red-200 ml-auto transition-colors"
+            >
+              <Trash2 size={13} /> Eliminar
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

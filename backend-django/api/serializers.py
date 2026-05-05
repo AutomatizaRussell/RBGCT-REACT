@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import DatosArea, DatosCargo, SuperAdmin, DatosEmpleado, TareasCalendario, SolicitudesPassword, ReglamentoItem, Curso, CursoContenido
+from .models import DatosArea, DatosCargo, SuperAdmin, DatosEmpleado, TareasCalendario, SolicitudesPassword, ReglamentoItem, Curso, CursoContenido, CursoHistorial, N8nLog, ApiKey
 
 class DatosAreaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,7 +16,7 @@ class DatosCargoSerializer(serializers.ModelSerializer):
 class SuperAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = SuperAdmin
-        fields = ['id', 'email', 'nombre', 'apellido', 'role', 'estado', 'created_at', 'last_login']
+        fields = ['id', 'email', 'nombre', 'apellido', 'role', 'estado', 'created_at', 'last_login', 'fecha_ingreso']
 
 
 class DatosEmpleadoSerializer(serializers.ModelSerializer):
@@ -95,10 +95,51 @@ class CursoContenidoSerializer(serializers.ModelSerializer):
 class CursoSerializer(serializers.ModelSerializer):
     contenidos = CursoContenidoSerializer(many=True, read_only=True)
     total_contenidos = serializers.SerializerMethodField()
+    nombre_area = serializers.CharField(source='area.nombre_area', read_only=True)
+    nombre_empleado = serializers.CharField(source='empleado_asignado.nombre_completo', read_only=True)
+    area_id = serializers.IntegerField(allow_null=True, required=False)
+    empleado_asignado_id = serializers.IntegerField(allow_null=True, required=False)
 
     class Meta:
         model = Curso
-        fields = ['id', 'nombre', 'descripcion', 'orden', 'activo', 'contenidos', 'total_contenidos', 'created_at', 'updated_at']
+        fields = ['id', 'nombre', 'descripcion', 'orden', 'activo', 'visibilidad', 'area', 'area_id', 'empleado_asignado', 'empleado_asignado_id', 'nombre_area', 'nombre_empleado', 'contenidos', 'total_contenidos', 'created_at', 'updated_at']
 
     def get_total_contenidos(self, obj):
         return obj.contenidos.count()
+
+
+class CursoHistorialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CursoHistorial
+        fields = ['id', 'curso', 'curso_nombre', 'accion', 'descripcion', 'usuario_nombre', 'created_at']
+
+
+class N8nLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = N8nLog
+        fields = ['id', 'workflow_name', 'status', 'message', 'destinatario', 'tipo_evento', 'response_data', 'created_at']
+
+
+class ApiKeySerializer(serializers.ModelSerializer):
+    """Serializer para API Keys - expone key completa solo al crear"""
+    key_visible = serializers.SerializerMethodField()
+    creado_por_nombre = serializers.CharField(source='creado_por.nombre', read_only=True)
+
+    class Meta:
+        model = ApiKey
+        fields = ['id', 'key', 'key_visible', 'nombre', 'descripcion', 'creado_por', 'creado_por_nombre',
+                  'created_at', 'last_used_at', 'uso_count', 'is_active', 'permisos', 'ip_permitidas']
+        read_only_fields = ['id', 'key', 'created_at', 'last_used_at', 'uso_count', 'creado_por']
+
+    def get_key_visible(self, obj):
+        """Muestra solo los primeros 8 caracteres de la key"""
+        return f"{obj.key[:8]}..." if obj.key else None
+
+    def to_representation(self, instance):
+        """Override para mostrar key completa solo en respuestas de creación"""
+        data = super().to_representation(instance)
+        # En listas/updates, ocultar la key completa
+        request = self.context.get('request')
+        if request and request.method not in ['POST', 'PUT']:
+            data.pop('key', None)
+        return data

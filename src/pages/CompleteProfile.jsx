@@ -35,6 +35,7 @@ const CompleteProfile = () => {
     
     // Paso 3: Datos personales
     fecha_nacimiento: empleadoData?.fecha_nacimiento || '',
+    fecha_ingreso: empleadoData?.fecha_ingreso || '',
     sexo: empleadoData?.sexo || '',
     tipo_sangre: empleadoData?.tipo_sangre || '',
     area_id: empleadoData?.area_id || '',
@@ -191,6 +192,7 @@ const CompleteProfile = () => {
         telefono_emergencia: formData.telefono_emergencia,
         direccion: formData.direccion,
         fecha_nacimiento: formData.fecha_nacimiento,
+        fecha_ingreso: formData.fecha_ingreso || null,
         sexo: formData.sexo,
         tipo_sangre: formData.tipo_sangre,
         area_id: formData.area_id ? parseInt(formData.area_id) : null,
@@ -409,7 +411,20 @@ const CompleteProfile = () => {
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
           />
         </div>
-        
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            <Calendar size={12} /> Fecha de Ingreso
+          </label>
+          <input
+            type="date"
+            name="fecha_ingreso"
+            value={formData.fecha_ingreso}
+            onChange={handleChange}
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+          />
+        </div>
+
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
             <User size={12} /> Sexo

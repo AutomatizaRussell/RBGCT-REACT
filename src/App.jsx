@@ -10,6 +10,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import Admin2Dashboard from './pages/Admin2Dashboard';
 import UserDashboard from './pages/UserDashboard';
 import EditorDashboard from './pages/EditorDashboard';
+import GestorPDFPage from './pages/GestorPDFPage';
 
 // Componentes comunes de Gestión de Usuarios
 import UserTable from './components/users/UserTable';
@@ -20,6 +21,10 @@ import AutoGestion from './components/users/AutoGestion';
 import UserProfile from './components/users/UserProfile';
 import ManualesCargo from './components/users/ManualesCargo';
 import ComunicadosInternos from './components/users/ComunicadosInternos';
+
+// Componentes de CURSOS
+import EditorCursos from './components/editor/EditorCursos';
+import EditorHistorial from './components/editor/EditorHistorial';
 
 // --- COMPONENTES LOCALES / PLACEHOLDERS ---
 const WelcomeUser = () => (
@@ -83,6 +88,10 @@ function App() {
           >
             <Route index element={<ContentList />} />
             <Route path="biblioteca" element={<MediaLibrary />} />
+            <Route path="tareas" element={<div />} />
+            <Route path="cursos" element={<EditorCursos />} />
+            <Route path="historial" element={<EditorHistorial />} />
+            <Route path="herramientas" element={<div />} />
             <Route path="perfil" element={<UserProfile />} />
           </Route>
 
@@ -100,6 +109,8 @@ function App() {
             <Route path="perfil" element={<UserProfile />} />
             <Route path="manuales" element={<ManualesCargo />} />
             <Route path="comunicados" element={<ComunicadosInternos />} />
+            <Route path="utilidades" element={<WelcomeUser />} />
+            <Route path="gestor-pdf" element={<GestorPDFPage />} />
           </Route>
 
           {/* 6. SEGURIDAD: Redirección por defecto */}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Edit2, Trash2, Mail, AlertTriangle, X, Check, Loader2, Search, Calendar, Briefcase, Activity } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { fetchApi } from '../../lib/api.js';
 
 const UserTable = () => {
   const [users, setUsers] = useState([]);
@@ -13,35 +13,36 @@ const UserTable = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-        const { data, error } = await supabase
-          .schema('rbgct')
-          .from('datos_empleado')
-          .select(`
-            id_empleado,
-            correo_corporativo,
-            fecha_ingreso,
-            estado,
-            datos_personales:id_personales (
-              id_cc,
-              nom_empleado,
-              ape_empleado,
-              telefono,
-              rh,
-              genero,
-              direccion
-            ),
-            administracion:id_admin (
-              id_rev,
-              nom_area,
-              salario
-            )
-          `);
-          
-      if (error) {
-        console.error('Error de Supabase:', error.message);
+      const data = await fetchApi('/empleados/');
+      
+      if (data.error) {
+        console.error('Error de API:', data.error);
         return;
       }
-      setUsers(data || []);
+      
+      // Transformar datos de la API al formato esperado por el componente
+      const transformedData = (data || []).map(emp => ({
+        id_empleado: emp.id_empleado,
+        correo_corporativo: emp.correo_corporativo,
+        fecha_ingreso: emp.fecha_ingreso,
+        estado: emp.estado,
+        datos_personales: {
+          id_cc: emp.documento,
+          nom_empleado: emp.primer_nombre,
+          ape_empleado: emp.primer_apellido,
+          telefono: emp.telefono,
+          rh: emp.rh,
+          genero: emp.genero,
+          direccion: emp.direccion
+        },
+        administracion: {
+          id_rev: emp.area?.id_area,
+          nom_area: emp.area?.nombre_area,
+          salario: emp.salario
+        }
+      }));
+      
+      setUsers(transformedData);
     } catch (err) {
       console.error('Error inesperado:', err);
     } finally {
@@ -55,14 +56,15 @@ const UserTable = () => {
 
   const handleDelete = async (id) => {
     try {
-      const { error } = await supabase
-        .schema('rbgct')
-        .from('datos_personales')
-        .delete()
-        .eq('id_cc', id);
+      const userToDelete = users.find(u => u.datos_personales?.id_cc === id);
+      if (!userToDelete) return;
+      
+      const response = await fetchApi(`/empleados/${userToDelete.id_empleado}/`, {
+        method: 'DELETE'
+      });
 
-      if (error) throw error;
-      setUsers(users.filter(user => user.datos_personales.id_cc !== id));
+      if (response.error) throw new Error(response.error);
+      setUsers(users.filter(user => user.datos_personales?.id_cc !== id));
       setDeletingUser(null);
     } catch (err) {
       alert("Error al eliminar: " + err.message);
@@ -77,32 +79,21 @@ const UserTable = () => {
     const form = Object.fromEntries(formData);
 
     try {
-      // Update datos_personales
-      const { error: err1 } = await supabase
-        .schema('rbgct')
-        .from('datos_personales')
-        .update({
-          nom_empleado: form.nom_empleado,
-          ape_empleado: form.ape_empleado,
+      const response = await fetchApi(`/empleados/${editingUser.id_empleado}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          primer_nombre: form.nom_empleado,
+          primer_apellido: form.ape_empleado,
           telefono: form.telefono,
           rh: form.rh,
-          genero: form.genero
-        })
-        .eq('id_cc', editingUser.datos_personales.id_cc);
-
-      if (err1) throw err1;
-
-      // Update datos_empleado
-      const { error: err2 } = await supabase
-        .schema('rbgct')
-        .from('datos_empleado')
-        .update({
+          genero: form.genero,
           correo_corporativo: form.correo_corporativo,
           estado: form.estado
         })
-        .eq('id_empleado', editingUser.id_empleado);
+      });
 
-      if (err2) throw err2;
+      if (response.error) throw new Error(response.error);
 
       await fetchUsers();
       setEditingUser(null);

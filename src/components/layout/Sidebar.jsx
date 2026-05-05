@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Database, Settings, LogOut, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, Users, Database, Settings, LogOut, CalendarDays, Key } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -79,6 +79,15 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
           }`}
         >
           <Settings size={18}/> Ajustes Sistema
+        </button>
+
+        <button 
+          onClick={() => handleNavigation('apikeys')}
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
+            activeTab === 'apikeys' ? 'bg-white/10 text-white shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Key size={18}/> API Keys
         </button>
       </nav>
 

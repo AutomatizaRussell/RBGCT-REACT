@@ -12,6 +12,9 @@ router.register(r'solicitudes-password', views.SolicitudesPasswordViewSet)
 router.register(r'reglamento', views.ReglamentoItemViewSet)
 router.register(r'cursos', views.CursoViewSet)
 router.register(r'curso-contenido', views.CursoContenidoViewSet)
+router.register(r'curso-historial', views.CursoHistorialViewSet)
+router.register(r'n8n-logs', views.N8nLogViewSet)
+router.register(r'api-keys', views.ApiKeyViewSet)
 
 urlpatterns = [
     # Actualizar contraseña de empleado - ANTES del router para prioridad
@@ -31,10 +34,22 @@ urlpatterns = [
     # Verificación de email con código
     path('enviar-codigo/', views.enviar_codigo_verificacion, name='enviar_codigo'),
     path('verificar-codigo/', views.verificar_codigo_login, name='verificar_codigo'),
+    # Recuperación de contraseña (olvide contraseña)
+    path('recuperar-password/', views.solicitar_recuperacion_password, name='solicitar_recuperacion'),
+    path('verificar-codigo-recuperacion/', views.verificar_codigo_recuperacion, name='verificar_codigo_recuperacion'),
+    path('restablecer-password/', views.restablecer_password, name='restablecer_password'),
     # Actividad reciente de usuarios
     path('actividad-reciente/', views.actividad_reciente, name='actividad_reciente'),
     # Mantener sesión activa (heartbeat)
     path('ping/', views.ping_actividad, name='ping_actividad'),
     # JWT
     path('token/refresh/', views.refresh_token_view, name='token_refresh'),
+    # Proxy n8n (server-side, sin CORS)
+    path('n8n-proxy/', views.n8n_proxy, name='n8n_proxy'),
+    # MarkItDown - Convertir archivos a Markdown
+    path('convertir-markdown/', views.convertir_markdown, name='convertir_markdown'),
+    # Convertidor de archivos (PDF, Excel, Word, etc.)
+    path('convertir-archivo/', views.convertir_archivo, name='convertir_archivo'),
+    # Gestor de PDFs (fusionar, dividir, rotar, etc.)
+    path('gestor-pdf/', views.gestor_pdf, name='gestor_pdf'),
 ]

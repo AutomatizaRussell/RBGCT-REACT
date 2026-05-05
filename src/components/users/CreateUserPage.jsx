@@ -47,6 +47,7 @@ const CreateUserPage = () => {
     telefono: '',
     telefono_emergencia: '',
     fecha_nacimiento: '',
+    fecha_ingreso: '',
     direccion: '',
     sexo: '',
     tipo_sangre: '',
@@ -157,6 +158,7 @@ const CreateUserPage = () => {
           telefono: formData.telefono,
           telefono_emergencia: formData.telefono_emergencia,
           fecha_nacimiento: formData.fecha_nacimiento,
+          fecha_ingreso: formData.fecha_ingreso,
           direccion: formData.direccion,
           sexo: formData.sexo,
           tipo_sangre: formData.tipo_sangre,
@@ -450,6 +452,20 @@ const CreateUserPage = () => {
                       onChange={handleChange}
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. López" 
+                    />
+                  </div>
+
+                  {/* FECHA DE INGRESO */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                      <Briefcase size={12} /> Fecha de Ingreso
+                    </label>
+                    <input 
+                      type="date"
+                      name="fecha_ingreso"
+                      value={formData.fecha_ingreso}
+                      onChange={handleChange}
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
                     />
                   </div>
 

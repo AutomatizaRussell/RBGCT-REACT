@@ -6,22 +6,28 @@ import {
   KeyRound, Check, X, Eye, Trash2, CheckCircle,
   AlertTriangle, ClipboardList, FileBarChart,
   Wrench, BookOpen, Settings, Plus, Building2, Briefcase,
-  ShieldCheck, Lock, Info, Pencil
+  ShieldCheck, Lock, Info, Pencil,
+  TrendingUp, RefreshCw, Calendar, Bell, UserX,
+  CheckCircle2, Clock, BarChart2, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import {
   getAllEmpleados,
+  getAllTareas,
   getActividadReciente,
   getAlertasRecuperacion,
   atenderAlerta,
   eliminarAlerta,
   getAllAreas,
   createArea,
+  updateArea,
   deleteArea,
   getAllCargos,
   createCargo,
+  updateCargo,
   deleteCargo,
   habilitarEdicionDatos,
+  actualizarPasswordEmpleado,
   getAllReglamento,
   createReglamentoItem,
   updateReglamentoItem,
@@ -44,13 +50,35 @@ const Admin2Dashboard = () => {
   const [alertasRecuperacion, setAlertasRecuperacion] = useState([]);
   const [showAlertasModal, setShowAlertasModal] = useState(false);
   const [concurrentUsers, setConcurrentUsers] = useState(0);
+  const [taskStats, setTaskStats] = useState({ pending: 0, inProgress: 0, completed: 0, total: 0 });
+  const [areaStats, setAreaStats] = useState([]);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
   const { user } = useAuth();
 
   const fetchStats = async () => {
     try {
-      const empleados = await getAllEmpleados();
+      const [empleados, tareas] = await Promise.all([getAllEmpleados(), getAllTareas()]);
       const activos = empleados.filter(e => e.estado === 'ACTIVA');
       setEmployeeStats({ totalCount: empleados.length, activeCount: activos.length, loading: false });
+
+      // Tareas
+      const pending    = tareas.filter(t => t.estado === 'pendiente').length;
+      const inProgress = tareas.filter(t => t.estado === 'en_proceso').length;
+      const completed  = tareas.filter(t => t.estado === 'completada').length;
+      setTaskStats({ pending, inProgress, completed, total: tareas.length });
+
+      // Distribución por área
+      const areaMap = {};
+      activos.forEach(e => {
+        const nombre = e.nombre_area || 'Sin área';
+        areaMap[nombre] = (areaMap[nombre] || 0) + 1;
+      });
+      const sorted = Object.entries(areaMap)
+        .map(([nombre, count]) => ({ nombre, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6);
+      setAreaStats(sorted);
+      setLastRefresh(new Date());
     } catch (err) {
       console.error('Error stats:', err);
       setEmployeeStats({ totalCount: 0, activeCount: 0, loading: false });
@@ -187,56 +215,232 @@ const Admin2Dashboard = () => {
           </div>
         );
       case 'dashboard':
-      default:
+      default: {
+        const inactivos = employeeStats.totalCount - employeeStats.activeCount;
+        const maxArea = areaStats[0]?.count || 1;
+        const hora = new Date().getHours();
+        const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
+        const adminName = user?.primer_nombre
+          ? `${user.primer_nombre}${user.primer_apellido ? ' ' + user.primer_apellido : ''}`
+          : 'Administrador';
+
         return (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              <StatCard
-                label="Personal Registrado"
-                value={employeeStats.loading ? '...' : employeeStats.totalCount.toString()}
-                icon={<Users size={18}/>}
-                subtext={`${employeeStats.activeCount} activos en sistema`}
-              />
-              <StatCard
-                label="Usuarios en Línea"
-                value={concurrentUsers.toString()}
-                icon={<Activity size={18} className="text-emerald-600"/>}
-                subtext="Activos (últimos 10 min)"
-                color="text-emerald-600"
-              />
-              <div
-                onClick={() => alertasCount > 0 && setShowAlertasModal(true)}
-                className={alertasCount > 0 ? 'cursor-pointer' : ''}
-              >
-                <StatCard
-                  label="Alertas del Sistema"
-                  value={alertasCount.toString()}
-                  icon={<ShieldAlert size={18} className={alertasCount > 0 ? 'text-red-500' : ''}/>}
-                  subtext={alertasCount > 0 ? `${alertasCount} solicitudes pendientes` : 'Sin incidentes'}
-                  color={alertasCount > 0 ? 'text-red-600' : 'text-[#001e33]'}
-                />
+          <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+
+            {/* Saludo */}
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Panel Administrativo</p>
+                <h2 className="text-2xl font-bold text-[#001e33]">{saludo}, {adminName}</h2>
+                <p className="text-sm text-slate-400 mt-1">
+                  Tienes <span className="font-bold text-amber-500">{taskStats.pending} tarea{taskStats.pending !== 1 ? 's' : ''} pendiente{taskStats.pending !== 1 ? 's' : ''}</span> y{' '}
+                  <span className={`font-bold ${alertasCount > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                    {alertasCount > 0 ? `${alertasCount} alerta${alertasCount !== 1 ? 's' : ''} activa${alertasCount !== 1 ? 's' : ''}` : 'sin alertas'}
+                  </span>
+                </p>
               </div>
-              <StatCard
-                label="Reportes"
-                value="Gestión"
-                icon={<FileBarChart size={18}/>}
-                subtext="Panel operativo activo"
+              <p className="text-xs text-slate-400 hidden lg:block">
+                Actualizado: {lastRefresh.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+              <KpiCard
+                label="Personal Total"
+                value={employeeStats.loading ? '…' : employeeStats.totalCount}
+                sub={`${employeeStats.activeCount} activos · ${inactivos} inactivos`}
+                icon={<Users size={20}/>}
+                iconBg="bg-blue-50" iconColor="text-blue-600"
+                accent="border-l-blue-400"
+              />
+              <KpiCard
+                label="En Línea Ahora"
+                value={concurrentUsers}
+                sub="Últimos 10 minutos"
+                icon={<Activity size={20}/>}
+                iconBg="bg-emerald-50" iconColor="text-emerald-600"
+                accent="border-l-emerald-400"
+                highlight
+              />
+              <KpiCard
+                label="Tareas Activas"
+                value={taskStats.inProgress}
+                sub={`${taskStats.pending} pendientes · ${taskStats.completed} listas`}
+                icon={<ClipboardList size={20}/>}
+                iconBg="bg-amber-50" iconColor="text-amber-600"
+                accent="border-l-amber-400"
+              />
+              <KpiCard
+                label="Alertas"
+                value={alertasCount}
+                sub={alertasCount > 0 ? 'Click para gestionar' : 'Sistema sin incidentes'}
+                icon={<ShieldAlert size={20}/>}
+                iconBg={alertasCount > 0 ? 'bg-red-50' : 'bg-slate-50'}
+                iconColor={alertasCount > 0 ? 'text-red-500' : 'text-slate-400'}
+                accent={alertasCount > 0 ? 'border-l-red-400' : 'border-l-slate-200'}
+                onClick={() => alertasCount > 0 && setShowAlertasModal(true)}
+                clickable={alertasCount > 0}
               />
             </div>
 
-            {/* Actividad + Acciones */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
-                <div className="mb-8 pb-4 border-b border-slate-100">
-                  <h3 className="font-bold text-lg text-[#001e33]">Actividad Reciente</h3>
-                  <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-tight">Usuarios en línea y alertas en tiempo real</p>
+            {/* Fila principal */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+              {/* Distribución por área */}
+              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="font-bold text-[#001e33]">Distribución por Área</h3>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mt-0.5">Empleados activos</p>
+                  </div>
+                  <div className="p-2.5 bg-blue-50 rounded-xl"><BarChart2 size={16} className="text-blue-600"/></div>
                 </div>
-                <div className="space-y-1">
+                {areaStats.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-400">No hay datos de áreas aún</div>
+                ) : (
+                  <div className="space-y-4">
+                    {areaStats.map((a, i) => {
+                      const pct = Math.round((a.count / maxArea) * 100);
+                      const colors = ['bg-blue-500','bg-emerald-500','bg-violet-500','bg-amber-500','bg-rose-500','bg-cyan-500'];
+                      return (
+                        <div key={i}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-semibold text-slate-700 truncate max-w-[55%]">{a.nombre}</span>
+                            <span className="text-xs font-black text-slate-500">{a.count} empleado{a.count !== 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-700 ${colors[i % colors.length]}`}
+                              style={{ width: `${pct}%` }}/>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Estado del equipo + Acciones */}
+              <div className="space-y-5">
+                {/* Donut visual estado */}
+                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+                  <h3 className="font-bold text-[#001e33] mb-4 text-sm">Estado del Equipo</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-20 h-20 flex-shrink-0">
+                      <svg viewBox="0 0 36 36" className="w-20 h-20 -rotate-90">
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f1f5f9" strokeWidth="3.5"/>
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#10b981" strokeWidth="3.5"
+                          strokeDasharray={`${employeeStats.totalCount > 0 ? (employeeStats.activeCount / employeeStats.totalCount * 100) : 0} 100`}
+                          strokeLinecap="round"/>
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-lg font-black text-[#001e33]">
+                          {employeeStats.totalCount > 0 ? Math.round(employeeStats.activeCount / employeeStats.totalCount * 100) : 0}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0"/>
+                          <span className="text-xs text-slate-600">Activos</span>
+                        </div>
+                        <span className="text-sm font-black text-emerald-600">{employeeStats.activeCount}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-slate-300 flex-shrink-0"/>
+                          <span className="text-xs text-slate-600">Inactivos</span>
+                        </div>
+                        <span className="text-sm font-black text-slate-500">{inactivos}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"/>
+                          <span className="text-xs text-slate-600">En línea</span>
+                        </div>
+                        <span className="text-sm font-black text-emerald-500">{concurrentUsers}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Acciones rápidas */}
+                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+                  <h3 className="font-bold text-[#001e33] mb-4 text-sm">Acciones Rápidas</h3>
+                  <div className="space-y-2">
+                    {[
+                      { label: 'Gestionar Personal',  icon: <Users size={14}/>,       tab: 'users',    color: 'hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200' },
+                      { label: 'Calendario Tareas',   icon: <Calendar size={14}/>,    tab: 'tasks',    color: 'hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200' },
+                      { label: 'Herramientas',        icon: <Wrench size={14}/>,      tab: 'herramientas', color: 'hover:bg-violet-50 hover:text-violet-700 hover:border-violet-200' },
+                      { label: 'Reglamento',          icon: <BookOpen size={14}/>,    tab: 'reglamento', color: 'hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200' },
+                    ].map(a => (
+                      <button key={a.tab} onClick={() => setActiveTab(a.tab)}
+                        className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 bg-slate-50 border border-transparent transition-all ${a.color}`}>
+                        <span className="flex items-center gap-2">{a.icon} {a.label}</span>
+                        <ArrowRight size={12} className="opacity-40"/>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Fila inferior: Tareas + Actividad */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+              {/* Resumen de tareas */}
+              <div className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                  <h3 className="font-bold text-[#001e33]">Resumen de Tareas</h3>
+                  <button onClick={() => setActiveTab('tasks')}
+                    className="text-[10px] font-bold text-slate-400 hover:text-[#001e33] uppercase tracking-widest transition-colors flex items-center gap-1">
+                    Ver todo <ArrowRight size={10}/>
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {[
+                    { label: 'Pendientes',   count: taskStats.pending,    color: 'bg-amber-400',   textColor: 'text-amber-600',   icon: <Clock size={14}/> },
+                    { label: 'En Proceso',   count: taskStats.inProgress, color: 'bg-blue-400',    textColor: 'text-blue-600',    icon: <Activity size={14}/> },
+                    { label: 'Completadas',  count: taskStats.completed,  color: 'bg-emerald-400', textColor: 'text-emerald-600', icon: <CheckCircle2 size={14}/> },
+                  ].map(t => (
+                    <div key={t.label} className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg bg-slate-50 ${t.textColor}`}>{t.icon}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold text-slate-600">{t.label}</span>
+                          <span className={`text-sm font-black ${t.textColor}`}>{t.count}</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${t.color} transition-all duration-700`}
+                            style={{ width: taskStats.total > 0 ? `${(t.count / taskStats.total * 100)}%` : '0%' }}/>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t border-slate-50 flex justify-between items-center">
+                    <span className="text-xs text-slate-400">Total registradas</span>
+                    <span className="text-sm font-black text-[#001e33]">{taskStats.total}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actividad reciente */}
+              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="font-bold text-[#001e33]">Actividad Reciente</h3>
+                    <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-tight mt-0.5">
+                      {concurrentUsers} usuario{concurrentUsers !== 1 ? 's' : ''} en línea ahora
+                    </p>
+                  </div>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"/>
+                </div>
+                <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
                   {loading ? (
-                    <div className="py-10 text-center text-xs text-slate-400 animate-pulse">Sincronizando...</div>
+                    <div className="py-8 text-center text-xs text-slate-400 animate-pulse">Sincronizando...</div>
                   ) : recentActivity.length > 0 ? (
-                    recentActivity.map((item, idx) => (
+                    recentActivity.slice(0, 10).map((item, idx) => (
                       <RecentUserRow
                         key={idx}
                         name={item.name}
@@ -250,41 +454,17 @@ const Admin2Dashboard = () => {
                       />
                     ))
                   ) : (
-                    <div className="py-12 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-50 rounded-2xl">
-                      <Users size={24} className="opacity-20 mb-2"/>
+                    <div className="py-10 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-50 rounded-2xl">
+                      <Users size={24} className="mb-2"/>
                       <p className="text-[10px] font-bold uppercase tracking-widest">Sin actividad reciente</p>
                     </div>
                   )}
                 </div>
               </div>
-
-              <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm flex flex-col gap-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-slate-100 rounded-xl"><ClipboardList size={20}/></div>
-                  <h3 className="font-bold text-[#001e33]">Gestión Rápida</h3>
-                </div>
-                <div className="space-y-3">
-                  <ActionButton
-                    label="Ver Personal"
-                    icon={<Users size={14}/>}
-                    primary
-                    onClick={() => setActiveTab('users')}
-                  />
-                  <ActionButton
-                    label="Calendario Tareas"
-                    icon={<ClipboardList size={14}/>}
-                    onClick={() => setActiveTab('tasks')}
-                  />
-                  <ActionButton
-                    label="Mi Perfil"
-                    icon={<UserCheck size={14}/>}
-                    onClick={() => setActiveTab('profile')}
-                  />
-                </div>
-              </div>
             </div>
           </div>
         );
+      }
     }
   };
 
@@ -306,14 +486,44 @@ const Admin2Dashboard = () => {
       <Admin2Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-20 bg-white border-b border-slate-100 flex items-center px-10 shadow-sm relative z-10">
+        <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-10 shadow-sm relative z-10">
           <div>
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5">Gestión Administrativa</p>
             <h2 className="text-xl font-black text-[#001e33] tracking-tight">{getHeaderTitle()}</h2>
           </div>
+          <div className="flex items-center gap-4">
+            {activeTab === 'dashboard' && (
+              <button onClick={() => { fetchStats(); fetchAlertsCount(); fetchAllActivity(); }}
+                className="p-2 text-slate-400 hover:text-[#001e33] hover:bg-slate-100 rounded-xl transition-all" title="Actualizar datos">
+                <RefreshCw size={16}/>
+              </button>
+            )}
+            <button onClick={() => alertasCount > 0 && setShowAlertasModal(true)}
+              className="relative p-2 text-slate-400 hover:text-[#001e33] hover:bg-slate-100 rounded-xl transition-all">
+              <Bell size={18}/>
+              {alertasCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] font-black flex items-center justify-center">
+                  {alertasCount}
+                </span>
+              )}
+            </button>
+            <div className="flex items-center gap-3 pl-4 border-l border-slate-100">
+              <div className="text-right">
+                <p className="text-sm font-bold text-[#001e33]">
+                  {user?.primer_nombre ? `${user.primer_nombre} ${user.primer_apellido || ''}` : 'Administrador'}
+                </p>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  {new Date().toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-[#001e33] rounded-xl flex items-center justify-center text-white font-black text-sm">
+                {user?.primer_nombre?.charAt(0) || 'A'}
+              </div>
+            </div>
+          </div>
         </header>
 
-        <div className="p-10 overflow-auto flex-1">
+        <div className="p-8 overflow-auto flex-1">
           {renderContent()}
         </div>
       </main>
@@ -331,6 +541,24 @@ const Admin2Dashboard = () => {
 };
 
 // ── Sub-componentes ────────────────────────────────────────────────────────────
+
+const KpiCard = ({ label, value, sub, icon, iconBg, iconColor, accent, highlight, onClick, clickable }) => (
+  <div
+    onClick={onClick}
+    className={`bg-white rounded-xl border border-slate-100 p-5 shadow-sm transition-all duration-300
+      ${clickable ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : 'hover:shadow-md'}`}
+  >
+    <div className="flex items-start justify-between mb-3">
+      <div className={`p-2 rounded-lg ${iconBg}`}>
+        <span className={iconColor}>{icon}</span>
+      </div>
+      {highlight && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mt-1"/>}
+    </div>
+    <p className="text-2xl font-bold text-[#001e33] leading-none mb-1.5">{value}</p>
+    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest truncate">{label}</p>
+    <p className="text-[10px] text-slate-400 mt-0.5 truncate">{sub}</p>
+  </div>
+);
 
 const StatCard = ({ label, value, icon, subtext, color = 'text-[#001e33]' }) => (
   <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all duration-300">
@@ -398,7 +626,7 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}/>
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-red-50/50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-100 rounded-xl"><AlertTriangle className="text-red-600" size={24}/></div>
@@ -497,12 +725,20 @@ const HerramientasTab = () => {
   const [newArea, setNewArea] = useState('');
   const [newCargo, setNewCargo] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingAreaId, setEditingAreaId] = useState(null);
+  const [editAreaName, setEditAreaName] = useState('');
+  const [editingCargoId, setEditingCargoId] = useState(null);
+  const [editCargoName, setEditCargoName] = useState('');
+  const [empleadosPorArea, setEmpleadosPorArea] = useState({});
 
   const fetchData = async () => {
     try {
-      const [a, c] = await Promise.all([getAllAreas(), getAllCargos()]);
+      const [a, c, emps] = await Promise.all([getAllAreas(), getAllCargos(), getAllEmpleados()]);
       setAreas(a);
       setCargos(c);
+      const areaCount = {};
+      emps.forEach(e => { if (e.nombre_area) areaCount[e.nombre_area] = (areaCount[e.nombre_area] || 0) + 1; });
+      setEmpleadosPorArea(areaCount);
     } catch (err) {
       console.error('Error cargando herramientas:', err);
     } finally {
@@ -523,6 +759,17 @@ const HerramientasTab = () => {
       alert('Error: ' + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveArea = async (id) => {
+    if (!editAreaName.trim()) return;
+    try {
+      await updateArea(id, { nombre_area: editAreaName.trim() });
+      setEditingAreaId(null);
+      fetchData();
+    } catch (err) {
+      alert('Error: ' + err.message);
     }
   };
 
@@ -547,6 +794,17 @@ const HerramientasTab = () => {
       alert('Error: ' + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveCargo = async (id) => {
+    if (!editCargoName.trim()) return;
+    try {
+      await updateCargo(id, { nombre_cargo: editCargoName.trim() });
+      setEditingCargoId(null);
+      fetchData();
+    } catch (err) {
+      alert('Error: ' + err.message);
     }
   };
 
@@ -585,19 +843,49 @@ const HerramientasTab = () => {
         loading
           ? <div className="py-20 text-center text-sm text-slate-400 animate-pulse">Cargando...</div>
           : <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
+
+              {/* Áreas */}
+              <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
                   <div className="p-3 bg-blue-50 rounded-xl"><Building2 size={20} className="text-blue-600"/></div>
-                  <div><h3 className="font-bold text-[#001e33]">Áreas</h3>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">{areas.length} registradas</p></div>
+                  <div>
+                    <h3 className="font-bold text-[#001e33]">Áreas</h3>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">{areas.length} registradas</p>
+                  </div>
                 </div>
-                <div className="space-y-2 mb-6 max-h-64 overflow-y-auto pr-1">
+                <div className="space-y-2 mb-6 max-h-72 overflow-y-auto pr-1">
                   {areas.length === 0
                     ? <p className="text-xs text-slate-400 text-center py-4">Sin áreas registradas</p>
                     : areas.map(a => (
-                        <div key={a.id} className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
-                          <span className="text-sm font-medium text-[#001e33]">{a.nombre_area}</span>
-                          <button onClick={() => handleDeleteArea(a.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={14}/></button>
+                        <div key={a.id}>
+                          {editingAreaId === a.id ? (
+                            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-xl border border-blue-200">
+                              <input
+                                autoFocus
+                                value={editAreaName}
+                                onChange={e => setEditAreaName(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') handleSaveArea(a.id); if (e.key === 'Escape') setEditingAreaId(null); }}
+                                className="flex-1 bg-transparent text-sm font-medium focus:outline-none text-[#001e33]"
+                              />
+                              <button onClick={() => handleSaveArea(a.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-all"><Check size={14}/></button>
+                              <button onClick={() => setEditingAreaId(null)} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded-lg transition-all"><X size={14}/></button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl border border-slate-100 group">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="text-sm font-medium text-[#001e33] truncate">{a.nombre_area}</span>
+                                {empleadosPorArea[a.nombre_area] > 0 && (
+                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold flex-shrink-0">
+                                    {empleadosPorArea[a.nombre_area]}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => { setEditingAreaId(a.id); setEditAreaName(a.nombre_area); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Pencil size={13}/></button>
+                                <button onClick={() => handleDeleteArea(a.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={13}/></button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))
                   }
@@ -608,19 +896,42 @@ const HerramientasTab = () => {
                   <button onClick={handleAddArea} disabled={saving || !newArea.trim()} className="px-4 py-2.5 bg-[#001e33] text-white rounded-xl hover:bg-slate-800 disabled:opacity-40 transition-all"><Plus size={16}/></button>
                 </div>
               </div>
-              <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
+
+              {/* Cargos */}
+              <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
                   <div className="p-3 bg-emerald-50 rounded-xl"><Briefcase size={20} className="text-emerald-600"/></div>
-                  <div><h3 className="font-bold text-[#001e33]">Cargos</h3>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">{cargos.length} registrados</p></div>
+                  <div>
+                    <h3 className="font-bold text-[#001e33]">Cargos</h3>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">{cargos.length} registrados</p>
+                  </div>
                 </div>
-                <div className="space-y-2 mb-6 max-h-64 overflow-y-auto pr-1">
+                <div className="space-y-2 mb-6 max-h-72 overflow-y-auto pr-1">
                   {cargos.length === 0
                     ? <p className="text-xs text-slate-400 text-center py-4">Sin cargos registrados</p>
                     : cargos.map(c => (
-                        <div key={c.id} className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
-                          <span className="text-sm font-medium text-[#001e33]">{c.nombre_cargo}</span>
-                          <button onClick={() => handleDeleteCargo(c.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={14}/></button>
+                        <div key={c.id}>
+                          {editingCargoId === c.id ? (
+                            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-xl border border-emerald-200">
+                              <input
+                                autoFocus
+                                value={editCargoName}
+                                onChange={e => setEditCargoName(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') handleSaveCargo(c.id); if (e.key === 'Escape') setEditingCargoId(null); }}
+                                className="flex-1 bg-transparent text-sm font-medium focus:outline-none text-[#001e33]"
+                              />
+                              <button onClick={() => handleSaveCargo(c.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-all"><Check size={14}/></button>
+                              <button onClick={() => setEditingCargoId(null)} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded-lg transition-all"><X size={14}/></button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl border border-slate-100 group">
+                              <span className="text-sm font-medium text-[#001e33]">{c.nombre_cargo}</span>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => { setEditingCargoId(c.id); setEditCargoName(c.nombre_cargo); }} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><Pencil size={13}/></button>
+                                <button onClick={() => handleDeleteCargo(c.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={13}/></button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))
                   }
@@ -722,7 +1033,7 @@ const ReglamentoTab = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-3xl border border-slate-100 p-7 shadow-sm flex items-center justify-between">
+      <div className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-indigo-50 rounded-xl"><BookOpen size={22} className="text-indigo-600"/></div>
           <div>
@@ -740,7 +1051,7 @@ const ReglamentoTab = () => {
 
       {/* Formulario de nueva sección */}
       {adding && (
-        <div className="bg-indigo-50/50 border border-indigo-100 rounded-3xl p-7 space-y-4">
+        <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-7 space-y-4">
           <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-2">Nueva Sección</p>
           <input
             autoFocus
@@ -776,7 +1087,7 @@ const ReglamentoTab = () => {
 
       {/* Lista de secciones */}
       {items.length === 0 && !adding ? (
-        <div className="bg-white rounded-3xl border-2 border-dashed border-slate-100 p-16 text-center">
+        <div className="bg-white rounded-xl border-2 border-dashed border-slate-100 p-16 text-center">
           <BookOpen size={32} className="mx-auto text-slate-300 mb-3"/>
           <p className="text-sm text-slate-400 font-medium">No hay secciones en el reglamento.</p>
           <p className="text-xs text-slate-300 mt-1">Haz clic en "Agregar Sección" para comenzar.</p>
@@ -784,7 +1095,7 @@ const ReglamentoTab = () => {
       ) : (
         <div className="space-y-4">
           {items.map((item, idx) => (
-            <div key={item.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+            <div key={item.id} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
               {editingId === item.id ? (
                 <div className="p-7 space-y-4 bg-amber-50/30 border-l-4 border-amber-400">
                   <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Editando sección</p>
@@ -878,132 +1189,270 @@ const ReglamentoTab = () => {
 // ── ConfiguracionesTab ─────────────────────────────────────────────────────────
 
 const ConfiguracionesTab = ({ user }) => {
+  const [seccion, setSeccion] = useState('cuenta');
   const [empleados, setEmpleados] = useState([]);
-  const [selectedEmpleado, setSelectedEmpleado] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
+  const [miPerfil, setMiPerfil] = useState(null);
+
+  const [selEmpPerm, setSelEmpPerm] = useState('');
+  const [adminPassPerm, setAdminPassPerm] = useState('');
   const [habilitar, setHabilitar] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState(null);
+  const [savingPerm, setSavingPerm] = useState(false);
+  const [resultPerm, setResultPerm] = useState(null);
+
+  const [selEmpPass, setSelEmpPass] = useState('');
+  const [newPass, setNewPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [adminPassReset, setAdminPassReset] = useState('');
+  const [savingPass, setSavingPass] = useState(false);
+  const [resultPass, setResultPass] = useState(null);
+  const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
-    getAllEmpleados().then(setEmpleados).catch(() => {});
-  }, []);
+    getAllEmpleados().then(data => {
+      setEmpleados(data);
+      // Buscar el empleado asociado al correo del admin
+      const adminEmail = user?.correo_corporativo || user?.email;
+      const perfil = data.find(emp => 
+        emp.correo_corporativo === adminEmail || emp.email === adminEmail
+      );
+      if (perfil) setMiPerfil(perfil);
+    }).catch(() => {});
+  }, [user]);
+
+  const adminEmail = user?.correo_corporativo || user?.email || '—';
+  // Usar datos del perfil de empleado si existe, sino los del user
+  const adminNombre = miPerfil?.primer_nombre
+    ? `${miPerfil.primer_nombre} ${miPerfil.primer_apellido || ''}`.trim()
+    : user?.primer_nombre
+      ? `${user.primer_nombre} ${user.primer_apellido || ''}`.trim()
+      : 'Administrador';
 
   const handleHabilitarEdicion = async () => {
-    if (!selectedEmpleado || !adminPassword) {
-      setResult({ ok: false, msg: 'Selecciona un empleado e ingresa tu contraseña.' });
+    if (!selEmpPerm || !adminPassPerm) {
+      setResultPerm({ ok: false, msg: 'Selecciona un empleado e ingresa tu contraseña.' });
       return;
     }
-    setSaving(true);
-    setResult(null);
+    setSavingPerm(true);
+    setResultPerm(null);
     try {
-      const adminEmail = user?.correo_corporativo || user?.email;
-      await habilitarEdicionDatos(adminEmail, adminPassword, parseInt(selectedEmpleado), habilitar);
-      setResult({ ok: true, msg: `Edición de datos ${habilitar ? 'habilitada' : 'deshabilitada'} correctamente.` });
-      setAdminPassword('');
+      await habilitarEdicionDatos(adminEmail, adminPassPerm, parseInt(selEmpPerm), habilitar);
+      setResultPerm({ ok: true, msg: `Edición de datos ${habilitar ? 'habilitada' : 'deshabilitada'} correctamente.` });
+      setAdminPassPerm('');
     } catch (err) {
-      setResult({ ok: false, msg: err.message });
+      setResultPerm({ ok: false, msg: err.message });
     } finally {
-      setSaving(false);
+      setSavingPerm(false);
     }
   };
 
-  const adminEmail = user?.correo_corporativo || user?.email || '—';
-  const adminNombre = user?.primer_nombre ? `${user.primer_nombre} ${user.primer_apellido}` : 'Administrador';
+  const handleResetPassword = async () => {
+    if (!selEmpPass || !newPass || !confirmPass || !adminPassReset) {
+      setResultPass({ ok: false, msg: 'Completa todos los campos.' });
+      return;
+    }
+    if (newPass !== confirmPass) {
+      setResultPass({ ok: false, msg: 'Las contraseñas no coinciden.' });
+      return;
+    }
+    if (newPass.length < 8) {
+      setResultPass({ ok: false, msg: 'La contraseña debe tener al menos 8 caracteres.' });
+      return;
+    }
+    setSavingPass(true);
+    setResultPass(null);
+    try {
+      await actualizarPasswordEmpleado(parseInt(selEmpPass), newPass, adminEmail, adminPassReset);
+      setResultPass({ ok: true, msg: 'Contraseña actualizada correctamente.' });
+      setNewPass(''); setConfirmPass(''); setAdminPassReset(''); setSelEmpPass('');
+    } catch (err) {
+      setResultPass({ ok: false, msg: err.message });
+    } finally {
+      setSavingPass(false);
+    }
+  };
+
+  const SECCIONES_CFG = [
+    { id: 'cuenta',      label: 'Mi Cuenta',   icon: <Info size={14}/> },
+    { id: 'permisos',    label: 'Permisos',     icon: <ShieldCheck size={14}/> },
+    { id: 'contrasenas', label: 'Contraseñas',  icon: <KeyRound size={14}/> },
+  ];
 
   return (
-    <div className="space-y-8">
-      {/* Info de cuenta */}
-      <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
-        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-          <div className="p-3 bg-slate-100 rounded-xl"><Info size={20} className="text-slate-600"/></div>
-          <h3 className="font-bold text-[#001e33]">Información de Cuenta</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            { label: 'Nombre', value: adminNombre },
-            { label: 'Correo', value: adminEmail },
-            { label: 'Rol', value: 'Administrador' },
-            { label: 'Estado', value: 'Activo' },
-          ].map(({ label, value }) => (
-            <div key={label} className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-              <p className="text-sm font-semibold text-[#001e33]">{value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Habilitar edición de datos */}
-      <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
-        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-          <div className="p-3 bg-amber-50 rounded-xl"><ShieldCheck size={20} className="text-amber-600"/></div>
-          <div>
-            <h3 className="font-bold text-[#001e33]">Permisos de Edición de Datos</h3>
-            <p className="text-xs text-slate-400">Permite que un empleado edite su propio perfil (uso único)</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Empleado</label>
-            <select
-              value={selectedEmpleado}
-              onChange={e => setSelectedEmpleado(e.target.value)}
-              className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400 transition-colors"
-            >
-              <option value="">— Seleccionar empleado —</option>
-              {empleados.map(e => (
-                <option key={e.id_empleado} value={e.id_empleado}>
-                  {e.primer_nombre} {e.primer_apellido} — {e.correo_corporativo}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Acción</label>
-            <div className="flex rounded-xl overflow-hidden border border-slate-200">
-              <button
-                onClick={() => setHabilitar(true)}
-                className={`px-4 py-2 text-xs font-bold transition-all ${habilitar ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
-              >Habilitar</button>
-              <button
-                onClick={() => setHabilitar(false)}
-                className={`px-4 py-2 text-xs font-bold transition-all ${!habilitar ? 'bg-red-500 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
-              >Deshabilitar</button>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Tu Contraseña (confirmación)</label>
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-amber-400 transition-colors">
-              <Lock size={14} className="text-slate-400 flex-shrink-0"/>
-              <input
-                type="password"
-                value={adminPassword}
-                onChange={e => setAdminPassword(e.target.value)}
-                placeholder="Ingresa tu contraseña"
-                className="flex-1 bg-transparent text-sm focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {result && (
-            <div className={`px-4 py-3 rounded-xl text-xs font-semibold ${result.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
-              {result.msg}
-            </div>
-          )}
-
-          <button
-            onClick={handleHabilitarEdicion}
-            disabled={saving}
-            className="w-full py-3 bg-[#001e33] text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all"
-          >
-            {saving ? 'Aplicando...' : 'Aplicar Cambio'}
+    <div className="space-y-6">
+      {/* Sub-nav */}
+      <div className="flex gap-1.5 bg-white rounded-2xl border border-slate-100 p-1.5 shadow-sm w-fit">
+        {SECCIONES_CFG.map(s => (
+          <button key={s.id} onClick={() => setSeccion(s.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+              seccion === s.id ? 'bg-[#001e33] text-white shadow' : 'text-slate-400 hover:text-[#001e33] hover:bg-slate-50'
+            }`}>
+            {s.icon} {s.label}
           </button>
-        </div>
+        ))}
       </div>
+
+      {/* Mi Cuenta */}
+      {seccion === 'cuenta' && (
+        <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+          <div className="flex items-center gap-6 mb-8 pb-6 border-b border-slate-50">
+            <div className="w-20 h-20 bg-[#001e33] rounded-2xl flex items-center justify-center text-white text-3xl font-black flex-shrink-0">
+              {user?.primer_nombre?.charAt(0)?.toUpperCase() || 'A'}
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-[#001e33]">{adminNombre}</h2>
+              <p className="text-sm text-slate-400 mt-0.5">{adminEmail}</p>
+              <span className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"/>Administrador
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { label: 'Nombre Completo',    value: adminNombre },
+              { label: 'Correo Corporativo', value: adminEmail },
+              { label: 'Área',               value: miPerfil?.nombre_area || user?.nombre_area || '—' },
+              { label: 'Cargo',              value: miPerfil?.nombre_cargo || user?.nombre_cargo || '—' },
+              { label: 'Fecha de Ingreso',   value: (miPerfil?.fecha_ingreso || user?.fecha_ingreso) ? new Date(miPerfil?.fecha_ingreso || user?.fecha_ingreso).toLocaleDateString('es-CO', { dateStyle: 'medium' }) : <span className="text-slate-400 italic">No registrada</span> },
+              { label: 'Estado',             value: miPerfil?.estado || 'Activo' },
+            ].map(({ label, value }) => (
+              <div key={label} className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+                <p className="text-sm font-semibold text-[#001e33]">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Permisos */}
+      {seccion === 'permisos' && (
+        <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+            <div className="p-3 bg-amber-50 rounded-xl"><ShieldCheck size={20} className="text-amber-600"/></div>
+            <div>
+              <h3 className="font-bold text-[#001e33]">Permisos de Edición de Datos</h3>
+              <p className="text-xs text-slate-400">Permite que un empleado edite su propio perfil (uso único)</p>
+            </div>
+          </div>
+          <div className="space-y-5">
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Empleado</label>
+              <select value={selEmpPerm} onChange={e => setSelEmpPerm(e.target.value)}
+                className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400 transition-colors">
+                <option value="">— Seleccionar empleado —</option>
+                {empleados.map(e => (
+                  <option key={e.id_empleado} value={e.id_empleado}>
+                    {e.primer_nombre} {e.primer_apellido} — {e.correo_corporativo}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Acción</label>
+              <div className="flex rounded-xl overflow-hidden border border-slate-200 w-fit">
+                <button onClick={() => setHabilitar(true)}
+                  className={`px-5 py-2.5 text-xs font-bold transition-all flex items-center gap-1.5 ${habilitar ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
+                  <Check size={12}/> Habilitar
+                </button>
+                <button onClick={() => setHabilitar(false)}
+                  className={`px-5 py-2.5 text-xs font-bold transition-all flex items-center gap-1.5 ${!habilitar ? 'bg-red-500 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
+                  <X size={12}/> Deshabilitar
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Tu Contraseña (confirmación)</label>
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-amber-400 transition-colors">
+                <Lock size={14} className="text-slate-400 flex-shrink-0"/>
+                <input type="password" value={adminPassPerm} onChange={e => setAdminPassPerm(e.target.value)}
+                  placeholder="Ingresa tu contraseña" className="flex-1 bg-transparent text-sm focus:outline-none"/>
+              </div>
+            </div>
+            {resultPerm && (
+              <div className={`px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${resultPerm.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                {resultPerm.ok ? <CheckCircle size={14}/> : <AlertTriangle size={14}/>}
+                {resultPerm.msg}
+              </div>
+            )}
+            <button onClick={handleHabilitarEdicion} disabled={savingPerm}
+              className="w-full py-3 bg-[#001e33] text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
+              {savingPerm ? 'Aplicando...' : 'Aplicar Cambio'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Contraseñas */}
+      {seccion === 'contrasenas' && (
+        <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+            <div className="p-3 bg-slate-100 rounded-xl"><KeyRound size={20} className="text-slate-600"/></div>
+            <div>
+              <h3 className="font-bold text-[#001e33]">Resetear Contraseña de Empleado</h3>
+              <p className="text-xs text-slate-400">Establece una nueva contraseña para cualquier empleado</p>
+            </div>
+          </div>
+          <div className="space-y-5">
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Empleado</label>
+              <select value={selEmpPass} onChange={e => setSelEmpPass(e.target.value)}
+                className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 transition-colors">
+                <option value="">— Seleccionar empleado —</option>
+                {empleados.map(e => (
+                  <option key={e.id_empleado} value={e.id_empleado}>
+                    {e.primer_nombre} {e.primer_apellido} — {e.nombre_area || e.correo_corporativo}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Nueva Contraseña</label>
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-slate-400 transition-colors">
+                  <Lock size={14} className="text-slate-400 flex-shrink-0"/>
+                  <input type={showPass ? 'text' : 'password'} value={newPass} onChange={e => setNewPass(e.target.value)}
+                    placeholder="Mínimo 8 caracteres" className="flex-1 bg-transparent text-sm focus:outline-none"/>
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Confirmar Contraseña</label>
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-slate-400 transition-colors">
+                  <Lock size={14} className="text-slate-400 flex-shrink-0"/>
+                  <input type={showPass ? 'text' : 'password'} value={confirmPass} onChange={e => setConfirmPass(e.target.value)}
+                    placeholder="Repetir contraseña" className="flex-1 bg-transparent text-sm focus:outline-none"/>
+                  <button onClick={() => setShowPass(p => !p)} title={showPass ? 'Ocultar' : 'Mostrar'}
+                    className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0">
+                    <Eye size={14}/>
+                  </button>
+                </div>
+              </div>
+            </div>
+            {newPass && confirmPass && (
+              <p className={`text-[11px] font-semibold flex items-center gap-1.5 ${newPass === confirmPass ? 'text-emerald-600' : 'text-red-500'}`}>
+                {newPass === confirmPass ? <><Check size={12}/> Las contraseñas coinciden</> : <><X size={12}/> Las contraseñas no coinciden</>}
+              </p>
+            )}
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Tu Contraseña de Admin (confirmación)</label>
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-slate-400 transition-colors">
+                <ShieldCheck size={14} className="text-slate-400 flex-shrink-0"/>
+                <input type="password" value={adminPassReset} onChange={e => setAdminPassReset(e.target.value)}
+                  placeholder="Confirma tu contraseña de administrador" className="flex-1 bg-transparent text-sm focus:outline-none"/>
+              </div>
+            </div>
+            {resultPass && (
+              <div className={`px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${resultPass.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                {resultPass.ok ? <CheckCircle size={14}/> : <AlertTriangle size={14}/>}
+                {resultPass.msg}
+              </div>
+            )}
+            <button onClick={handleResetPassword} disabled={savingPass}
+              className="w-full py-3 bg-[#001e33] text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
+              {savingPass ? 'Actualizando...' : 'Resetear Contraseña'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

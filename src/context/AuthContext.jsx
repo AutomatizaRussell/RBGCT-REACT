@@ -183,6 +183,7 @@ export const AuthProvider = ({ children }) => {
         telefono: datos.telefono,
         telefono_emergencia: datos.telefono_emergencia,
         fecha_nacimiento: datos.fecha_nacimiento,
+        fecha_ingreso: datos.fecha_ingreso || null,
         direccion: datos.direccion,
         sexo: datos.sexo,
         tipo_sangre: datos.tipo_sangre,

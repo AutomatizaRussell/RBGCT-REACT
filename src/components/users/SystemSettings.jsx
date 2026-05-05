@@ -363,7 +363,7 @@ const DatabaseSettings = ({ settings, setSettings, onReindex }) => (
       onClick={onReindex}
       className="flex items-center gap-2 text-slate-500 hover:text-[#001e33] font-bold text-xs transition-colors"
     >
-      <RefreshCw size={14} /> Re-indexar tablas de Supabase
+      <RefreshCw size={14} /> Re-indexar base de datos SQLite
     </button>
   </div>
 );

@@ -61,14 +61,17 @@ async function refreshAccessToken() {
 
 // ── Core fetch helper ─────────────────────────────────────────────────────────
 
-const fetchApi = async (endpoint, options = {}, retry = true) => {
-  if (options.body && endpoint.includes('completar-datos')) {
+export const fetchApi = async (endpoint, options = {}, retry = true) => {
+  if (options.body && endpoint.includes('completar-datos') && !(options.body instanceof FormData)) {
     console.log('[API] Enviando a backend:', JSON.parse(options.body));
   }
 
   const accessToken = tokenStorage.getAccess();
+  const isFormData = options.body instanceof FormData;
+  
   const headers = {
-    'Content-Type': 'application/json',
+    // Solo poner Content-Type si NO es FormData
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     ...options.headers,
   };
@@ -95,7 +98,10 @@ const fetchApi = async (endpoint, options = {}, retry = true) => {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || 'Error en la petición');
+    const msg = error.error || error.detail || error.message
+      || (typeof error === 'object' ? Object.values(error).flat().join(' ') : null)
+      || 'Error en la petición';
+    throw new Error(msg);
   }
 
   if (response.status === 204) return null;
@@ -205,12 +211,40 @@ export const atenderAlerta = (alertaId) =>
 export const eliminarAlerta = (alertaId) =>
   fetchApi(`/alertas-recuperacion/${alertaId}/eliminar/`, { method: 'DELETE' });
 
+// ── RECUPERACIÓN DE CONTRASEÑA (NUEVO FLUJO CON N8N) ────────────────────────────
+
+// Paso 1: Solicitar código de recuperación (envía email vía n8n)
+export const solicitarRecuperacionPassword = (email) =>
+  fetchApi('/recuperar-password/', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+
+// Paso 2: Verificar código recibido por email
+export const verificarCodigoRecuperacion = (email, codigo) =>
+  fetchApi('/verificar-codigo-recuperacion/', {
+    method: 'POST',
+    body: JSON.stringify({ email, codigo }),
+  });
+
+// Paso 3: Restablecer contraseña con token temporal
+export const restablecerPassword = (token, nuevaPassword) =>
+  fetchApi('/restablecer-password/', {
+    method: 'POST',
+    body: JSON.stringify({ token, nueva_password: nuevaPassword }),
+  });
+
 // ── AREAS ─────────────────────────────────────────────────────────────────────
 
 export const getAllAreas = () => fetchApi('/areas/');
 
 export const createArea = (data) => fetchApi('/areas/', {
   method: 'POST',
+  body: JSON.stringify(data),
+});
+
+export const updateArea = (id, data) => fetchApi(`/areas/${id}/`, {
+  method: 'PATCH',
   body: JSON.stringify(data),
 });
 
@@ -222,6 +256,11 @@ export const getAllCargos = () => fetchApi('/cargos/');
 
 export const createCargo = (data) => fetchApi('/cargos/', {
   method: 'POST',
+  body: JSON.stringify(data),
+});
+
+export const updateCargo = (id, data) => fetchApi(`/cargos/${id}/`, {
+  method: 'PATCH',
   body: JSON.stringify(data),
 });
 
@@ -266,6 +305,8 @@ export const updateCursoContenido = (id, data) => fetchApi(`/curso-contenido/${i
 });
 
 export const deleteCursoContenido = (id) => fetchApi(`/curso-contenido/${id}/`, { method: 'DELETE' });
+
+export const getCursoHistorial = (limit = 100) => fetchApi(`/curso-historial/?limit=${limit}`);
 
 // ── REGLAMENTO ────────────────────────────────────────────────────────────────
 
@@ -340,4 +381,66 @@ export const actualizarPasswordEmpleado = (empleadoId, nuevaPassword, adminEmail
   fetchApi(`/empleados/${empleadoId}/actualizar-password/`, {
     method: 'POST',
     body: JSON.stringify({ nueva_password: nuevaPassword, admin_email: adminEmail, admin_password: adminPassword }),
+  });
+
+// ── N8N ───────────────────────────────────────────────────────────────────────
+
+export const getN8nLogs = (statusFilter, limit = 50) => {
+  const params = new URLSearchParams({ limit });
+  if (statusFilter && statusFilter !== 'ALL') params.set('status', statusFilter);
+  return fetchApi(`/n8n-logs/?${params}`);
+};
+
+// Proxy server-side: Django consulta n8n directamente (sin CORS)
+export const n8nProxyStatus = () =>
+  fetchApi('/n8n-proxy/?action=status');
+
+export const n8nProxyExecutions = (statusFilter, limit = 50) => {
+  const params = new URLSearchParams({ action: 'executions', limit });
+  if (statusFilter && statusFilter !== 'ALL') params.set('status', statusFilter);
+  return fetchApi(`/n8n-proxy/?${params}`);
+};
+
+// ── MARKITDOWN ──────────────────────────────────────────────────────────────
+
+export const convertirArchivoMarkdown = (formData) =>
+  fetchApi('/convertir-markdown/', {
+    method: 'POST',
+    body: formData,
+    // No enviar Content-Type, dejar que el navegador ponga el boundary correcto para FormData
+  });
+
+// ── API KEYS (SuperAdmin) ───────────────────────────────────────────────────
+
+export const getApiKeys = (isActive = null) => {
+  const params = new URLSearchParams();
+  if (isActive !== null) params.set('is_active', isActive);
+  return fetchApi(`/api-keys/?${params}`);
+};
+
+export const createApiKey = (data) =>
+  fetchApi('/api-keys/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+export const updateApiKey = (id, data) =>
+  fetchApi(`/api-keys/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+
+export const deleteApiKey = (id) =>
+  fetchApi(`/api-keys/${id}/`, { method: 'DELETE' });
+
+export const revokeApiKey = (id) =>
+  fetchApi(`/api-keys/${id}/revoke/`, { method: 'POST' });
+
+export const activateApiKey = (id) =>
+  fetchApi(`/api-keys/${id}/activate/`, { method: 'POST' });
+
+export const verifyApiKey = (key) =>
+  fetchApi('/api-keys/verify/', {
+    method: 'POST',
+    body: JSON.stringify({ key }),
   });

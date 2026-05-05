@@ -1,12 +1,11 @@
 import { 
   LayoutDashboard, 
-  FileEdit, 
-  Image as ImageIcon, 
   Calendar, 
   History, 
-  Settings, 
   LogOut,
-  UserCircle
+  UserCircle,
+  BookOpen,
+  Wrench
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -29,10 +28,11 @@ export const EditorSidebar = ({ activeTab, setActiveTab }) => {
     setActiveTab(tab);
     switch (tab) {
       case 'dashboard': navigate('/editor'); break;
-      case 'content':   navigate('/editor/articulos'); break;
-      case 'media':     navigate('/editor/biblioteca'); break;
       case 'tasks':     navigate('/editor/tareas'); break;
-      case 'perfil':    navigate('/editor/perfil'); break;
+      case 'cursos':    navigate('/editor/cursos'); break;
+      case 'historial':   navigate('/editor/historial'); break;
+      case 'herramientas':  navigate('/editor/herramientas'); break;
+      case 'perfil':      navigate('/editor/perfil'); break;
       default:          navigate('/editor');
     }
   };
@@ -65,31 +65,32 @@ export const EditorSidebar = ({ activeTab, setActiveTab }) => {
           <LayoutDashboard size={18}/> Panel Editorial
         </button>
 
-        {/* GESTIÓN DE CONTENIDO */}
-        <button 
-          onClick={() => handleNavigation('content')} 
+        {/* CONTENIDO */}
+        <div className="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Contenido</div>
+
+        <button
+          onClick={() => handleNavigation('cursos')}
           className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
-            activeTab === 'content' 
-            ? 'bg-white/10 text-white shadow-lg' 
+            activeTab === 'cursos'
+            ? 'bg-white/10 text-white shadow-lg'
             : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          <FileEdit size={18}/> Mis Artículos
+          <BookOpen size={18}/> Cursos
         </button>
 
-        {/* BIBLIOTECA DE MEDIOS */}
-        <button 
-          onClick={() => handleNavigation('media')} 
+        <button
+          onClick={() => handleNavigation('historial')}
           className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
-            activeTab === 'media' 
-            ? 'bg-white/10 text-white shadow-lg' 
+            activeTab === 'historial'
+            ? 'bg-white/10 text-white shadow-lg'
             : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          <ImageIcon size={18}/> Multimedia
+          <History size={18}/> Historial
         </button>
 
-        {/* SECCIONES DE PLANIFICACIÓN */}
+        {/* PLANIFICACIÓN */}
         <div className="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Planificación</div>
 
         <button
@@ -103,16 +104,25 @@ export const EditorSidebar = ({ activeTab, setActiveTab }) => {
           <Calendar size={18}/> Calendario Tareas
         </button>
 
-        <div className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-600 cursor-not-allowed opacity-50 text-sm">
-          <History size={18}/> Historial Cambios
-        </div>
-        
+        <button
+          onClick={() => handleNavigation('herramientas')}
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
+            activeTab === 'herramientas'
+            ? 'bg-white/10 text-white shadow-lg'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Wrench size={18}/> Herramientas
+        </button>
+
+        {/* CUENTA */}
         <div className="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Cuenta</div>
-        <button 
+
+        <button
           onClick={() => handleNavigation('perfil')}
           className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
-            activeTab === 'perfil' 
-            ? 'bg-white/10 text-white shadow-lg' 
+            activeTab === 'perfil'
+            ? 'bg-white/10 text-white shadow-lg'
             : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Shield, Save, X, Loader2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase'; // Verifica que la ruta sea correcta según tu imagen
+import { fetchApi } from '../../lib/api.js';
 
 const RoleModal = ({ user, onClose, onUpdate }) => {
   // id_permisos según tu tabla datos_empleado
@@ -16,13 +16,13 @@ const RoleModal = ({ user, onClose, onUpdate }) => {
   const updateRole = async () => {
     try {
       setIsSaving(true);
-      const { error } = await supabase
-        .schema('rbgct')
-        .from('datos_empleado')
-        .update({ id_permisos: selectedRoleId })
-        .eq('auth_id', user.auth_id); // Vinculación por auth_id
+      const response = await fetchApi(`/empleados/${user.id_empleado}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_permisos: selectedRoleId })
+      });
 
-      if (error) throw error;
+      if (response.error) throw new Error(response.error);
       
       onUpdate(); 
       onClose();

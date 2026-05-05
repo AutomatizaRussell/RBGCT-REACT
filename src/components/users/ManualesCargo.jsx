@@ -1,238 +1,209 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  BookOpen,
-  Download,
-  FileText,
-  RefreshCw,
-  AlertCircle,
-  ExternalLink,
-  Search,
-  CalendarDays
+  BookOpen, PlayCircle, FileText, ExternalLink, Download,
+  ChevronDown, ChevronRight, RefreshCw, Link2, HelpCircle,
+  AlignLeft, Search
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../hooks/useAuth';
+import { getAllCursos, getContenidosByCurso } from '../../lib/db';
+
+const TIPO_CONFIG = {
+  youtube:      { icon: <PlayCircle size={15}/>,  label: 'YouTube',     color: 'text-red-600',    bg: 'bg-red-50 border-red-100' },
+  video:        { icon: <PlayCircle size={15}/>,  label: 'Video',       color: 'text-blue-600',   bg: 'bg-blue-50 border-blue-100' },
+  documento:    { icon: <FileText size={15}/>,    label: 'Documento',   color: 'text-amber-600',  bg: 'bg-amber-50 border-amber-100' },
+  texto:        { icon: <AlignLeft size={15}/>,   label: 'Texto',       color: 'text-slate-600',  bg: 'bg-slate-100 border-slate-200' },
+  enlace:       { icon: <Link2 size={15}/>,       label: 'Enlace',      color: 'text-violet-600', bg: 'bg-violet-50 border-violet-100' },
+  cuestionario: { icon: <HelpCircle size={15}/>,  label: 'Cuestionario', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-100' },
+};
+
+const CursoCard = ({ curso }) => {
+  const [open, setOpen] = useState(false);
+  const [contenidos, setContenidos] = useState([]);
+  const [loadingC, setLoadingC] = useState(false);
+
+  const toggle = async () => {
+    if (!open && contenidos.length === 0) {
+      setLoadingC(true);
+      try {
+        const data = await getContenidosByCurso(curso.id);
+        setContenidos(Array.isArray(data) ? data : (data?.results || []));
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingC(false);
+      }
+    }
+    setOpen(o => !o);
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <button onClick={toggle}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors text-left">
+        <div className="flex items-center gap-4">
+          <div className="p-2.5 bg-indigo-50 rounded-xl flex-shrink-0">
+            <BookOpen size={18} className="text-indigo-600"/>
+          </div>
+          <div className="min-w-0">
+            <p className="font-bold text-[#001e33] text-sm">{curso.nombre}</p>
+            {curso.descripcion && (
+              <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{curso.descripcion}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:block">
+            {curso.total_contenidos || 0} recursos
+          </span>
+          {open
+            ? <ChevronDown size={16} className="text-slate-400"/>
+            : <ChevronRight size={16} className="text-slate-400"/>
+          }
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-slate-100 bg-slate-50/40">
+          {loadingC ? (
+            <div className="py-8 text-center text-xs text-slate-400 animate-pulse">
+              Cargando recursos...
+            </div>
+          ) : contenidos.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-400">
+              Sin recursos en este curso aún
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {contenidos.map(c => {
+                const cfg = TIPO_CONFIG[c.tipo] || TIPO_CONFIG.texto;
+                const url = c.url || c.archivo_url;
+                return (
+                  <div key={c.id} className="flex items-start gap-4 px-5 py-4">
+                    <div className={`flex-shrink-0 p-2 rounded-lg border ${cfg.bg}`}>
+                      <span className={cfg.color}>{cfg.icon}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-[#001e33]">{c.titulo}</p>
+                      {c.descripcion && (
+                        <p className="text-[11px] text-slate-400 mt-0.5">{c.descripcion}</p>
+                      )}
+                      {(c.tipo === 'texto' || c.tipo === 'cuestionario') && c.contenido && (
+                        <div className={`mt-2 p-3 rounded-xl text-xs text-slate-600 whitespace-pre-line leading-relaxed ${
+                          c.tipo === 'cuestionario' ? 'bg-white border border-emerald-100' : 'bg-white border border-slate-100'
+                        }`}>
+                          {c.contenido}
+                        </div>
+                      )}
+                    </div>
+                    {url && c.tipo !== 'texto' && c.tipo !== 'cuestionario' && (
+                      <a href={url} target="_blank" rel="noopener noreferrer"
+                        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-[#001e33] text-white rounded-xl text-[10px] font-bold uppercase hover:bg-slate-800 transition-all">
+                        {c.tipo === 'documento' || c.tipo === 'video'
+                          ? <><Download size={11}/> Descargar</>
+                          : <><ExternalLink size={11}/> {c.tipo === 'youtube' ? 'Ver video' : 'Abrir'}</>
+                        }
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ManualesCargo = () => {
-  const { empleadoData } = useAuth();
-  const [manuales, setManuales] = useState([]);
+  const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busqueda, setBusqueda] = useState('');
 
-  // Manuales de ejemplo (luego se cargarán de la BD)
-  const manualesEjemplo = [
-    {
-      id: 1,
-      titulo: 'Manual de Procedimientos - Revisoría Fiscal',
-      descripcion: 'Procedimientos estándar para revisión fiscal y auditoría',
-      categoria: 'Procedimientos',
-      area: 'Revisoría Fiscal',
-      fecha_actualizacion: '2026-03-15',
-      archivo_url: '#',
-      tamano: '2.5 MB'
-    },
-    {
-      id: 2,
-      titulo: 'Manual de Inducción - Nuevos Colaboradores',
-      descripcion: 'Guía completa para la integración de nuevos empleados',
-      categoria: 'Inducción',
-      area: 'Todos',
-      fecha_actualizacion: '2026-02-20',
-      archivo_url: '#',
-      tamano: '5.1 MB'
-    },
-    {
-      id: 3,
-      titulo: 'Políticas de Seguridad de la Información',
-      descripcion: 'Normas y procedimientos de seguridad informática',
-      categoria: 'Seguridad',
-      area: 'Todos',
-      fecha_actualizacion: '2026-01-10',
-      archivo_url: '#',
-      tamano: '1.8 MB'
-    },
-    {
-      id: 4,
-      titulo: 'Manual de Contabilidad - Procesos de Cierre',
-      descripcion: 'Procedimientos para cierre mensual y anual',
-      categoria: 'Procedimientos',
-      area: 'Contabilidad',
-      fecha_actualizacion: '2026-03-01',
-      archivo_url: '#',
-      tamano: '3.2 MB'
-    },
-    {
-      id: 5,
-      titulo: 'Código de Ética y Conducta',
-      descripcion: 'Lineamientos éticos y de comportamiento organizacional',
-      categoria: 'Legal',
-      area: 'Todos',
-      fecha_actualizacion: '2026-01-05',
-      archivo_url: '#',
-      tamano: '890 KB'
-    }
-  ];
+  useEffect(() => { fetchCursos(); }, []);
 
-  useEffect(() => {
-    fetchManuales();
-  }, []);
-
-  const fetchManuales = async () => {
+  const fetchCursos = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      // Por ahora usamos datos de ejemplo
-      // TODO: Conectar con tabla manuales_cargo cuando se cree
-      /*
-      const { data, error: supabaseError } = await supabase
-        .schema('rbgct')
-        .from('manuales_cargo')
-        .select('*')
-        .order('fecha_actualizacion', { ascending: false });
-
-      if (supabaseError) throw supabaseError;
-      setManuales(data || []);
-      */
-      
-      // Simulación de carga
-      setTimeout(() => {
-        setManuales(manualesEjemplo);
-        setLoading(false);
-      }, 800);
-
+      const data = await getAllCursos();
+      setCursos(Array.isArray(data) ? data.filter(c => c.activo !== false) : (data?.results || []));
     } catch (err) {
-      console.error('Error:', err);
-      setError('Error al cargar los manuales');
+      setError('Error al cargar los cursos');
+    } finally {
       setLoading(false);
     }
   };
 
-  const manualesFiltrados = manuales.filter(manual => 
-    manual.titulo.toLowerCase().includes(busqueda.toLowerCase()) ||
-    manual.descripcion.toLowerCase().includes(busqueda.toLowerCase()) ||
-    manual.categoria.toLowerCase().includes(busqueda.toLowerCase())
+  const cursosFiltrados = cursos.filter(c =>
+    c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+    (c.descripcion || '').toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-3">
-          <RefreshCw size={24} className="text-indigo-600 animate-spin" />
-          <p className="text-sm text-slate-500">Cargando manuales...</p>
-        </div>
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center gap-3">
+        <RefreshCw size={24} className="text-indigo-600 animate-spin"/>
+        <p className="text-sm text-slate-500">Cargando cursos...</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-3">
-          <AlertCircle size={24} className="text-red-500" />
-          <p className="text-sm text-red-600">{error}</p>
-          <button 
-            onClick={fetchManuales}
-            className="text-xs font-bold text-indigo-600 uppercase hover:underline"
-          >
-            Reintentar
-          </button>
-        </div>
+  if (error) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center gap-3">
+        <BookOpen size={32} className="text-slate-300"/>
+        <p className="text-sm text-red-500">{error}</p>
+        <button onClick={fetchCursos} className="text-xs font-bold text-indigo-600 uppercase hover:underline">
+          Reintentar
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-[#001e33]">Manuales de Cargo</h3>
-          <p className="text-xs text-slate-500 mt-1">
-            Documentación y procedimientos de la empresa
+          <h3 className="text-lg font-bold text-[#001e33]">Cursos y Capacitaciones</h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {cursos.length} curso{cursos.length !== 1 ? 's' : ''} disponible{cursos.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchManuales}
-            className="flex items-center gap-2 text-[10px] font-bold text-slate-600 hover:text-indigo-600 uppercase transition-colors"
-          >
-            <RefreshCw size={14} />
-            Actualizar
-          </button>
+        <button onClick={fetchCursos}
+          className="flex items-center gap-2 text-[10px] font-bold text-slate-500 hover:text-indigo-600 uppercase transition-colors">
+          <RefreshCw size={13}/> Actualizar
+        </button>
+      </div>
+
+      {cursos.length > 0 && (
+        <div className="relative">
+          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/>
+          <input
+            type="text"
+            placeholder="Buscar cursos..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+          />
         </div>
-      </div>
+      )}
 
-      {/* Búsqueda */}
-      <div className="relative">
-        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Buscar manuales..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-        />
-      </div>
-
-      {/* Lista de Manuales */}
-      <div className="space-y-4">
-        {manualesFiltrados.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-100 p-12 shadow-sm text-center">
-            <BookOpen size={48} className="text-slate-300 mx-auto mb-4" />
-            <h4 className="text-lg font-bold text-[#001e33] mb-2">No se encontraron manuales</h4>
-            <p className="text-sm text-slate-500">Intenta con otra búsqueda.</p>
-          </div>
-        ) : (
-          manualesFiltrados.map((manual) => (
-            <div 
-              key={manual.id}
-              className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center">
-                    <FileText size={24} className="text-indigo-600" />
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <h4 className="text-base font-bold text-[#001e33]">{manual.titulo}</h4>
-                    <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase">
-                      {manual.categoria}
-                    </span>
-                    <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-bold">
-                      {manual.area}
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-500 mb-3">{manual.descripcion}</p>
-                  <div className="flex flex-wrap items-center gap-4 text-[10px] text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <CalendarDays size={12} />
-                      Actualizado: {new Date(manual.fecha_actualizacion).toLocaleDateString('es-ES')}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Download size={12} />
-                      {manual.tamano}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex-shrink-0 flex items-center">
-                  <a
-                    href={manual.archivo_url}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase hover:bg-slate-800 transition-colors"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink size={14} />
-                    Ver
-                  </a>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      {cursosFiltrados.length === 0 ? (
+        <div className="bg-white rounded-3xl border-2 border-dashed border-slate-100 p-16 text-center">
+          <BookOpen size={40} className="text-slate-200 mx-auto mb-3"/>
+          <p className="text-sm font-semibold text-slate-400">
+            {busqueda ? 'Sin resultados para tu búsqueda' : 'No hay cursos disponibles aún'}
+          </p>
+          {!busqueda && (
+            <p className="text-xs text-slate-300 mt-1">El administrador publicará cursos próximamente</p>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {cursosFiltrados.map(c => <CursoCard key={c.id} curso={c}/>)}
+        </div>
+      )}
     </div>
   );
 };

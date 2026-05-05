@@ -4,7 +4,7 @@ JWT Authentication for Django REST Framework
 import jwt
 from django.conf import settings
 from rest_framework import authentication, exceptions
-from .models import SuperAdmin, DatosEmpleado
+from .models import SuperAdmin, DatosEmpleado, ApiKey
 
 
 class JWTAuthentication(authentication.BaseAuthentication):
@@ -69,3 +69,31 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
     def authenticate_header(self, request):
         return 'Bearer'
+
+
+class ApiKeyAuthentication(authentication.BaseAuthentication):
+    """
+    Autenticación por API Key para integraciones externas.
+    Usa el header X-API-Key: <key>
+    """
+
+    def authenticate(self, request):
+        api_key = request.META.get('HTTP_X_API_KEY')
+        if not api_key:
+            return None
+
+        try:
+            key_obj = ApiKey.objects.get(key=api_key, is_active=True)
+        except ApiKey.DoesNotExist:
+            raise exceptions.AuthenticationFailed('API Key inválida o inactiva')
+
+        key_obj.mark_used()
+
+        user = key_obj.creado_por
+        if user is None:
+            raise exceptions.AuthenticationFailed('API Key sin usuario asociado')
+
+        return (user, key_obj)
+
+    def authenticate_header(self, request):
+        return 'X-API-Key'

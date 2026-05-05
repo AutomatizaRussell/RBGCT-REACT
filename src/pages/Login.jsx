@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { registrarIntentoRecuperacion } from '../lib/db.js';
+import { 
+  solicitarRecuperacionPassword, 
+  verificarCodigoRecuperacion, 
+  restablecerPassword 
+} from '../lib/db.js';
 import { Building2, Eye, EyeOff, Loader2, Mail, Lock, AlertTriangle, X } from 'lucide-react';
 
 const Login = () => {
@@ -13,7 +17,12 @@ const Login = () => {
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
   const [recoveryMessage, setRecoveryMessage] = useState(null);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [recoveryStep, setRecoveryStep] = useState(1); // 1: email, 2: codigo, 3: nueva password
   const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [recoveryToken, setRecoveryToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [recoveryLoading, setRecoveryLoading] = useState(false);
   
   const navigate = useNavigate();
@@ -49,10 +58,16 @@ const Login = () => {
 
   const handleForgotPassword = () => {
     setShowRecoveryModal(true);
+    setRecoveryStep(1);
     setRecoveryEmail('');
+    setRecoveryCode('');
+    setRecoveryToken('');
+    setNewPassword('');
+    setConfirmPassword('');
     setRecoveryMessage(null);
   };
 
+  // Paso 1: Solicitar código de recuperación
   const handleRecoverySubmit = async (e) => {
     e.preventDefault();
     
@@ -64,39 +79,118 @@ const Login = () => {
     setRecoveryLoading(true);
     
     try {
-      const response = await registrarIntentoRecuperacion(recoveryEmail);
+      const response = await solicitarRecuperacionPassword(recoveryEmail);
       console.log('Respuesta de recuperación:', response);
       
-      if (response && response.alerta) {
-        const alerta = response.alerta;
-        if (alerta.existe_en_sistema) {
-          setRecoveryMessage({ 
-            type: 'success', 
-            text: `Usuario encontrado: ${alerta.nombre}. El administrador ha sido notificado.` 
-          });
-        } else {
-          setRecoveryMessage({ 
-            type: 'warning', 
-            text: 'Usuario no registrado en el sistema. El administrador ha sido notificado.' 
-          });
-        }
-      } else {
+      if (response && response.enviado) {
         setRecoveryMessage({ 
           type: 'success', 
-          text: 'Solicitud enviada. El administrador ha sido notificado.' 
+          text: 'Código de verificación enviado a tu correo electrónico.' 
+        });
+        // Avanzar al paso 2 después de 1.5 segundos
+        setTimeout(() => {
+          setRecoveryStep(2);
+          setRecoveryMessage(null);
+        }, 1500);
+      } else {
+        // Mensaje genérico por seguridad
+        setRecoveryMessage({ 
+          type: 'success', 
+          text: 'Si el email está registrado, recibirás un código de verificación.' 
         });
       }
       
-      // Cerrar modal después de 3 segundos
-      setTimeout(() => {
-        setShowRecoveryModal(false);
-        setRecoveryMessage(null);
-        setRecoveryEmail('');
-      }, 3000);
+    } catch (err) {
+      console.error('Error al solicitar recuperación:', err);
+      setRecoveryMessage({ type: 'error', text: err.message || 'Error al procesar la solicitud. Intenta de nuevo.' });
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
+
+  // Paso 2: Verificar código
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    
+    if (!recoveryCode) {
+      setRecoveryMessage({ type: 'error', text: 'Ingresa el código de verificación' });
+      return;
+    }
+    
+    setRecoveryLoading(true);
+    
+    try {
+      const response = await verificarCodigoRecuperacion(recoveryEmail, recoveryCode);
+      console.log('Código verificado:', response);
+      
+      if (response && response.token) {
+        setRecoveryToken(response.token);
+        setRecoveryMessage({ 
+          type: 'success', 
+          text: 'Código verificado correctamente. Ahora puedes crear una nueva contraseña.' 
+        });
+        // Avanzar al paso 3 después de 1 segundo
+        setTimeout(() => {
+          setRecoveryStep(3);
+          setRecoveryMessage(null);
+        }, 1000);
+      }
       
     } catch (err) {
-      console.error('Error al registrar intento:', err);
-      setRecoveryMessage({ type: 'error', text: 'Error al procesar la solicitud. Intenta de nuevo.' });
+      console.error('Error al verificar código:', err);
+      setRecoveryMessage({ type: 'error', text: err.message || 'Código incorrecto o expirado.' });
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
+
+  // Paso 3: Restablecer contraseña
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    
+    if (!newPassword || !confirmPassword) {
+      setRecoveryMessage({ type: 'error', text: 'Completa ambos campos' });
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      setRecoveryMessage({ type: 'error', text: 'La contraseña debe tener al menos 6 caracteres' });
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setRecoveryMessage({ type: 'error', text: 'Las contraseñas no coinciden' });
+      return;
+    }
+    
+    setRecoveryLoading(true);
+    
+    try {
+      const response = await restablecerPassword(recoveryToken, newPassword);
+      console.log('Contraseña restablecida:', response);
+      
+      if (response && response.completado) {
+        setRecoveryMessage({ 
+          type: 'success', 
+          text: 'Contraseña restablecida correctamente. Ya puedes iniciar sesión.' 
+        });
+        // Cerrar modal después de 2 segundos
+        setTimeout(() => {
+          setShowRecoveryModal(false);
+          // Limpiar estados
+          setRecoveryStep(1);
+          setRecoveryEmail('');
+          setRecoveryCode('');
+          setRecoveryToken('');
+          setNewPassword('');
+          setConfirmPassword('');
+          setRecoveryMessage(null);
+        }, 2000);
+      }
+      
+    } catch (err) {
+      console.error('Error al restablecer contraseña:', err);
+      setRecoveryMessage({ type: 'error', text: err.message || 'Error al restablecer la contraseña.' });
     } finally {
       setRecoveryLoading(false);
     }
@@ -104,7 +198,12 @@ const Login = () => {
 
   const closeRecoveryModal = () => {
     setShowRecoveryModal(false);
+    setRecoveryStep(1);
     setRecoveryEmail('');
+    setRecoveryCode('');
+    setRecoveryToken('');
+    setNewPassword('');
+    setConfirmPassword('');
     setRecoveryMessage(null);
   };
 
@@ -263,7 +362,7 @@ const Login = () => {
         </p>
       </div>
 
-      {/* Modal de Recuperación de Contraseña */}
+      {/* Modal de Recuperación de Contraseña - 3 Pasos */}
       {showRecoveryModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative animate-in fade-in zoom-in duration-200">
@@ -275,58 +374,182 @@ const Login = () => {
               <X size={20} className="text-slate-500" />
             </button>
 
-            {/* Header */}
+            {/* Header con indicador de pasos */}
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle size={32} className="text-amber-600" />
               </div>
-              <h2 className="text-xl font-bold text-[#001e33] mb-2">Recuperar Contraseña</h2>
+              <h2 className="text-xl font-bold text-[#001e33] mb-2">
+                {recoveryStep === 1 && 'Recuperar Contraseña'}
+                {recoveryStep === 2 && 'Verificar Código'}
+                {recoveryStep === 3 && 'Nueva Contraseña'}
+              </h2>
               <p className="text-sm text-slate-500">
-                Ingresa tu correo electrónico corporativo. El administrador será notificado.
+                {recoveryStep === 1 && 'Ingresa tu correo electrónico corporativo. Recibirás un código de verificación.'}
+                {recoveryStep === 2 && 'Ingresa el código de 6 dígitos que recibiste por correo electrónico.'}
+                {recoveryStep === 3 && 'Crea una nueva contraseña segura para tu cuenta.'}
               </p>
+              
+              {/* Indicador de progreso */}
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <div className={`w-8 h-2 rounded-full ${recoveryStep >= 1 ? 'bg-[#001e33]' : 'bg-slate-200'}`}></div>
+                <div className={`w-8 h-2 rounded-full ${recoveryStep >= 2 ? 'bg-[#001e33]' : 'bg-slate-200'}`}></div>
+                <div className={`w-8 h-2 rounded-full ${recoveryStep >= 3 ? 'bg-[#001e33]' : 'bg-slate-200'}`}></div>
+              </div>
             </div>
 
-            {/* Formulario */}
-            <form onSubmit={handleRecoverySubmit} className="space-y-4">
-              <div className="relative">
-                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="email"
-                  value={recoveryEmail}
-                  onChange={(e) => setRecoveryEmail(e.target.value)}
-                  placeholder="correo@russellbedford.com"
-                  className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none transition-all text-sm"
-                  required
-                />
-              </div>
-
-              {/* Mensaje */}
-              {recoveryMessage && (
-                <div className={`p-3 rounded-lg text-sm ${
-                  recoveryMessage.type === 'success' 
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : recoveryMessage.type === 'warning'
-                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                    : 'bg-red-50 text-red-700 border border-red-200'
-                }`}>
-                  {recoveryMessage.text}
+            {/* PASO 1: Solicitar código */}
+            {recoveryStep === 1 && (
+              <form onSubmit={handleRecoverySubmit} className="space-y-4">
+                <div className="relative">
+                  <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="email"
+                    value={recoveryEmail}
+                    onChange={(e) => setRecoveryEmail(e.target.value)}
+                    placeholder="correo@russellbedford.com"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none transition-all text-sm"
+                    required
+                  />
                 </div>
-              )}
 
-              <button
-                type="submit"
-                disabled={recoveryLoading}
-                className="w-full bg-[#001e33] text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {recoveryLoading ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" /> Enviando...
-                  </>
-                ) : (
-                  'Enviar Solicitud'
+                {/* Mensaje */}
+                {recoveryMessage && (
+                  <div className={`p-3 rounded-lg text-sm ${
+                    recoveryMessage.type === 'success' 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {recoveryMessage.text}
+                  </div>
                 )}
-              </button>
-            </form>
+
+                <button
+                  type="submit"
+                  disabled={recoveryLoading}
+                  className="w-full bg-[#001e33] text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {recoveryLoading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Enviando...
+                    </>
+                  ) : (
+                    'Enviar Código'
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* PASO 2: Verificar código */}
+            {recoveryStep === 2 && (
+              <form onSubmit={handleVerifyCode} className="space-y-4">
+                <div className="text-center mb-4">
+                  <p className="text-sm text-slate-500">Código enviado a:</p>
+                  <p className="font-medium text-[#001e33]">{recoveryEmail}</p>
+                </div>
+                
+                <div className="relative">
+                  <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={recoveryCode}
+                    onChange={(e) => setRecoveryCode(e.target.value)}
+                    placeholder="Código de 6 dígitos"
+                    maxLength={6}
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none transition-all text-sm text-center text-2xl tracking-[0.5em] font-bold"
+                    required
+                  />
+                </div>
+
+                {/* Mensaje */}
+                {recoveryMessage && (
+                  <div className={`p-3 rounded-lg text-sm ${
+                    recoveryMessage.type === 'success' 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {recoveryMessage.text}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={recoveryLoading}
+                  className="w-full bg-[#001e33] text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {recoveryLoading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Verificando...
+                    </>
+                  ) : (
+                    'Verificar Código'
+                  )}
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setRecoveryStep(1)}
+                  className="w-full py-2 text-sm text-slate-500 hover:text-[#001e33] transition-colors"
+                >
+                  ← Volver al paso anterior
+                </button>
+              </form>
+            )}
+
+            {/* PASO 3: Nueva contraseña */}
+            {recoveryStep === 3 && (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="relative">
+                  <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Nueva contraseña (mínimo 6 caracteres)"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none transition-all text-sm"
+                    required
+                    minLength={6}
+                  />
+                </div>
+                
+                <div className="relative">
+                  <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirmar contraseña"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none transition-all text-sm"
+                    required
+                  />
+                </div>
+
+                {/* Mensaje */}
+                {recoveryMessage && (
+                  <div className={`p-3 rounded-lg text-sm ${
+                    recoveryMessage.type === 'success' 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {recoveryMessage.text}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={recoveryLoading}
+                  className="w-full bg-[#001e33] text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {recoveryLoading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Restableciendo...
+                    </>
+                  ) : (
+                    'Restablecer Contraseña'
+                  )}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

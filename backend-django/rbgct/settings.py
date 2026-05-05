@@ -110,6 +110,7 @@ CORS_ALLOW_CREDENTIALS = True
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'api.authentication.JWTAuthentication',
+        'api.authentication.ApiKeyAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -138,3 +139,11 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+# n8n Configuration
+N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL', '')
+N8N_WEBHOOK_API_KEY = os.getenv('N8N_WEBHOOK_API_KEY', '')
+
+# Base URL de n8n (se deriva automáticamente del webhook si no se configura)
+_n8n_parsed = __import__('urllib.parse', fromlist=['urlparse']).urlparse(N8N_WEBHOOK_URL)
+N8N_BASE_URL = os.getenv('N8N_BASE_URL', f"{_n8n_parsed.scheme}://{_n8n_parsed.netloc}" if _n8n_parsed.netloc else '')

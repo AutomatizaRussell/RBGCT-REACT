@@ -148,6 +148,7 @@ const UserTable = () => {
       // Asignación
       area_id: user.area_id || null,
       cargo_id: user.cargo_id || null,
+      fecha_ingreso: user.fecha_ingreso || '',
       
       // Permisos y estado
       id_permisos: user.id_permisos || 3,
@@ -652,6 +653,16 @@ const UserTable = () => {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Fecha de Ingreso</label>
+                    <input 
+                      name="fecha_ingreso" 
+                      type="date"
+                      value={editFormData.fecha_ingreso} 
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 ring-blue-500/20 outline-none"
+                    />
                   </div>
                 </div>
               </div>
