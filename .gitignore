@@ -50,3 +50,11 @@ Thumbs.db
 *.sln
 *.swp
 *.swo
+
+# =========================
+# Herramientas de desarrollo (Claude, Windsurf, etc.)
+# =========================
+.claude/
+.windsurf/
+.cursor/
+*.llmp
