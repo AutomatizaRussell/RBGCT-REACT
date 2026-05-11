@@ -8,17 +8,17 @@ Sistema integral de gestión de empleados, formación, tareas y automatización 
 
 1. [Arquitectura del Proyecto](#arquitectura-del-proyecto)
 2. [Stack Tecnológico](#stack-tecnológico)
-3. [Estructura de Archivos](#estructura-de-archivos)
-4. [Arquitectura de la Base de Datos](#arquitectura-de-la-base-de-datos)
-5. [Sistema de Roles y Permisos](#sistema-de-roles-y-permisos)
-6. [API REST — Endpoints Completos](#api-rest--endpoints-completos)
-7. [Sistema de Autenticación](#sistema-de-autenticación)
-8. [Integraciones Externas](#integraciones-externas)
-9. [Variables de Entorno](#variables-de-entorno)
-10. [Instalación y Setup](#instalación-y-setup)
-11. [Crear un SuperAdmin](#crear-un-superadmin)
-12. [Flujos de Trabajo Principales](#flujos-de-trabajo-principales)
-13. [Gestión de API Keys](#gestión-de-api-keys)
+3. [Principales Características](#principales-características)
+4. [Estructura de Archivos](#estructura-de-archivos)
+5. [Modelos de Base de Datos](#modelos-de-base-de-datos)
+6. [Sistema de Roles y Permisos](#sistema-de-roles-y-permisos)
+7. [API REST — Endpoints Principales](#api-rest--endpoints-principales)
+8. [Exportación de Datos](#exportación-de-datos)
+9. [Sistema de Autenticación](#sistema-de-autenticación)
+10. [Integraciones Externas](#integraciones-externas)
+11. [Variables de Entorno](#variables-de-entorno)
+12. [Instalación y Setup](#instalación-y-setup)
+13. [Crear un SuperAdmin](#crear-un-superadmin)
 14. [Troubleshooting](#troubleshooting)
 
 ---
@@ -114,6 +114,52 @@ Sistema integral de gestión de empleados, formación, tareas y automatización 
 
 ---
 
+## Principales Características
+
+### 👥 Gestión de Empleados
+- ✅ **Datos Personales + Contacto**: Integración de tabla `Persona` con `DatosContacto`
+- ✅ **Información de Emergencia**: Contacto de emergencia, parentesco, teléfono
+- ✅ **Exportación CSV/Excel**: Descarga completa de datos personales, laborales y contacto
+- ✅ **Multi-Área y Cargo**: Asignación flexible a áreas y cargos
+- ✅ **Estado del Empleado**: ACTIVA/INACTIVA con control de permisos
+
+### 📊 Dashboards por Rol
+- **SuperAdmin**: Control total, visualización de todos los datos, auditoría
+- **Admin**: Gestión operativa de empleados, cursos, tareas
+- **Editor**: Creación y edición de contenidos y cursos
+- **Usuario**: Autogestión, visualización de cursos, tareas asignadas
+
+### 📚 Gestión de Cursos
+- Creación y asignación de cursos
+- Seguimiento de progreso por usuario
+- Historial de completación
+- Módulos con contenido multimedia
+
+### 📅 Calendario de Tareas
+- Tareas con estado (pendiente, en proceso, completada)
+- Asignación a empleados
+- Vistas: tabla, calendario, dashboard
+- Alertas y notificaciones
+
+### 🔐 Seguridad
+- **Autenticación JWT**: Tokens con refresh
+- **Verificación de Email**: Códigos OTP por Resend
+- **Control de Acceso**: Roles granulares (SuperAdmin, Admin, Editor, Usuario)
+- **Permisos de Edición**: De uso único con validación de contraseña
+- **API Keys**: Gestión segura para integraciones
+
+### 📄 Herramientas de Documentos
+- **Gestor PDF**: Fusión, división, rotación de PDFs
+- **Conversor de Archivos**: Excel, Word, Markdown
+- **Limpiador de Metadatos**: Eliminación segura de información sensible
+
+### 🔗 Integraciones
+- **n8n**: Automatización de workflows y envío de emails
+- **Resend**: Plataforma de email transaccional
+- **Gmail SMTP**: Fallback para envío de correos
+
+---
+
 ## Estructura de Archivos
 
 ```
@@ -148,6 +194,435 @@ GCT/
 │   │   │   └── ProtectedRoute.jsx    # Wrapper de rutas protegidas
 │   │   │
 │   │   ├── layout/                   # Barras laterales por rol
+│   │   │   ├── AdminSidebar.jsx      # Sidebar SuperAdmin
+│   │   │   ├── Admin2Sidebar.jsx     # Sidebar Administrador
+│   │   │   ├── EditorSidebar.jsx     # Sidebar Editor
+│   │   │   ├── UserSidebar.jsx       # Sidebar Usuario
+│   │   │   └── Sidebar.jsx           # Sidebar genérico
+│   │   │
+│   │   ├── admin/
+│   │   │   └── ApiKeyManager.jsx     # Gestión de API Keys
+│   │   │
+│   │   ├── admin2/
+│   │   │   ├── CursosSection.jsx     # Sección de cursos (Admin2)
+│   │   │   ├── ContratosSection.jsx  # Sección de contratos
+│   │   │   ├── ClientesSection.jsx   # Sección de clientes
+│   │   │   └── UtilidadesSection.jsx # Utilidades (Admin2)
+│   │   │
+│   │   ├── editor/
+│   │   │   ├── EditorCursos.jsx      # Editor de cursos
+│   │   │   └── EditorHistorial.jsx   # Historial de ediciones
+│   │   │
+│   │   ├── tasks/
+│   │   │   ├── TaskDashboard.jsx     # Panel principal de tareas
+│   │   │   ├── TaskCalendar.jsx      # Vista calendario
+│   │   │   └── TaskManager.jsx       # CRUD de tareas
+│   │   │
+│   │   ├── tools/
+│   │   │   ├── ConvertidorArchivos.jsx   # Conversor de archivos
+│   │   │   ├── GestorPDF.jsx             # Herramienta PDF
+│   │   │   ├── LimpiadorMetadatos.jsx    # Limpiador de metadatos
+│   │   │   └── index.js
+│   │   │
+│   │   ├── ui/
+│   │   │   ├── StatCard.jsx          # Tarjeta de estadísticas
+│   │   │   ├── ActionButton.jsx      # Botón reutilizable
+│   │   │   └── RecentUserRow.jsx     # Fila de usuario reciente
+│   │   │
+│   │   └── users/
+│   │       ├── UserTable.jsx         # Tabla de empleados
+│   │       ├── UserTableadm2.jsx     # Tabla empleados (Admin2)
+│   │       ├── CreateUserPage.jsx    # Formulario crear usuario
+│   │       ├── RoleModal.jsx         # Modal de roles
+│   │       ├── UserProfile.jsx       # Perfil de usuario
+│   │       ├── AutoGestion.jsx       # Autogestión del empleado
+│   │       ├── ComunicadosInternos.jsx   # Comunicados internos
+│   │       ├── ManualesCargo.jsx     # Manuales por cargo
+│   │       ├── MisClientes.jsx       # Mis clientes asignados
+│   │       ├── N8nLogs.jsx           # Visor de logs de n8n
+│   │       └── SystemSettings.jsx    # Configuración del sistema
+│   │
+│   ├── context/
+│   │   └── AuthContext.jsx           # Estado global de autenticación
+│   │
+│   ├── hooks/
+│   │   └── useAuth.js                # Hook de autenticación
+│   │
+│   ├── lib/
+│   │   ├── api.js                    # Cliente HTTP - endpoints backend
+│   │   ├── exportEmpleados.js        # **Funciones de exportación CSV/Excel**
+│   │   └── index.js
+│   │
+│   └── assets/                       # Recursos estáticos
+
+---
+
+## Modelos de Base de Datos
+
+### 🔐 Autenticación
+- **SuperAdmin**: Usuario administrador del sistema con rol 'superadmin'
+
+### 👤 RRHH - Jerarquía de Datos Personales
+```
+Persona (Datos básicos)
+  ├─ primer_nombre, segundo_nombre
+  ├─ primer_apellido, segundo_apellido
+  ├─ tipo_documento, numero_documento
+  ├─ fecha_nacimiento, sexo, tipo_sangre
+  └─ apodo
+
+DatosContacto (1:1 con Persona)
+  ├─ correo_personal, telefono, direccion
+  └─ nombre_contacto_emergencia, telefono_emergencia, parentesco_emergencia
+
+DatosEmpleado (1:1 con Persona)
+  ├─ correo_corporativo
+  ├─ area (FK) + cargo (FK)
+  ├─ fecha_ingreso, fecha_retiro
+  ├─ estado (ACTIVA/INACTIVA)
+  ├─ id_permisos (1=Admin, 2=Editor, 3=Usuario)
+  └─ permitir_edicion_datos (permisos de uso único)
+```
+
+### 📊 Recursos
+- **DatosArea**: Áreas de la empresa (7 áreas por defecto)
+- **DatosCargo**: Cargos/posiciones (14 cargos por defecto)
+- **TareasCalendario**: Tareas con estado
+- **Curso**: Cursos de capacitación
+- **CursoContenido**: Módulos dentro de cursos
+- **CursoHistorial**: Progreso del usuario en cursos
+
+### 📋 Administración
+- **Contrato**: Contratos laborales
+- **AfiliacionSeguridadSocial**: Afiliaciones EPS/AFP/ARL
+- **Reglamento**: Ítems del reglamento interno
+- **N8nLog**: Logs de workflows de n8n
+- **ApiKey**: API keys para integraciones
+
+---
+
+## Exportación de Datos
+
+### Función `exportEmpleadosCSV()` y `exportEmpleadosXLSX()`
+**Ubicación**: [lib/exportEmpleados.js](frontend/src/lib/exportEmpleados.js)
+
+Exporta todos los datos de empleados en formatos **CSV** y **Excel (.xlsx)** con:
+
+#### Datos Incluidos:
+| Categoría | Campos |
+|-----------|--------|
+| **Personales** | Nombre, Apellidos, Apodo, Documento, Fecha Nacimiento, Sexo, Tipo Sangre |
+| **Contacto** | Correo Personal, Teléfono, Dirección |
+| **Emergencia** | Contacto Emergencia, Teléfono Emergencia, Parentesco |
+| **Laborales** | Correo Corporativo, Área, Cargo, Fecha Ingreso/Retiro, Estado |
+| **Permisos** | Rol, Permite Edición Datos |
+| **Auditoría** | Fecha Creación, Última Actualización |
+
+#### Uso:
+```javascript
+import { exportEmpleadosCSV, exportEmpleadosXLSX } from '../../lib/exportEmpleados';
+
+// Exportar a CSV
+exportEmpleadosCSV(empleados, 'empleados_rrhh');
+
+// Exportar a Excel
+exportEmpleadosXLSX(empleados, 'empleados_rrhh');
+```
+
+#### Características:
+- ✅ CSV con BOM UTF-8 (compatible con Excel y caracteres especiales)
+- ✅ Formato XLSX con estilos
+- ✅ Nombres de archivo con timestamp (YYYYMMdd_HHMM)
+- ✅ Respeta filtros de búsqueda y estado
+- ✅ Solo disponible para SuperAdmin e Admin
+
+---
+
+## Sistema de Roles y Permisos
+
+```
+SuperAdmin (id_permisos = null, role='superadmin')
+├─ Crear/eliminar usuarios y empleados
+├─ Cambiar contraseñas
+├─ Gestionar áreas y cargos
+├─ Visualizar auditoría completa
+└─ Acceso a Admin Dashboard
+
+Admin (id_permisos = 1)
+├─ Crear/modificar empleados de su empresa
+├─ Asignar cursos y tareas
+├─ Exportar datos (CSV/Excel)
+├─ Generar reportes
+└─ Acceso a Admin2 Dashboard
+
+Editor (id_permisos = 2)
+├─ Crear y editar cursos
+├─ Gestionar contenido
+├─ Ver logs de n8n
+└─ Acceso a Editor Dashboard
+
+Usuario (id_permisos = 3)
+├─ Editar perfil (si permitir_edicion_datos=True)
+├─ Ver cursos asignados
+├─ Enviar solicitudes
+└─ Acceso a User Dashboard
+```
+
+---
+
+## API REST — Endpoints Principales
+
+### 🔑 Autenticación
+```
+POST   /api/login/                      # Login con email + código OTP
+POST   /api/crear-usuario/              # Crear nuevo usuario (SuperAdmin)
+POST   /api/enviar-codigo/              # Enviar código de verificación
+POST   /api/verificar-codigo/           # Verificar código y generar JWT
+POST   /api/recuperar-password/         # Solicitar recuperación
+POST   /api/token/refresh/              # Refrescar token JWT
+```
+
+### 👥 Empleados
+```
+GET    /api/empleados/                  # Listar todos los empleados
+POST   /api/empleados/                  # Crear empleado
+GET    /api/empleados/{id}/             # Obtener empleado específico
+PUT    /api/empleados/{id}/             # Actualizar empleado
+DELETE /api/empleados/{id}/             # Eliminar empleado
+POST   /api/empleados/{id}/cambiar_estado/   # Cambiar estado (ACTIVA/INACTIVA)
+POST   /api/empleados/{id}/actualizar-password/ # Cambiar contraseña
+```
+
+### 📚 Cursos
+```
+GET    /api/cursos/                     # Listar cursos
+POST   /api/cursos/                     # Crear curso
+GET    /api/curso-contenido/            # Listar contenido
+GET    /api/curso-historial/            # Historial de progreso
+```
+
+### 📅 Tareas
+```
+GET    /api/tareas/                     # Listar tareas
+POST   /api/tareas/                     # Crear tarea
+PUT    /api/tareas/{id}/                # Actualizar tarea
+DELETE /api/tareas/{id}/                # Eliminar tarea
+```
+
+### 🔗 Integraciones
+```
+GET    /api/n8n-logs/                   # Logs de workflows
+POST   /api/n8n-proxy/                  # Proxy para n8n
+POST   /api/convertir-archivo/          # Convertir archivos (Excel, Word, etc.)
+POST   /api/gestor-pdf/                 # Operaciones PDF (fusión, división)
+POST   /api/convertir-markdown/         # Convertir documentos a Markdown
+```
+
+### 🔐 Seguridad
+```
+GET    /api/api-keys/                   # Listar API keys
+POST   /api/api-keys/                   # Crear API key
+DELETE /api/api-keys/{id}/              # Eliminar API key
+```
+
+---
+
+## Sistema de Autenticación
+
+### Flujo JWT + OTP
+```
+Usuario → Login (email) 
+  ↓
+Backend → Envía código OTP por email (Resend)
+  ↓
+Usuario → Ingresa código de 6 dígitos
+  ↓
+Backend → Verifica código y genera:
+          - access_token (JWT, 15 min)
+          - refresh_token (JWT, 7 días)
+  ↓
+Frontend → Almacena tokens en memoria/localStorage
+  ↓
+Cada request → Usa Bearer token en Authorization header
+```
+
+### Manejo de Tokens
+- **access_token**: Válido 15 minutos, incluye rol y permisos
+- **refresh_token**: Válido 7 días, permite obtener nuevo access_token
+- **Refresh automático**: En `/api/token/refresh/`
+
+---
+
+## Integraciones Externas
+
+### 📧 Email (Resend)
+- Envío de códigos OTP
+- Bienvenida de nuevos usuarios
+- Notificaciones
+- Recuperación de contraseña
+
+**Fallback**: Si Resend falla, usa Gmail SMTP configurado en `.env`
+
+### 🤖 n8n (Automatización)
+- Webhooks para workflow custom
+- Envío de emails automático
+- Trigger de eventos
+- Logging de ejecuciones
+
+### 🗄️ PostgreSQL
+- Base de datos principal
+- Datos ACID compliant
+- Respaldos automáticos (en producción)
+
+---
+
+## Variables de Entorno
+
+### Backend (.env)
+```env
+# Base de datos
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=rbgct
+DB_USER=postgres
+DB_PASSWORD=tu_password
+
+# Django
+DJANGO_SECRET_KEY=tu-clave-secreta
+DEBUG=False
+
+# Email
+RESEND_API_KEY=re_xxxxx
+DEFAULT_FROM_EMAIL=noreply@rbgct.com
+
+# Frontend
+FRONTEND_URL=http://localhost:5173
+
+# n8n
+N8N_WEBHOOK_URL=http://localhost:5678/webhook/...
+N8N_WEBHOOK_API_KEY=xxxxx
+```
+
+### Frontend (.env)
+```env
+VITE_API_URL=http://localhost:8000/api
+VITE_API_TIMEOUT=30000
+VITE_DEBUG=false
+```
+
+---
+
+## Instalación y Setup
+
+### Requisitos Previos
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL 13+
+- Git
+
+### 1. Clonar Repositorio
+```bash
+git clone <tu-repositorio>
+cd GCT
+```
+
+### 2. Backend Setup
+```bash
+cd backend
+
+# Crear entorno virtual
+python -m venv venv
+
+# Activar venv
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Copiar .env
+cp .env.example .env
+# Editar .env con tus credenciales
+
+# Ejecutar migraciones
+python manage.py migrate
+
+# Crear superadmin (opcional)
+python manage.py seed_fake_data --clean  # Solo si necesitas datos de prueba
+
+# Iniciar servidor
+python manage.py runserver
+```
+
+### 3. Frontend Setup
+```bash
+cd frontend
+
+# Instalar dependencias
+npm install
+
+# Copiar .env
+cp .env.example .env
+# Editar .env con URL del backend
+
+# Iniciar desarrollo
+npm run dev
+
+# Build para producción
+npm run build
+```
+
+---
+
+## Crear un SuperAdmin
+
+```bash
+cd backend
+python create_superadmin.py
+```
+
+Ingresa:
+- Email
+- Contraseña (6+ caracteres)
+- Nombre
+- Apellido
+
+---
+
+## Troubleshooting
+
+### Error: "No hay empleados para exportar"
+- Verifica que haya empleados en el sistema
+- Revisa los filtros de búsqueda aplicados
+
+### Error: Campos de Persona no aparecen en exportación
+- Asegúrate de que el serializer incluya los métodos `get_` correspondientes
+- Verifica que la tabla `Persona` tenga datos completados
+- Recarga la página y reinicia el servidor backend
+
+### JWT Token Expirado
+```bash
+POST /api/token/refresh/
+Body: { "refresh_token": "..." }
+```
+
+### Problema con CORS
+- Verifica `CORS_ALLOWED_ORIGINS` en `settings.py`
+- Asegúrate de que frontend URL coincida
+
+---
+
+## Licencia
+
+Proyecto privado para Russell Bedford RBG S.A.S
+
+---
+
+## Contacto & Soporte
+
+Para cambios, sugerencias o reportar bugs, contacta al equipo de desarrollo.
 │   │   │   ├── AdminSidebar.jsx      # Sidebar SuperAdmin
 │   │   │   ├── Admin2Sidebar.jsx     # Sidebar Administrador
 │   │   │   ├── EditorSidebar.jsx     # Sidebar Editor
