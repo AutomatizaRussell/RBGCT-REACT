@@ -88,7 +88,11 @@ class EmpresaClienteSerializer(serializers.ModelSerializer):
     empresa_matriz_nombre = serializers.CharField(source='empresa_matriz.razon_social', read_only=True)
     contactos = ContactoClienteSerializer(many=True, read_only=True)
     servicios = ServicioContratadoSerializer(many=True, read_only=True)
-    equipo = AsignacionEquipoSerializer(many=True, read_only=True)
+    equipo = serializers.SerializerMethodField()
+
+    def get_equipo(self, obj):
+        qs = obj.equipo.filter(activo=True).select_related('empleado__persona', 'empleado__cargo')
+        return AsignacionEquipoSerializer(qs, many=True).data
 
     class Meta:
         model = EmpresaCliente

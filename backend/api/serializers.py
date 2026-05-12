@@ -200,9 +200,9 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
 
 
 class TareasCalendarioSerializer(serializers.ModelSerializer):
-    primer_nombre = serializers.CharField(source='empleado.persona.primer_nombre', read_only=True)
-    primer_apellido = serializers.CharField(source='empleado.persona.primer_apellido', read_only=True)
-    nombre_area = serializers.CharField(source='area.nombre_area', read_only=True)
+    primer_nombre = serializers.SerializerMethodField()
+    primer_apellido = serializers.SerializerMethodField()
+    nombre_area = serializers.CharField(source='area.nombre_area', read_only=True, allow_null=True, required=False)
     area_id = serializers.IntegerField(allow_null=True, required=False)
     empleado_id = serializers.IntegerField(allow_null=True, required=False)
 
@@ -214,6 +214,16 @@ class TareasCalendarioSerializer(serializers.ModelSerializer):
             'prioridad', 'fecha_vencimiento', 'fecha_creacion',
             'fecha_actualizacion', 'asignado_a', 'estado', 'creado_por',
         ]
+
+    def get_primer_nombre(self, obj):
+        if obj.empleado and obj.empleado.persona:
+            return obj.empleado.persona.primer_nombre
+        return None
+
+    def get_primer_apellido(self, obj):
+        if obj.empleado and obj.empleado.persona:
+            return obj.empleado.persona.primer_apellido
+        return None
 
 
 class SolicitudesPasswordSerializer(serializers.ModelSerializer):

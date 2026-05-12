@@ -123,14 +123,21 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
           ?empleado_id=X → solo clientes asignados a ese empleado
         Solo incluye en la respuesta secciones con datos reales.
         """
-        area_id     = request.query_params.get('area_id')
-        empleado_id = request.query_params.get('empleado_id')
+        area_id      = request.query_params.get('area_id')
+        empleado_id  = request.query_params.get('empleado_id')
+        empresa_id   = request.query_params.get('empresa_id')
 
         # ── Scope base de empresas ────────────────────────────────────────────
         empresa_qs = EmpresaCliente.objects.all()
         servicio_qs = ServicioContratado.objects.all()
         asignacion_qs = AsignacionEquipo.objects.filter(activo=True)
         bitacora_qs = BitacoraCliente.objects.all()
+
+        if empresa_id:
+            empresa_qs    = empresa_qs.filter(id=empresa_id)
+            servicio_qs   = servicio_qs.filter(empresa_id=empresa_id)
+            asignacion_qs = asignacion_qs.filter(empresa_id=empresa_id)
+            bitacora_qs   = bitacora_qs.filter(empresa_id=empresa_id)
 
         if area_id:
             ids = servicio_qs.filter(area_id=area_id).values_list('empresa_id', flat=True).distinct()
@@ -179,7 +186,7 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
         # ── Facturación por área ─────────────────────────────────────────────
         facturacion_area = list(
             servicio_qs
-            .filter(estado='activo', valor_mensual__isnull=False)
+            .filter(estado='activo', valor_mensual__isnull=False, area__isnull=False)
             .values('area__nombre_area')
             .annotate(total=Sum('valor_mensual'))
             .order_by('-total')[:8]
@@ -255,6 +262,11 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
 
         # ── Contexto del filtro activo ────────────────────────────────────────
         filtro_info = {}
+        if empresa_id:
+            try:
+                filtro_info['empresa_nombre'] = EmpresaCliente.objects.get(id=empresa_id).razon_social
+            except EmpresaCliente.DoesNotExist:
+                pass
         if area_id:
             from api.models import DatosArea
             try:

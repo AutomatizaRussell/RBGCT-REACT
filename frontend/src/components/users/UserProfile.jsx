@@ -35,6 +35,9 @@ const UserProfile = () => {
         telefono: data?.telefono || '',
         correo_personal: data?.correo_personal || '',
         direccion: data?.direccion || '',
+        nombre_contacto_emergencia: data?.nombre_contacto_emergencia || '',
+        telefono_emergencia: data?.telefono_emergencia || '',
+        parentesco_emergencia: data?.parentesco_emergencia || '',
       });
     } catch (err) {
       console.error('Error cargando perfil:', err);
@@ -50,6 +53,9 @@ const UserProfile = () => {
         telefono: form.telefono,
         correo_personal: form.correo_personal,
         direccion: form.direccion,
+        nombre_contacto_emergencia: form.nombre_contacto_emergencia,
+        telefono_emergencia: form.telefono_emergencia,
+        parentesco_emergencia: form.parentesco_emergencia,
       });
       setEmpleado(prev => ({ ...prev, ...form }));
       setEditando(false);
@@ -218,9 +224,48 @@ const UserProfile = () => {
           </div>
           {editando && (
             <p className="text-[10px] text-slate-400 mt-4">
-              * Puedes editar teléfono, correo personal y dirección. Para otros cambios contacta a RRHH.
+              * Puedes editar teléfono, correo personal, dirección y contacto de emergencia. Para otros cambios contacta a RRHH.
             </p>
           )}
+        </div>
+
+        {/* Contacto de emergencia */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+          <h4 className="text-sm font-bold text-[#001e33] mb-5 flex items-center gap-2">
+            <Heart size={16} className="text-rose-500" /> Contacto de Emergencia
+          </h4>
+          <div className="space-y-4">
+            <EditableRow
+              icon={<User size={16} />}
+              label="Nombre"
+              value={form.nombre_contacto_emergencia}
+              displayValue={empleado.nombre_contacto_emergencia || 'No registrado'}
+              editando={editando}
+              onChange={v => setForm(f => ({ ...f, nombre_contacto_emergencia: v }))}
+              type="text"
+              placeholder="Ej. María García"
+            />
+            <EditableRow
+              icon={<Phone size={16} />}
+              label="Teléfono"
+              value={form.telefono_emergencia}
+              displayValue={empleado.telefono_emergencia || 'No registrado'}
+              editando={editando}
+              onChange={v => setForm(f => ({ ...f, telefono_emergencia: v }))}
+              type="tel"
+              placeholder="Ej: 3001234567"
+            />
+            <EditableRow
+              icon={<Heart size={16} />}
+              label="Parentesco"
+              value={form.parentesco_emergencia}
+              displayValue={empleado.parentesco_emergencia || 'No registrado'}
+              editando={editando}
+              onChange={v => setForm(f => ({ ...f, parentesco_emergencia: v }))}
+              type="text"
+              placeholder="Ej. Madre, Esposo, Hermano..."
+            />
+          </div>
         </div>
       </div>
     </div>

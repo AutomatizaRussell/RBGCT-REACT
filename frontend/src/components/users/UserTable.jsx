@@ -140,6 +140,8 @@ const UserTable = () => {
       correo_personal: user.correo_personal || '',
       telefono: user.telefono || '',
       telefono_emergencia: user.telefono_emergencia || '',
+      nombre_contacto_emergencia: user.nombre_contacto_emergencia || '',
+      parentesco_emergencia: user.parentesco_emergencia || '',
       direccion: user.direccion || '',
       
       // Datos personales
@@ -612,11 +614,31 @@ const UserTable = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Teléfono Emergencia</label>
-                    <input 
-                      name="telefono_emergencia" 
-                      value={editFormData.telefono_emergencia} 
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Nombre Contacto Emergencia</label>
+                    <input
+                      name="nombre_contacto_emergencia"
+                      value={editFormData.nombre_contacto_emergencia}
                       onChange={handleInputChange}
+                      placeholder="Ej. María García"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 ring-blue-500/20 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Teléfono Emergencia</label>
+                    <input
+                      name="telefono_emergencia"
+                      value={editFormData.telefono_emergencia}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 ring-blue-500/20 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Parentesco</label>
+                    <input
+                      name="parentesco_emergencia"
+                      value={editFormData.parentesco_emergencia}
+                      onChange={handleInputChange}
+                      placeholder="Ej. Madre, Esposo..."
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 ring-blue-500/20 outline-none"
                     />
                   </div>

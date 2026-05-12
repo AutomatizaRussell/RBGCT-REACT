@@ -10,10 +10,22 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Drop the old partial index manually (Django can't locate it in a custom schema reliably)
-        migrations.RunSQL(
-            sql='DROP INDEX IF EXISTS clientes.unique_asignacion_activa;',
-            reverse_sql='',
+        # Remove old constraint (empresa+empleado+servicio) from both state and DB.
+        # SeparateDatabaseAndState is required because Django can't schema-qualify the
+        # DROP INDEX for partial indexes in a custom PostgreSQL schema.
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveConstraint(
+                    model_name='asignacionequipo',
+                    name='unique_asignacion_activa',
+                ),
+            ],
+            database_operations=[
+                migrations.RunSQL(
+                    sql='DROP INDEX IF EXISTS clientes.unique_asignacion_activa;',
+                    reverse_sql='',
+                ),
+            ],
         ),
         migrations.AddField(
             model_name='asignacionequipo',
@@ -35,11 +47,11 @@ class Migration(migrations.Migration):
                 to='clientes.serviciocontratado',
             ),
         ),
-        # Recreate with new fields (empresa + area + empleado)
+        # Add new constraint (empresa + area + empleado).
         migrations.AddConstraint(
             model_name='asignacionequipo',
             constraint=models.UniqueConstraint(
-                condition=models.Q(activo=True),
+                condition=models.Q(('activo', True)),
                 fields=('empresa', 'area', 'empleado'),
                 name='unique_asignacion_activa',
             ),

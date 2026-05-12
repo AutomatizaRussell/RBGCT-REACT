@@ -327,10 +327,12 @@ def crear_usuario_superadmin(request):
         'tipo_sangre': request.data.get('tipo_sangre') or None,
     }
     contacto_data = {
-        'correo_personal': request.data.get('correo_personal') or None,
-        'telefono': request.data.get('telefono') or None,
-        'telefono_emergencia': request.data.get('telefono_emergencia') or None,
-        'direccion': request.data.get('direccion') or None,
+        'correo_personal':             request.data.get('correo_personal') or None,
+        'telefono':                    request.data.get('telefono') or None,
+        'telefono_emergencia':         request.data.get('telefono_emergencia') or None,
+        'nombre_contacto_emergencia':  request.data.get('nombre_contacto_emergencia') or None,
+        'parentesco_emergencia':       request.data.get('parentesco_emergencia') or None,
+        'direccion':                   request.data.get('direccion') or None,
     }
     persona = Persona.objects.create(**persona_data)
     DatosContacto.objects.create(persona=persona, **contacto_data)
@@ -426,7 +428,8 @@ def completar_datos_empleado(request):
         empleado.persona.save()
 
     # Actualizar DatosContacto
-    campos_contacto = ['correo_personal', 'telefono', 'telefono_emergencia', 'direccion']
+    campos_contacto = ['correo_personal', 'telefono', 'telefono_emergencia',
+                       'nombre_contacto_emergencia', 'parentesco_emergencia', 'direccion']
     contacto_data = {c: request.data[c] for c in campos_contacto if c in request.data}
     if contacto_data:
         contacto, _ = DatosContacto.objects.get_or_create(persona=empleado.persona)

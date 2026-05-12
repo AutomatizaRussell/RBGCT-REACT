@@ -85,6 +85,12 @@ STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# ── Appwrite Storage ──────────────────────────────────────────────────────────
+APPWRITE_ENDPOINT   = os.getenv('APPWRITE_ENDPOINT',   'https://nyc.cloud.appwrite.io/v1')
+APPWRITE_PROJECT_ID = os.getenv('APPWRITE_PROJECT_ID', '')
+APPWRITE_BUCKET_ID  = os.getenv('APPWRITE_BUCKET_ID',  '')
+APPWRITE_API_KEY    = os.getenv('APPWRITE_API_KEY',    '')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'api.SuperAdmin'

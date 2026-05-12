@@ -535,7 +535,16 @@ async function fetchCrm(path, options = {}) {
     }
   }
 
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const msg = body
+      ? (body.error || body.detail || body.message ||
+         (typeof body === 'object' ? Object.values(body).flat().join(' ') : null))
+      : null;
+    const err = new Error(msg || `Error ${res.status}`);
+    err.fieldErrors = (body && typeof body === 'object' && !body.error && !body.detail) ? body : null;
+    throw err;
+  }
   return res.status === 204 ? null : res.json();
 }
 

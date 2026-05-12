@@ -4,7 +4,9 @@ import {
   Plus, Search, ChevronRight, Upload, RefreshCw,
   User, Building2, Briefcase, Calendar, DollarSign,
   Shield, Edit3, Ban, RotateCcw, X, Save, Eye,
+  Download, Sheet,
 } from 'lucide-react';
+import { exportContratosExcel, exportContratosPDF } from '../../lib/exportContratos';
 import {
   getAllEmpleados,
   getContratoActivo,
@@ -498,6 +500,22 @@ const EmpleadoPanel = ({ empleado, onClose, onRefresh }) => {
                   <button onClick={() => setMode('terminar')} className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 bg-red-50 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-100">
                     <Ban size={12} /> Terminar
                   </button>
+                  <div className="ml-auto flex gap-1.5">
+                    <button
+                      onClick={() => exportContratosExcel([empleado], { [empleado.id_empleado]: contrato }, { [empleado.id_empleado]: afiliacion }, `contrato_${empleado.primer_apellido || empleado.nombre_completo}`)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                      title="Descargar Excel"
+                    >
+                      <Sheet size={12} /> Excel
+                    </button>
+                    <button
+                      onClick={() => exportContratosPDF([empleado], { [empleado.id_empleado]: contrato }, { [empleado.id_empleado]: afiliacion }, `contrato_${empleado.primer_apellido || empleado.nombre_completo}`)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors"
+                      title="Descargar PDF"
+                    >
+                      <Download size={12} /> PDF
+                    </button>
+                  </div>
                 </div>
 
                 {/* Datos del contrato */}
@@ -579,7 +597,8 @@ const EmpleadoPanel = ({ empleado, onClose, onRefresh }) => {
 
 export default function ContratosSection() {
   const [empleados,     setEmpleados]     = useState([]);
-  const [contratos,     setContratos]     = useState({});   // { empleadoId: contrato|null }
+  const [contratos,     setContratos]     = useState({});     // { empleadoId: contrato|null }
+  const [afiliaciones,  setAfiliaciones]  = useState({});     // { empleadoId: afiliacion|null }
   const [selected,      setSelected]      = useState(null);
   const [search,        setSearch]        = useState('');
   const [filtro,        setFiltro]        = useState('todos'); // todos|sin_contrato|por_vencer|activos
@@ -593,18 +612,20 @@ export default function ContratosSection() {
       const activos = emps.filter(e => e.estado === 'ACTIVA');
       setEmpleados(activos);
 
-      // Cargar contratos en paralelo (máximo 8 a la vez para no saturar)
+      // Cargar contratos y afiliaciones en paralelo (máximo 8 a la vez)
       setLoadingContr(true);
       const chunks = [];
       for (let i = 0; i < activos.length; i += 8) chunks.push(activos.slice(i, i + 8));
-      const mapa = {};
+      const mapaC = {}, mapaA = {};
       for (const chunk of chunks) {
-        const results = await Promise.all(
-          chunk.map(e => getContratoActivo(e.id_empleado).catch(() => null))
-        );
-        chunk.forEach((e, i) => { mapa[e.id_empleado] = results[i]; });
+        const [resC, resA] = await Promise.all([
+          Promise.all(chunk.map(e => getContratoActivo(e.id_empleado).catch(() => null))),
+          Promise.all(chunk.map(e => getAfiliacionSS(e.id_empleado).catch(() => null))),
+        ]);
+        chunk.forEach((e, i) => { mapaC[e.id_empleado] = resC[i]; mapaA[e.id_empleado] = resA[i]; });
       }
-      setContratos(mapa);
+      setContratos(mapaC);
+      setAfiliaciones(mapaA);
     } finally {
       setLoading(false);
       setLoadingContr(false);
@@ -615,8 +636,11 @@ export default function ContratosSection() {
 
   const handleRefresh = useCallback(() => {
     if (selected) {
-      getContratoActivo(selected.id_empleado).catch(() => null)
-        .then(c => setContratos(prev => ({ ...prev, [selected.id_empleado]: c })));
+      const id = selected.id_empleado;
+      getContratoActivo(id).catch(() => null)
+        .then(c => setContratos(prev => ({ ...prev, [id]: c })));
+      getAfiliacionSS(id).catch(() => null)
+        .then(a => setAfiliaciones(prev => ({ ...prev, [id]: a })));
     }
   }, [selected]);
 
@@ -657,9 +681,27 @@ export default function ContratosSection() {
               <h2 className="text-lg font-bold text-slate-800">Contratos Laborales</h2>
               <p className="text-xs text-slate-400 mt-0.5">{empleados.length} empleados activos</p>
             </div>
-            <button onClick={loadAll} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors">
-              <RefreshCw size={15} className={loading || loadingContr ? 'animate-spin' : ''} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => exportContratosExcel(filtrados, contratos, afiliaciones, 'contratos_laborales')}
+                disabled={loading || loadingContr || !filtrados.length}
+                title={`Exportar Excel (${filtrados.length} empleados)`}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Sheet size={13} /> Excel
+              </button>
+              <button
+                onClick={() => exportContratosPDF(filtrados, contratos, afiliaciones, 'contratos_laborales')}
+                disabled={loading || loadingContr || !filtrados.length}
+                title={`Exportar PDF (${filtrados.length} empleados)`}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Download size={13} /> PDF
+              </button>
+              <button onClick={loadAll} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors" title="Actualizar">
+                <RefreshCw size={15} className={loading || loadingContr ? 'animate-spin' : ''} />
+              </button>
+            </div>
           </div>
 
           {/* Stats */}

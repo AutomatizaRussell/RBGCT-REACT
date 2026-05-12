@@ -8,8 +8,13 @@ import {
   BookOpen, Phone, Mail, Globe, MapPin, AlertTriangle, Pencil,
   Trash2, Upload, ExternalLink, UserPlus, DollarSign, Activity,
   ShieldAlert, LayoutDashboard, List, ArrowRight, ChevronDown,
-  ChevronUp, Briefcase, Clock,
+  ChevronUp, Briefcase, Clock, Download, Sheet,
 } from 'lucide-react';
+import {
+  exportClientesListaExcel, exportClientesListaPDF,
+  exportClienteExcel, exportClientePDF,
+  exportDashboardExcel, exportDashboardPDF,
+} from '../../lib/exportClientes';
 import {
   getClientesStats, getEmpresas, getEmpresa,
   createEmpresa, updateEmpresa, deleteEmpresa,
@@ -88,6 +93,61 @@ const CTip = ({ active, payload, label }) => {
   );
 };
 
+// ── EmpresaPicker (autocomplete compacto para el filtro del dashboard) ────────
+
+function EmpresaPicker({ empresas, value, onChange }) {
+  const [q, setQ]       = useState('');
+  const [open, setOpen] = useState(false);
+  const selected = empresas.find(e => String(e.id) === String(value));
+
+  const lista = empresas
+    .filter(e => !q ||
+      e.razon_social.toLowerCase().includes(q.toLowerCase()) ||
+      (e.nit || '').includes(q))
+    .slice(0, 8);
+
+  const pick  = (id) => { onChange(String(id)); setQ(''); setOpen(false); };
+  const clear = ()   => { onChange(''); setQ(''); };
+
+  return (
+    <div className="relative">
+      <div className={`flex items-center gap-1 border rounded-lg px-2 py-1.5 bg-white text-xs transition-all
+        ${open ? 'border-blue-400 ring-2 ring-blue-500/20' : 'border-slate-200'}`}>
+        <Search size={11} className="text-slate-400 flex-shrink-0"/>
+        {selected && !open
+          ? <span className="flex-1 truncate text-slate-700 font-medium max-w-[140px]">{selected.razon_social}</span>
+          : <input
+              value={q}
+              placeholder={selected ? selected.razon_social : 'Buscar cliente…'}
+              onChange={e => { setQ(e.target.value); setOpen(true); }}
+              onFocus={() => setOpen(true)}
+              onBlur={() => setTimeout(() => setOpen(false), 150)}
+              className="flex-1 outline-none bg-transparent placeholder:text-slate-400 min-w-0 w-32"
+            />
+        }
+        {selected
+          ? <button onClick={clear} className="text-slate-400 hover:text-red-400 flex-shrink-0"><X size={11}/></button>
+          : <ChevronDown size={11} className="text-slate-400 flex-shrink-0"/>
+        }
+      </div>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden">
+          {lista.length === 0
+            ? <p className="text-xs text-slate-400 px-3 py-2.5">Sin resultados</p>
+            : lista.map(e => (
+              <button key={e.id} onMouseDown={() => pick(e.id)}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 flex items-center justify-between gap-2 border-b border-slate-50 last:border-0">
+                <span className="truncate font-medium text-slate-700">{e.razon_social}</span>
+                <span className="text-slate-400 flex-shrink-0 text-[10px]">{e.nit}</span>
+              </button>
+            ))
+          }
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Dashboard CRM ─────────────────────────────────────────────────────────────
 
 function ChartCard({ title, sub, children, isEmpty, emptyMsg }) {
@@ -129,31 +189,40 @@ function CrmDashboard({ onGo }) {
   const [loading, setLoading]     = useState(true);
   const [areas, setAreas]         = useState([]);
   const [empleados, setEmpleados] = useState([]);
+  const [empresas, setEmpresas]   = useState([]);
   const [filtroArea, setFiltroArea]         = useState('');
   const [filtroEmpleado, setFiltroEmpleado] = useState('');
+  const [filtroEmpresa, setFiltroEmpresa]   = useState('');
 
+  // Catálogos: carga única al montar
+  useEffect(() => {
+    Promise.all([getAllAreas(), getAllEmpleados(), getEmpresas()])
+      .then(([a, e, em]) => { setAreas(a); setEmpleados(e); setEmpresas(em); })
+      .catch(console.error);
+  }, []);
+
+  // Stats: recarga al cambiar filtros
   const loadStats = useCallback(async () => {
     setLoading(true);
     const params = {};
     if (filtroArea)     params.area_id     = filtroArea;
     if (filtroEmpleado) params.empleado_id = filtroEmpleado;
+    if (filtroEmpresa)  params.empresa_id  = filtroEmpresa;
     try {
-      const [s, a, e] = await Promise.all([
-        getClientesStats(params),
-        areas.length ? Promise.resolve(areas) : getAllAreas(),
-        empleados.length ? Promise.resolve(empleados) : getAllEmpleados(),
-      ]);
-      setStats(s);
-      if (!areas.length)    setAreas(a);
-      if (!empleados.length) setEmpleados(e);
+      setStats(await getClientesStats(params));
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, [filtroArea, filtroEmpleado]);
+  }, [filtroArea, filtroEmpleado, filtroEmpresa]);
 
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  const resetFiltros = () => { setFiltroArea(''); setFiltroEmpleado(''); };
-  const hayFiltro    = filtroArea || filtroEmpleado;
+  const resetFiltros = () => { setFiltroArea(''); setFiltroEmpleado(''); setFiltroEmpresa(''); };
+  const hayFiltro    = filtroArea || filtroEmpleado || filtroEmpresa;
+
+  // Empleados visibles en el dropdown: solo los del área seleccionada (o todos si no hay área)
+  const empleadosVisibles = filtroArea
+    ? empleados.filter(em => em.area == filtroArea)
+    : empleados;
 
   // ── Preparar datos solo con valores reales ──────────────────────────────
   const estadoData = Object.entries(stats?.por_estado || {})
@@ -177,42 +246,95 @@ function CrmDashboard({ onGo }) {
   const riesgoAlto = (stats?.por_riesgo?.alto || 0) + (stats?.por_riesgo?.critico || 0);
   const totalScope = stats?.total ?? 0;
 
-  const contextLabel = stats?.filtro_info?.area_nombre
-    ? `Área: ${stats.filtro_info.area_nombre}`
-    : stats?.filtro_info?.empleado_nombre
-      ? `Colaborador: ${stats.filtro_info.empleado_nombre}`
-      : 'Vista global';
+  const fi = stats?.filtro_info || {};
+  const contextParts = [
+    fi.empresa_nombre  && `Cliente: ${fi.empresa_nombre}`,
+    fi.area_nombre     && `Área: ${fi.area_nombre}`,
+    fi.empleado_nombre && `Colaborador: ${fi.empleado_nombre}`,
+  ].filter(Boolean);
+  const contextLabel = contextParts.length ? contextParts.join(' · ') : 'Vista global';
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Barra de filtros */}
-      <div className="flex items-center gap-3 px-6 py-3 bg-white border-b border-slate-100">
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Filtrar por:</span>
+      <div className="flex items-center gap-2 px-6 py-2.5 bg-white border-b border-slate-100 flex-wrap">
+        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mr-1">Ver por:</span>
 
-        <select value={filtroArea} onChange={e => { setFiltroArea(e.target.value); setFiltroEmpleado(''); }}
-          className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-slate-700">
+        {/* Área */}
+        <select value={filtroArea}
+          onChange={e => { setFiltroArea(e.target.value); setFiltroEmpleado(''); }}
+          className={`text-xs border rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-colors
+            ${filtroArea ? 'border-blue-400 text-blue-700 bg-blue-50' : 'border-slate-200 text-slate-600'}`}>
           <option value="">Todas las áreas</option>
           {areas.map(a => <option key={a.id_area} value={a.id_area}>{a.nombre_area}</option>)}
         </select>
 
-        <select value={filtroEmpleado} onChange={e => { setFiltroEmpleado(e.target.value); setFiltroArea(''); }}
-          className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-slate-700">
-          <option value="">Todo el equipo</option>
-          {empleados.map(em => (
-            <option key={em.id_empleado} value={em.id_empleado}>
-              {em.primer_nombre} {em.primer_apellido}
+        {/* Colaborador — filtrado por área si hay una seleccionada */}
+        <div className="relative">
+          <select value={filtroEmpleado}
+            onChange={e => setFiltroEmpleado(e.target.value)}
+            className={`text-xs border rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-colors
+              ${filtroEmpleado ? 'border-blue-400 text-blue-700 bg-blue-50' : 'border-slate-200 text-slate-600'}`}>
+            <option value="">
+              {filtroArea && empleadosVisibles.length > 0
+                ? `Todo el equipo del área (${empleadosVisibles.length})`
+                : 'Todo el equipo'}
             </option>
-          ))}
-        </select>
+            {empleadosVisibles.map(em => (
+              <option key={em.id_empleado} value={em.id_empleado}>
+                {em.primer_nombre} {em.primer_apellido}
+              </option>
+            ))}
+          </select>
+          {filtroArea && empleadosVisibles.length === 0 && (
+            <span className="absolute -top-4 left-0 text-[10px] text-amber-500 whitespace-nowrap">Sin empleados en esta área</span>
+          )}
+        </div>
 
+        {/* Separador */}
+        <div className="h-5 w-px bg-slate-200 mx-0.5"/>
+
+        {/* Cliente */}
+        <EmpresaPicker
+          empresas={empresas}
+          value={filtroEmpresa}
+          onChange={setFiltroEmpresa}
+        />
+
+        {/* Reset */}
         {hayFiltro && (
           <button onClick={resetFiltros}
-            className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:border-red-200 transition-colors">
-            <X size={11}/> Quitar filtro
+            className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:border-red-200 hover:bg-red-50 transition-colors">
+            <X size={11}/> Limpiar
           </button>
         )}
 
-        <span className="ml-auto text-xs text-slate-400 italic">{contextLabel}</span>
+        {/* Contexto activo */}
+        {hayFiltro && (
+          <span className="text-[11px] text-blue-600 font-medium bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
+            {contextLabel}
+          </span>
+        )}
+
+        {/* Exportar dashboard */}
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            onClick={() => exportDashboardExcel(stats, contextLabel)}
+            disabled={!stats}
+            title="Exportar dashboard a Excel"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Sheet size={12}/> Excel
+          </button>
+          <button
+            onClick={() => exportDashboardPDF(stats, contextLabel)}
+            disabled={!stats}
+            title="Exportar dashboard a PDF con gráficas"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Download size={12}/> PDF
+          </button>
+        </div>
       </div>
 
       {/* Contenido scrolleable */}
@@ -514,10 +636,19 @@ function AgregarServicioForm({ areaId, empresaId, onSaved, onCancel }) {
   );
 }
 
-function AgregarEmpleadoForm({ areaId, empresaId, onSaved, onCancel, empleados }) {
-  const [form, setForm] = useState({ empleado:'', rol:'', fecha_inicio:'' });
-  const [saving, setSaving] = useState(false);
+function AgregarEmpleadoForm({ areaId, empresaId, onSaved, onCancel, empleados, assignedIds = new Set() }) {
+  const [form, setForm]       = useState({ empleado:'', rol:'', fecha_inicio:'' });
+  const [busqueda, setBusqueda] = useState('');
+  const [saving, setSaving]   = useState(false);
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
+
+  // Solo empleados del área seleccionada, excluyendo los ya asignados a este cliente
+  const delArea  = empleados.filter(em => em.area == areaId);
+  const libres   = delArea.filter(em => !assignedIds.has(em.id_empleado));
+  const filtrados = libres.filter(em =>
+    !busqueda ||
+    `${em.primer_nombre} ${em.primer_apellido}`.toLowerCase().includes(busqueda.toLowerCase())
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -529,30 +660,63 @@ function AgregarEmpleadoForm({ areaId, empresaId, onSaved, onCancel, empleados }
     finally { setSaving(false); }
   };
 
+  const sinEmpleados = delArea.length === 0;
+  const todosAsignados = !sinEmpleados && libres.length === 0;
+
   return (
     <form onSubmit={handleSubmit} className="mt-2 p-3 bg-purple-50 border border-purple-100 rounded-xl space-y-2">
-      <p className="text-xs font-semibold text-purple-700 mb-1">Asignar empleado</p>
-      <div className="grid grid-cols-3 gap-2">
-        <select value={form.empleado} onChange={e=>set('empleado',e.target.value)} required
-          className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/30">
-          <option value="">Empleado *</option>
-          {empleados.map(em=>(
-            <option key={em.id_empleado} value={em.id_empleado}>
-              {em.primer_nombre} {em.primer_apellido}
-            </option>
-          ))}
-        </select>
+      <p className="text-xs font-semibold text-purple-700">Asignar empleado del área</p>
+
+      {sinEmpleados ? (
+        <p className="text-xs text-amber-600 py-1 flex items-center gap-1.5">
+          <AlertTriangle size={11}/> Esta área no tiene empleados registrados en el sistema.
+        </p>
+      ) : todosAsignados ? (
+        <p className="text-xs text-amber-600 py-1 flex items-center gap-1.5">
+          <AlertTriangle size={11}/> Todos los empleados de esta área ya están asignados a este cliente.
+        </p>
+      ) : (
+        <>
+          {/* Búsqueda dentro del área */}
+          <div className="relative">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+            <input type="text" placeholder={`Buscar en ${delArea.length} empleados del área…`}
+              value={busqueda} onChange={e=>setBusqueda(e.target.value)}
+              className="w-full pl-7 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"/>
+          </div>
+
+          <select value={form.empleado} onChange={e=>set('empleado',e.target.value)} required
+            size={Math.min(filtrados.length + 1, 6)}
+            className="w-full px-3 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/30">
+            <option value="">— Seleccionar —</option>
+            {filtrados.map(em => (
+              <option key={em.id_empleado} value={em.id_empleado}>
+                {em.primer_nombre} {em.primer_apellido}{em.nombre_cargo ? ` · ${em.nombre_cargo}` : ''}
+              </option>
+            ))}
+          </select>
+          {filtrados.length === 0 && busqueda && (
+            <p className="text-xs text-slate-400 text-center">Sin resultados para "{busqueda}"</p>
+          )}
+        </>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
         <select value={form.rol} onChange={e=>set('rol',e.target.value)} required
           className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/30">
-          <option value="">Rol *</option>
+          <option value="">Rol en este cliente *</option>
           {Object.entries(ROL_LABELS).map(([v,l])=><option key={v} value={v}>{l}</option>)}
         </select>
         <input type="date" required value={form.fecha_inicio} onChange={e=>set('fecha_inicio',e.target.value)}
-          className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/30" />
+          className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/30"/>
       </div>
       <div className="flex gap-2">
-        <button type="submit" disabled={saving} className="px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50">{saving?'Asignando...':'Asignar'}</button>
-        <button type="button" onClick={onCancel} className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg hover:bg-slate-50">Cancelar</button>
+        <button type="submit" disabled={saving || sinEmpleados || todosAsignados}
+          className="px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50">
+          {saving ? 'Asignando…' : 'Asignar'}
+        </button>
+        <button type="button" onClick={onCancel}
+          className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg hover:bg-slate-50">Cancelar</button>
       </div>
     </form>
   );
@@ -666,7 +830,10 @@ function AreaCard({ bloque, empresaId, empleados, onRefresh, colorIdx }) {
 
               {addEmp && (
                 <AgregarEmpleadoForm
-                  areaId={bloque.area_id} empresaId={empresaId} empleados={empleados}
+                  areaId={bloque.area_id}
+                  empresaId={empresaId}
+                  empleados={empleados}
+                  assignedIds={new Set(bloque.equipo.map(a => a.empleado))}
                   onSaved={() => { setAddEmp(false); onRefresh(); }}
                   onCancel={() => setAddEmp(false)}
                 />
@@ -1052,59 +1219,101 @@ function EmpresaForm({ empresa, onSave, onCancel }) {
     ...empresa,
   });
   const [saving, setSaving] = useState(false);
-  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+  const [errors, setErrors] = useState({});
+  const set = (k,v) => { setForm(f=>({...f,[k]:v})); setErrors(e=>({...e,[k]:null})); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrors({});
     setSaving(true);
     try {
-      const p = { ...form };
-      if (!p.digito_verificacion) delete p.digito_verificacion;
-      if (!p.fecha_inicio_relacion) delete p.fecha_inicio_relacion;
-      if (!p.website) delete p.website;
+      const p = Object.fromEntries(
+        Object.entries(form).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+      );
       empresa?.id ? await updateEmpresa(empresa.id, p) : await createEmpresa(p);
       onSave();
-    } catch (err) { alert('Error: '+err.message); }
+    } catch (err) {
+      if (err.fieldErrors) {
+        setErrors(err.fieldErrors);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        alert(err.message);
+      }
+    }
     finally { setSaving(false); }
   };
 
-  const F = (label,key,type='text',req=false) => (
+  const err = (key) => errors[key]?.[0];
+
+  const F = (label, key, type='text', req=false, extra={}) => (
     <div>
-      <label className="block text-xs font-medium text-slate-500 mb-1">{label}{req&&' *'}</label>
+      <label className="block text-xs font-medium text-slate-500 mb-1">{label}{req && <span className="text-red-400"> *</span>}</label>
       <input type={type} value={form[key]||''} onChange={e=>set(key,e.target.value)} required={req}
-        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"/>
-    </div>
-  );
-  const S = (label,key,opts,req=false) => (
-    <div>
-      <label className="block text-xs font-medium text-slate-500 mb-1">{label}{req&&' *'}</label>
-      <select value={form[key]||''} onChange={e=>set(key,e.target.value)} required={req}
-        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
-        {!req && <option value="">— Seleccionar —</option>}
-        {opts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
-      </select>
+        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors
+          ${err(key) ? 'border-red-400 bg-red-50 focus:ring-red-500/20' : 'border-slate-200 focus:ring-blue-500/30 focus:border-blue-400'}`}
+        {...extra}/>
+      {err(key) && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertTriangle size={10}/>{err(key)}</p>}
     </div>
   );
 
+  const S = (label, key, opts, req=false) => (
+    <div>
+      <label className="block text-xs font-medium text-slate-500 mb-1">{label}{req && <span className="text-red-400"> *</span>}</label>
+      <select value={form[key]||''} onChange={e=>set(key,e.target.value)} required={req}
+        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white transition-colors
+          ${err(key) ? 'border-red-400 bg-red-50 focus:ring-red-500/20' : 'border-slate-200 focus:ring-blue-500/30'}`}>
+        {!req && <option value="">— Seleccionar —</option>}
+        {opts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+      </select>
+      {err(key) && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertTriangle size={10}/>{err(key)}</p>}
+    </div>
+  );
+
+  const hasErrors = Object.values(errors).some(v => v);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Banner de errores */}
+      {hasErrors && (
+        <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+          <AlertTriangle size={13} className="flex-shrink-0 mt-0.5"/>
+          <div>
+            <p className="font-semibold">Hay campos con errores. Revísalos antes de guardar.</p>
+            <ul className="mt-1 space-y-0.5 list-disc list-inside text-red-500">
+              {Object.entries(errors).filter(([,v])=>v).map(([k,v])=>(
+                <li key={k}><span className="font-medium capitalize">{k.replace(/_/g,' ')}</span>: {Array.isArray(v) ? v[0] : v}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         {F('Razón Social','razon_social','text',true)}
         <div className="grid grid-cols-3 gap-2">
           <div className="col-span-2">{F('NIT','nit','text',true)}</div>
-          {F('DV','digito_verificacion')}
+          {F('DV','digito_verificacion','text',false,{ maxLength:1, placeholder:'0–9' })}
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         {S('Tipo Empresa','tipo_empresa',[['microempresa','Microempresa'],['pyme','PYME'],['grande','Empresa Grande'],['grupo_empresarial','Grupo Empresarial']],true)}
         {S('Tamaño','tamano_empresa',[['micro','Micro (< 10)'],['pequena','Pequeña (10–50)'],['mediana','Mediana (51–200)'],['grande','Grande (> 200)']])}
       </div>
-      <div className="grid grid-cols-2 gap-3">{F('Actividad Económica (CIIU)','actividad_economica')} {F('Descripción Actividad','descripcion_actividad')}</div>
+      <div className="grid grid-cols-2 gap-3">
+        {F('Actividad Económica (CIIU)','actividad_economica')}
+        {F('Descripción Actividad','descripcion_actividad')}
+      </div>
       {S('Régimen Tributario','regimen_tributario',[['simplificado','Régimen Simplificado'],['comun','Régimen Común'],['gran_contribuyente','Gran Contribuyente'],['no_responsable','No Responsable de IVA'],['especial','Régimen Especial']])}
-      <div className="grid grid-cols-2 gap-3">{F('Ciudad','ciudad')} {F('Departamento','departamento')}</div>
+      <div className="grid grid-cols-2 gap-3">
+        {F('Ciudad','ciudad')}
+        {F('Departamento','departamento')}
+      </div>
       {F('Dirección','direccion')}
-      <div className="grid grid-cols-2 gap-3">{F('Teléfono','telefono')} {F('Email Principal','email_principal','email')}</div>
-      {F('Sitio Web','website','url')}
+      <div className="grid grid-cols-2 gap-3">
+        {F('Teléfono','telefono')}
+        {F('Email Principal','email_principal','email')}
+      </div>
+      {F('Sitio Web','website','url',false,{ placeholder:'https://...' })}
       <div className="grid grid-cols-2 gap-3">
         {S('Estado','estado',[['prospecto','Prospecto'],['activo','Activo'],['inactivo','Inactivo'],['suspendido','Suspendido'],['retirado','Retirado']],true)}
         {S('Nivel de Riesgo','nivel_riesgo',[['bajo','Bajo'],['medio','Medio'],['alto','Alto'],['critico','Crítico']],true)}
@@ -1116,10 +1325,14 @@ function EmpresaForm({ empresa, onSave, onCancel }) {
           className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 resize-none"/>
       </div>
       <div className="flex gap-2 pt-2">
-        <button type="submit" disabled={saving} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-          {saving ? 'Guardando...' : empresa?.id ? 'Actualizar' : 'Crear Cliente'}
+        <button type="submit" disabled={saving}
+          className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
+          {saving ? 'Guardando…' : empresa?.id ? 'Actualizar Cliente' : 'Crear Cliente'}
         </button>
-        <button type="button" onClick={onCancel} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
+        <button type="button" onClick={onCancel}
+          className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+          Cancelar
+        </button>
       </div>
     </form>
   );
@@ -1160,7 +1373,17 @@ function EmpresaPanel({ empresa, onClose, onUpdate }) {
               </div>
             )}
           </div>
-          <div className="flex gap-1 ml-3">
+          <div className="flex gap-1 ml-3 items-center">
+            <button
+              onClick={() => exportClienteExcel(empresa, `cliente_${empresa.nit}`)}
+              title="Descargar Excel"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+            ><Sheet size={11}/> Excel</button>
+            <button
+              onClick={() => exportClientePDF(empresa, `cliente_${empresa.nit}`)}
+              title="Descargar PDF"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors"
+            ><Download size={11}/> PDF</button>
             <button onClick={()=>setEditing(!editing)} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"><Pencil size={14}/></button>
             <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"><X size={14}/></button>
           </div>
@@ -1239,10 +1462,24 @@ function Directorio() {
         <div className="p-5 border-b border-slate-100">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-slate-800">Directorio</h3>
-            <button onClick={()=>{setShowCreate(true);setSelected(null);}}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-xl hover:bg-blue-700">
-              <Plus size={13}/> Nuevo cliente
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => exportClientesListaExcel(empresas)}
+                disabled={!empresas.length}
+                title={`Exportar Excel (${empresas.length})`}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-40"
+              ><Sheet size={11}/> Excel</button>
+              <button
+                onClick={() => exportClientesListaPDF(empresas)}
+                disabled={!empresas.length}
+                title={`Exportar PDF (${empresas.length})`}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors disabled:opacity-40"
+              ><Download size={11}/> PDF</button>
+              <button onClick={()=>{setShowCreate(true);setSelected(null);}}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-xl hover:bg-blue-700">
+                <Plus size={13}/> Nuevo cliente
+              </button>
+            </div>
           </div>
           <div className="flex gap-1.5 mb-3 flex-wrap">
             {[['','Todos'],['activo','Activos'],['prospecto','Prospectos'],['inactivo','Inactivos'],['suspendido','Suspendidos']].map(([v,l])=>(

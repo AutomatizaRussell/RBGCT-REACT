@@ -31,6 +31,8 @@ const CompleteProfile = () => {
     correo_personal: empleadoData?.correo_personal || '',
     telefono: empleadoData?.telefono || '',
     telefono_emergencia: empleadoData?.telefono_emergencia || '',
+    nombre_contacto_emergencia: empleadoData?.nombre_contacto_emergencia || '',
+    parentesco_emergencia: empleadoData?.parentesco_emergencia || '',
     direccion: empleadoData?.direccion || '',
     
     // Paso 3: Datos personales
@@ -190,6 +192,8 @@ const CompleteProfile = () => {
         correo_personal: formData.correo_personal,
         telefono: formData.telefono,
         telefono_emergencia: formData.telefono_emergencia,
+        nombre_contacto_emergencia: formData.nombre_contacto_emergencia,
+        parentesco_emergencia: formData.parentesco_emergencia,
         direccion: formData.direccion,
         fecha_nacimiento: formData.fecha_nacimiento,
         fecha_ingreso: formData.fecha_ingreso || null,
@@ -365,6 +369,20 @@ const CompleteProfile = () => {
         
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            <Phone size={12} /> Nombre Contacto Emergencia
+          </label>
+          <input
+            type="text"
+            name="nombre_contacto_emergencia"
+            value={formData.nombre_contacto_emergencia}
+            onChange={handleChange}
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            placeholder="Ej. María García"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
             <Phone size={12} /> Teléfono Emergencia
           </label>
           <input
@@ -376,7 +394,21 @@ const CompleteProfile = () => {
             placeholder="Ej. 300 999 8888"
           />
         </div>
-        
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            <Phone size={12} /> Parentesco
+          </label>
+          <input
+            type="text"
+            name="parentesco_emergencia"
+            value={formData.parentesco_emergencia}
+            onChange={handleChange}
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            placeholder="Ej. Madre, Esposo, Hermano..."
+          />
+        </div>
+
         <div className="space-y-2 col-span-2">
           <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
             <MapPin size={12} /> Dirección
