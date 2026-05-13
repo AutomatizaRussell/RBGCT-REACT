@@ -38,6 +38,9 @@ backend/media/
 .env
 frontend/.env
 backend/.env
+backend/.env.docker
+backend/.env.local
+backend/.env.production
 
 # =========================
 # Editor / OS

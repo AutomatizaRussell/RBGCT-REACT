@@ -1,0 +1,22 @@
+# Configuración de desarrollo local (override automático)
+# Cambiar valores según necesidad
+
+version: '3.9'
+
+services:
+  backend:
+    # Volumen en vivo para desarrollo
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    environment:
+      DEBUG: 'True'
+      PYTHONUNBUFFERED: '1'
+
+  frontend:
+    # Modo hot reload
+    environment:
+      VITE_HMR_HOST: localhost
+      VITE_HMR_PORT: 5173
+    ports:
+      - "5173:80"

@@ -1,0 +1,95 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: rbgct-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-rbgct}
+      POSTGRES_USER: ${DB_USER:-rbgct}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-rbgct123}
+      POSTGRES_INITDB_ARGS: "-c shared_buffers=256MB -c max_connections=200"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-rbgct}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gct-network
+
+  # Django Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: rbgct-backend
+    env_file:
+      - ./backend/.env
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 120 rbgct.wsgi:application"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      
+    volumes:
+      - ./backend:/app
+      - media_volume:/app/media
+      - static_volume:/app/staticfiles
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - gct-network
+      
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: rbgct-frontend
+    # QUITA o COMENTA estas líneas de volumes:
+    # volumes:
+    #   - ./frontend:/app
+    ports:
+      - "5173:80" 
+    networks:
+      - gct-network
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: rbgct-nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - media_volume:/app/media:ro
+      - static_volume:/app/staticfiles:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - gct-network
+
+volumes:
+  postgres_data:
+    driver: local
+  media_volume:
+    driver: local
+  static_volume:
+    driver: local
+
+networks:
+  gct-network:
+    driver: bridge

@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // ── Token management ──────────────────────────────────────────────────────────
 
@@ -511,7 +511,7 @@ export const updateAfiliacionSS = (id, data) =>
 
 // ── CRM Clientes ──────────────────────────────────────────────────────────────
 
-const CRM_URL = 'http://localhost:8000/api/clientes';
+const CRM_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/clientes`;
 
 async function fetchCrm(path, options = {}) {
   const token = tokenStorage.getAccess();
