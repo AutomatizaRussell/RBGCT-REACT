@@ -103,25 +103,20 @@ services:
     container_name: rbgct-nginx-prod
     restart: always
     volumes:
-      - media_volume_prod:/app/media:ro
-      - static_volume_prod:/app/staticfiles:ro
-    ports:
-      - "8091:80"
+      - 'media_volume_prod:/app/media:ro'
+      - 'static_volume_prod:/app/staticfiles:ro'
+    expose:
+      - '80'
     depends_on:
       - backend
       - frontend
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
     networks:
       - gct-network-prod
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: 10m
+        max-file: '3'
 
 volumes:
   postgres_data_prod:
