@@ -105,6 +105,8 @@ services:
     volumes:
       - media_volume_prod:/app/media:ro
       - static_volume_prod:/app/staticfiles:ro
+    ports:
+      - "8091:80"
     depends_on:
       - backend
       - frontend
