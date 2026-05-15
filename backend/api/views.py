@@ -99,22 +99,40 @@ def enviar_email_verificacion(email, codigo, password=None, nombre=None):
     if not settings.N8N_WEBHOOK_URL:
         return _enviar_email_smtp_fallback(email, codigo)
     nombre_usuario = nombre or 'Usuario'
-    html_email = f"""<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5;">
-  <div style="background: #001e33; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-    <h2 style="margin: 0;">RBG CT</h2>
-    <p style="margin: 10px 0 0 0; opacity: 0.9;">Bienvenido al sistema</p>
-  </div>
-  <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Hola <strong>{nombre_usuario}</strong>,</p>
-    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Tu cuenta ha sido creada. Estas son tus credenciales de acceso:</p>
-    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #001e33;">
-      <p style="margin: 5px 0;"><strong>Correo:</strong> {email}</p>
-      <p style="margin: 5px 0;"><strong>Contraseña temporal:</strong> {password}</p>
-      <p style="margin: 5px 0;"><strong>Código de verificación:</strong> <span style="font-size: 24px; font-weight: bold; color: #001e33;">{codigo}</span></p>
+    html_email = f"""<div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #F8F9FA;">
+  <div style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+    
+    <div style="text-align: center; padding: 30px 20px 20px 20px;">
+      <img src="https://raw.githubusercontent.com/AutomatizaRussell/Resourse_GestionHumana/main/Logo_RB2021.png" alt="Russell Bedford" style="height: 50px; margin-bottom: 15px;">
     </div>
-    <p style="font-size: 14px; color: #666; margin-top: 20px;">El código expira en 15 minutos. Por seguridad, cambia tu contraseña al ingresar.</p>
-    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-    <p style="font-size: 12px; color: #999; text-align: center;">RBG CT - Sistema de Gestión<br>Si no solicitaste esta cuenta, contacta al administrador.</p>
+    <div style="height: 4px; background: linear-gradient(to right, #001871 50%, #00a9ce 50%, #00a9ce 75%, #ed8b00 75%, #ed8b00 100%);"></div>
+
+    <div style="padding: 40px 30px;">
+      <h2 style="color: #001871; font-size: 24px; margin-top: 0; margin-bottom: 20px;">Bienvenido al Portal de Usuarios</h2>
+      <p style="font-size: 16px; color: #4A5568; margin-bottom: 20px; line-height: 1.6;">Hola <strong>{nombre_usuario}</strong>,</p>
+      <p style="font-size: 16px; color: #4A5568; margin-bottom: 25px; line-height: 1.6;">Tu cuenta ha sido creada exitosamente. A continuación, encontrarás tus credenciales de acceso para ingresar a la plataforma:</p>
+      
+      <div style="background-color: #F8F9FA; padding: 25px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ed8b00;">
+        <p style="margin: 0 0 10px 0; color: #4A5568; font-size: 15px;"><strong>Usuario / Correo:</strong> <span style="color: #001871;">{email}</span></p>
+        <p style="margin: 0 0 20px 0; color: #4A5568; font-size: 15px;"><strong>Contraseña temporal:</strong> <span style="color: #001871;">{password}</span></p>
+        
+        <p style="margin: 0 0 10px 0; color: #4A5568; font-size: 14px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Tu código de verificación:</p>
+        <div style="background-color: #001871; color: #ffffff; padding: 12px 20px; border-radius: 6px; display: inline-block; font-size: 24px; font-weight: bold; letter-spacing: 3px;">
+          {codigo}
+        </div>
+      </div>
+      
+      <p style="font-size: 14px; color: #718096; margin-top: 25px; line-height: 1.5;">
+        <strong style="color: #e53e3e;">Nota importante:</strong> Este código expira en 15 minutos. Por motivos de seguridad, el sistema te solicitará cambiar tu contraseña la primera vez que ingreses.
+      </p>
+    </div>
+
+    <div style="background-color: #001871; color: #ffffff; padding: 20px; text-align: center; font-size: 12px; line-height: 1.6;">
+      <p style="margin: 0; font-size: 14px;"><strong>RBG CT - Sistema de Gestión</strong></p>
+      <p style="margin: 5px 0 0 0; color: #e2e8f0;">Russell Bedford Colombia</p>
+      <p style="margin: 15px 0 0 0; font-size: 11px; color: #a0aec0;">Si no solicitaste esta cuenta, por favor ignora este correo o contacta al equipo de TI y Proyectos.</p>
+    </div>
+
   </div>
 </div>"""
     payload = {
