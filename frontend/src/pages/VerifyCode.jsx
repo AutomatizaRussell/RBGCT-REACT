@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
 const VerifyCode = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,7 +29,7 @@ const VerifyCode = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8000/api/verificar-codigo/', {
+      const response = await fetch(`${API_URL}/verificar-codigo/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -63,7 +65,7 @@ const VerifyCode = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8000/api/enviar-codigo/', {
+      const response = await fetch(`${API_URL}/enviar-codigo/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
