@@ -35,7 +35,7 @@ services:
       dockerfile: Dockerfile.backend
     container_name: rbgct-backend-prod
     restart: always
-    command: sh -c "python manage.py migrate --noinput && python manage.py createcachetable && python manage.py collectstatic --noinput && python manage.py create_superadmin && gunicorn --bind 0.0.0.0:8000 --workers 8 --worker-class sync --timeout 120 --access-logfile - --error-logfile - rbgct.wsgi:application"
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --workers 8 --worker-class sync --timeout 120 --access-logfile - --error-logfile - rbgct.wsgi:application"
     environment:
       DB_HOST: db
       DB_PORT: 5432
