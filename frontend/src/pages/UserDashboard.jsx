@@ -250,7 +250,7 @@ const UserDashboard = () => {
                   <h3 className="border-b border-slate-200 pb-4 text-sm font-semibold text-[#001e33]">Accesos rápidos</h3>
                   <div className="mt-5 space-y-2">
                     {[
-                      { label: 'Mis tareas',   icon: <ClipboardList size={15} strokeWidth={1.75} />, tab: 'tasks',      path: '/app/auto-gestion' },
+                      { label: 'Auto gestión', icon: <ClipboardList size={15} strokeWidth={1.75} />, tab: 'tasks',      path: '/app/auto-gestion' },
                       { label: 'Cursos',       icon: <PlayCircle size={15} strokeWidth={1.75} />,    tab: 'cursos',     path: '/app/manuales' },
                       { label: 'Reglamento',   icon: <BookOpen size={15} strokeWidth={1.75} />,      tab: 'reglamento', path: '/app/comunicados' },
                       { label: 'Herramientas', icon: <Wrench size={15} strokeWidth={1.75} />,        tab: 'utilidades', path: '/app/utilidades' },

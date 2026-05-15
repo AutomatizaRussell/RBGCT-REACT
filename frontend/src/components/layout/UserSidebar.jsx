@@ -88,7 +88,7 @@ export const UserSidebar = ({ activeTab, setActiveTab }) => {
       <nav className="flex-1 space-y-1 overflow-y-auto px-4 pb-4">
         <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Mi espacio</p>
         <NavBtn tab="dashboard"  icon={<LayoutDashboard size={18} />} label="Mi resumen" />
-        <NavBtn tab="tasks"      icon={<ClipboardList size={18} />}   label="Mis tareas" />
+        <NavBtn tab="tasks"      icon={<ClipboardList size={18} />}   label="Auto gestión" />
         <NavBtn tab="clientes"   icon={<Building2 size={18} />}      label="Mis clientes" />
         <NavBtn tab="profile"    icon={<UserCircle size={18} />}      label="Mi perfil" />
 
