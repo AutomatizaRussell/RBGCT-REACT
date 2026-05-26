@@ -1955,21 +1955,37 @@ def refresh_token_view(request):
 def enviar_email_recuperacion_n8n(email, codigo, nombre=None):
     """Envía código de recuperación de contraseña vía n8n."""
     nombre_usuario = nombre or 'Usuario'
-    html_email = f"""<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5;">
-  <div style="background: #001e33; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-    <h2 style="margin: 0;">RBG CT</h2>
-    <p style="margin: 10px 0 0 0; opacity: 0.9;">Recuperación de Contraseña</p>
-  </div>
-  <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Hola <strong>{nombre_usuario}</strong>,</p>
-    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Has solicitado restablecer tu contraseña. Usa este código de verificación:</p>
-    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #001e33; text-align: center;">
-      <p style="font-size: 14px; color: #666; margin: 0 0 10px 0;">Tu código de verificación:</p>
-      <span style="font-size: 32px; font-weight: bold; color: #001e33; letter-spacing: 8px;">{codigo}</span>
+    html_email = f"""<div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #F8F9FA;">
+  <div style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+    
+    <div style="text-align: center; padding: 30px 20px 20px 20px;">
+      <img src="https://raw.githubusercontent.com/AutomatizaRussell/Resourse_GestionHumana/main/Logo_RB2021.png" alt="Russell Bedford" style="height: 50px; margin-bottom: 15px;">
     </div>
-    <p style="font-size: 14px; color: #666; margin-top: 20px;">Este código expira en 15 minutos. Si no solicitaste este cambio, ignora este mensaje.</p>
-    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-    <p style="font-size: 12px; color: #999; text-align: center;">RBG CT - Sistema de Gestión</p>
+    <div style="height: 4px; background: linear-gradient(to right, #001871 50%, #00a9ce 50%, #00a9ce 75%, #ed8b00 75%, #ed8b00 100%);"></div>
+
+    <div style="padding: 40px 30px;">
+      <h2 style="color: #001871; font-size: 24px; margin-top: 0; margin-bottom: 20px;">Recuperación de Contraseña</h2>
+      <p style="font-size: 16px; color: #4A5568; margin-bottom: 20px; line-height: 1.6;">Hola <strong>{nombre_usuario}</strong>,</p>
+      <p style="font-size: 16px; color: #4A5568; margin-bottom: 25px; line-height: 1.6;">Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Por favor, utiliza el siguiente código de verificación para continuar con el proceso:</p>
+      
+      <div style="background-color: #F8F9FA; padding: 35px 20px; border-radius: 8px; margin: 30px 0; border: 1px solid #e2e8f0; border-top: 4px solid #00a9ce; text-align: center;">
+        <p style="margin: 0 0 15px 0; color: #4A5568; font-size: 14px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Tu código de verificación</p>
+        <div style="color: #001871; font-size: 40px; font-weight: bold; letter-spacing: 12px; margin: 0;">
+          {codigo}
+        </div>
+      </div>
+      
+      <p style="font-size: 14px; color: #718096; margin-top: 25px; line-height: 1.5;">
+        <strong style="color: #e53e3e;">Importante:</strong> Este código expira en 15 minutos. Si no solicitaste este cambio, puedes ignorar este mensaje de forma segura; tu cuenta sigue protegida.
+      </p>
+    </div>
+
+    <div style="background-color: #001871; color: #ffffff; padding: 20px; text-align: center; font-size: 12px; line-height: 1.6;">
+      <p style="margin: 0; font-size: 14px;"><strong>RBG CT - Sistema de Gestión</strong></p>
+      <p style="margin: 5px 0 0 0; color: #e2e8f0;">Russell Bedford Colombia</p>
+      <p style="margin: 15px 0 0 0; font-size: 11px; color: #a0aec0;">Este es un mensaje automático, por favor no respondas a este correo.</p>
+    </div>
+
   </div>
 </div>"""
     payload = {

@@ -35,7 +35,6 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      
     volumes:
       - ./backend:/app
       - media_volume:/app/media
@@ -47,20 +46,23 @@ services:
         condition: service_healthy
     networks:
       - gct-network
-      
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
     container_name: rbgct-frontend
-    # QUITA o COMENTA estas líneas de volumes:
-    # volumes:
-    #   - ./frontend:/app
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     ports:
-      - "5173:80" 
+      - "5173:80"
     networks:
       - gct-network
+
   # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
@@ -75,7 +77,7 @@ services:
       - backend
       - frontend
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/"]
       interval: 10s
       timeout: 5s
       retries: 3
