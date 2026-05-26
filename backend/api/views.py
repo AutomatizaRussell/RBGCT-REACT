@@ -2495,7 +2495,11 @@ def convertir_archivo(request):
                         'error': 'pdf2docx no está instalado',
                         'instrucciones': 'pip install pdf2docx'
                     }, status=503)
-            
+                except BaseException as e:
+                    return Response({
+                        'error': 'No se pudo convertir el PDF. El archivo puede estar dañado o tener un formato no compatible.',
+                        'detalle': str(e)
+                    }, status=422)
             # === PDF a TXT (usando markitdown) ===
             elif formato_origen == 'pdf' and formato_destino == 'txt':
                 try:
