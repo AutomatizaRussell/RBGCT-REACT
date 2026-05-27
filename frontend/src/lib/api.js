@@ -628,3 +628,10 @@ export const updateBitacora = (id, data) =>
 
 export const deleteBitacora = (id) =>
   fetchCrm(`/bitacora/${id}/`, { method: 'DELETE' });
+
+// ── CERTIFICADO DE EMPLEO ─────────────────────────────────────────────────
+export const enviarCertificadoEmpleo = (data) =>
+  fetchApi('/enviar-certificado/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });

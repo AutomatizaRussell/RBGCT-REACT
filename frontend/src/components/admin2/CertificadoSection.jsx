@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getAllEmpleados } from '../../lib/api';
-import { FileText, Printer, User, RefreshCw } from 'lucide-react';
+import { getAllEmpleados, enviarCertificadoEmpleo } from '../../lib/api';
+import { FileText, Printer, User, RefreshCw, Send, CheckCircle, AlertCircle } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -17,6 +17,9 @@ const CertificadoSection = () => {
   const [empleados, setEmpleados]     = useState([]);
   const [loadingEmp, setLoadingEmp]   = useState(true);
   const [seleccionado, setSeleccionado] = useState(null);
+  const [emailDestino, setEmailDestino] = useState('');
+  const [enviando, setEnviando]         = useState(false);
+  const [envioStatus, setEnvioStatus]   = useState(null); // 'ok' | 'error' | null
 
   // Campos que vienen del formulario (externos)
   const [form, setForm] = useState({
@@ -48,7 +51,7 @@ const CertificadoSection = () => {
     setSeleccionado(emp || null);
   };
 
-  const handlePrint = () => window.print();
+
 
   // ── Datos del certificado ─────────────────────────────────────────────────
   const emp = seleccionado;
@@ -142,6 +145,41 @@ const CertificadoSection = () => {
             <Field label="Nombre del firmante" name="firmante_nombre" value={form.firmante_nombre} onChange={handleChange} />
             <Field label="C.C. firmante" name="firmante_cc" value={form.firmante_cc} onChange={handleChange} />
             <Field label="Cargo firmante" name="firmante_cargo" value={form.firmante_cargo} onChange={handleChange} placeholder="Ej: Representante Legal" />
+          </div>
+
+          {/* Enviar por correo */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <Send size={13}/> Enviar por correo
+            </p>
+            <input
+              type="email"
+              value={emailDestino}
+              onChange={e => setEmailDestino(e.target.value)}
+              placeholder="correo@destino.com"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10"
+            />
+            <button
+              onClick={handleEnviarCorreo}
+              disabled={enviando || !emailDestino.trim()}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold uppercase tracking-wider hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {enviando
+                ? <><RefreshCw size={14} className="animate-spin"/> Enviando...</>
+                : <><Send size={14}/> Enviar certificado</>}
+            </button>
+
+            {/* Feedback */}
+            {envioStatus === 'ok' && (
+              <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                <CheckCircle size={14}/> Certificado enviado correctamente
+              </div>
+            )}
+            {envioStatus === 'error' && (
+              <div className="flex items-center gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                <AlertCircle size={14}/> No se pudo enviar. Verifica la conexión con n8n.
+              </div>
+            )}
           </div>
 
           {/* Botón imprimir */}

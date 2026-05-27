@@ -3336,3 +3336,117 @@ def gestor_pdf(request):
             'error': 'Error al procesar PDF',
             'detalle': str(e)
         }, status=500)
+
+
+# =============================================================================
+# CERTIFICADO DE EMPLEO — Envío por correo vía n8n
+# =============================================================================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def enviar_certificado_empleo(request):
+    """
+    Recibe los datos del certificado desde el frontend,
+    genera el HTML y lo envía por correo usando el flujo n8n existente.
+    NO modifica ningún flujo existente — usa workflow_name propio.
+    """
+    data            = request.data
+    email_destino   = data.get('email_destino', '').strip()
+    nombre_empleado = data.get('nombre_empleado', '')
+    tipo_doc        = data.get('tipo_documento', '')
+    num_doc         = data.get('numero_documento', '')
+    cargo           = data.get('cargo', '')
+    fecha_ingreso   = data.get('fecha_ingreso', '')
+    tipo_contrato   = data.get('tipo_contrato', '')
+    salario         = data.get('salario', '')
+    ingresos_adic   = data.get('ingresos_adicionales', '')
+    destinatario    = data.get('destinatario', '')
+    fecha_cert      = data.get('fecha', '')
+    consecutivo     = data.get('consecutivo', '')
+    firmante_nombre = data.get('firmante_nombre', '')
+    firmante_cc     = data.get('firmante_cc', '')
+    firmante_cargo  = data.get('firmante_cargo', '')
+
+    if not email_destino:
+        return Response({'error': 'El campo email_destino es requerido.'}, status=400)
+
+    # ── Construir HTML del certificado ─────────────────────────────────────
+    ingresos_html = f", {ingresos_adic}" if ingresos_adic else ""
+    salario_html  = f"Devenga un salario mensual de <strong>{salario}</strong>{ingresos_html}." if salario else ""
+
+    html_email = f"""
+<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:0 auto;background:#f8fafc;padding:24px;">
+  <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.06);">
+
+    <!-- Encabezado -->
+    <div style="background:#001e33;padding:28px 36px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <p style="margin:0;color:#ffffff;font-size:22px;font-weight:900;letter-spacing:-0.5px;">RUSSELL BEDFORD</p>
+        <p style="margin:4px 0 0;color:#94a3b8;font-size:11px;letter-spacing:2px;">taking you further</p>
+      </div>
+      <div style="text-align:right;">
+        <p style="margin:0;color:#94a3b8;font-size:11px;">Medellín, {fecha_cert}</p>
+        <p style="margin:4px 0 0;color:#ffffff;font-size:12px;font-weight:700;letter-spacing:1px;">{consecutivo}</p>
+      </div>
+    </div>
+
+    <!-- Cuerpo -->
+    <div style="padding:40px 36px;">
+
+      <!-- Destinatario -->
+      <p style="margin:0 0 4px;color:#475569;font-size:13px;">Señores</p>
+      <p style="margin:0 0 2px;color:#001e33;font-size:14px;font-weight:700;text-transform:uppercase;">{destinatario}.</p>
+      <p style="margin:0 0 28px;color:#475569;font-size:13px;">Medellín</p>
+
+      <!-- Texto principal -->
+      <p style="font-size:14px;color:#1e293b;line-height:1.8;margin:0 0 18px;text-align:justify;">
+        Certificamos que <strong>{nombre_empleado} identificado(a)</strong>
+        con {tipo_doc} No. <strong>{num_doc}</strong>, labora en
+        <strong>GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S</strong>
+        con Nit. <strong>900.930.391-1</strong>, desde el {fecha_ingreso},
+        con contrato a <strong>{tipo_contrato}</strong>,
+        desempeñando el cargo de <strong style="text-transform:uppercase;">{cargo}</strong>.
+      </p>
+
+      {f'<p style="font-size:14px;color:#1e293b;line-height:1.8;margin:0 0 18px;text-align:justify;">{salario_html}</p>' if salario_html else ''}
+
+      <p style="font-size:14px;color:#1e293b;line-height:1.8;margin:0 0 32px;">
+        La presente certificación se expide a solicitud del interesado(a)
+        para los fines que estime convenientes.
+      </p>
+
+      <p style="font-size:13px;color:#475569;margin:0 0 40px;">Cordialmente,</p>
+
+      <!-- Firma -->
+      <div style="border-top:1px solid #e2e8f0;padding-top:12px;display:inline-block;min-width:200px;">
+        <p style="margin:0;font-size:13px;font-weight:700;color:#001e33;text-transform:uppercase;">{firmante_nombre}</p>
+        {f'<p style="margin:2px 0 0;font-size:12px;color:#475569;">C.C. {firmante_cc}</p>' if firmante_cc else ''}
+        <p style="margin:2px 0 0;font-size:12px;color:#475569;">{firmante_cargo}</p>
+        <p style="margin:4px 0 0;font-size:12px;font-weight:600;color:#475569;">GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S</p>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f1f5f9;padding:16px 36px;text-align:center;border-top:1px solid #e2e8f0;">
+      <p style="margin:0;font-size:11px;color:#94a3b8;">
+        NIT 900.930.391-1 · Medellín, Colombia · GLT Gestión Legal y Tributaria S.A.S
+      </p>
+    </div>
+
+  </div>
+</div>"""
+
+    payload = {
+        'tipo':        'certificado_empleo',
+        'destinatario': email_destino,
+        'asunto':      f'Certificado de Empleo — {nombre_empleado}',
+        'html_email':  html_email,
+        'plantilla':   'certificado_empleo',
+    }
+
+    ok, result = _post_n8n(email_destino, payload, 'certificado_empleo')
+
+    if ok:
+        return Response({'status': 'enviado', 'detalle': result})
+    return Response({'error': 'No se pudo enviar el correo.', 'detalle': result}, status=502)

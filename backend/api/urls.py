@@ -60,4 +60,6 @@ urlpatterns = [
     path('convertir-archivo/', views.convertir_archivo, name='convertir_archivo'),
     # Gestor de PDFs (fusionar, dividir, rotar, etc.)
     path('gestor-pdf/', views.gestor_pdf, name='gestor_pdf'),
+    # Certificado de empleo — envío por correo vía n8n
+    path('enviar-certificado/', views.enviar_certificado_empleo, name='enviar_certificado'),
 ]
