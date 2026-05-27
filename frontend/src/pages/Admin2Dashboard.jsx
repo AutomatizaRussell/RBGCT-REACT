@@ -42,6 +42,7 @@ import CursosSection from '../components/admin2/CursosSection';
 import UtilidadesSection from '../components/admin2/UtilidadesSection';
 import ContratosSection from '../components/admin2/ContratosSection';
 import ClientesSection from '../components/admin2/ClientesSection';
+import CertificadoSection from '../components/admin2/CertificadoSection';
 import StatCard from '../components/ui/StatCard';
 import RecentUserRow from '../components/ui/RecentUserRow';
 import ActionButton from '../components/ui/ActionButton';
@@ -223,6 +224,12 @@ const Admin2Dashboard = () => {
         return (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
             <ReglamentoTab />
+          </div>
+        );
+      case 'certificado':
+        return (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <CertificadoSection />
           </div>
         );
       case 'configuraciones':
@@ -495,6 +502,7 @@ const Admin2Dashboard = () => {
       case 'clientes':        return 'Clientes';
       case 'herramientas':    return 'Herramientas';
       case 'reglamento':      return 'Reglamento Interno';
+      case 'certificado':     return 'Certificado de Empleo';
       case 'configuraciones': return 'Configuraciones';
       default:                return 'Panel Administrativo';
     }

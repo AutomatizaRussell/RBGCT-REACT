@@ -195,6 +195,18 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab }) => {
           <BookOpen size={18}/> Reglamento
         </button>
 
+        {/* CERTIFICADO DE EMPLEO */}
+        <button
+          onClick={() => handleNavigation('certificado')}
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
+            activeTab === 'certificado'
+            ? 'bg-white/10 text-white shadow-lg'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <FileText size={18}/> Certificado de Empleo
+        </button>
+
 
 
         <div className="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Cuenta</div>
