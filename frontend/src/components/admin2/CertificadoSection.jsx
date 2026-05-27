@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAllEmpleados, enviarCertificadoEmpleo } from '../../lib/api';
-import { FileText, Printer, User, RefreshCw, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { Printer, User, RefreshCw, Send, CheckCircle, AlertCircle } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -83,6 +83,24 @@ const CertificadoSection = () => {
     setEnviando(true);
     setEnvioStatus(null);
     try {
+      // 1. Capturar el elemento del certificado como imagen
+      const { default: html2canvas } = await import('html2canvas');
+      const { jsPDF } = await import('jspdf');
+
+      const elemento = document.querySelector('.certificado-preview');
+      const canvas   = await html2canvas(elemento, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const imgData  = canvas.toDataURL('image/png');
+
+      // 2. Generar PDF tamaño carta
+      const pdf    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+      const pdfW   = pdf.internal.pageSize.getWidth();
+      const pdfH   = (canvas.height * pdfW) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+
+      // 3. Convertir a base64 (sin el prefijo "data:application/pdf;base64,")
+      const pdfBase64 = pdf.output('datauristring').split(',')[1];
+
+      // 4. Enviar al backend con el PDF adjunto
       await enviarCertificadoEmpleo({
         email_destino:        emailDestino.trim(),
         nombre_empleado:      nombreEmp,
@@ -99,9 +117,13 @@ const CertificadoSection = () => {
         firmante_nombre:      form.firmante_nombre,
         firmante_cc:          form.firmante_cc,
         firmante_cargo:       form.firmante_cargo,
+        // PDF adjunto
+        pdf_base64:           pdfBase64,
+        pdf_nombre:           `Certificado_${nombreEmp.replace(/\s+/g, '_')}_${form.consecutivo || 'SN'}.pdf`,
       });
       setEnvioStatus('ok');
-    } catch {
+    } catch (err) {
+      console.error('[Certificado] Error al generar/enviar PDF:', err);
       setEnvioStatus('error');
     } finally {
       setEnviando(false);

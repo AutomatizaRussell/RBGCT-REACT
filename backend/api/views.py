@@ -3437,12 +3437,18 @@ def enviar_certificado_empleo(request):
   </div>
 </div>"""
 
+    pdf_base64 = data.get('pdf_base64', '')
+    pdf_nombre = data.get('pdf_nombre', f'Certificado_{nombre_empleado}.pdf')
+
     payload = {
         'tipo':        'certificado_empleo',
         'destinatario': email_destino,
         'asunto':      f'Certificado de Empleo — {nombre_empleado}',
         'html_email':  html_email,
         'plantilla':   'certificado_empleo',
+        'attachment_base64': pdf_base64,
+        'attachment_name':   pdf_nombre,
+        'attachment_type':   'application/pdf',
     }
 
     ok, result = _post_n8n(email_destino, payload, 'certificado_empleo')
