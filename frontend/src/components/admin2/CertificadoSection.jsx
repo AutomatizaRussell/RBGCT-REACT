@@ -97,8 +97,12 @@ const CertificadoSection = () => {
       const pdfH   = (canvas.height * pdfW) / canvas.width;
       pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
 
-      // 3. Convertir a base64 (sin el prefijo "data:application/pdf;base64,")
-      const pdfBase64 = pdf.output('datauristring').split(',')[1];
+      // 3. Convertir a base64 via ArrayBuffer (compatible con jsPDF v4)
+      const arrayBuffer = pdf.output('arraybuffer');
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      bytes.forEach(b => { binary += String.fromCharCode(b); });
+      const pdfBase64 = btoa(binary);
 
       // 4. Enviar al backend con el PDF adjunto
       await enviarCertificadoEmpleo({
