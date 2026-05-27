@@ -326,7 +326,7 @@ const CompleteProfile = () => {
         
         <div className="space-y-2 col-span-2">
           <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            <User size={12} /> Apodo / Cómo desea ser llamado
+            <User size={12} /> Cómo desea ser llamado
           </label>
           <input
             type="text"
