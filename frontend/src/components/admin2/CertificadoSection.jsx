@@ -63,6 +63,39 @@ const CertificadoSection = () => {
     ? new Date(emp.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
     : '[FECHA DE INGRESO]';
 
+  const handlePrint = () => window.print();
+
+  const handleEnviarCorreo = async () => {
+    if (!emailDestino.trim()) return;
+    setEnviando(true);
+    setEnvioStatus(null);
+    try {
+      await enviarCertificadoEmpleo({
+        email_destino:        emailDestino.trim(),
+        nombre_empleado:      nombreEmp,
+        tipo_documento:       tipoDoc,
+        numero_documento:     numDoc,
+        cargo,
+        fecha_ingreso:        fechaIngreso,
+        tipo_contrato:        form.tipo_contrato,
+        salario:              form.salario,
+        ingresos_adicionales: form.ingresos_adicionales,
+        destinatario:         form.destinatario,
+        fecha:                form.fecha,
+        consecutivo:          form.consecutivo,
+        firmante_nombre:      form.firmante_nombre,
+        firmante_cc:          form.firmante_cc,
+        firmante_cargo:       form.firmante_cargo,
+      });
+      setEnvioStatus('ok');
+    } catch {
+      setEnvioStatus('error');
+    } finally {
+      setEnviando(false);
+      setTimeout(() => setEnvioStatus(null), 4000);
+    }
+  };
+
   return (
     <>
       {/* ── CSS de impresión ── */}
