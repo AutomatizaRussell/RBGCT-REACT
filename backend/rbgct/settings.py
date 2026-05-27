@@ -224,6 +224,14 @@ CORS_ALLOWED_ORIGINS = [
     o for o in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if o
 ]
 
+# Si no hay orígenes explícitos en .env → permite todos
+# (la seguridad la proveen las API Keys y JWT)
+CORS_ALLOW_ALL_ORIGINS = not bool(CORS_ALLOWED_ORIGINS)
+
+# Permite el header X-API-Key en peticiones cross-origin
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = list(default_headers) + ['x-api-key']
+
 # =============================================================================
 # DJANGO REST FRAMEWORK
 # =============================================================================
