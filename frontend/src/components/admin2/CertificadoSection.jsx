@@ -309,105 +309,115 @@ const CertificadoSection = () => {
   );
 };
 
-// ─── Sub-componente: el certificado en sí ────────────────────────────────────
+// ─── Sub-componente: el certificado en sí (solo inline styles para html2canvas) ──
 
 const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso }) => {
   const val = (v, placeholder) => v?.trim() || placeholder;
 
-  return (
-    <div className="certificado-preview bg-white rounded-2xl shadow border border-slate-100 p-10 max-w-2xl mx-auto text-[#1a1a1a] font-serif relative overflow-hidden" style={{ minHeight: '800px' }}>
+  const S = {
+    wrap: {
+      position: 'relative', overflow: 'hidden', backgroundColor: '#ffffff',
+      borderRadius: '1rem', border: '1px solid #f1f5f9',
+      boxShadow: '0 1px 8px rgba(0,0,0,0.07)', padding: '2.5rem',
+      maxWidth: '672px', margin: '0 auto', minHeight: '800px',
+      fontFamily: 'Georgia, "Times New Roman", serif', color: '#1a1a1a',
+    },
+    barra: {
+      position: 'absolute', right: 0, top: 0, bottom: 0, width: '2rem',
+      backgroundColor: '#001e33', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '1rem',
+    },
+    barraTexto: {
+      color: '#ffffff', fontSize: '7px', fontFamily: 'sans-serif',
+      letterSpacing: '0.1em', writingMode: 'vertical-rl',
+      transform: 'rotate(180deg)', whiteSpace: 'nowrap', opacity: 0.6,
+    },
+    inner:      { marginRight: '2.5rem' },
+    header:     { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' },
+    fecha:      { fontSize: '14px', color: '#475569', margin: 0 },
+    logoWrap:   { textAlign: 'right' },
+    consecutivo:{ display: 'inline-block', backgroundColor: '#f1f5f9', padding: '2px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: '700', color: '#475569', letterSpacing: '0.1em' },
+    russell:    { fontSize: '20px', fontWeight: '900', color: '#001e33', lineHeight: 1, letterSpacing: '-0.5px', margin: '6px 0 0', fontFamily: 'sans-serif' },
+    bedford:    { fontSize: '13px', color: '#64748b', fontWeight: '300', letterSpacing: '0.2em', margin: 0, fontFamily: 'sans-serif' },
+    tagline:    { fontSize: '9px', color: '#94a3b8', letterSpacing: '0.1em', margin: 0, fontFamily: 'sans-serif' },
+    destWrap:   { marginBottom: '1.5rem' },
+    senores:    { fontSize: '14px', color: '#334155', margin: '0 0 2px' },
+    destNombre: { fontSize: '14px', fontWeight: '700', color: '#001e33', textTransform: 'uppercase', margin: '0 0 2px' },
+    ciudad:     { fontSize: '14px', color: '#475569', margin: 0 },
+    cuerpo:     { fontSize: '14px', lineHeight: '1.8', textAlign: 'justify' },
+    parrafo:    { margin: '0 0 1rem' },
+    cordial:    { fontSize: '14px', color: '#334155', margin: '2rem 0 0' },
+    firmaWrap:  { borderTop: '1px solid #cbd5e1', paddingTop: '0.75rem', marginTop: '3rem', width: '220px' },
+    firmaNombre:{ fontSize: '13px', fontWeight: '700', color: '#001e33', textTransform: 'uppercase', margin: '0 0 2px' },
+    firmaCC:    { fontSize: '12px', color: '#475569', margin: '0 0 2px' },
+    firmaCargo: { fontSize: '12px', color: '#475569', margin: '0 0 4px' },
+    firmaEmp:   { fontSize: '12px', fontWeight: '600', color: '#334155', margin: 0 },
+  };
 
-      {/* Barra lateral derecha decorativa */}
-      <div className="absolute right-0 top-0 bottom-0 w-8 bg-[#001e33] flex flex-col items-center justify-end pb-4 gap-1">
-        <span className="text-white text-[7px] font-sans tracking-widest" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', whiteSpace: 'nowrap', opacity: 0.6 }}>
+  return (
+    <div className="certificado-preview" style={S.wrap}>
+
+      <div style={S.barra}>
+        <span style={S.barraTexto}>
           GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S · NIT 900.930.391-1 · MEDELLÍN, COLOMBIA
         </span>
       </div>
 
-      {/* Contenido (con margen derecho por la barra) */}
-      <div className="mr-10">
+      <div style={S.inner}>
 
-        {/* Encabezado: logo + fecha + consecutivo */}
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <p className="text-sm text-slate-600">
-              Medellín, {val(form.fecha, '[FECHA]')}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="inline-block bg-slate-100 px-3 py-1 rounded text-xs font-bold text-slate-600 tracking-widest">
-              {val(form.consecutivo, 'AD-XX-XXX')}
-            </div>
-            {/* Logo texto Russell Bedford */}
-            <div className="mt-2">
-              <p className="text-xl font-black text-[#001e33] leading-none tracking-tighter">RUSSELL</p>
-              <p className="text-sm text-slate-500 font-light tracking-widest">BEDFORD</p>
-              <p className="text-[9px] text-slate-400 tracking-wider">taking you further</p>
-            </div>
+        {/* Encabezado */}
+        <div style={S.header}>
+          <p style={S.fecha}>Medellín, {val(form.fecha, '[FECHA]')}</p>
+          <div style={S.logoWrap}>
+            <span style={S.consecutivo}>{val(form.consecutivo, 'AD-XX-XXX')}</span>
+            <p style={S.russell}>RUSSELL</p>
+            <p style={S.bedford}>BEDFORD</p>
+            <p style={S.tagline}>taking you further</p>
           </div>
         </div>
 
         {/* Destinatario */}
-        <div className="mb-6">
-          <p className="text-sm text-slate-700">Señores</p>
-          <p className="font-bold text-sm text-[#001e33] uppercase">
-            {val(form.destinatario, '[NOMBRE DEL DESTINATARIO]')}.
-          </p>
-          <p className="text-sm text-slate-600">Medellín</p>
+        <div style={S.destWrap}>
+          <p style={S.senores}>Señores</p>
+          <p style={S.destNombre}>{val(form.destinatario, '[NOMBRE DEL DESTINATARIO]')}.</p>
+          <p style={S.ciudad}>Medellín</p>
         </div>
 
         {/* Cuerpo */}
-        <div className="text-sm leading-relaxed space-y-4 text-justify">
-          <p>
+        <div style={S.cuerpo}>
+          <p style={S.parrafo}>
             Certificamos que{' '}
-            <strong className="text-[#001e33]">
-              {nombreEmp} identificado(a)
-            </strong>{' '}
-            con {tipoDoc} No.{' '}
-            <strong>{numDoc}</strong>, labora en{' '}
+            <strong style={{ color: '#001e33' }}>{nombreEmp} identificado(a)</strong>{' '}
+            con {tipoDoc} No. <strong>{numDoc}</strong>, labora en{' '}
             <strong>GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S</strong>{' '}
-            con Nit. <strong>900.930.391-1</strong>, desde el{' '}
-            {fechaIngreso}, con contrato a{' '}
+            con Nit. <strong>900.930.391-1</strong>, desde el {fechaIngreso}, con contrato a{' '}
             <strong>{val(form.tipo_contrato, '[TIPO DE CONTRATO]')}</strong>,
             desempeñando el cargo de{' '}
-            <strong className="uppercase">{cargo}</strong>.
+            <strong style={{ textTransform: 'uppercase' }}>{cargo}</strong>.
           </p>
 
           {(form.salario || form.ingresos_adicionales) && (
-            <p>
+            <p style={S.parrafo}>
               Devenga un salario mensual de{' '}
-              <strong>
-                {val(form.salario, '[SALARIO EN LETRAS Y CIFRAS]')}
-              </strong>
-              {form.ingresos_adicionales
-                ? <>, {form.ingresos_adicionales}.</>
-                : '.'}
+              <strong>{val(form.salario, '[SALARIO EN LETRAS Y CIFRAS]')}</strong>
+              {form.ingresos_adicionales ? <>, {form.ingresos_adicionales}.</> : '.'}
             </p>
           )}
 
-          <p>
+          <p style={S.parrafo}>
             La presente certificación se expide a solicitud del interesado(a)
             para los fines que estime convenientes.
           </p>
         </div>
 
-        {/* Cierre */}
-        <p className="mt-8 text-sm text-slate-700">Cordialmente,</p>
+        <p style={S.cordial}>Cordialmente,</p>
 
         {/* Firma */}
-        <div className="mt-12 border-t border-slate-300 pt-3 w-56">
-          <p className="font-bold text-sm text-[#001e33] uppercase">
-            {val(form.firmante_nombre, '[NOMBRE DEL FIRMANTE]')}
-          </p>
-          {form.firmante_cc && (
-            <p className="text-xs text-slate-600">C.C. {form.firmante_cc}</p>
-          )}
-          <p className="text-xs text-slate-600">
-            {val(form.firmante_cargo, '[CARGO DEL FIRMANTE]')}
-          </p>
-          <p className="text-xs font-semibold text-slate-700 mt-0.5">
-            GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S
-          </p>
+        <div style={S.firmaWrap}>
+          <p style={S.firmaNombre}>{val(form.firmante_nombre, '[NOMBRE DEL FIRMANTE]')}</p>
+          {form.firmante_cc && <p style={S.firmaCC}>C.C. {form.firmante_cc}</p>}
+          <p style={S.firmaCargo}>{val(form.firmante_cargo, '[CARGO DEL FIRMANTE]')}</p>
+          <p style={S.firmaEmp}>GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S</p>
         </div>
 
       </div>
