@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import {
   CheckCircle2, Clock, AlertCircle, FileText, RefreshCw,
-  AlertTriangle, X, CalendarDays, Building2, ChevronRight
+  AlertTriangle, X, CalendarDays, Building2, ChevronRight,
+  Send, Award, User, BadgeCheck
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { getTareasByEmpleado, updateTareaEstado } from '../../lib/api';
+import { getTareasByEmpleado, updateTareaEstado, enviarCertificadoEmpleo } from '../../lib/api';
 
 // ── Modal de detalle de tarea ─────────────────────────────────────────────────
 
@@ -127,6 +128,196 @@ const TaskDetailModal = ({ tarea, onClose, onActualizar }) => {
   );
 };
 
+// ── Modal de solicitud de certificado ────────────────────────────────────────
+
+const CertificadoModal = ({ empleadoData, onClose }) => {
+  const [enviando, setEnviando] = useState(false);
+  const [status, setStatus] = useState(null); // 'ok' | 'error'
+  const [form, setForm] = useState({
+    fecha: new Date().toISOString().split('T')[0],
+    destinatario: 'A quien corresponda',
+    tipo_contrato: '',
+    salario: '',
+    ingresos_adicionales: 'No aplica',
+    firmante_nombre: '',
+    firmante_cc: '',
+    firmante_cargo: '',
+  });
+
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const fmtFecha = (str) => str
+    ? new Date(str + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
+    : '';
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setEnviando(true);
+    setStatus(null);
+    try {
+      await enviarCertificadoEmpleo({
+        email_destino:       empleadoData.correo_corporativo,
+        fecha:               fmtFecha(form.fecha),
+        consecutivo:         '',
+        destinatario:        form.destinatario,
+        nombre_empleado:     empleadoData.nombre_completo || '',
+        tipo_documento:      empleadoData.tipo_documento  || '',
+        numero_documento:    empleadoData.numero_documento || '',
+        nombre_cargo:        empleadoData.nombre_cargo    || '',
+        fecha_ingreso:       fmtFecha(empleadoData.fecha_ingreso),
+        tipo_contrato:       form.tipo_contrato,
+        salario:             form.salario,
+        ingresos_adicionales: form.ingresos_adicionales,
+        firmante_nombre:     form.firmante_nombre,
+        firmante_cc:         form.firmante_cc,
+        firmante_cargo:      form.firmante_cargo,
+        pdf_base64:          '',
+        pdf_nombre:          '',
+      });
+      setStatus('ok');
+    } catch {
+      setStatus('error');
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const InfoChip = ({ label, value }) => (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
+      <span className="text-xs font-semibold text-[#001e33] bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5">{value || '—'}</span>
+    </div>
+  );
+
+  const Field = ({ label, id, type = 'text', value, onChange, required, placeholder }) => (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+      </label>
+      <input
+        id={id} type={type} value={value} onChange={e => onChange(e.target.value)}
+        required={required} placeholder={placeholder}
+        className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#001e33]/20 focus:border-[#001e33] text-[#001e33] placeholder:text-slate-300 bg-white"
+      />
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={!enviando ? onClose : undefined}/>
+      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-[#001e33] px-6 pt-6 pb-5 rounded-t-3xl">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-white/10 rounded-xl">
+                <Award size={20} className="text-white"/>
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white leading-tight">Solicitar Certificado de Empleo</h3>
+                <p className="text-[11px] text-white/60 mt-0.5">Se enviará a tu correo corporativo</p>
+              </div>
+            </div>
+            {!enviando && (
+              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors flex-shrink-0 -mt-1">
+                <X size={18} className="text-white/70"/>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {status === 'ok' ? (
+          <div className="p-10 flex flex-col items-center gap-4 text-center">
+            <div className="p-5 bg-emerald-50 rounded-2xl">
+              <CheckCircle2 size={40} className="text-emerald-500"/>
+            </div>
+            <div>
+              <h4 className="text-base font-black text-[#001e33] mb-1">¡Solicitud enviada!</h4>
+              <p className="text-sm text-slate-500">Tu certificado fue procesado y enviado a <span className="font-bold text-[#001e33]">{empleadoData.correo_corporativo}</span>.</p>
+            </div>
+            <button onClick={onClose} className="mt-2 px-6 py-2.5 bg-[#001e33] text-white rounded-xl text-sm font-bold hover:bg-[#002a47] transition-colors">
+              Cerrar
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+
+            {/* Datos auto-completados */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <User size={13} className="text-slate-400"/>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tus datos (auto-completados)</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <InfoChip label="Nombre completo" value={empleadoData?.nombre_completo}/>
+                <InfoChip label="Tipo documento" value={empleadoData?.tipo_documento}/>
+                <InfoChip label="N° documento" value={empleadoData?.numero_documento}/>
+                <InfoChip label="Cargo" value={empleadoData?.nombre_cargo}/>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100"/>
+
+            {/* Datos del certificado */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <FileText size={13} className="text-slate-400"/>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Datos del certificado</p>
+              </div>
+              <div className="space-y-3">
+                <Field label="Fecha del certificado" id="fecha" type="date" value={form.fecha} onChange={v => set('fecha', v)} required/>
+                <Field label="Dirigido a" id="destinatario" value={form.destinatario} onChange={v => set('destinatario', v)} required placeholder="A quien corresponda"/>
+                <Field label="Tipo de contrato" id="tipo_contrato" value={form.tipo_contrato} onChange={v => set('tipo_contrato', v)} required placeholder="Ej: Término Indefinido"/>
+                <Field label="Salario mensual" id="salario" value={form.salario} onChange={v => set('salario', v)} required placeholder="Ej: $3.500.000"/>
+                <Field label="Ingresos adicionales" id="ingresos_adicionales" value={form.ingresos_adicionales} onChange={v => set('ingresos_adicionales', v)} placeholder="Ej: No aplica"/>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100"/>
+
+            {/* Firmante */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <BadgeCheck size={13} className="text-slate-400"/>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Firmante del certificado</p>
+              </div>
+              <div className="space-y-3">
+                <Field label="Nombre del firmante" id="firmante_nombre" value={form.firmante_nombre} onChange={v => set('firmante_nombre', v)} required placeholder="Nombre completo"/>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Cédula del firmante" id="firmante_cc" value={form.firmante_cc} onChange={v => set('firmante_cc', v)} placeholder="N° cédula"/>
+                  <Field label="Cargo del firmante" id="firmante_cargo" value={form.firmante_cargo} onChange={v => set('firmante_cargo', v)} placeholder="Ej: Gerente RRHH"/>
+                </div>
+              </div>
+            </div>
+
+            {status === 'error' && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-100 text-sm text-red-600">
+                <AlertCircle size={15} className="flex-shrink-0"/>
+                Error al enviar la solicitud. Intenta de nuevo.
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={onClose} disabled={enviando}
+                className="flex-1 py-3 rounded-2xl border-2 border-slate-200 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50">
+                Cancelar
+              </button>
+              <button type="submit" disabled={enviando}
+                className="flex-1 py-3 bg-[#001e33] text-white rounded-2xl text-sm font-bold hover:bg-[#002a47] transition-colors disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg">
+                {enviando ? <RefreshCw size={15} className="animate-spin"/> : <Send size={15}/>}
+                {enviando ? 'Enviando...' : 'Enviar Solicitud'}
+              </button>
+            </div>
+
+          </form>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ── Componente principal ──────────────────────────────────────────────────────
 
 const AutoGestion = () => {
@@ -136,6 +327,7 @@ const AutoGestion = () => {
   const [error, setError] = useState(null);
   const [actualizando, setActualizando] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [showCertModal, setShowCertModal] = useState(false);
 
   useEffect(() => { fetchTareas(); }, [empleadoData?.id_empleado]);
 
@@ -200,6 +392,28 @@ const AutoGestion = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+
+      {/* Certificado de empleo */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-[#001e33]/5 rounded-xl">
+              <Award size={18} className="text-[#001e33]"/>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#001e33]">Certificado de Empleo</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Solicita tu certificado; se envía a tu correo corporativo</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowCertModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#001e33] text-white rounded-xl text-xs font-bold hover:bg-[#002a47] transition-colors shadow-sm"
+          >
+            <FileText size={13}/> Solicitar
+          </button>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-bold text-[#001e33]">Mis Tareas Asignadas</h3>
@@ -319,6 +533,14 @@ const AutoGestion = () => {
           tarea={tareas.find(t => t.id === selectedTask.id) || selectedTask}
           onClose={() => setSelectedTask(null)}
           onActualizar={actualizarEstado}
+        />
+      )}
+
+      {/* Modal certificado */}
+      {showCertModal && (
+        <CertificadoModal
+          empleadoData={empleadoData}
+          onClose={() => setShowCertModal(false)}
         />
       )}
     </div>
