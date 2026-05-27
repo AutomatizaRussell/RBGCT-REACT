@@ -17,6 +17,7 @@ const CertificadoSection = () => {
   const [empleados, setEmpleados]     = useState([]);
   const [loadingEmp, setLoadingEmp]   = useState(true);
   const [seleccionado, setSeleccionado] = useState(null);
+  const [areaFiltro, setAreaFiltro]     = useState('');
   const [emailDestino, setEmailDestino] = useState('');
   const [enviando, setEnviando]         = useState(false);
   const [envioStatus, setEnvioStatus]   = useState(null); // 'ok' | 'error' | null
@@ -49,7 +50,19 @@ const CertificadoSection = () => {
   const handleEmpleado = (e) => {
     const emp = empleados.find(em => String(em.id_empleado) === e.target.value);
     setSeleccionado(emp || null);
+    // Auto-rellenar con el correo corporativo del empleado
+    setEmailDestino(emp?.correo_corporativo || '');
   };
+
+  // Áreas únicas derivadas de la lista de empleados activos
+  const areas = [...new Set(
+    empleados.filter(e => e.estado === 'ACTIVA' && e.nombre_area).map(e => e.nombre_area)
+  )].sort();
+
+  // Empleados filtrados por área seleccionada
+  const empleadosFiltrados = empleados
+    .filter(e => e.estado === 'ACTIVA')
+    .filter(e => !areaFiltro || e.nombre_area === areaFiltro);
 
 
 
@@ -133,24 +146,39 @@ const CertificadoSection = () => {
                 <RefreshCw size={14} className="animate-spin"/> Cargando...
               </div>
             ) : (
-              <select
-                onChange={handleEmpleado}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10"
-              >
-                <option value="">— Seleccionar empleado —</option>
-                {empleados
-                  .filter(e => e.estado === 'ACTIVA')
-                  .map(e => (
+              <>
+                {/* Filtro por área */}
+                <select
+                  value={areaFiltro}
+                  onChange={e => { setAreaFiltro(e.target.value); setSeleccionado(null); setEmailDestino(''); }}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 bg-slate-50"
+                >
+                  <option value="">— Todas las áreas —</option>
+                  {areas.map(a => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+
+                {/* Selector de empleado */}
+                <select
+                  onChange={handleEmpleado}
+                  value={emp?.id_empleado || ''}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10"
+                >
+                  <option value="">— Seleccionar empleado —</option>
+                  {empleadosFiltrados.map(e => (
                     <option key={e.id_empleado} value={e.id_empleado}>
                       {e.nombre_completo}
                     </option>
                   ))}
-              </select>
+                </select>
+              </>
             )}
 
             {/* Datos auto-llenados del empleado */}
             {emp && (
               <div className="bg-slate-50 rounded-xl p-3 space-y-1.5 text-xs text-slate-600">
+                <div><span className="font-semibold">Correo:</span> {emp.correo_corporativo}</div>
                 <div><span className="font-semibold">Doc:</span> {tipoDoc} {numDoc}</div>
                 <div><span className="font-semibold">Cargo:</span> {cargo}</div>
                 <div><span className="font-semibold">Ingreso:</span> {fechaIngreso}</div>
