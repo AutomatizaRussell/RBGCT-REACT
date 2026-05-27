@@ -436,7 +436,7 @@ def completar_datos_empleado(request):
 
     # Actualizar Persona (datos de identidad)
     campos_persona = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido',
-                      'apodo', 'fecha_nacimiento', 'sexo', 'tipo_sangre']
+                      'apodo', 'tipo_documento', 'numero_documento', 'fecha_nacimiento', 'sexo', 'tipo_sangre']
     persona_actualizada = False
     for campo in campos_persona:
         if campo in request.data:

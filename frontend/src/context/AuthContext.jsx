@@ -179,6 +179,8 @@ export const AuthProvider = ({ children }) => {
         primer_apellido: datos.primer_apellido,
         segundo_apellido: datos.segundo_apellido,
         apodo: datos.apodo,
+        tipo_documento: datos.tipo_documento,
+        numero_documento: datos.numero_documento,
         correo_personal: datos.correo_personal,
         telefono: datos.telefono,
         telefono_emergencia: datos.telefono_emergencia,

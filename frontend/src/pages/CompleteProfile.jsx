@@ -26,6 +26,8 @@ const CompleteProfile = () => {
     primer_apellido: empleadoData?.primer_apellido || '',
     segundo_apellido: empleadoData?.segundo_apellido || '',
     apodo: empleadoData?.apodo || '',
+    tipo_documento: empleadoData?.tipo_documento || 'CC',
+    numero_documento: empleadoData?.numero_documento || '',
     
     // Paso 2: Datos de contacto
     correo_personal: empleadoData?.correo_personal || '',
@@ -156,6 +158,10 @@ const CompleteProfile = () => {
         setError('Nombre y apellido son obligatorios');
         return;
       }
+      if (!formData.numero_documento) {
+        setError('Número de documento es obligatorio');
+        return;
+      }
     }
     setError(null);
     setStep(step + 1);
@@ -189,6 +195,8 @@ const CompleteProfile = () => {
         primer_apellido: formData.primer_apellido,
         segundo_apellido: formData.segundo_apellido,
         apodo: formData.apodo,
+        tipo_documento: formData.tipo_documento,
+        numero_documento: formData.numero_documento,
         correo_personal: formData.correo_personal,
         telefono: formData.telefono,
         telefono_emergencia: formData.telefono_emergencia,
@@ -329,6 +337,39 @@ const CompleteProfile = () => {
             placeholder="Ej. Juancho, JG, Stiben..."
           />
           <p className="text-[10px] text-slate-400">Este será su nombre de usuario visible en el sistema</p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            <User size={12} /> Tipo de Documento *
+          </label>
+          <select
+            required
+            name="tipo_documento"
+            value={formData.tipo_documento}
+            onChange={handleChange}
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+          >
+            <option value="CC">Cédula de Ciudadanía (CC)</option>
+            <option value="CE">Cédula de Extranjería (CE)</option>
+            <option value="PA">Pasaporte (PA)</option>
+            <option value="TI">Tarjeta de Identidad (TI)</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            <User size={12} /> Número de Documento *
+          </label>
+          <input
+            required
+            type="text"
+            name="numero_documento"
+            value={formData.numero_documento}
+            onChange={handleChange}
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            placeholder="Ej. 1234567890"
+          />
         </div>
       </div>
     </div>
