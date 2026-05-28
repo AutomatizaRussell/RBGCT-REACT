@@ -48,6 +48,9 @@ function App() {
           {/* 1. LOGIN - Público */}
           <Route path="/" element={<Login />} />
 
+             
+          <Route path="/ver-sqf" element={<FormulariosSQF />} />
+
           {/* 2. COMPLETAR PERFIL - Primer login */}
           <Route path="/completar-perfil" element={<CompleteProfile />} />
           
@@ -119,6 +122,7 @@ function App() {
             <Route path="gestor-pdf" element={<GestorPDFPage />} />
             <Route path="mis-clientes" element={<MisClientes />} />
             <Route path="cliente/:id" element={<MisClienteDetalle />} />
+         
           </Route>
 
           {/* 6. SEGURIDAD: Redirección por defecto */}

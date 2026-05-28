@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area,
@@ -1561,6 +1562,7 @@ function Directorio() {
 
 export default function ClientesSection() {
   const [view, setView] = useState('dashboard');
+  const navigate = useNavigate();
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-[#f8fafc]">
@@ -1581,6 +1583,12 @@ export default function ClientesSection() {
             </button>
           );
         })}
+        <button
+          onClick={() => navigate('/admin2/formularios-sqf')}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all text-slate-500 hover:text-slate-700 hover:bg-slate-100 ml-1"
+        >
+          <ExternalLink size={14}/> Formularios SQF
+        </button>
       </div>
 
       <div className="flex-1 overflow-hidden">
