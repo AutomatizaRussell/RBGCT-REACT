@@ -236,12 +236,22 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
 // ─── Sub-componente: Certificado Estilizado ──────────────────────────────────
 
+const parseSalario = (val) => {
+  const raw = (val || '').trim().replace(/\./g, '').replace(/,/g, '');
+  const n = parseInt(raw, 10);
+  return (!isNaN(n) && n > 0 && /^\d+$/.test(raw)) ? (numeroALetras(n) || val) : val;
+};
+
+const toTitleCase = (str) =>
+  (str || '').toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
 const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, area }) => {
   const empresa = form.nombre_empresa || 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S';
+  const salarioDisplay = parseSalario(form.salario);
   const fonts = {
     serif: '"Times New Roman", Times, serif',
     sans: 'Arial, sans-serif',
-    signature: '"Dancing Script", cursive'
+    signature: '"Dancing Script", cursive',
   };
 
   return (
@@ -281,7 +291,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
 
         {form.incluir_salario === 'Sí' && (
             <p style={{ textAlign: 'justify', marginBottom: '20pt' }}>
-                Su remuneración mensual actual es de <strong>{form.salario}</strong>
+                Su remuneración mensual actual es de <strong>{salarioDisplay}</strong>
                 {form.auxilio_transporte === 'Sí' ? ', más auxilio de transporte legal vigente.' : '.'}
                 {form.ingresos_adicionales && ` Adicionalmente percibe: ${form.ingresos_adicionales}.`}
             </p>
@@ -291,27 +301,25 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
             Para constancia de lo anterior se firma en la ciudad de Medellín, a los {new Date().getDate()} días del mes de {new Date().toLocaleDateString('es-CO', {month: 'long'})} de {new Date().getFullYear()}.
         </p>
 
-        <p style={{ marginBottom: '45pt' }}>Cordialmente,</p>
+        <p style={{ marginBottom: '8pt' }}>Cordialmente,</p>
 
-        {/* ÁREA DE FIRMA MEJORADA */}
-        <div style={{ width: '300pt', borderTop: '1pt solid #000', position: 'relative', marginTop: '50pt' }}>
-            {/* El nombre en cursiva actuando como firma */}
-            <p style={{ 
-                position: 'absolute', 
-                top: '-45pt', 
-                left: '10pt',
-                fontFamily: fonts.signature, 
-                fontSize: '28pt', 
-                color: '#002e4d',
-                opacity: 0.9
-            }}>
-                {form.firmante_nombre.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.substring(1)).join(' ')}
-            </p>
-            
-            <p style={{ margin: '5pt 0 0', fontWeight: 'bold', fontSize: '11pt', textTransform: 'uppercase' }}>{form.firmante_nombre}</p>
-            <p style={{ margin: 0, fontSize: '10pt' }}>{form.firmante_cargo}</p>
-            <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold' }}>{empresa}</p>
-            <p style={{ margin: 0, fontSize: '9pt', color: '#666' }}>C.C. {form.firmante_cc}</p>
+        {/* Firma cursiva en flujo normal */}
+        <div style={{ width: '300pt', marginTop: '8pt' }}>
+          <p style={{
+            fontFamily: fonts.signature,
+            fontSize: '30pt',
+            color: '#002e4d',
+            margin: '0 0 -6pt 2pt',
+            lineHeight: 1.1,
+          }}>
+            {toTitleCase(form.firmante_nombre)}
+          </p>
+          <div style={{ borderTop: '1pt solid #444', paddingTop: '5pt' }}>
+            <p style={{ margin: '0 0 1pt', fontWeight: 'bold', fontSize: '10pt', textTransform: 'uppercase', fontFamily: fonts.sans }}>{form.firmante_nombre}</p>
+            <p style={{ margin: '0 0 1pt', fontSize: '10pt', fontFamily: fonts.sans }}>{form.firmante_cargo}</p>
+            <p style={{ margin: '0 0 1pt', fontSize: '10pt', fontWeight: 'bold', fontFamily: fonts.sans }}>{empresa}</p>
+            {form.firmante_cc && <p style={{ margin: 0, fontSize: '9pt', color: '#666', fontFamily: fonts.sans }}>C.C. {form.firmante_cc}</p>}
+          </div>
         </div>
       </div>
 
