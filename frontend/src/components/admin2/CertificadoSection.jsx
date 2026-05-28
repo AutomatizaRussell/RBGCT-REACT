@@ -11,13 +11,38 @@ const hoy = () => {
   });
 };
 
-// Limpia el cargo para que se vea más formal (remueve diagonales, guiones y números de nivel al final)
 const limpiarCargo = (cargo) => {
   if (!cargo) return '';
-  // Tomar solo la primera parte antes de un slash '/' o guion '-'
   const primeraParte = cargo.split(/[/\-]/)[0];
-  // Eliminar números de nivel al final del texto (ej: "Senior 2" -> "Senior")
-  return primeraParte.replace(/\s+\d+\s*$/, '').trim();
+  return primeraParte.replace(/\s+\d+\s*$/, '').trim().toUpperCase();
+};
+
+const numeroALetras = (n) => {
+  n = Math.round(n);
+  if (isNaN(n) || n < 0) return null;
+  const U = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE',
+    'DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISÉIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'];
+  const VEINTI = ['', 'VEINTIÚN', 'VEINTIDÓS', 'VEINTITRÉS', 'VEINTICUATRO', 'VEINTICINCO', 'VEINTISÉIS', 'VEINTISIETE', 'VEINTIOCHO', 'VEINTINUEVE'];
+  const D = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+  const C = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+  const m1k = (n) => {
+    if (n === 0) return '';
+    if (n === 100) return 'CIEN';
+    if (n < 20) return U[n];
+    if (n < 30) return VEINTI[n - 20];
+    if (n < 100) { const d = Math.floor(n / 10), u = n % 10; return u === 0 ? D[d] : `${D[d]} Y ${U[u]}`; }
+    const c = Math.floor(n / 100), r = n % 100;
+    return r === 0 ? C[c] : `${C[c]} ${m1k(r)}`;
+  };
+  if (n === 0) return 'CERO PESOS ($0)';
+  let partes = [], r = n;
+  if (r >= 1000000) { const m = Math.floor(r / 1000000); r %= 1000000; partes.push(m === 1 ? 'UN MILLÓN' : `${m1k(m)} MILLONES`); }
+  if (r >= 1000)    { const k = Math.floor(r / 1000);    r %= 1000;    partes.push(k === 1 ? 'MIL' : `${m1k(k)} MIL`); }
+  if (r > 0) partes.push(m1k(r));
+  const letras = partes.join(' ');
+  const esExacto = n >= 1000000 && n % 1000000 === 0;
+  const fmt = n.toLocaleString('es-CO');
+  return `${letras}${esExacto ? ' DE' : ''} PESOS ($${fmt})`;
 };
 
 // ─── Componente principal ────────────────────────────────────────────────────
@@ -42,10 +67,13 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     salario:              'DOS MILLONES DE PESOS M/CTE ($2.000.000)', // Datos de prueba predeterminados
     auxilio_transporte:  'No',
     ingresos_adicionales: '',
+    // Empresa
+    nombre_empresa:       'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S',
+    nit_empresa:          '900.930.391-1',
     // Firma
-    firmante_nombre:      '',
-    firmante_cc:          '',
-    firmante_cargo:       '',
+    firmante_nombre:      'PAOLA ANDREA AGUILAR TAMAYO',
+    firmante_cc:          '21468161',
+    firmante_cargo:       'LIDER DE GESTIÓN HUMANA',
   });
 
   // ── Carga empleados ────────────────────────────────────────────────────────
@@ -83,6 +111,21 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
   const handleChange = (e) =>
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleSalarioBlur = (e) => {
+    const raw = e.target.value.trim().replace(/[.\s]/g, '').replace(/,/g, '');
+    const num = parseInt(raw, 10);
+    if (!isNaN(num) && num > 0 && /^\d+$/.test(raw)) {
+      const letras = numeroALetras(num);
+      if (letras) setForm(prev => ({ ...prev, salario: letras }));
+    }
+  };
+
+  const handleEmpresaSelect = (e) => {
+    const v = e.target.value;
+    if (v === 'GLT') setForm(prev => ({ ...prev, nombre_empresa: 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S', nit_empresa: '900.930.391-1' }));
+    else if (v === 'GCT') setForm(prev => ({ ...prev, nombre_empresa: 'GCT RUSSELL BEDFORD', nit_empresa: '' }));
+  };
 
   const handleEmpleado = (e) => {
     const emp = empleados.find(em => String(em.id_empleado) === e.target.value);
@@ -153,6 +196,8 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         fecha_ingreso:        fechaIngreso,
         destinatario:         form.destinatario,
         tipo_entidad:         form.tipo_entidad,
+        nombre_empresa:       form.nombre_empresa,
+        nit_empresa:          form.nit_empresa,
         tipo_contrato:        form.tipo_contrato,
         incluir_salario:      form.incluir_salario,
         salario:              form.salario,
@@ -273,6 +318,19 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Empresa emisora</p>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Seleccionar empresa</label>
+              <select onChange={handleEmpresaSelect} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 bg-white">
+                <option value="GLT">GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S</option>
+                <option value="GCT">GCT RUSSELL BEDFORD</option>
+              </select>
+            </div>
+            <Field label="Nombre empresa (editable)" name="nombre_empresa" value={form.nombre_empresa} onChange={handleChange} />
+            <Field label="NIT" name="nit_empresa" value={form.nit_empresa} onChange={handleChange} placeholder="Ej: 900.930.391-1" />
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cuerpo</p>
             <Field label="Tipo de contrato" name="tipo_contrato" value={form.tipo_contrato} onChange={handleChange} placeholder="Ej: término indefinido" />
             <FieldSelect label="¿Incluir salario?" name="incluir_salario" value={form.incluir_salario} onChange={handleChange}>
@@ -280,7 +338,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
               <option value="No">No</option>
             </FieldSelect>
             {form.incluir_salario === 'Sí' && (
-              <Field label="Salario (en texto)" name="salario" value={form.salario} onChange={handleChange} placeholder="Ej: UN MILLÓN QUINIENTOS VEINTIÚNMIL SESENTA Y DOS PESOS ($1.521.062)" />
+              <Field label="Salario — escribe número y sal del campo para convertir" name="salario" value={form.salario} onChange={handleChange} onBlur={handleSalarioBlur} placeholder="Ej: 3000000 o DOS MILLONES..." />
             )}
             <FieldSelect label="¿Auxilio de transporte aplica?" name="auxilio_transporte" value={form.auxilio_transporte} onChange={handleChange}>
               <option value="Sí">Sí</option>
@@ -363,13 +421,13 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
         {/* ── Panel derecho: previsualización ─────────────────────────────── */}
         <div className="flex-1 overflow-auto pb-6">
-          <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} />
+          <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
         </div>
       </div>
 
       {/* Versión solo para impresión */}
       <div className="solo-print">
-        <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} />
+        <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
       </div>
     </>
   );
@@ -377,8 +435,9 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
 // ─── Sub-componente: el certificado en sí (solo inline styles para html2canvas) ──
 
-const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso }) => {
+const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, area }) => {
   const val = (v, placeholder) => v?.trim() || placeholder;
+  const cargoCert = limpiarCargo(cargo);
 
   const S = {
     wrap: {
@@ -458,13 +517,14 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso }) 
         <div style={S.cuerpo}>
           <p style={S.parrafo}>
             Certificamos que{' '}
-            <strong style={{ color: '#001e33' }}>{nombreEmp} identificado(a)</strong>{' '}
+            <strong style={{ color: '#001e33' }}>{(nombreEmp || '').toUpperCase()} identificado(a)</strong>{' '}
             con {tipoDoc} No. <strong>{numDoc}</strong>, labora en{' '}
-            <strong>GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S</strong>{' '}
-            con Nit. <strong>900.930.391-1</strong>, desde el {fechaIngreso}, con contrato a{' '}
+            <strong>{val(form.nombre_empresa, 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S')}</strong>
+            {form.nit_empresa ? <> con Nit. <strong>{form.nit_empresa}</strong></> : ''}, desde el {fechaIngreso}, con contrato a{' '}
             <strong>{val(form.tipo_contrato, '[TIPO DE CONTRATO]')}</strong>,
             desempeñando el cargo de{' '}
-            <strong style={{ textTransform: 'uppercase' }}>{cargo}</strong>.
+            <strong>{val(cargoCert, '[CARGO]')}</strong>
+            {area ? <> en el área de <strong>{area.toUpperCase()}</strong></> : ''}.
           </p>
 
           {form.incluir_salario === 'Sí' && (
@@ -497,10 +557,10 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso }) 
 
         {/* Firma */}
         <div style={S.firmaWrap}>
-          <p style={S.firmaNombre}>{val(form.firmante_nombre, '[NOMBRE DEL FIRMANTE]')}</p>
+          <p style={{ ...S.firmaNombre, fontStyle: 'italic' }}>{val(form.firmante_nombre, '[NOMBRE DEL FIRMANTE]')}</p>
           {form.firmante_cc && <p style={S.firmaCC}>C.C. {form.firmante_cc}</p>}
           <p style={S.firmaCargo}>{val(form.firmante_cargo, '[CARGO DEL FIRMANTE]')}</p>
-          <p style={S.firmaEmp}>GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S</p>
+          <p style={S.firmaEmp}>{val(form.nombre_empresa, 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S')}</p>
         </div>
 
       </div>
@@ -510,7 +570,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso }) 
 
 // ─── Inputs reutilizables ────────────────────────────────────────────────────
 
-const Field = ({ label, name, value, onChange, placeholder }) => (
+const Field = ({ label, name, value, onChange, onBlur, placeholder }) => (
   <div>
     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</label>
     <input
@@ -518,6 +578,7 @@ const Field = ({ label, name, value, onChange, placeholder }) => (
       name={name}
       value={value}
       onChange={onChange}
+      onBlur={onBlur}
       placeholder={placeholder}
       className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10"
     />

@@ -15,7 +15,7 @@ services:
       - postgres_data_prod:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
       - ./docker/backup:/backup
-    healthcheck:
+    healthcheck:  
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 10s
       timeout: 5s
