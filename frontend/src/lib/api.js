@@ -219,7 +219,7 @@ export const deleteTarea = (id) => fetchApi(`/tareas/${id}/`, { method: 'DELETE'
 
 // ── EMPLEADOS ─────────────────────────────────────────────────────────────────
 
-export const getAllEmpleados = () => fetchApi('/empleados/');
+export const getAllEmpleados = (options = {}) => fetchApi('/empleados/', options);
 
 export const getEmpleadoById = (id) => fetchApi(`/empleados/${id}/`);
 
@@ -285,7 +285,7 @@ export const restablecerPassword = (token, nuevaPassword) =>
 
 // ── AREAS ─────────────────────────────────────────────────────────────────────
 
-export const getAllAreas = () => fetchApi('/areas/');
+export const getAllAreas = (options = {}) => fetchApi('/areas/', options);
 
 export const createArea = (data) => fetchApi('/areas/', {
   method: 'POST',
@@ -301,7 +301,7 @@ export const deleteArea = (id) => fetchApi(`/areas/${id}/`, { method: 'DELETE' }
 
 // ── CARGOS ────────────────────────────────────────────────────────────────────
 
-export const getAllCargos = () => fetchApi('/cargos/');
+export const getAllCargos = (options = {}) => fetchApi('/cargos/', options);
 
 export const createCargo = (data) => fetchApi('/cargos/', {
   method: 'POST',

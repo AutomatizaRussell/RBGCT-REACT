@@ -835,12 +835,35 @@ const HerramientasTab = () => {
 
   const fetchData = async () => {
     try {
-      const [a, c, emps] = await Promise.all([getAllAreas(), getAllCargos(), getAllEmpleados()]);
-      setAreas(a);
-      setCargos(c);
-      const areaCount = {};
-      emps.forEach(e => { if (e.nombre_area) areaCount[e.nombre_area] = (areaCount[e.nombre_area] || 0) + 1; });
-      setEmpleadosPorArea(areaCount);
+      const [areasRes, cargosRes, empsRes] = await Promise.allSettled([
+        getAllAreas({ timeoutMs: 35000 }),
+        getAllCargos({ timeoutMs: 35000 }),
+        getAllEmpleados({ timeoutMs: 35000 }),
+      ]);
+
+      if (areasRes.status === 'fulfilled') {
+        setAreas(Array.isArray(areasRes.value) ? areasRes.value : []);
+      } else {
+        console.error('Error cargando áreas:', areasRes.reason);
+      }
+
+      if (cargosRes.status === 'fulfilled') {
+        setCargos(Array.isArray(cargosRes.value) ? cargosRes.value : []);
+      } else {
+        console.error('Error cargando cargos:', cargosRes.reason);
+      }
+
+      if (empsRes.status === 'fulfilled') {
+        const emps = Array.isArray(empsRes.value) ? empsRes.value : [];
+        const areaCount = {};
+        emps.forEach(e => {
+          if (e.nombre_area) areaCount[e.nombre_area] = (areaCount[e.nombre_area] || 0) + 1;
+        });
+        setEmpleadosPorArea(areaCount);
+      } else {
+        console.error('Error cargando empleados por área:', empsRes.reason);
+        setEmpleadosPorArea({});
+      }
     } catch (err) {
       console.error('Error cargando herramientas:', err);
     } finally {
