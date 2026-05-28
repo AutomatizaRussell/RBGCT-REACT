@@ -445,132 +445,159 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, area }) => {
   const val = (v, placeholder) => v?.trim() || placeholder;
   const cargoCert = limpiarCargo(cargo);
+  const empresa   = val(form.nombre_empresa, 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S');
 
-  const S = {
-    wrap: {
-      position: 'relative', overflow: 'hidden', backgroundColor: '#ffffff',
-      borderRadius: '1rem', border: '1px solid #f1f5f9',
-      boxShadow: '0 1px 8px rgba(0,0,0,0.07)', padding: '2.5rem',
-      maxWidth: '672px', margin: '0 auto', minHeight: '800px',
-      fontFamily: 'Georgia, "Times New Roman", serif', color: '#1a1a1a',
-    },
-    barra: {
-      position: 'absolute', right: 0, top: 0, bottom: 0, width: '2rem',
-      backgroundColor: '#001e33', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'flex-end', paddingBottom: '1rem',
-    },
-    barraTexto: {
-      color: '#ffffff', fontSize: '7px', fontFamily: 'sans-serif',
-      letterSpacing: '0.1em', writingMode: 'vertical-rl',
-      transform: 'rotate(180deg)', whiteSpace: 'nowrap', opacity: 0.6,
-    },
-    inner:      { marginRight: '2.5rem' },
-    header:     { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' },
-    fecha:      { fontSize: '14px', color: '#475569', margin: 0 },
-    logoWrap:   { textAlign: 'right' },
-    consecutivo:{ display: 'inline-block', backgroundColor: '#f1f5f9', padding: '2px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: '700', color: '#475569', letterSpacing: '0.1em' },
-    russell:    { fontSize: '20px', fontWeight: '900', color: '#001e33', lineHeight: 1, letterSpacing: '-0.5px', margin: '6px 0 0', fontFamily: 'sans-serif' },
-    bedford:    { fontSize: '13px', color: '#64748b', fontWeight: '300', letterSpacing: '0.2em', margin: 0, fontFamily: 'sans-serif' },
-    tagline:    { fontSize: '9px', color: '#94a3b8', letterSpacing: '0.1em', margin: 0, fontFamily: 'sans-serif' },
-    destWrap:   { marginBottom: '1.5rem' },
-    senores:    { fontSize: '14px', color: '#334155', margin: '0 0 2px' },
-    destNombre: { fontSize: '14px', fontWeight: '700', color: '#001e33', textTransform: 'uppercase', margin: '0 0 2px' },
-    ciudad:     { fontSize: '14px', color: '#475569', margin: 0 },
-    cuerpo:     { fontSize: '14px', lineHeight: '1.8', textAlign: 'justify' },
-    parrafo:    { margin: '0 0 1rem' },
-    cordial:    { fontSize: '14px', color: '#334155', margin: '2rem 0 0' },
-    firmaWrap:  { borderTop: '1px solid #cbd5e1', paddingTop: '0.75rem', marginTop: '3rem', width: '220px' },
-    firmaNombre:{ fontSize: '13px', fontWeight: '700', color: '#001e33', textTransform: 'uppercase', margin: '0 0 2px' },
-    firmaCC:    { fontSize: '12px', color: '#475569', margin: '0 0 2px' },
-    firmaCargo: { fontSize: '12px', color: '#475569', margin: '0 0 4px' },
-    firmaEmp:   { fontSize: '12px', fontWeight: '600', color: '#334155', margin: 0 },
-  };
+  const ff = { sans: 'Arial, Helvetica, sans-serif', serif: 'Georgia, "Times New Roman", serif' };
 
   return (
-    <div className="certificado-preview" style={S.wrap}>
+    <div className="certificado-preview" style={{
+      backgroundColor: '#ffffff', maxWidth: '700px', margin: '0 auto',
+      minHeight: '920px', fontFamily: ff.serif, color: '#1a1a1a',
+      border: '1px solid #d1d5db', boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+    }}>
 
-      <div style={S.barra}>
-        <span style={S.barraTexto}>
-          GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S · NIT 900.930.391-1 · MEDELLÍN, COLOMBIA
-        </span>
+      {/* ── Franja superior ── */}
+      <div style={{ height: '7px', backgroundColor: '#001e33' }} />
+
+      {/* ── Membrete ── */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+        padding: '1.5rem 2.75rem 1.25rem', borderBottom: '1px solid #e5e7eb',
+      }}>
+        {/* Logo */}
+        <div>
+          <p style={{ fontSize: '22px', fontWeight: '900', color: '#001e33', letterSpacing: '-0.5px', margin: 0, lineHeight: 1, fontFamily: ff.sans }}>RUSSELL</p>
+          <p style={{ fontSize: '12px', color: '#6b7280', fontWeight: '300', letterSpacing: '0.28em', margin: '2px 0 6px', fontFamily: ff.sans }}>BEDFORD</p>
+          <p style={{ fontSize: '10px', color: '#9ca3af', letterSpacing: '0.04em', margin: 0, fontFamily: ff.sans }}>
+            {empresa}{form.nit_empresa ? ` · NIT ${form.nit_empresa}` : ''}
+          </p>
+        </div>
+        {/* Ref + Fecha */}
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px', fontFamily: ff.sans }}>
+            Medellín, {val(form.fecha, '[FECHA]')}
+          </p>
+          <span style={{
+            display: 'inline-block', border: '1px solid #d1d5db', padding: '3px 10px',
+            borderRadius: '3px', fontSize: '10px', fontWeight: '700', color: '#374151',
+            letterSpacing: '0.12em', fontFamily: ff.sans,
+          }}>
+            {val(form.consecutivo, 'AD-XX-XXX')}
+          </span>
+        </div>
       </div>
 
-      <div style={S.inner}>
+      {/* ── Cuerpo del documento ── */}
+      <div style={{ padding: '2rem 2.75rem 2.75rem' }}>
 
-        {/* Encabezado */}
-        <div style={S.header}>
-          <p style={S.fecha}>Medellín, {val(form.fecha, '[FECHA]')}</p>
-          <div style={S.logoWrap}>
-            <span style={S.consecutivo}>{val(form.consecutivo, 'AD-XX-XXX')}</span>
-            <p style={S.russell}>RUSSELL</p>
-            <p style={S.bedford}>BEDFORD</p>
-            <p style={S.tagline}>taking you further</p>
-          </div>
-        </div>
+        {/* Título centrado */}
+        <p style={{
+          textAlign: 'center', fontSize: '12px', fontWeight: '700', color: '#001e33',
+          textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: ff.sans,
+          borderBottom: '2px solid #001e33', paddingBottom: '0.6rem', marginBottom: '1.75rem',
+        }}>
+          Certificado de Empleo
+        </p>
 
         {/* Destinatario */}
-        <div style={S.destWrap}>
-          <p style={S.senores}>Señores</p>
-          <p style={S.destNombre}>{val(form.destinatario, '[NOMBRE DEL DESTINATARIO]')}.</p>
+        <div style={{ marginBottom: '1.5rem', fontSize: '13px' }}>
+          <p style={{ margin: '0 0 1px', color: '#374151' }}>Señores</p>
+          <p style={{ margin: '0 0 1px', fontWeight: '700', color: '#001e33', textTransform: 'uppercase' }}>
+            {val(form.destinatario, '[NOMBRE DEL DESTINATARIO]')}
+          </p>
           {form.tipo_entidad && (
-            <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 2px', fontStyle: 'italic' }}>
+            <p style={{ margin: '0 0 1px', color: '#6b7280', fontStyle: 'italic', fontSize: '12px' }}>
               Entidad {form.tipo_entidad}
             </p>
           )}
-          <p style={S.ciudad}>Medellín</p>
+          <p style={{ margin: 0, color: '#374151' }}>Medellín</p>
         </div>
 
+        {/* Asunto */}
+        <p style={{ fontSize: '13px', margin: '0 0 1.5rem', color: '#1a1a1a' }}>
+          <strong>Asunto:</strong> Certificación laboral
+        </p>
+
         {/* Cuerpo */}
-        <div style={S.cuerpo}>
-          <p style={S.parrafo}>
-            Certificamos que{' '}
-            <strong style={{ color: '#001e33' }}>{(nombreEmp || '').toUpperCase()} identificado(a)</strong>{' '}
-            con {tipoDoc} No. <strong>{numDoc}</strong>, labora en{' '}
-            <strong>{val(form.nombre_empresa, 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S')}</strong>
-            {form.nit_empresa ? <> con Nit. <strong>{form.nit_empresa}</strong></> : ''}, desde el {fechaIngreso}, con contrato a{' '}
-            <strong>{val(form.tipo_contrato, '[TIPO DE CONTRATO]')}</strong>,
-            desempeñando el cargo de{' '}
-            <strong>{val(cargoCert, '[CARGO]')}</strong>
+        <div style={{ fontSize: '13.5px', lineHeight: '1.9', textAlign: 'justify', color: '#1a1a1a' }}>
+
+          <p style={{ margin: '0 0 1.1rem' }}>
+            La suscrita empresa certifica que{' '}
+            <strong>{(nombreEmp || '').toUpperCase()}</strong>, identificado(a) con{' '}
+            {tipoDoc} N.° <strong>{numDoc}</strong>, labora en{' '}
+            <strong>{empresa}</strong>
+            {form.nit_empresa ? <>, con NIT <strong>{form.nit_empresa}</strong>,</> : ','}{' '}
+            desde el <strong>{fechaIngreso}</strong>, vinculado(a) mediante contrato de{' '}
+            <strong>{val(form.tipo_contrato, '[TIPO DE CONTRATO]')}</strong>,{' '}
+            desempeñando el cargo de <strong>{val(cargoCert, '[CARGO]')}</strong>
             {area ? <> en el área de <strong>{area.toUpperCase()}</strong></> : ''}.
           </p>
 
           {form.incluir_salario === 'Sí' && (
-            <p style={S.parrafo}>
+            <p style={{ margin: '0 0 1.1rem' }}>
               Devenga un salario mensual de{' '}
               <strong>{val(form.salario, '[SALARIO EN LETRAS Y CIFRAS]')}</strong>
               {form.auxilio_transporte === 'Sí'
-                ? <>, más auxilio de transporte según la normativa vigente{form.ingresos_adicionales ? `, ${form.ingresos_adicionales}` : ''}.</>
+                ? <>, más auxilio de transporte de conformidad con la normativa laboral vigente{form.ingresos_adicionales ? `; ${form.ingresos_adicionales}` : ''}.</>
                 : form.ingresos_adicionales
-                  ? <>, {form.ingresos_adicionales}.</>
+                  ? <>; {form.ingresos_adicionales}.</>
                   : '.'
               }
             </p>
           )}
 
           {form.incluir_salario !== 'Sí' && form.auxilio_transporte === 'Sí' && (
-            <p style={S.parrafo}>
-              Recibe auxilio de transporte según la normativa vigente
-              {form.ingresos_adicionales ? `, ${form.ingresos_adicionales}` : ''}.
+            <p style={{ margin: '0 0 1.1rem' }}>
+              Recibe auxilio de transporte de conformidad con la normativa laboral vigente
+              {form.ingresos_adicionales ? `; ${form.ingresos_adicionales}` : ''}.
             </p>
           )}
 
-          <p style={S.parrafo}>
-            La presente certificación se expide a solicitud del interesado(a)
-            para los fines que estime convenientes.
+          <p style={{ margin: '0 0 1.1rem' }}>
+            La presente certificación se expide a solicitud del interesado(a), para los fines
+            que estime convenientes.
           </p>
         </div>
 
-        <p style={S.cordial}>Cordialmente,</p>
+        {/* Cierre */}
+        <p style={{ fontSize: '13.5px', color: '#374151', margin: '2.5rem 0 2.5rem' }}>
+          Atentamente,
+        </p>
 
         {/* Firma */}
-        <div style={S.firmaWrap}>
-          <p style={{ ...S.firmaNombre, fontStyle: 'italic' }}>{val(form.firmante_nombre, '[NOMBRE DEL FIRMANTE]')}</p>
-          {form.firmante_cc && <p style={S.firmaCC}>C.C. {form.firmante_cc}</p>}
-          <p style={S.firmaCargo}>{val(form.firmante_cargo, '[CARGO DEL FIRMANTE]')}</p>
-          <p style={S.firmaEmp}>{val(form.nombre_empresa, 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S')}</p>
+        <div style={{ borderTop: '1px solid #9ca3af', paddingTop: '0.6rem', width: '260px' }}>
+          <p style={{
+            fontSize: '13px', fontWeight: '700', fontStyle: 'italic',
+            color: '#001e33', margin: '0 0 3px',
+            fontFamily: ff.serif,
+          }}>
+            {val(form.firmante_nombre, '[NOMBRE DEL FIRMANTE]')}
+          </p>
+          {form.firmante_cc && (
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 2px', fontFamily: ff.sans }}>
+              C.C. {form.firmante_cc}
+            </p>
+          )}
+          <p style={{ fontSize: '11px', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 2px', fontFamily: ff.sans }}>
+            {val(form.firmante_cargo, '[CARGO DEL FIRMANTE]')}
+          </p>
+          <p style={{ fontSize: '11px', fontWeight: '700', color: '#001e33', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, fontFamily: ff.sans }}>
+            {empresa}
+          </p>
         </div>
 
       </div>
+
+      {/* ── Pie de página ── */}
+      <div style={{
+        borderTop: '1px solid #e5e7eb', padding: '0.6rem 2.75rem',
+        display: 'flex', justifyContent: 'center',
+      }}>
+        <p style={{ fontSize: '9px', color: '#9ca3af', margin: 0, letterSpacing: '0.05em', fontFamily: ff.sans, textAlign: 'center' }}>
+          {empresa}{form.nit_empresa ? ` · NIT ${form.nit_empresa}` : ''} · Medellín, Colombia
+        </p>
+      </div>
+
     </div>
   );
 };
