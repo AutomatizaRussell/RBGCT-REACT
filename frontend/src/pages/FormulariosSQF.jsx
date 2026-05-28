@@ -97,17 +97,66 @@ export default function FormulariosSQF() {
         return [];
     };
 
-    const loadDataFromWebhooks = async () => {
+  const loadDataFromWebhooks = async () => {
         setIsLoading(true);
         try {
             const clientsRes = await fetch(N8N_WEBHOOKS.client, { headers: { 'Accept': 'application/json' } });
-            if (clientsRes.ok) setClients(extractData(await clientsRes.json()));
-        } catch (e) { console.warn('Error loading clients:', e); }
+            if (clientsRes.ok) {
+                const data = await clientsRes.json();
+                const rawClients = extractDataSafe(data);
+                
+                // TRADUCTOR DE N8N A REACT (Mapeo Original)
+                const mappedClients = rawClients.map(c => ({
+                    id: c.id || generateId('CLI'),
+                    clientType: c.clientType || (c.Tipodocumento === 'NIT' ? 'juridica' : 'natural'),
+                    document: c.document || c.Documento || '',
+                    name: c.name || c.Nombre || '',
+                    contactName: c.contactName || c.NombreContacto || '',
+                    contactRole: c.contactRole || c.CargoContacto || '',
+                    economicGroup: c.economicGroup || c.GrupoEconomico || '',
+                    email: c.email || c.CorreoElectronico || '',
+                    phone: c.phone || c.Telefono || '',
+                    address: c.address || '',
+                    info: c.info || '',
+                    createdAt: c.createdAt || '',
+                    status: c.status || c.Estado || 'Validado',
+                    source: c.source || ''
+                }));
+                
+                setClients(mappedClients);
+            }
+        } catch (e) { console.warn('Error loading clients:', e); setClients([]); }
 
         try {
             const contractsRes = await fetch(N8N_WEBHOOKS.contract, { headers: { 'Accept': 'application/json' } });
-            if (contractsRes.ok) setContracts(extractData(await contractsRes.json()));
-        } catch (e) { console.warn('Error loading contracts:', e); }
+            if (contractsRes.ok) {
+                const data = await contractsRes.json();
+                const rawContracts = extractDataSafe(data);
+                
+                // TRADUCTOR DE N8N A REACT (Mapeo Original)
+                const mappedContracts = rawContracts.map(c => ({
+                    id: c.id || generateId('CTR'),
+                    contractType: c.contractType || c.TipoContrato || '',
+                    clientId: c.clientId || '',
+                    clientName: c.clientName || c.Cliente || '',
+                    economicGroup: c.economicGroup || '',
+                    name: c.name || c.Nombre || '',
+                    value: c.value || (c.PrecioMensual ? parseInt(String(c.PrecioMensual).replace(/\D/g, '') || '0') : 0),
+                    valueFormatted: c.valueFormatted || c.PrecioMensual || '',
+                    startDate: c.startDate ? String(c.startDate).split('T')[0] : (c.FechaInicio ? String(c.FechaInicio).split('T')[0] : ''),
+                    endDate: c.endDate ? String(c.endDate).split('T')[0] : (c.FechaFin ? String(c.FechaFin).split('T')[0] : ''),
+                    manager: c.manager || c.Coordinador || '',
+                    service: c.service || c.Servicio || '',
+                    roles: c.roles || c.Posiciones || '',
+                    notes: c.notes || '',
+                    createdAt: c.createdAt || '',
+                    status: c.status || c.Estado || 'Validado'
+                }));
+                
+                setContracts(mappedContracts);
+            }
+        } catch (e) { console.warn('Error loading contracts:', e); setContracts([]); }
+        
         setIsLoading(false);
     };
 
@@ -1169,7 +1218,7 @@ export default function FormulariosSQF() {
                         </div>
                     </div>
                 </div>
-            )}
+            )} 
 
             {/* ========== TOAST GLOBAL ========== */}
             <div className={`toast ${toast.type} ${toast.show ? 'show' : ''}`}>
