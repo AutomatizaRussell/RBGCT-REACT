@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   CheckCircle2, Clock, AlertCircle, FileText, RefreshCw,
   AlertTriangle, X, CalendarDays, Building2, ChevronRight,
@@ -130,31 +130,10 @@ const TaskDetailModal = ({ tarea, onClose, onActualizar }) => {
 
 // ── Modal de solicitud de certificado ────────────────────────────────────────
 
-const CertField = ({ label, id, type = 'text', value, onChange, required, placeholder }) => (
-  <div className="flex flex-col gap-1">
-    <label htmlFor={id} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-      {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-    </label>
-    <input
-      id={id} type={type} value={value} onChange={e => onChange(e.target.value)}
-      required={required} placeholder={placeholder}
-      className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#001e33]/20 focus:border-[#001e33] text-[#001e33] placeholder:text-slate-300 bg-white"
-    />
-  </div>
-);
-
 const CertificadoModal = ({ empleadoData, onClose }) => {
   const [enviando, setEnviando] = useState(false);
   const [status, setStatus] = useState(null); // 'ok' | 'error'
-  const [form, setForm] = useState({
-    fecha:                new Date().toISOString().split('T')[0],
-    destinatario:         'A quien corresponda',
-    tipo_contrato:        '',
-    salario:              '',
-    ingresos_adicionales: 'No aplica',
-  });
-
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const formRef = useRef(null);
 
   const fmtFecha = (str) => str
     ? new Date(str + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -164,13 +143,14 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
     e.preventDefault();
     setEnviando(true);
     setStatus(null);
+    const fd = new FormData(formRef.current);
     try {
       await crearSolicitudCert({
-        fecha:                fmtFecha(form.fecha),
-        destinatario:         form.destinatario,
-        tipo_contrato:        form.tipo_contrato,
-        salario:              form.salario,
-        ingresos_adicionales: form.ingresos_adicionales,
+        fecha:                fmtFecha(fd.get('fecha')),
+        destinatario:         fd.get('destinatario') || '',
+        tipo_contrato:        fd.get('tipo_contrato') || '',
+        salario:              fd.get('salario') || '',
+        ingresos_adicionales: fd.get('ingresos_adicionales') || '',
         nombre_empleado:      empleadoData?.nombre_completo  || '',
         tipo_documento:       empleadoData?.tipo_documento   || '',
         numero_documento:     empleadoData?.numero_documento || '',
@@ -186,6 +166,9 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
       setEnviando(false);
     }
   };
+
+  const inputCls = "w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#001e33]/20 focus:border-[#001e33] text-[#001e33] placeholder:text-slate-300 bg-white";
+  const labelCls = "block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -205,7 +188,7 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
               </div>
             </div>
             {!enviando && (
-              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors flex-shrink-0 -mt-1">
+              <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors flex-shrink-0 -mt-1">
                 <X size={18} className="text-white/70"/>
               </button>
             )}
@@ -221,18 +204,33 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
               <h4 className="text-base font-black text-[#001e33] mb-1">¡Solicitud enviada!</h4>
               <p className="text-sm text-slate-500">RR.HH. procesará tu certificado y lo enviará a tu correo corporativo.</p>
             </div>
-            <button onClick={onClose} className="mt-2 px-6 py-2.5 bg-[#001e33] text-white rounded-xl text-sm font-bold hover:bg-[#002a47] transition-colors">
+            <button type="button" onClick={onClose} className="mt-2 px-6 py-2.5 bg-[#001e33] text-white rounded-xl text-sm font-bold hover:bg-[#002a47] transition-colors">
               Cerrar
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-3">
+          <form ref={formRef} onSubmit={handleSubmit} className="p-6 space-y-3">
 
-            <CertField label="Fecha del certificado" id="fecha" type="date" value={form.fecha} onChange={v => set('fecha', v)} required/>
-            <CertField label="Dirigido a" id="destinatario" value={form.destinatario} onChange={v => set('destinatario', v)} required placeholder="A quien corresponda"/>
-            <CertField label="Tipo de contrato" id="tipo_contrato" value={form.tipo_contrato} onChange={v => set('tipo_contrato', v)} required placeholder="Ej: Término Indefinido"/>
-            <CertField label="Salario mensual" id="salario" value={form.salario} onChange={v => set('salario', v)} required placeholder="Ej: $3.500.000"/>
-            <CertField label="Ingresos adicionales" id="ingresos_adicionales" value={form.ingresos_adicionales} onChange={v => set('ingresos_adicionales', v)} placeholder="Ej: No aplica"/>
+            <div>
+              <label className={labelCls}>Fecha del certificado <span className="text-red-400">*</span></label>
+              <input name="fecha" type="date" defaultValue={new Date().toISOString().split('T')[0]} required className={inputCls}/>
+            </div>
+            <div>
+              <label className={labelCls}>Dirigido a <span className="text-red-400">*</span></label>
+              <input name="destinatario" type="text" defaultValue="A quien corresponda" required placeholder="A quien corresponda" className={inputCls}/>
+            </div>
+            <div>
+              <label className={labelCls}>Tipo de contrato <span className="text-red-400">*</span></label>
+              <input name="tipo_contrato" type="text" required placeholder="Ej: Término Indefinido" className={inputCls}/>
+            </div>
+            <div>
+              <label className={labelCls}>Salario mensual <span className="text-red-400">*</span></label>
+              <input name="salario" type="text" required placeholder="Ej: $3.500.000" className={inputCls}/>
+            </div>
+            <div>
+              <label className={labelCls}>Ingresos adicionales</label>
+              <input name="ingresos_adicionales" type="text" defaultValue="No aplica" placeholder="Ej: No aplica" className={inputCls}/>
+            </div>
 
             {status === 'error' && (
               <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-100 text-sm text-red-600">
