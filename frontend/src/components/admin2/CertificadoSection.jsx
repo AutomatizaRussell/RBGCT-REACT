@@ -27,8 +27,11 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     fecha:               hoy(),
     consecutivo:         '',
     destinatario:        '',
+    tipo_entidad:        '',
     tipo_contrato:       '',
+    incluir_salario:     'Sí',
     salario:             '',
+    auxilio_transporte:  'No',
     ingresos_adicionales: '',
     // Firma
     firmante_nombre:     '',
@@ -49,10 +52,13 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     if (!prefill || empleados.length === 0) return;
     setForm(prev => ({
       ...prev,
-      fecha:                prefill.fecha               || hoy(),
-      destinatario:         prefill.destinatario        || '',
-      tipo_contrato:        prefill.tipo_contrato       || '',
-      salario:              prefill.salario             || '',
+      fecha:               prefill.fecha               || hoy(),
+      destinatario:        prefill.nombre_entidad      || prefill.destinatario || '',
+      tipo_entidad:        prefill.tipo_entidad        || '',
+      tipo_contrato:       prefill.tipo_contrato       || '',
+      incluir_salario:     prefill.incluir_salario     || 'Sí',
+      salario:             prefill.salario             || '',
+      auxilio_transporte:  prefill.auxilio_transporte  || 'No',
       ingresos_adicionales: prefill.ingresos_adicionales || '',
     }));
     if (prefill.id_empleado) {
@@ -134,10 +140,13 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         numero_documento:     numDoc,
         cargo,
         fecha_ingreso:        fechaIngreso,
-        tipo_contrato:        form.tipo_contrato,
-        salario:              form.salario,
-        ingresos_adicionales: form.ingresos_adicionales,
         destinatario:         form.destinatario,
+        tipo_entidad:         form.tipo_entidad,
+        tipo_contrato:        form.tipo_contrato,
+        incluir_salario:      form.incluir_salario,
+        salario:              form.salario,
+        auxilio_transporte:   form.auxilio_transporte,
+        ingresos_adicionales: form.ingresos_adicionales,
         fecha:                form.fecha,
         consecutivo:          form.consecutivo,
         firmante_nombre:      form.firmante_nombre,
@@ -237,16 +246,35 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
           {/* Campos externos */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Encabezado</p>
-            <Field label="Fecha" name="fecha"         value={form.fecha}         onChange={handleChange} />
+            <Field label="Fecha" name="fecha" value={form.fecha} onChange={handleChange} />
             <Field label="Consecutivo" name="consecutivo" value={form.consecutivo} onChange={handleChange} placeholder="Ej: AD-26-151" />
-            <Field label="Destinatario" name="destinatario" value={form.destinatario} onChange={handleChange} placeholder="Ej: AV VILLAS" />
+            <Field label="Nombre entidad destinataria" name="destinatario" value={form.destinatario} onChange={handleChange} placeholder="Ej: BANCOLOMBIA" />
+            <FieldSelect label="Tipo de entidad" name="tipo_entidad" value={form.tipo_entidad} onChange={handleChange}>
+              <option value="">— Sin especificar —</option>
+              <option value="Financiera">Financiera</option>
+              <option value="Universitaria">Universitaria</option>
+              <option value="Gobierno">Gobierno / Entidad Pública</option>
+              <option value="Empresa">Empresa Privada</option>
+              <option value="Salud">Salud / EPS</option>
+              <option value="Otra">Otra</option>
+            </FieldSelect>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cuerpo</p>
             <Field label="Tipo de contrato" name="tipo_contrato" value={form.tipo_contrato} onChange={handleChange} placeholder="Ej: término indefinido" />
-            <Field label="Salario (en texto)" name="salario" value={form.salario} onChange={handleChange} placeholder="Ej: TRES MILLONES ($3.000.000)" />
-            <FieldArea label="Ingresos adicionales" name="ingresos_adicionales" value={form.ingresos_adicionales} onChange={handleChange} placeholder="Ej: auxilio de transporte por $200.000..." />
+            <FieldSelect label="¿Incluir salario?" name="incluir_salario" value={form.incluir_salario} onChange={handleChange}>
+              <option value="Sí">Sí</option>
+              <option value="No">No</option>
+            </FieldSelect>
+            {form.incluir_salario === 'Sí' && (
+              <Field label="Salario (en texto)" name="salario" value={form.salario} onChange={handleChange} placeholder="Ej: TRES MILLONES ($3.000.000)" />
+            )}
+            <FieldSelect label="¿Auxilio de transporte aplica?" name="auxilio_transporte" value={form.auxilio_transporte} onChange={handleChange}>
+              <option value="Sí">Sí</option>
+              <option value="No">No</option>
+            </FieldSelect>
+            <FieldArea label="Ingresos adicionales" name="ingresos_adicionales" value={form.ingresos_adicionales} onChange={handleChange} placeholder="Ej: comisiones, bonificaciones..." />
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
@@ -305,15 +333,15 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
             <ol className="text-xs text-amber-700 space-y-1 list-decimal list-inside leading-relaxed">
               <li>Fecha del certificado</li>
               <li>Consecutivo del documento</li>
-              <li>Destinatario</li>
+              <li>Nombre y tipo de entidad</li>
               <li>Nombre completo del empleado <span className="text-amber-500">(auto)</span></li>
               <li>Tipo de documento <span className="text-amber-500">(auto)</span></li>
               <li>Número de documento <span className="text-amber-500">(auto)</span></li>
               <li>Cargo <span className="text-amber-500">(auto)</span></li>
               <li>Fecha de ingreso <span className="text-amber-500">(auto)</span></li>
               <li>Tipo de contrato</li>
-              <li>Salario mensual</li>
-              <li>Ingresos adicionales</li>
+              <li>¿Incluir salario? + monto</li>
+              <li>¿Auxilio de transporte?</li>
               <li>Nombre del firmante</li>
               <li>C.C. del firmante</li>
               <li>Cargo del firmante</li>
@@ -406,6 +434,11 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso }) 
         <div style={S.destWrap}>
           <p style={S.senores}>Señores</p>
           <p style={S.destNombre}>{val(form.destinatario, '[NOMBRE DEL DESTINATARIO]')}.</p>
+          {form.tipo_entidad && (
+            <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 2px', fontStyle: 'italic' }}>
+              Entidad {form.tipo_entidad}
+            </p>
+          )}
           <p style={S.ciudad}>Medellín</p>
         </div>
 
@@ -422,11 +455,23 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso }) 
             <strong style={{ textTransform: 'uppercase' }}>{cargo}</strong>.
           </p>
 
-          {(form.salario || form.ingresos_adicionales) && (
+          {form.incluir_salario === 'Sí' && (
             <p style={S.parrafo}>
               Devenga un salario mensual de{' '}
               <strong>{val(form.salario, '[SALARIO EN LETRAS Y CIFRAS]')}</strong>
-              {form.ingresos_adicionales ? <>, {form.ingresos_adicionales}.</> : '.'}
+              {form.auxilio_transporte === 'Sí'
+                ? <>, más auxilio de transporte según la normativa vigente{form.ingresos_adicionales ? `, ${form.ingresos_adicionales}` : ''}.</>
+                : form.ingresos_adicionales
+                  ? <>, {form.ingresos_adicionales}.</>
+                  : '.'
+              }
+            </p>
+          )}
+
+          {form.incluir_salario !== 'Sí' && form.auxilio_transporte === 'Sí' && (
+            <p style={S.parrafo}>
+              Recibe auxilio de transporte según la normativa vigente
+              {form.ingresos_adicionales ? `, ${form.ingresos_adicionales}` : ''}.
             </p>
           )}
 
@@ -478,6 +523,20 @@ const FieldArea = ({ label, name, value, onChange, placeholder }) => (
       rows={3}
       className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 resize-none"
     />
+  </div>
+);
+
+const FieldSelect = ({ label, name, value, onChange, children }) => (
+  <div>
+    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</label>
+    <select
+      name={name}
+      value={value}
+      onChange={onChange}
+      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 bg-white"
+    >
+      {children}
+    </select>
   </div>
 );
 

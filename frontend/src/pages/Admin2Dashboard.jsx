@@ -761,14 +761,17 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
                         </div>
                         <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-[10px] font-bold uppercase">Pendiente</span>
                       </div>
+                      {d.asunto && (
+                        <div className="mb-3 px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-800">
+                          <span className="font-bold">Asunto:</span> {d.asunto}
+                        </div>
+                      )}
                       <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-white rounded-xl p-3 border border-slate-100">
-                        <div><span className="font-semibold text-slate-400">Dirigido a:</span> {d.destinatario || '—'}</div>
-                        <div><span className="font-semibold text-slate-400">Contrato:</span> {d.tipo_contrato || '—'}</div>
-                        <div><span className="font-semibold text-slate-400">Salario:</span> {d.salario || '—'}</div>
+                        <div><span className="font-semibold text-slate-400">Entidad:</span> {d.nombre_entidad || d.destinatario || '—'}</div>
+                        <div><span className="font-semibold text-slate-400">Tipo:</span> {d.tipo_entidad || '—'}</div>
+                        <div><span className="font-semibold text-slate-400">Incluir salario:</span> {d.incluir_salario || '—'}</div>
+                        <div><span className="font-semibold text-slate-400">Aux. transporte:</span> {d.auxilio_transporte || '—'}</div>
                         <div><span className="font-semibold text-slate-400">Fecha:</span> {d.fecha || '—'}</div>
-                        {d.ingresos_adicionales && d.ingresos_adicionales !== 'No aplica' && (
-                          <div className="col-span-2"><span className="font-semibold text-slate-400">Ingresos adicionales:</span> {d.ingresos_adicionales}</div>
-                        )}
                       </div>
                       <div className="mt-3 flex gap-2">
                         <button onClick={() => onAceptarCert(sol)}

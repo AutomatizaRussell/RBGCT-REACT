@@ -146,11 +146,12 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
     const fd = new FormData(formRef.current);
     try {
       await crearSolicitudCert({
-        fecha:                fmtFecha(fd.get('fecha')),
-        destinatario:         fd.get('destinatario') || '',
-        tipo_contrato:        fd.get('tipo_contrato') || '',
-        salario:              fd.get('salario') || '',
-        ingresos_adicionales: fd.get('ingresos_adicionales') || '',
+        fecha:              fmtFecha(fd.get('fecha')),
+        tipo_entidad:       fd.get('tipo_entidad') || '',
+        nombre_entidad:     fd.get('nombre_entidad') || '',
+        incluir_salario:    fd.get('incluir_salario') || 'Sí',
+        auxilio_transporte: fd.get('auxilio_transporte') || 'No',
+        asunto:             fd.get('asunto') || '',
         nombre_empleado:      empleadoData?.nombre_completo  || '',
         tipo_documento:       empleadoData?.tipo_documento   || '',
         numero_documento:     empleadoData?.numero_documento || '',
@@ -212,24 +213,42 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
           <form ref={formRef} onSubmit={handleSubmit} className="p-6 space-y-3">
 
             <div>
+              <label className={labelCls}>Tipo de entidad <span className="text-red-400">*</span></label>
+              <select name="tipo_entidad" required className={inputCls}>
+                <option value="">— Seleccionar —</option>
+                <option value="Financiera">Financiera</option>
+                <option value="Universitaria">Universitaria</option>
+                <option value="Gobierno">Gobierno / Entidad Pública</option>
+                <option value="Empresa">Empresa Privada</option>
+                <option value="Salud">Salud / EPS</option>
+                <option value="Otra">Otra</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Nombre de la entidad <span className="text-red-400">*</span></label>
+              <input name="nombre_entidad" type="text" required placeholder="Ej: Bancolombia, Universidad de Antioquia..." className={inputCls}/>
+            </div>
+            <div>
               <label className={labelCls}>Fecha del certificado <span className="text-red-400">*</span></label>
               <input name="fecha" type="date" defaultValue={new Date().toISOString().split('T')[0]} required className={inputCls}/>
             </div>
             <div>
-              <label className={labelCls}>Dirigido a <span className="text-red-400">*</span></label>
-              <input name="destinatario" type="text" defaultValue="A quien corresponda" required placeholder="A quien corresponda" className={inputCls}/>
+              <label className={labelCls}>¿Deseas incluir salario? <span className="text-red-400">*</span></label>
+              <select name="incluir_salario" required className={inputCls}>
+                <option value="Sí">Sí</option>
+                <option value="No">No</option>
+              </select>
             </div>
             <div>
-              <label className={labelCls}>Tipo de contrato <span className="text-red-400">*</span></label>
-              <input name="tipo_contrato" type="text" required placeholder="Ej: Término Indefinido" className={inputCls}/>
+              <label className={labelCls}>¿Auxilio de transporte aplica? <span className="text-red-400">*</span></label>
+              <select name="auxilio_transporte" required className={inputCls}>
+                <option value="Sí">Sí</option>
+                <option value="No">No</option>
+              </select>
             </div>
             <div>
-              <label className={labelCls}>Salario mensual <span className="text-red-400">*</span></label>
-              <input name="salario" type="text" required placeholder="Ej: $3.500.000" className={inputCls}/>
-            </div>
-            <div>
-              <label className={labelCls}>Ingresos adicionales</label>
-              <input name="ingresos_adicionales" type="text" defaultValue="No aplica" placeholder="Ej: No aplica" className={inputCls}/>
+              <label className={labelCls}>Asunto <span className="text-red-400">*</span></label>
+              <input name="asunto" type="text" required placeholder="Ej: Solicitud de crédito, trámite universitario..." className={inputCls}/>
             </div>
 
             {status === 'error' && (
