@@ -644,3 +644,8 @@ export const getSolicitudesCert = () => fetchApi('/solicitudes-cert/');
 
 export const atenderSolicitudCert = (id, accion) =>
   fetchApi(`/solicitudes-cert/${id}/atender/`, { method: 'PATCH', body: JSON.stringify({ accion }) });
+
+export const getCertPermisosBackend = () => fetchApi('/cert-permisos/');
+
+export const setCertPermisoBackend = (id_empleado, value) =>
+  fetchApi('/cert-permisos/set/', { method: 'POST', body: JSON.stringify({ id_empleado, value }) });

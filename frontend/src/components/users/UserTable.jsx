@@ -1,16 +1,10 @@
 import { useState, useEffect, useContext } from 'react';
 import { Trash2, Shield, ShieldCheck, UserX, UserCheck, X, Check, Loader2, Search, Mail, Calendar, Hash, Briefcase, Info, AlertTriangle, Activity, Edit3, Save, UserPlus, Lock, KeyRound, FileSpreadsheet, Download } from 'lucide-react';
-import { getAllEmpleados, updateEmpleado, cambiarEstadoEmpleado, deleteEmpleado, getAllCargos, getAllAreas, actualizarPasswordEmpleado } from '../../lib/api';
+import { getAllEmpleados, updateEmpleado, cambiarEstadoEmpleado, deleteEmpleado, getAllCargos, getAllAreas, actualizarPasswordEmpleado, getCertPermisosBackend, setCertPermisoBackend } from '../../lib/api';
 import { exportEmpleadosCSV, exportEmpleadosXLSX } from '../../lib/exportEmpleados';
 import RoleModal from './RoleModal';
 import AuthContext from '../../context/AuthContext';
 
-const getCertPermisos = () => JSON.parse(localStorage.getItem('cert_permisos') || '[]');
-const toggleCertPermiso = (id, value) => {
-  const cur = getCertPermisos();
-  const next = value ? [...new Set([...cur, id])] : cur.filter(x => x !== id);
-  localStorage.setItem('cert_permisos', JSON.stringify(next));
-};
 
 const UserTable = () => {
   const { 
@@ -44,6 +38,13 @@ const UserTable = () => {
   const [areas, setAreas] = useState([]);
 
   const [certPermEdit, setCertPermEdit] = useState(false);
+  const [certPermisosBackend, setCertPermisosBackend] = useState([]);
+
+  useEffect(() => {
+    getCertPermisosBackend()
+      .then(res => setCertPermisosBackend((res.permisos || []).map(String)))
+      .catch(() => {});
+  }, []);
 
   // Estados para cambio de contraseña
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -168,7 +169,7 @@ const UserTable = () => {
       estado: user.estado || 'ACTIVA',
       permitir_edicion_datos: user.permitir_edicion_datos || false
     });
-    setCertPermEdit(getCertPermisos().includes(user.id_empleado));
+    setCertPermEdit(certPermisosBackend.includes(String(user.id_empleado)));
   };
 
   const handleSaveEdit = async () => {
@@ -177,7 +178,11 @@ const UserTable = () => {
       console.log('[SAVE EDIT] Datos a enviar:', editFormData);
       console.log('[SAVE EDIT] permitir_edicion_datos:', editFormData.permitir_edicion_datos);
       await updateEmpleado(editingUser.id_empleado, editFormData);
-      toggleCertPermiso(editingUser.id_empleado, certPermEdit);
+      await setCertPermisoBackend(editingUser.id_empleado, certPermEdit);
+      setCertPermisosBackend(prev => certPermEdit
+        ? [...new Set([...prev, String(editingUser.id_empleado)])]
+        : prev.filter(x => x !== String(editingUser.id_empleado))
+      );
       await fetchUsers();
       setEditingUser(null);
       alert('Perfil actualizado correctamente');

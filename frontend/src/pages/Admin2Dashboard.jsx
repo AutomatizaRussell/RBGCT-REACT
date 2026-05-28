@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Admin2Sidebar } from '../components/layout/Admin2Sidebar';
 import { useLocation, Outlet } from 'react-router-dom';
 import {
@@ -35,6 +35,7 @@ import {
   moverReglamentoItem,
   getSolicitudesCert,
   atenderSolicitudCert,
+  getCertPermisosBackend,
 } from '../lib/api';
 
 import UserTable from '../components/users/UserTable';
@@ -65,8 +66,8 @@ const Admin2Dashboard = () => {
   const [areaStats, setAreaStats] = useState([]);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const { user, empleadoData } = useAuth();
-  const puedeExpedirCert = JSON.parse(localStorage.getItem('cert_permisos') || '[]')
-    .includes(empleadoData?.id_empleado);
+  const [puedeExpedirCert, setPuedeExpedirCert] = useState(false);
+  const certPermRef = useRef(false);
 
   const fetchStats = async () => {
     try {
@@ -207,16 +208,28 @@ const Admin2Dashboard = () => {
   };
 
   useEffect(() => {
+    if (!empleadoData?.id_empleado) return;
+    getCertPermisosBackend()
+      .then(res => {
+        const ids = (res.permisos || []).map(String);
+        const tiene = ids.includes(String(empleadoData.id_empleado));
+        setPuedeExpedirCert(tiene);
+        certPermRef.current = tiene;
+        if (tiene) fetchSolicitudesCert();
+      })
+      .catch(() => {});
+  }, [empleadoData?.id_empleado]);
+
+  useEffect(() => {
     fetchStats();
     fetchAlertsCount();
     fetchAllActivity();
-    if (puedeExpedirCert) fetchSolicitudesCert();
 
     const interval = setInterval(() => {
       fetchStats();
       fetchAlertsCount();
       fetchAllActivity();
-      if (puedeExpedirCert) fetchSolicitudesCert();
+      if (certPermRef.current) fetchSolicitudesCert();
     }, 30000);
 
     return () => clearInterval(interval);

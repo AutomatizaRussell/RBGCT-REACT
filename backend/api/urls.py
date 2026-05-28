@@ -66,4 +66,7 @@ urlpatterns = [
     path('solicitudes-cert/',                            views.listar_solicitudes_cert, name='listar_solicitudes_cert'),
     path('solicitudes-cert/crear/',                      views.crear_solicitud_cert,    name='crear_solicitud_cert'),
     path('solicitudes-cert/<str:solicitud_id>/atender/', views.atender_solicitud_cert,  name='atender_solicitud_cert'),
+    # Permisos de certificado (JSON temporal, sin modelo)
+    path('cert-permisos/',      views.get_cert_permisos, name='get_cert_permisos'),
+    path('cert-permisos/set/',  views.set_cert_permiso,  name='set_cert_permiso'),
 ]

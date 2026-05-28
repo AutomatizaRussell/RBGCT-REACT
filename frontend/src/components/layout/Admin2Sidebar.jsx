@@ -11,9 +11,10 @@ import {
   Building2,
 } from 'lucide-react';
 
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { useAuth } from '../../hooks/useAuth';
+import { getCertPermisosBackend } from '../../lib/api';
 
 
 
@@ -22,8 +23,17 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab }) => {
   const navigate = useNavigate();
 
   const { logout, empleadoData } = useAuth();
-  const puedeExpedirCert = JSON.parse(localStorage.getItem('cert_permisos') || '[]')
-    .includes(empleadoData?.id_empleado);
+  const [puedeExpedirCert, setPuedeExpedirCert] = useState(false);
+
+  useEffect(() => {
+    if (!empleadoData?.id_empleado) return;
+    getCertPermisosBackend()
+      .then(res => {
+        const ids = (res.permisos || []).map(String);
+        setPuedeExpedirCert(ids.includes(String(empleadoData.id_empleado)));
+      })
+      .catch(() => {});
+  }, [empleadoData?.id_empleado]);
 
 
 

@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import FormulariosSQF from './pages/FormulariosSQF';
 
 // Vistas principales
 import Login from './pages/Login';
@@ -77,6 +78,9 @@ function App() {
           >
             <Route index element={<UserTable />} />
             <Route path="usuarios/nuevo" element={<CreateUserPage />} />
+            
+            {/* ---> AQUÍ ESTÁ LA NUEVA RUTA INTEGRADA <--- */}
+            <Route path="formularios-sqf" element={<FormulariosSQF />} />
           </Route>
 
           {/* 4. RUTA DE EDITOR (Contenido) */}

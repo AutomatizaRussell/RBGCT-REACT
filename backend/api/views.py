@@ -3537,3 +3537,53 @@ def atender_solicitud_cert(request, solicitud_id):
     except Exception as e:
         logger.error(f'[solicitudes_cert] Error al atender {solicitud_id}: {e}')
         return Response({'error': str(e)}, status=500)
+
+
+# ── Permisos de certificado (JSON temporal, sin modelo) ───────────────────────
+
+_CERT_PERMISOS_FILE = '/tmp/cert_permisos.json'
+
+def _leer_cert_permisos():
+    if not os.path.exists(_CERT_PERMISOS_FILE):
+        return []
+    try:
+        with open(_CERT_PERMISOS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def _guardar_cert_permisos(data):
+    try:
+        with open(_CERT_PERMISOS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f'[cert_permisos] Error al guardar: {e}')
+        raise
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_cert_permisos(request):
+    return Response({'permisos': _leer_cert_permisos()})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def set_cert_permiso(request):
+    try:
+        id_empleado = request.data.get('id_empleado')
+        value = request.data.get('value', False)
+        if id_empleado is None:
+            return Response({'error': 'id_empleado requerido'}, status=400)
+        lista = _leer_cert_permisos()
+        id_str = str(id_empleado)
+        if value:
+            if id_str not in [str(x) for x in lista]:
+                lista.append(id_str)
+        else:
+            lista = [x for x in lista if str(x) != id_str]
+        _guardar_cert_permisos(lista)
+        return Response({'ok': True})
+    except Exception as e:
+        logger.error(f'[cert_permisos] Error: {e}')
+        return Response({'error': str(e)}, status=500)
