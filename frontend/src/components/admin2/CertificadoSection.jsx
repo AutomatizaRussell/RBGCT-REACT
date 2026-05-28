@@ -141,6 +141,57 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
   const handlePrint = () => window.print();
 
+  const handleEnviarCorreo = async () => {
+    if (!emailDestino.trim()) return;
+    setEnviando(true);
+    setEnvioStatus(null);
+    try {
+      const { default: html2canvas } = await import('html2canvas');
+      const { jsPDF } = await import('jspdf');
+      const elemento = document.querySelector('.certificado-preview');
+      const canvas   = await html2canvas(elemento, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const imgData  = canvas.toDataURL('image/png');
+      const pdf      = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+      const pdfW     = pdf.internal.pageSize.getWidth();
+      const pdfH     = (canvas.height * pdfW) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+      const bytes  = new Uint8Array(pdf.output('arraybuffer'));
+      let binary   = '';
+      bytes.forEach(b => { binary += String.fromCharCode(b); });
+      await enviarCertificadoEmpleo({
+        email_destino:        emailDestino.trim(),
+        nombre_empleado:      nombreEmp,
+        tipo_documento:       tipoDoc,
+        numero_documento:     numDoc,
+        cargo,
+        fecha_ingreso:        fechaIngreso,
+        destinatario:         form.destinatario,
+        tipo_entidad:         form.tipo_entidad,
+        nombre_empresa:       form.nombre_empresa,
+        nit_empresa:          form.nit_empresa,
+        tipo_contrato:        form.tipo_contrato,
+        incluir_salario:      form.incluir_salario,
+        salario:              form.salario,
+        auxilio_transporte:   form.auxilio_transporte,
+        ingresos_adicionales: form.ingresos_adicionales,
+        fecha:                form.fecha,
+        consecutivo:          form.consecutivo,
+        firmante_nombre:      form.firmante_nombre,
+        firmante_cc:          form.firmante_cc,
+        firmante_cargo:       form.firmante_cargo,
+        pdf_base64:           btoa(binary),
+        pdf_nombre:           `Certificado_${nombreEmp.replace(/\s+/g, '_')}_${form.consecutivo || 'SN'}.pdf`,
+      });
+      setEnvioStatus('ok');
+    } catch (err) {
+      console.error('[Certificado] Error:', err);
+      setEnvioStatus('error');
+    } finally {
+      setEnviando(false);
+      setTimeout(() => setEnvioStatus(null), 4000);
+    }
+  };
+
   return (
     <>
       <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap" rel="stylesheet" />
@@ -215,6 +266,33 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
             <Field label="Cargo del Firmante" name="firmante_cargo" value={form.firmante_cargo} onChange={handleChange} />
           </Section>
 
+          <Section title="Enviar por correo">
+            <input
+              type="email"
+              value={emailDestino}
+              onChange={e => setEmailDestino(e.target.value)}
+              placeholder="correo@destino.com"
+              className="input-modern"
+            />
+            <button
+              onClick={handleEnviarCorreo}
+              disabled={enviando || !emailDestino.trim()}
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+            >
+              {enviando ? <><RefreshCw size={14} className="animate-spin"/> Enviando...</> : <><Send size={14}/> Enviar certificado</>}
+            </button>
+            {envioStatus === 'ok' && (
+              <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                <CheckCircle size={13}/> Certificado enviado correctamente
+              </div>
+            )}
+            {envioStatus === 'error' && (
+              <div className="flex items-center gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                <AlertCircle size={13}/> No se pudo enviar. Verifica la conexión.
+              </div>
+            )}
+          </Section>
+
           <button onClick={handlePrint} className="w-full py-4 bg-[#001e33] hover:bg-[#002e4d] text-white rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95">
             <Printer size={18}/> IMPRIMIR DOCUMENTO
           </button>
@@ -246,90 +324,163 @@ const toTitleCase = (str) =>
   (str || '').toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
 const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, area }) => {
-  const empresa = form.nombre_empresa || 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S';
-  const salarioDisplay = parseSalario(form.salario);
-  const fonts = {
-    serif: '"Times New Roman", Times, serif',
-    sans: 'Arial, sans-serif',
-    signature: '"Dancing Script", cursive',
-  };
+  const empresa      = form.nombre_empresa || 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S';
+  const salarioText  = parseSalario(form.salario);
+  const sans         = 'Arial, Helvetica, sans-serif';
+  const serif        = '"Times New Roman", Times, serif';
+  const script       = '"Dancing Script", cursive';
+
+  const sn = (s) => ({ fontFamily: sans, ...s });
+  const sr = (s) => ({ fontFamily: serif, ...s });
 
   return (
     <div className="certificado-preview" style={{
-      width: '210mm', minHeight: '297mm', padding: '25mm 25mm',
-      backgroundColor: 'white', color: '#1a1a1a', fontFamily: fonts.serif,
-      position: 'relative', fontSize: '12pt', lineHeight: '1.6'
+      width: '210mm', minHeight: '297mm', backgroundColor: '#fff',
+      color: '#111', fontFamily: serif, fontSize: '11.5pt', lineHeight: '1.75',
+      boxShadow: '0 0 0 1px #e5e7eb, 0 8px 32px rgba(0,0,0,0.10)',
     }}>
-      {/* Membrete Minimalista */}
-      <div style={{ borderBottom: '1.5pt solid #001e33', paddingBottom: '10pt', marginBottom: '30pt', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+
+      {/* ── Acento superior ─────────────────────────────────────── */}
+      <div style={{ height: '5px', background: 'linear-gradient(90deg,#001e33 70%,#0a4a7c)' }} />
+
+      {/* ── Membrete ─────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+        padding: '18pt 28pt 14pt', borderBottom: '1pt solid #001e33',
+      }}>
         <div>
-            <h1 style={{ margin: 0, fontSize: '24pt', fontWeight: '900', fontFamily: fonts.sans, color: '#001e33' }}>RUSSELL BEDFORD</h1>
-            <p style={{ margin: 0, fontSize: '9pt', fontFamily: fonts.sans, color: '#666', letterSpacing: '2pt' }}>GLOBAL NETWORK · QUALITY MATTERS</p>
+          <p style={sn({ margin: 0, fontSize: '20pt', fontWeight: '900', color: '#001e33', letterSpacing: '-0.5pt', lineHeight: 1 })}>
+            RUSSELL BEDFORD
+          </p>
+          <p style={sn({ margin: '3pt 0 0', fontSize: '7.5pt', color: '#6b7280', letterSpacing: '2.5pt', textTransform: 'uppercase' })}>
+            {empresa}
+          </p>
         </div>
-        <div style={{ textAlign: 'right', fontFamily: fonts.sans, fontSize: '9pt', color: '#444' }}>
-            <p style={{ margin: 0, fontWeight: 'bold' }}>{form.consecutivo || 'REF: AD-2026'}</p>
-            <p style={{ margin: 0 }}>Medellín, {form.fecha}</p>
+        <div style={{ textAlign: 'right' }}>
+          <p style={sn({ margin: 0, fontSize: '8.5pt', color: '#374151' })}>
+            Medellín, {form.fecha}
+          </p>
+          {form.consecutivo && (
+            <p style={sn({ margin: '3pt 0 0', fontSize: '8pt', fontWeight: '700', color: '#001e33', letterSpacing: '1pt' })}>
+              Ref. {form.consecutivo}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Contenido */}
-      <div style={{ padding: '0 5pt' }}>
-        <h2 style={{ textAlign: 'center', textTransform: 'uppercase', fontSize: '14pt', letterSpacing: '3pt', borderBottom: '0.5pt solid #eee', paddingBottom: '10pt', marginBottom: '30pt' }}>Certificación Laboral</h2>
+      {/* ── Cuerpo del documento ─────────────────────────────────── */}
+      <div style={{ padding: '24pt 28pt 28pt' }}>
 
-        <div style={{ marginBottom: '25pt' }}>
-            <p style={{ margin: 0 }}>Señores:</p>
-            <p style={{ margin: 0, fontWeight: 'bold', textTransform: 'uppercase' }}>{form.destinatario || 'A QUIEN INTERESE'}</p>
-            <p style={{ margin: 0 }}>Ciudad</p>
+        {/* Título */}
+        <p style={sn({
+          textAlign: 'center', margin: '0 0 20pt',
+          fontSize: '11pt', fontWeight: '700', letterSpacing: '3pt',
+          textTransform: 'uppercase', color: '#001e33',
+          borderBottom: '1pt solid #d1d5db', paddingBottom: '10pt',
+        })}>
+          Certificado de Empleo
+        </p>
+
+        {/* Destinatario */}
+        <div style={{ marginBottom: '18pt' }}>
+          <p style={sr({ margin: 0, color: '#374151' })}>Señores</p>
+          <p style={sr({ margin: '1pt 0 0', fontWeight: '700', textTransform: 'uppercase' })}>
+            {form.destinatario || 'A QUIEN CORRESPONDA'}
+          </p>
+          {form.tipo_entidad && (
+            <p style={sr({ margin: 0, fontSize: '10pt', color: '#6b7280', fontStyle: 'italic' })}>
+              {form.tipo_entidad}
+            </p>
+          )}
+          <p style={sr({ margin: '1pt 0 0', color: '#374151' })}>Ciudad</p>
         </div>
 
-        <p style={{ textAlign: 'justify', marginBottom: '20pt' }}>
-            La suscrita empresa <strong>{empresa}</strong>, con NIT <strong>{form.nit_empresa}</strong>, hace constar que el(la) señor(a) 
-            <strong> {nombreEmp.toUpperCase()}</strong>, identificado(a) con {tipoDoc} No. <strong>{numDoc}</strong>, se encuentra vinculado(a) con nuestra organización 
-            desde el <strong>{fechaIngreso}</strong>, mediante un contrato a <strong>{form.tipo_contrato || '[TIPO DE CONTRATO]'}</strong>, desempeñando actualmente 
-            el cargo de <strong>{cargo}</strong>{area ? ` en el área de ${area.toUpperCase()}` : ''}.
+        {/* Asunto */}
+        <p style={sr({ margin: '0 0 18pt', color: '#111' })}>
+          <strong>Asunto:</strong> Certificación laboral
         </p>
 
+        {/* Párrafo principal */}
+        <p style={sr({ textAlign: 'justify', margin: '0 0 14pt' })}>
+          La suscrita empresa, <strong>{empresa}</strong>
+          {form.nit_empresa ? <>, con NIT <strong>{form.nit_empresa}</strong>,</> : ','} hace
+          constar que el/la señor(a) <strong>{(nombreEmp || '').toUpperCase()}</strong>,
+          identificado(a) con {tipoDoc} N.° <strong>{numDoc}</strong>, se encuentra
+          vinculado(a) laboralmente con nuestra organización desde
+          el <strong>{fechaIngreso}</strong>, mediante contrato de{' '}
+          <strong>{form.tipo_contrato || '[TIPO DE CONTRATO]'}</strong>, desempeñando
+          el cargo de <strong>{cargo}</strong>
+          {area ? <> en el área de <strong>{area.toUpperCase()}</strong></> : ''}.
+        </p>
+
+        {/* Párrafo salario */}
         {form.incluir_salario === 'Sí' && (
-            <p style={{ textAlign: 'justify', marginBottom: '20pt' }}>
-                Su remuneración mensual actual es de <strong>{salarioDisplay}</strong>
-                {form.auxilio_transporte === 'Sí' ? ', más auxilio de transporte legal vigente.' : '.'}
-                {form.ingresos_adicionales && ` Adicionalmente percibe: ${form.ingresos_adicionales}.`}
-            </p>
+          <p style={sr({ textAlign: 'justify', margin: '0 0 14pt' })}>
+            Su remuneración mensual corresponde a <strong>{salarioText}</strong>
+            {form.auxilio_transporte === 'Sí'
+              ? ', más auxilio de transporte de conformidad con la normativa laboral vigente'
+              : ''}
+            {form.ingresos_adicionales ? `; ${form.ingresos_adicionales}` : ''}.
+          </p>
         )}
 
-        <p style={{ textAlign: 'justify', marginBottom: '40pt' }}>
-            Para constancia de lo anterior se firma en la ciudad de Medellín, a los {new Date().getDate()} días del mes de {new Date().toLocaleDateString('es-CO', {month: 'long'})} de {new Date().getFullYear()}.
+        {form.incluir_salario !== 'Sí' && form.auxilio_transporte === 'Sí' && (
+          <p style={sr({ textAlign: 'justify', margin: '0 0 14pt' })}>
+            Recibe auxilio de transporte de conformidad con la normativa laboral vigente
+            {form.ingresos_adicionales ? `; ${form.ingresos_adicionales}` : ''}.
+          </p>
+        )}
+
+        {/* Cierre */}
+        <p style={sr({ textAlign: 'justify', margin: '0 0 28pt' })}>
+          La presente certificación se expide a solicitud del interesado(a) para los
+          fines que estime pertinentes.
         </p>
 
-        <p style={{ marginBottom: '8pt' }}>Cordialmente,</p>
+        <p style={sr({ margin: '0 0 4pt' })}>Atentamente,</p>
 
-        {/* Firma cursiva en flujo normal */}
-        <div style={{ width: '300pt', marginTop: '8pt' }}>
+        {/* ── Bloque de firma ── */}
+        <div style={{ marginTop: '4pt', width: '280pt' }}>
+          {/* Nombre en cursiva = firma */}
           <p style={{
-            fontFamily: fonts.signature,
-            fontSize: '30pt',
-            color: '#002e4d',
-            margin: '0 0 -6pt 2pt',
-            lineHeight: 1.1,
+            fontFamily: script, fontSize: '28pt', color: '#001e33',
+            margin: '0 0 -4pt 0', lineHeight: 1.15,
           }}>
             {toTitleCase(form.firmante_nombre)}
           </p>
-          <div style={{ borderTop: '1pt solid #444', paddingTop: '5pt' }}>
-            <p style={{ margin: '0 0 1pt', fontWeight: 'bold', fontSize: '10pt', textTransform: 'uppercase', fontFamily: fonts.sans }}>{form.firmante_nombre}</p>
-            <p style={{ margin: '0 0 1pt', fontSize: '10pt', fontFamily: fonts.sans }}>{form.firmante_cargo}</p>
-            <p style={{ margin: '0 0 1pt', fontSize: '10pt', fontWeight: 'bold', fontFamily: fonts.sans }}>{empresa}</p>
-            {form.firmante_cc && <p style={{ margin: 0, fontSize: '9pt', color: '#666', fontFamily: fonts.sans }}>C.C. {form.firmante_cc}</p>}
-          </div>
+          {/* Línea */}
+          <div style={{ borderTop: '1pt solid #9ca3af', marginBottom: '6pt' }} />
+          {/* Datos */}
+          <p style={sn({ margin: '0 0 2pt', fontSize: '9.5pt', fontWeight: '700', textTransform: 'uppercase', color: '#111' })}>
+            {form.firmante_nombre}
+          </p>
+          <p style={sn({ margin: '0 0 2pt', fontSize: '9pt', color: '#374151' })}>
+            {form.firmante_cargo}
+          </p>
+          <p style={sn({ margin: '0 0 2pt', fontSize: '9pt', fontWeight: '700', color: '#001e33', textTransform: 'uppercase' })}>
+            {empresa}
+          </p>
+          {form.firmante_cc && (
+            <p style={sn({ margin: 0, fontSize: '8.5pt', color: '#6b7280' })}>
+              C.C. {form.firmante_cc}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Pie de página */}
-      <div style={{ position: 'absolute', bottom: '20mm', left: '25mm', right: '25mm', textAlign: 'center', borderTop: '0.5pt solid #eee', paddingTop: '10pt' }}>
-          <p style={{ fontSize: '8pt', color: '#999', fontFamily: fonts.sans, margin: 0 }}>
-              Esta certificación es válida sin sellos físicos según políticas internas de {empresa}. <br/>
-              Medellín - Colombia · www.russellbedford.com.co
-          </p>
+      {/* ── Pie de página ─────────────────────────────────────────── */}
+      <div style={{
+        borderTop: '1pt solid #e5e7eb', padding: '8pt 28pt',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <p style={sn({ margin: 0, fontSize: '7.5pt', color: '#9ca3af' })}>
+          {empresa}{form.nit_empresa ? ` · NIT ${form.nit_empresa}` : ''} · Medellín, Colombia
+        </p>
+        <p style={sn({ margin: 0, fontSize: '7.5pt', color: '#9ca3af' })}>
+          www.russellbedford.com.co
+        </p>
       </div>
+
     </div>
   );
 };
