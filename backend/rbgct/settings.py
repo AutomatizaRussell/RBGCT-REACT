@@ -282,6 +282,45 @@ LOGGING = {
 }
 
 # =============================================================================
+# CACHE
+# =============================================================================
+
+# Importante: la recuperación de contraseña y verificación de código dependen de cache.
+# LocMemCache no es compartida entre workers de Gunicorn, por eso en producción
+# usamos FileBasedCache (o Redis si se configura explícitamente).
+CACHE_BACKEND = os.getenv('CACHE_BACKEND', 'file')
+CACHE_DIR = os.getenv('CACHE_DIR', '/tmp/django_cache')
+REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379/1')
+
+if CACHE_BACKEND == 'redis':
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'TIMEOUT': 300,
+        }
+    }
+elif CACHE_BACKEND == 'locmem':
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'rbgct-locmem',
+            'TIMEOUT': 300,
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+            'LOCATION': CACHE_DIR,
+            'TIMEOUT': 300,
+            'OPTIONS': {
+                'MAX_ENTRIES': 10000,
+            },
+        }
+    }
+
+# =============================================================================
 # N8N
 # =============================================================================
 

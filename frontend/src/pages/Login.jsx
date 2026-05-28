@@ -70,8 +70,9 @@ const Login = () => {
   // Paso 1: Solicitar código de recuperación
   const handleRecoverySubmit = async (e) => {
     e.preventDefault();
-    
-    if (!recoveryEmail) {
+
+    const normalizedEmail = recoveryEmail.trim().toLowerCase();
+    if (!normalizedEmail) {
       setRecoveryMessage({ type: 'error', text: 'Ingresa tu correo electrónico' });
       return;
     }
@@ -79,7 +80,8 @@ const Login = () => {
     setRecoveryLoading(true);
     
     try {
-      const response = await solicitarRecuperacionPassword(recoveryEmail);
+      setRecoveryEmail(normalizedEmail);
+      const response = await solicitarRecuperacionPassword(normalizedEmail);
       console.log('Respuesta de recuperación:', response);
       
       if (response && response.enviado) {
@@ -111,8 +113,11 @@ const Login = () => {
   // Paso 2: Verificar código
   const handleVerifyCode = async (e) => {
     e.preventDefault();
-    
-    if (!recoveryCode) {
+
+    const normalizedEmail = recoveryEmail.trim().toLowerCase();
+    const normalizedCode = recoveryCode.replace(/\D/g, '').trim();
+
+    if (!normalizedCode) {
       setRecoveryMessage({ type: 'error', text: 'Ingresa el código de verificación' });
       return;
     }
@@ -120,7 +125,7 @@ const Login = () => {
     setRecoveryLoading(true);
     
     try {
-      const response = await verificarCodigoRecuperacion(recoveryEmail, recoveryCode);
+      const response = await verificarCodigoRecuperacion(normalizedEmail, normalizedCode);
       console.log('Código verificado:', response);
       
       if (response && response.token) {
@@ -453,7 +458,7 @@ const Login = () => {
                   <input
                     type="text"
                     value={recoveryCode}
-                    onChange={(e) => setRecoveryCode(e.target.value)}
+                    onChange={(e) => setRecoveryCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="Código de 6 dígitos"
                     maxLength={6}
                     className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none transition-all text-sm text-center text-2xl tracking-[0.5em] font-bold"
