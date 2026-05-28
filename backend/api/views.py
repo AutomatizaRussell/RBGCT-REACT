@@ -27,6 +27,10 @@ from .jwt_utils import generate_tokens, decode_token, build_superadmin_payload, 
 
 logger = logging.getLogger(__name__)
 
+# Cache keys para endpoints consultados frecuentemente por dashboards
+CACHE_KEY_ACTIVIDAD_RECIENTE = 'api:actividad_reciente:v1'
+CACHE_KEY_ALERTAS_RECUPERACION = 'api:alertas_recuperacion:v1'
+
 def get_usuario_nombre(user):
     """Obtiene el nombre del usuario (Django User o DatosEmpleado)"""
     if not user or not hasattr(user, 'is_authenticated') or not user.is_authenticated:
@@ -1475,6 +1479,10 @@ def actividad_reciente(request):
     - activos: usuarios con actividad en últimos 10 minutos (En línea)
     - recientes: usuarios con actividad en últimas 24 horas (Desconectados)
     """
+    cached = cache.get(CACHE_KEY_ACTIVIDAD_RECIENTE)
+    if cached:
+        return Response(cached)
+
     from django.utils import timezone
     from datetime import timedelta
     
@@ -1485,41 +1493,41 @@ def actividad_reciente(request):
     # DEBUG: Log de búsqueda
     logger.info(f"[ACTIVIDAD] Buscando actividad desde {limite_reciente} hasta {ahora}")
     
-    from django.db.models import Q, F
+    from django.db.models import Q
     
     # Empleados activos (últimos 10 min) - usando ultima_actividad
     # Solo usuarios con actividad real reciente se consideran "en línea"
-    activos = DatosEmpleado.objects.filter(
+    activos = list(DatosEmpleado.objects.filter(
         ultima_actividad__gte=limite_activo,
         estado='ACTIVA'
-    ).order_by('-ultima_actividad')
+    ).order_by('-ultima_actividad'))
     
-    logger.info(f"[ACTIVIDAD] Empleados activos encontrados: {activos.count()}")
+    logger.info(f"[ACTIVIDAD] Empleados activos encontrados: {len(activos)}")
     
     # Superadmins activos
-    admins_activos = SuperAdmin.objects.filter(
+    admins_activos = list(SuperAdmin.objects.filter(
         last_login__gte=limite_activo
-    ).order_by('-last_login')
+    ).order_by('-last_login'))
     
-    logger.info(f"[ACTIVIDAD] SuperAdmins activos encontrados: {admins_activos.count()}")
+    logger.info(f"[ACTIVIDAD] SuperAdmins activos encontrados: {len(admins_activos)}")
     
     # Empleados recientes (últimas 24 horas, pero no en línea actualmente)
     # Incluye: actividad entre 10min y 24h, o sin actividad pero con fecha_ingreso reciente
-    recientes = DatosEmpleado.objects.filter(
+    recientes = list(DatosEmpleado.objects.filter(
         Q(ultima_actividad__gte=limite_reciente, ultima_actividad__lt=limite_activo) |
         Q(ultima_actividad__isnull=True, fecha_ingreso__gte=limite_reciente),
         estado='ACTIVA'
     ).exclude(
-        id_empleado__in=list(activos.values_list('id_empleado', flat=True))
-    ).order_by('-ultima_actividad')
+        id_empleado__in=[emp.id_empleado for emp in activos]
+    ).order_by('-ultima_actividad'))
     
-    logger.info(f"[ACTIVIDAD] Empleados recientes encontrados: {recientes.count()}")
+    logger.info(f"[ACTIVIDAD] Empleados recientes encontrados: {len(recientes)}")
     
     # Superadmins recientes
-    admins_recientes = SuperAdmin.objects.filter(
+    admins_recientes = list(SuperAdmin.objects.filter(
         last_login__gte=limite_reciente,
         last_login__lt=limite_activo
-    ).order_by('-last_login')
+    ).order_by('-last_login'))
     
     def minutos_transcurridos(timestamp):
         if not timestamp:
@@ -1578,13 +1586,15 @@ def actividad_reciente(request):
             'ultima_actividad': admin.last_login.isoformat() if admin.last_login else None
         })
     
-    return Response({
+    payload = {
         'total_en_linea': len(activos_data),
         'total_recientes': len(recientes_data),
         'activos': activos_data,
         'recientes': recientes_data,
         'timestamp': ahora.isoformat()
-    })
+    }
+    cache.set(CACHE_KEY_ACTIVIDAD_RECIENTE, payload, timeout=10)
+    return Response(payload)
 
 
 # Endpoint para registrar intento de recuperación - PÚBLICO
@@ -1635,6 +1645,8 @@ def registrar_intento_recuperacion(request):
         estado_alerta='pendiente',
         usuario_existe=existe_en_sistema
     )
+    cache.delete(CACHE_KEY_ALERTAS_RECUPERACION)
+    cache.delete(CACHE_KEY_ACTIVIDAD_RECIENTE)
     
     logger.warning(f"[ALERTA] Intento de recuperación de contraseña: {email} - {'EXISTE' if existe_en_sistema else 'NO EXISTE'}")
     
@@ -1684,6 +1696,10 @@ def get_alertas_recuperacion(request):
     Obtiene las alertas de recuperación de contraseña (últimas 24 horas)
     desde la base de datos PostgreSQL
     """
+    cached = cache.get(CACHE_KEY_ALERTAS_RECUPERACION)
+    if cached:
+        return Response(cached)
+
     from .models import Alerta
     from django.utils import timezone
     from datetime import timedelta
@@ -1726,10 +1742,12 @@ def get_alertas_recuperacion(request):
         
         alertas_list.append(alerta_data)
     
-    return Response({
+    payload = {
         'total': len(alertas_list),
         'alertas': alertas_list
-    })
+    }
+    cache.set(CACHE_KEY_ALERTAS_RECUPERACION, payload, timeout=10)
+    return Response(payload)
 
 
 @api_view(['POST'])
@@ -1785,6 +1803,8 @@ def atender_alerta(request, alerta_id):
         alerta.fecha_actualizacion = timezone.now()
         # Intentar obtener el admin del request si está autenticado
         alerta.save()
+        cache.delete(CACHE_KEY_ALERTAS_RECUPERACION)
+        cache.delete(CACHE_KEY_ACTIVIDAD_RECIENTE)
         
         return Response({
             'success': True,
@@ -1814,6 +1834,8 @@ def eliminar_alerta(request, alerta_id):
     try:
         alerta = Alerta.objects.get(id=alerta_id)
         alerta.delete()
+        cache.delete(CACHE_KEY_ALERTAS_RECUPERACION)
+        cache.delete(CACHE_KEY_ACTIVIDAD_RECIENTE)
         
         return Response({
             'success': True,

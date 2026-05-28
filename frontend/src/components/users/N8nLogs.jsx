@@ -86,10 +86,22 @@ const N8nLogs = () => {
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
-  // Auto-refresh 30s
+  // Auto-refresh 60s (solo cuando la pestaña está visible)
   useEffect(() => {
-    const t = setInterval(fetchLogs, 30000);
-    return () => clearInterval(t);
+    const tick = () => {
+      if (document.visibilityState === 'visible') fetchLogs();
+    };
+
+    const t = setInterval(tick, 60000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchLogs();
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [fetchLogs]);
 
   const ok  = logs.filter(l => l.status === 'SUCCESS').length;

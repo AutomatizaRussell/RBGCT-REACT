@@ -4,6 +4,27 @@ import { Mail, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const REQUEST_TIMEOUT_MS = 18000;
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+const parseResponseBody = async (response) => {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: text };
+  }
+};
 
 const VerifyCode = () => {
   const navigate = useNavigate();
@@ -29,7 +50,7 @@ const VerifyCode = () => {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/verificar-codigo/`, {
+      const response = await fetchWithTimeout(`${API_URL}/verificar-codigo/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -37,9 +58,9 @@ const VerifyCode = () => {
           codigo: codigo.trim(),
           password
         })
-      });
+      }, REQUEST_TIMEOUT_MS);
 
-      const data = await response.json();
+      const data = await parseResponseBody(response);
 
       if (response.ok) {
         // Código correcto - actualizar AuthContext y redirigir
@@ -54,7 +75,9 @@ const VerifyCode = () => {
       }
     } catch (err) {
       console.error('Error verificando código:', err);
-      setError('Error de conexión. Intenta de nuevo.');
+      setError(err?.name === 'AbortError'
+        ? 'La verificación tardó demasiado. Intenta de nuevo.'
+        : 'Error de conexión. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -65,22 +88,24 @@ const VerifyCode = () => {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/enviar-codigo/`, {
+      const response = await fetchWithTimeout(`${API_URL}/enviar-codigo/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
-      });
+      }, REQUEST_TIMEOUT_MS);
 
-      const data = await response.json();
+      const data = await parseResponseBody(response);
 
       if (response.ok) {
         setError('');
         alert('Nuevo código enviado a tu correo');
       } else {
-        setError('No se pudo reenviar el código');
+        setError(data.error || 'No se pudo reenviar el código');
       }
     } catch (err) {
-      setError('Error al reenviar código');
+      setError(err?.name === 'AbortError'
+        ? 'El reenvío tardó demasiado. Intenta nuevamente.'
+        : 'Error al reenviar código');
     } finally {
       setReenviando(false);
     }

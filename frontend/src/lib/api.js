@@ -1,4 +1,31 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const DEFAULT_TIMEOUT_MS = 20000;
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error('La solicitud tardó demasiado. Intenta nuevamente.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+const parseResponseBody = async (response) => {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+};
 
 // ── Token management ──────────────────────────────────────────────────────────
 
@@ -22,18 +49,24 @@ async function runRefresh() {
   const refreshToken = tokenStorage.getRefresh();
   if (!refreshToken) throw new Error('Sin refresh token');
 
-  const res = await fetch(`${API_URL}/token/refresh/`, {
+  const res = await fetchWithTimeout(`${API_URL}/token/refresh/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
-  });
+  }, 15000);
+
+  const data = await parseResponseBody(res);
 
   if (!res.ok) {
     tokenStorage.clear();
     throw new Error('Sesión expirada');
   }
 
-  const data = await res.json();
+  if (!data || typeof data !== 'object') {
+    tokenStorage.clear();
+    throw new Error('Respuesta inválida del servidor');
+  }
+
   tokenStorage.set(data.accessToken, data.refreshToken);
   return data.accessToken;
 }
@@ -68,62 +101,78 @@ export const fetchApi = async (endpoint, options = {}, retry = true) => {
 
   const accessToken = tokenStorage.getAccess();
   const isFormData = options.body instanceof FormData;
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...requestOptions } = options;
   
   const headers = {
     // Solo poner Content-Type si NO es FormData
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    ...options.headers,
+    ...requestOptions.headers,
   };
 
-  const response = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+  const response = await fetchWithTimeout(`${API_URL}${endpoint}`, { ...requestOptions, headers }, timeoutMs);
 
   if (response.status === 401 && retry) {
-    const body = await response.json().catch(() => ({}));
+    const body = await parseResponseBody(response);
+    const bodyObj = typeof body === 'object' && body !== null ? body : {};
     if (body.code === 'TOKEN_EXPIRED' || body.error === 'Token expirado' || body.detail === 'Token expirado') {
       try {
         const newToken = await refreshAccessToken();
         return fetchApi(endpoint, {
-          ...options,
-          headers: { ...options.headers, Authorization: `Bearer ${newToken}` },
+          ...requestOptions,
+          timeoutMs,
+          headers: { ...requestOptions.headers, Authorization: `Bearer ${newToken}` },
         }, false);
       } catch {
         window.dispatchEvent(new Event('gct:session-expired'));
         throw new Error('Sesión expirada. Por favor inicia sesión nuevamente.');
       }
     }
-    const error = body;
-    throw new Error(error.error || 'No autorizado');
+    throw new Error(bodyObj.error || 'No autorizado');
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    const msg = error.error || error.detail || error.message
-      || (typeof error === 'object' ? Object.values(error).flat().join(' ') : null)
+    const error = await parseResponseBody(response);
+    if (response.status === 504) {
+      throw new Error('El servidor tardó demasiado en responder (504). Intenta de nuevo en unos segundos.');
+    }
+    const errorObj = typeof error === 'object' && error !== null ? error : {};
+    const msg = errorObj.error || errorObj.detail || errorObj.message
+      || (typeof errorObj === 'object' ? Object.values(errorObj).flat().join(' ') : null)
+      || (typeof error === 'string' ? error : null)
       || 'Error en la petición';
     throw new Error(msg);
   }
 
   if (response.status === 204) return null;
 
-  return response.json();
+  return parseResponseBody(response);
 };
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 
 export const login = async (email, password) => {
-  const response = await fetch(`${API_URL}/login/`, {
+  const response = await fetchWithTimeout(`${API_URL}/login/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-  });
+  }, 18000);
+
+  const data = await parseResponseBody(response);
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error en el login');
+    if (response.status === 504) {
+      throw new Error('El servidor está ocupado (504). Intenta nuevamente en unos segundos.');
+    }
+    const msg = (typeof data === 'object' && data !== null)
+      ? (data.error || data.detail || data.message)
+      : (typeof data === 'string' ? data : null);
+    throw new Error(msg || 'Error en el login');
   }
 
-  const data = await response.json();
+  if (!data || typeof data !== 'object') {
+    throw new Error('Respuesta inválida del servidor');
+  }
 
   // Guardar tokens si el login fue exitoso y no requiere verificación
   if (data.accessToken && !data.requiere_verificacion) {

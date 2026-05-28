@@ -35,7 +35,7 @@ services:
       dockerfile: Dockerfile.backend
     container_name: rbgct-backend-prod
     restart: always
-    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --workers 8 --worker-class sync --timeout 120 --access-logfile - --error-logfile - rbgct.wsgi:application"
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-4} --worker-class gthread --threads ${GUNICORN_THREADS:-4} --timeout ${GUNICORN_TIMEOUT:-120} --keep-alive 5 --max-requests 1000 --max-requests-jitter 100 --access-logfile - --error-logfile - rbgct.wsgi:application"
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -64,6 +64,9 @@ services:
       N8N_WEBHOOK_API_KEY: ${N8N_WEBHOOK_API_KEY}
       SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-admin@rbgct.com}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-4}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
     volumes:
       - media_volume_prod:/app/media
       - static_volume_prod:/app/staticfiles

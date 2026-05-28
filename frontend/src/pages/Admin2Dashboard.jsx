@@ -68,6 +68,7 @@ const Admin2Dashboard = () => {
   const { user, empleadoData } = useAuth();
   const [puedeExpedirCert, setPuedeExpedirCert] = useState(false);
   const certPermRef = useRef(false);
+  const activeTabRef = useRef('dashboard');
 
   const fetchStats = async () => {
     try {
@@ -99,18 +100,6 @@ const Admin2Dashboard = () => {
     }
   };
 
-  const fetchAlertsCount = async () => {
-    try {
-      const res = await getAlertasRecuperacion();
-      if (res?.alertas) {
-        setAlertasRecuperacion(res.alertas);
-        setAlertasCount(res.total || 0);
-      }
-    } catch (err) {
-      console.error('Error alertas:', err);
-    }
-  };
-
   const fetchSolicitudesCert = async () => {
     try {
       const res = await getSolicitudesCert();
@@ -124,9 +113,15 @@ const Admin2Dashboard = () => {
   const fetchAllActivity = async () => {
     try {
       setLoading(true);
-      const actividad = await getActividadReciente();
+      const [actividad, alertasResponse] = await Promise.all([
+        getActividadReciente(),
+        getAlertasRecuperacion(),
+      ]);
+      const alertasList = alertasResponse?.alertas || [];
+      setAlertasRecuperacion(alertasList);
+      setAlertasCount(alertasResponse?.total || alertasList.length);
 
-      const alertasData = alertasRecuperacion.map(a => ({
+      const alertasData = alertasList.map(a => ({
         id: a.id, name: a.nombre, role: a.rol,
         time: a.timestamp, action: `Recuperación: ${a.email}`,
         type: 'alert', estado: 'alerta', email: a.email
@@ -159,7 +154,6 @@ const Admin2Dashboard = () => {
   const handleMarkAsRead = async (id) => {
     try {
       await atenderAlerta(id);
-      fetchAlertsCount();
       fetchAllActivity();
     } catch (err) {
       alert('Error: ' + err.message);
@@ -170,7 +164,6 @@ const Admin2Dashboard = () => {
     if (!confirm('¿Eliminar esta alerta permanentemente?')) return;
     try {
       await eliminarAlerta(id);
-      fetchAlertsCount();
       fetchAllActivity();
     } catch (err) {
       alert('Error: ' + err.message);
@@ -221,19 +214,41 @@ const Admin2Dashboard = () => {
   }, [empleadoData?.id_empleado]);
 
   useEffect(() => {
-    fetchStats();
-    fetchAlertsCount();
-    fetchAllActivity();
-
-    const interval = setInterval(() => {
+    const refreshDashboard = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (activeTabRef.current !== 'dashboard') return;
       fetchStats();
-      fetchAlertsCount();
       fetchAllActivity();
       if (certPermRef.current) fetchSolicitudesCert();
-    }, 30000);
+    };
 
-    return () => clearInterval(interval);
+    refreshDashboard();
+
+    const interval = setInterval(() => {
+      refreshDashboard();
+    }, 60000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshDashboard();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, []);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+    if (activeTab === 'dashboard' && document.visibilityState === 'visible') {
+      fetchStats();
+      fetchAllActivity();
+      if (certPermRef.current) fetchSolicitudesCert();
+    }
+  }, [activeTab]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -573,7 +588,7 @@ const Admin2Dashboard = () => {
           </div>
           <div className="flex items-center gap-4">
             {activeTab === 'dashboard' && (
-              <button onClick={() => { fetchStats(); fetchAlertsCount(); fetchAllActivity(); }}
+              <button onClick={() => { fetchStats(); fetchAllActivity(); }}
                 className="p-2 text-slate-400 hover:text-[#001e33] hover:bg-slate-100 rounded-xl transition-all" title="Actualizar datos">
                 <RefreshCw size={16}/>
               </button>

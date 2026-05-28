@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'; 
+import { useState, useEffect, useRef } from 'react'; 
 import { Sidebar } from '../components/layout/Sidebar';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Users, Activity, ShieldAlert, Zap, Database, Plus, X, AlertTriangle, Eye, Trash2, CheckCircle, Lock, Edit3, Clock, Building2, Phone, MapPin } from 'lucide-react';
@@ -43,6 +43,7 @@ const AdminDashboard = () => {
   const [concurrentUsers, setConcurrentUsers] = useState(0);
   const [n8nStatus, setN8nStatus] = useState({ connected: false, ping: null, loading: true });
   const [alertDetail, setAlertDetail] = useState(null);
+  const activeTabRef = useRef('dashboard');
   const location = useLocation();
   const navigate = useNavigate();
   const { isSuperAdmin, user } = useAuth();
@@ -71,19 +72,6 @@ const AdminDashboard = () => {
       });
     } catch {
       setN8nStatus({ connected: false, ping: null, loading: false });
-    }
-  };
-
-  const fetchAlertsCount = async () => {
-    try {
-      const response = await getAlertasRecuperacion();
-      if (response && response.alertas) {
-        setAlertasRecuperacion(response.alertas);
-        setAlertasCount(response.total || 0);
-      }
-    } catch (err) {
-      console.error('Error al cargar alertas:', err);
-      setAlertasCount(0);
     }
   };
 
@@ -171,7 +159,6 @@ const AdminDashboard = () => {
   const handleMarkAsRead = async (idSolicitud) => {
     try {
       await atenderAlerta(idSolicitud);
-      fetchAlertsCount();
       fetchAllActivity();
     } catch (err) {
       alert("No se pudo marcar como atendida: " + err.message);
@@ -182,7 +169,6 @@ const AdminDashboard = () => {
     if (!confirm('¿Estás seguro de eliminar esta alerta permanentemente?')) return;
     try {
       await eliminarAlerta(idSolicitud);
-      fetchAlertsCount();
       fetchAllActivity();
     } catch (err) {
       alert("No se pudo eliminar la alerta: " + err.message);
@@ -250,22 +236,43 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    fetchStats();
-    fetchAlertsCount();
-    fetchConcurrentUsers();
-    fetchAllActivity();
-    checkN8nStatus();
-
-    // Auto-refresh cada 30 segundos
-    const interval = setInterval(() => {
+    const refreshDashboard = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (activeTabRef.current !== 'dashboard') return;
       fetchStats();
-      fetchAlertsCount();
       fetchAllActivity();
       checkN8nStatus();
-    }, 30000);
+    };
 
-    return () => clearInterval(interval);
+    fetchConcurrentUsers();
+    refreshDashboard();
+
+    // Auto-refresh cada 60 segundos solo en tab dashboard visible
+    const interval = setInterval(() => {
+      refreshDashboard();
+    }, 60000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshDashboard();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, []); // Solo al montar
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+    if (activeTab === 'dashboard' && document.visibilityState === 'visible') {
+      fetchStats();
+      fetchAllActivity();
+      checkN8nStatus();
+    }
+  }, [activeTab]);
 
   // --- LÓGICA DE RENDERIZADO ---
   const renderContent = () => {
@@ -444,7 +451,6 @@ const AdminDashboard = () => {
           onEliminar={async () => {
             if (!confirm('¿Eliminar esta alerta permanentemente?')) return;
             await eliminarAlerta(alertDetail.id);
-            fetchAlertsCount();
             fetchAllActivity();
             setAlertDetail(null);
           }}
