@@ -69,6 +69,9 @@ class SuperAdmin(AbstractUser):
 
     class Meta:
         db_table = 'superadmin'
+        indexes = [
+            models.Index(fields=['last_login'], name='superadmin_last_login_idx'),
+        ]
 
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
@@ -178,6 +181,11 @@ class DatosEmpleado(models.Model):
     class Meta:
         db_table = 'empleado'
         managed = True
+        indexes = [
+            models.Index(fields=['estado', 'ultima_actividad'], name='emp_estado_act_idx'),
+            models.Index(fields=['ultima_actividad'], name='emp_ult_act_idx'),
+            models.Index(fields=['estado'], name='emp_estado_idx'),
+        ]
 
     def __str__(self):
         return f"{self.persona} ({self.correo_corporativo})"
@@ -496,6 +504,11 @@ class Alerta(models.Model):
         db_table = 'alertas'
         managed = True
         ordering = ['-fecha_creacion']
+        indexes = [
+            models.Index(fields=['tipo', 'fecha_creacion'], name='alerta_tipo_fecha_idx'),
+            models.Index(fields=['estado_alerta', 'fecha_creacion'], name='alerta_estado_fecha_idx'),
+            models.Index(fields=['email_solicitante'], name='alerta_email_idx'),
+        ]
 
     def __str__(self):
         return f"Alerta {self.id} - {self.tipo} - {self.email_solicitante}"

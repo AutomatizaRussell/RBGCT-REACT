@@ -19,6 +19,11 @@ class JWTMiddleware(MiddlewareMixin):
         request.user = AnonymousUser()
         request.jwt_payload = None
 
+        # Las APIs DRF ya autenticán con JWTAuthentication.
+        # Evitamos doble decode + doble query a DB en cada request /api/.
+        if request.path.startswith('/api/'):
+            return
+
         if not auth_header.startswith('Bearer '):
             return
 

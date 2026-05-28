@@ -769,23 +769,21 @@ class DatosEmpleadoViewSet(viewsets.ModelViewSet):
 
 
 class TareasCalendarioViewSet(viewsets.ModelViewSet):
-    queryset = TareasCalendario.objects.all().order_by('fecha_vencimiento')
+    queryset = TareasCalendario.objects.select_related(
+        'area', 'empleado__persona'
+    ).order_by('fecha_vencimiento')
     serializer_class = TareasCalendarioSerializer
 
     def get_queryset(self):
-        queryset = TareasCalendario.objects.all().order_by('fecha_vencimiento')
+        queryset = TareasCalendario.objects.select_related(
+            'area', 'empleado__persona'
+        ).order_by('fecha_vencimiento')
 
         # Parámetros de filtrado por rol (enviados desde frontend)
         user_role = self.request.query_params.get('user_role')
         user_id = self.request.query_params.get('user_id')
         user_area_id = self.request.query_params.get('user_area_id')
         empleado_id = self.request.query_params.get('empleado_id')
-
-        # Debug logging
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"[TAREAS DEBUG] user_role={user_role}, user_id={user_id}, user_area_id={user_area_id}, empleado_id={empleado_id}")
-        logger.info(f"[TAREAS DEBUG] Total tareas antes de filtrar: {queryset.count()}")
 
         # Filtros según el rol del usuario
         if user_role == 'usuario' and user_id:
@@ -805,7 +803,6 @@ class TareasCalendarioViewSet(viewsets.ModelViewSet):
         if empleado_id:
             queryset = queryset.filter(empleado_id=empleado_id)
 
-        logger.info(f"[TAREAS DEBUG] Total tareas después de filtrar: {queryset.count()}")
         return queryset
 
     def create(self, request, *args, **kwargs):
@@ -867,7 +864,9 @@ class TareasCalendarioViewSet(viewsets.ModelViewSet):
         if not empleado_id:
             return Response({'error': 'empleado_id requerido'}, status=status.HTTP_400_BAD_REQUEST)
 
-        tareas = TareasCalendario.objects.filter(empleado_id=empleado_id)
+        tareas = TareasCalendario.objects.select_related(
+            'area', 'empleado__persona'
+        ).filter(empleado_id=empleado_id).order_by('fecha_vencimiento')
         serializer = self.get_serializer(tareas, many=True)
         return Response(serializer.data)
 
@@ -887,7 +886,9 @@ class TareasCalendarioViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        queryset = TareasCalendario.objects.all().order_by('fecha_vencimiento')
+        queryset = TareasCalendario.objects.select_related(
+            'area', 'empleado__persona'
+        ).order_by('fecha_vencimiento')
 
         if user_role == 'usuario':
             # Usuario: solo sus tareas personales
@@ -1490,9 +1491,6 @@ def actividad_reciente(request):
     limite_activo = ahora - timedelta(minutes=10)  # En línea (10 minutos - usuarios concurrentes)
     limite_reciente = ahora - timedelta(hours=24)  # Reciente (24 horas)
     
-    # DEBUG: Log de búsqueda
-    logger.info(f"[ACTIVIDAD] Buscando actividad desde {limite_reciente} hasta {ahora}")
-    
     from django.db.models import Q
     
     # Empleados activos (últimos 10 min) - usando ultima_actividad
@@ -1500,16 +1498,12 @@ def actividad_reciente(request):
     activos = list(DatosEmpleado.objects.filter(
         ultima_actividad__gte=limite_activo,
         estado='ACTIVA'
-    ).order_by('-ultima_actividad'))
-    
-    logger.info(f"[ACTIVIDAD] Empleados activos encontrados: {len(activos)}")
+    ).select_related('persona').order_by('-ultima_actividad'))
     
     # Superadmins activos
     admins_activos = list(SuperAdmin.objects.filter(
         last_login__gte=limite_activo
     ).order_by('-last_login'))
-    
-    logger.info(f"[ACTIVIDAD] SuperAdmins activos encontrados: {len(admins_activos)}")
     
     # Empleados recientes (últimas 24 horas, pero no en línea actualmente)
     # Incluye: actividad entre 10min y 24h, o sin actividad pero con fecha_ingreso reciente
@@ -1519,9 +1513,7 @@ def actividad_reciente(request):
         estado='ACTIVA'
     ).exclude(
         id_empleado__in=[emp.id_empleado for emp in activos]
-    ).order_by('-ultima_actividad'))
-    
-    logger.info(f"[ACTIVIDAD] Empleados recientes encontrados: {len(recientes)}")
+    ).select_related('persona').order_by('-ultima_actividad'))
     
     # Superadmins recientes
     admins_recientes = list(SuperAdmin.objects.filter(
@@ -1710,6 +1702,11 @@ def get_alertas_recuperacion(request):
     alertas_query = Alerta.objects.filter(
         tipo='recuperacion_password',
         fecha_creacion__gte=limite
+    ).select_related(
+        'empleado__persona',
+        'empleado__persona__contacto',
+        'empleado__area',
+        'empleado__cargo',
     ).order_by('-fecha_creacion')
     
     alertas_list = []
@@ -2261,6 +2258,7 @@ def n8n_proxy(request):
 
 
     action   = request.query_params.get('action', 'executions')
+    sync_logs = request.query_params.get('sync', 'false').lower() == 'true'
     base_url = getattr(django_settings, 'N8N_BASE_URL', '')
     api_key  = getattr(django_settings, 'N8N_WEBHOOK_API_KEY', '')
 
@@ -2270,7 +2268,7 @@ def n8n_proxy(request):
     try:
         if action == 'status':
             start = __import__('time').time()
-            resp  = requests.get(f'{base_url}/healthz', timeout=5)
+            resp  = requests.get(f'{base_url}/healthz', timeout=3)
             ms    = round((__import__('time').time() - start) * 1000)
             return Response({
                 'connected': resp.status_code in (200, 204),
@@ -2293,32 +2291,33 @@ def n8n_proxy(request):
                 f'{base_url}/api/v1/executions',
                 headers={'X-N8N-API-KEY': api_key},
                 params=params,
-                timeout=10,
+                timeout=6,
             )
 
             if resp.status_code == 200:
                 raw  = resp.json()
                 execs = raw.get('data', raw) if isinstance(raw, dict) else raw
 
-                # Persistir en N8nLog los que no estén guardados todavía
+                # Persistencia opcional: evita carga extra en DB en cada refresco del dashboard.
                 saved = 0
-                for ex in (execs if isinstance(execs, list) else []):
-                    exec_id = str(ex.get('id', ''))
-                    if exec_id and not N8nLog.objects.filter(response_data__contains=f'"exec_id":"{exec_id}"').exists():
-                        try:
-            
-                            wf_name = ex.get('workflowData', {}).get('name') or f"Workflow #{ex.get('workflowId','?')}"
-                            ok = ex.get('status') in ('success',)
-                            N8nLog.objects.create(
-                                workflow_name=wf_name,
-                                status='SUCCESS' if ok else 'ERROR',
-                                message=f"Duración: {round(((__import__('datetime').datetime.fromisoformat(ex['stoppedAt'].replace('Z','+00:00')) - __import__('datetime').datetime.fromisoformat(ex['startedAt'].replace('Z','+00:00'))).total_seconds()))}s" if ex.get('startedAt') and ex.get('stoppedAt') else ex.get('status', ''),
-                                tipo_evento=ex.get('mode', 'webhook'),
-                                response_data=json.dumps({'exec_id': exec_id})[:200],
-                            )
-                            saved += 1
-                        except Exception as le:
-                            logger.warning(f"[N8N PROXY] No se pudo persistir log: {le}")
+                if sync_logs:
+                    for ex in (execs if isinstance(execs, list) else []):
+                        exec_id = str(ex.get('id', ''))
+                        if exec_id and not N8nLog.objects.filter(response_data__contains=f'"exec_id":"{exec_id}"').exists():
+                            try:
+                
+                                wf_name = ex.get('workflowData', {}).get('name') or f"Workflow #{ex.get('workflowId','?')}"
+                                ok = ex.get('status') in ('success',)
+                                N8nLog.objects.create(
+                                    workflow_name=wf_name,
+                                    status='SUCCESS' if ok else 'ERROR',
+                                    message=f"Duración: {round(((__import__('datetime').datetime.fromisoformat(ex['stoppedAt'].replace('Z','+00:00')) - __import__('datetime').datetime.fromisoformat(ex['startedAt'].replace('Z','+00:00'))).total_seconds()))}s" if ex.get('startedAt') and ex.get('stoppedAt') else ex.get('status', ''),
+                                    tipo_evento=ex.get('mode', 'webhook'),
+                                    response_data=json.dumps({'exec_id': exec_id})[:200],
+                                )
+                                saved += 1
+                            except Exception as le:
+                                logger.warning(f"[N8N PROXY] No se pudo persistir log: {le}")
 
                 return Response({'data': execs, 'synced': saved})
 

@@ -7,6 +7,16 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
 # =============================================================================
 # SECURITY
 # =============================================================================
@@ -22,6 +32,11 @@ ALLOWED_HOSTS = os.getenv(
     'ALLOWED_HOSTS',
     'localhost,127.0.0.1'
 ).split(',')
+
+# Siempre permitir loopback para checks internos y debugging local.
+for _loopback_host in ('127.0.0.1', 'localhost'):
+    if _loopback_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_loopback_host)
     
 CSRF_TRUSTED_ORIGINS = os.getenv(
     'CSRF_TRUSTED_ORIGINS',
@@ -109,6 +124,12 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD', ''),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
+        # Reutiliza conexiones entre requests para reducir latencia.
+        'CONN_MAX_AGE': _env_int('DB_CONN_MAX_AGE', 120),
+        'CONN_HEALTH_CHECKS': os.getenv('DB_CONN_HEALTH_CHECKS', 'true').lower() == 'true',
+        'OPTIONS': {
+            'connect_timeout': _env_int('DB_CONNECT_TIMEOUT', 5),
+        },
     }
 }
 
@@ -236,11 +257,18 @@ CORS_ALLOW_HEADERS = list(default_headers) + ['x-api-key']
 # DJANGO REST FRAMEWORK
 # =============================================================================
 
+default_authentication_classes = [
+    'api.authentication.JWTAuthentication',
+    'api.authentication.ApiKeyAuthentication',
+]
+
+# SessionAuthentication agrega validaciones y consultas extra; útil en desarrollo.
+if DEBUG:
+    default_authentication_classes.append('rest_framework.authentication.SessionAuthentication')
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'api.authentication.JWTAuthentication',
-        'api.authentication.ApiKeyAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        *default_authentication_classes,
     ],
 
     'DEFAULT_PERMISSION_CLASSES': [

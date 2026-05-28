@@ -9,11 +9,13 @@ import {
 import { exportContratosExcel, exportContratosPDF } from '../../lib/exportContratos';
 import {
   getAllEmpleados,
+  getContratos,
   getContratoActivo,
   createContrato,
   updateContrato,
   terminarContrato,
   renovarContrato,
+  getAllAfiliacionesSS,
   getAfiliacionSS,
   createAfiliacionSS,
   updateAfiliacionSS,
@@ -608,22 +610,23 @@ export default function ContratosSection() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const emps = await getAllEmpleados();
+      const [emps, contratosActivos, afiliacionesAll] = await Promise.all([
+        getAllEmpleados({ timeoutMs: 35000 }),
+        getContratos({ estado: 'ACTIVO' }),
+        getAllAfiliacionesSS({ timeoutMs: 35000 }),
+      ]);
       const activos = emps.filter(e => e.estado === 'ACTIVA');
       setEmpleados(activos);
 
-      // Cargar contratos y afiliaciones en paralelo (máximo 8 a la vez)
+      // Mapear por empleado con consultas bulk (evita 2*N requests).
       setLoadingContr(true);
-      const chunks = [];
-      for (let i = 0; i < activos.length; i += 8) chunks.push(activos.slice(i, i + 8));
       const mapaC = {}, mapaA = {};
-      for (const chunk of chunks) {
-        const [resC, resA] = await Promise.all([
-          Promise.all(chunk.map(e => getContratoActivo(e.id_empleado).catch(() => null))),
-          Promise.all(chunk.map(e => getAfiliacionSS(e.id_empleado).catch(() => null))),
-        ]);
-        chunk.forEach((e, i) => { mapaC[e.id_empleado] = resC[i]; mapaA[e.id_empleado] = resA[i]; });
-      }
+      (Array.isArray(contratosActivos) ? contratosActivos : []).forEach(c => {
+        if (c?.empleado != null) mapaC[c.empleado] = c;
+      });
+      (Array.isArray(afiliacionesAll) ? afiliacionesAll : []).forEach(a => {
+        if (a?.empleado != null) mapaA[a.empleado] = a;
+      });
       setContratos(mapaC);
       setAfiliaciones(mapaA);
     } finally {

@@ -101,12 +101,12 @@ export const fetchApi = async (endpoint, options = {}, retry = true) => {
 
   const accessToken = tokenStorage.getAccess();
   const isFormData = options.body instanceof FormData;
-  const { timeoutMs = DEFAULT_TIMEOUT_MS, ...requestOptions } = options;
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, noAuth = false, ...requestOptions } = options;
   
   const headers = {
     // Solo poner Content-Type si NO es FormData
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    ...(!noAuth && accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     ...requestOptions.headers,
   };
 
@@ -422,7 +422,11 @@ export const healthCheck = () => fetchApi('/health/');
 export const getActividadReciente = () => fetchApi('/actividad-reciente/');
 
 export const pingActividad = (email) =>
-  fetchApi('/ping/', { method: 'POST', body: JSON.stringify({ email }) });
+  fetchApi('/ping/', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+    noAuth: true,
+  });
 
 // ── CONTRASEÑA ────────────────────────────────────────────────────────────────
 
@@ -544,6 +548,9 @@ export const renovarContrato = (id, data) => {
 
 export const getAfiliacionSS = (empleadoId) =>
   fetchApi(`/afiliaciones-ss/empleado/${empleadoId}/`);
+
+export const getAllAfiliacionesSS = (options = {}) =>
+  fetchApi('/afiliaciones-ss/', options);
 
 export const createAfiliacionSS = (data) =>
   fetchApi('/afiliaciones-ss/', {

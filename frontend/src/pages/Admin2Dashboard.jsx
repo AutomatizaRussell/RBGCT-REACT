@@ -69,6 +69,7 @@ const Admin2Dashboard = () => {
   const [puedeExpedirCert, setPuedeExpedirCert] = useState(false);
   const certPermRef = useRef(false);
   const activeTabRef = useRef('dashboard');
+  const hasMountedTabEffect = useRef(false);
 
   const fetchStats = async () => {
     try {
@@ -243,6 +244,10 @@ const Admin2Dashboard = () => {
 
   useEffect(() => {
     activeTabRef.current = activeTab;
+    if (!hasMountedTabEffect.current) {
+      hasMountedTabEffect.current = true;
+      return;
+    }
     if (activeTab === 'dashboard' && document.visibilityState === 'visible') {
       fetchStats();
       fetchAllActivity();

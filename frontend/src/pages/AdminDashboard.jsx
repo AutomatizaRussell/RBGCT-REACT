@@ -44,6 +44,7 @@ const AdminDashboard = () => {
   const [n8nStatus, setN8nStatus] = useState({ connected: false, ping: null, loading: true });
   const [alertDetail, setAlertDetail] = useState(null);
   const activeTabRef = useRef('dashboard');
+  const hasMountedTabEffect = useRef(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { isSuperAdmin, user } = useAuth();
@@ -267,6 +268,10 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     activeTabRef.current = activeTab;
+    if (!hasMountedTabEffect.current) {
+      hasMountedTabEffect.current = true;
+      return;
+    }
     if (activeTab === 'dashboard' && document.visibilityState === 'visible') {
       fetchStats();
       fetchAllActivity();
