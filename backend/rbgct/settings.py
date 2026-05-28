@@ -33,10 +33,10 @@ ALLOWED_HOSTS = os.getenv(
     'localhost,127.0.0.1'
 ).split(',')
 
-# Siempre permitir loopback para checks internos y debugging local.
-for _loopback_host in ('127.0.0.1', 'localhost'):
-    if _loopback_host not in ALLOWED_HOSTS:
-        ALLOWED_HOSTS.append(_loopback_host)
+# Permitir hosts internos de infraestructura (reverse proxy / health checks).
+for _infra_host in ('127.0.0.1', 'localhost', 'backend', 'django', 'nginx'):
+    if _infra_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_infra_host)
     
 CSRF_TRUSTED_ORIGINS = os.getenv(
     'CSRF_TRUSTED_ORIGINS',
