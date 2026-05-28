@@ -18,7 +18,7 @@ export default function FormulariosSQF() {
     const navigate = useNavigate();
 
     // ==========================================
-    // ESTADOS GLOBALES (El let state = {} de app.js)
+    // ESTADOS GLOBALES
     // ==========================================
     const [activeSection, setActiveSection] = useState('clients');
     const [clients, setClients] = useState([]);
@@ -39,23 +39,9 @@ export default function FormulariosSQF() {
     // Modal NIT
     const [isNitModalOpen, setIsNitModalOpen] = useState(false);
     const [nitLookupValue, setNitLookupValue] = useState('');
-    const [nitLookupResult, setNitLookupResult] = useState(null); // { type: 'found', client } o { type: 'error' }
+    const [nitLookupResult, setNitLookupResult] = useState(null);
 
-    // Modal Auditor
-    const [auditorModalItem, setAuditorModalItem] = useState(null);
-    const [auditorModalType, setAuditorModalType] = useState(''); // 'client' o 'contract'
-
-    // Notificaciones Toast
-    const [toast, setToast] = useState({ show: false, type: '', title: '', message: '' });
-    
-    // Estado de carga de botones
-    const [isSubmittingClient, setIsSubmittingClient] = useState(false);
-    const [isSubmittingContract, setIsSubmittingContract] = useState(false);
-    const [isSubmittingBilling, setIsSubmittingBilling] = useState(false);
-
-    // ==========================================
-    // ESTADOS DEL FORMULARIO DE FACTURACIÓN (Controlados para auto-rellenado)
-    // ==========================================
+    // Formulario de Facturación dinámico
     const [billingReqType, setBillingReqType] = useState('facturacion');
     const [billingType, setBillingType] = useState('Servicio nuevo');
     const [billingClientType, setBillingClientType] = useState('Cliente nuevo');
@@ -71,7 +57,17 @@ export default function FormulariosSQF() {
     const [billingCloser, setBillingCloser] = useState('');
     const [billingAreas, setBillingAreas] = useState([{ id: 1, centro: '', concepto: '', valor: '' }]);
 
-    // Refs para archivos (Clientes)
+    // Modal Auditor
+    const [auditorModalItem, setAuditorModalItem] = useState(null);
+    const [auditorModalType, setAuditorModalType] = useState('');
+
+    // Notificaciones y Carga
+    const [toast, setToast] = useState({ show: false, type: '', title: '', message: '' });
+    const [isSubmittingClient, setIsSubmittingClient] = useState(false);
+    const [isSubmittingContract, setIsSubmittingContract] = useState(false);
+    const [isSubmittingBilling, setIsSubmittingBilling] = useState(false);
+
+    // Refs para archivos
     const rutRef = useRef(null);
     const camaraRef = useRef(null);
     const composicionRef = useRef(null);
@@ -124,7 +120,7 @@ export default function FormulariosSQF() {
     };
 
     const formatCurrency = (val) => {
-        const numStr = String(val).replace(/\D/g, '');
+        const numStr = String(val || '').replace(/\D/g, '');
         if (!numStr) return '';
         return new Intl.NumberFormat('es-CO').format(parseInt(numStr, 10));
     };
@@ -133,10 +129,17 @@ export default function FormulariosSQF() {
         setter(formatCurrency(e.target.value));
     };
 
+    const formatCurrencyDisplay = (val) => {
+        if (!val) return '$ 0';
+        const numStr = String(val).replace(/\D/g, '');
+        const num = parseInt(numStr, 10);
+        return isNaN(num) ? val : `$ ${new Intl.NumberFormat('es-CO').format(num)}`;
+    };
+
     const formatDateSafe = (isoStr) => {
         if (!isoStr) return '';
         const d = new Date(isoStr);
-        return isNaN(d) ? isoStr : d.toLocaleString('es-CO');
+        return isNaN(d) ? String(isoStr) : d.toLocaleString('es-CO');
     };
 
     // ==========================================
@@ -189,21 +192,32 @@ export default function FormulariosSQF() {
         }
     };
 
+    // FILTROS BLINDADOS CON String(...) PARA EVITAR CRASHES POR DATOS NUMÉRICOS DE N8N
     const filteredClients = clients.filter(c => 
-        (c.name || '').toLowerCase().includes(clientSearchQuery.toLowerCase()) || 
-        (c.document || '').toLowerCase().includes(clientSearchQuery.toLowerCase())
+        String(c?.name || '').toLowerCase().includes(String(clientSearchQuery).toLowerCase()) || 
+        String(c?.document || '').toLowerCase().includes(String(clientSearchQuery).toLowerCase())
+    );
+
+    const filteredContracts = contracts.filter(c => 
+        String(c?.name || '').toLowerCase().includes(String(contractSearchQuery).toLowerCase()) || 
+        String(c?.clientName || '').toLowerCase().includes(String(contractSearchQuery).toLowerCase())
+    );
+
+    const dropdownClients = clients.filter(c => 
+        String(c?.name || '').toLowerCase().includes(String(clientDropdownQuery).toLowerCase()) || 
+        String(c?.document || '').toLowerCase().includes(String(clientDropdownQuery).toLowerCase())
     );
 
     // ==========================================
     // LÓGICA DE CONTRATOS Y MODAL NIT
     // ==========================================
     const triggerLookup = () => {
-        if (!nitLookupValue.trim()) {
+        if (!String(nitLookupValue).trim()) {
             setNitLookupResult({ type: 'empty' });
             return;
         }
         const cleanDoc = String(nitLookupValue).replace(/\D/g, '');
-        const found = clients.find(c => String(c.document).replace(/\D/g, '') === cleanDoc);
+        const found = clients.find(c => String(c?.document || '').replace(/\D/g, '') === cleanDoc);
         if (found) {
             setNitLookupResult({ type: 'found', client: found });
         } else {
@@ -257,7 +271,7 @@ export default function FormulariosSQF() {
         formData.append('createdAt', new Date().toISOString());
         formData.append('status', 'Pendiente de revisión');
         
-        const rawValue = formData.get('value').replace(/\D/g, '');
+        const rawValue = String(formData.get('value') || '').replace(/\D/g, '');
         formData.set('value', parseInt(rawValue || '0', 10));
         formData.append('valueFormatted', `$ ${formatCurrency(rawValue)}`);
 
@@ -274,16 +288,6 @@ export default function FormulariosSQF() {
         }
     };
 
-    const filteredContracts = contracts.filter(c => 
-        (c.name || '').toLowerCase().includes(contractSearchQuery.toLowerCase()) || 
-        (c.clientName || '').toLowerCase().includes(contractSearchQuery.toLowerCase())
-    );
-
-    const dropdownClients = clients.filter(c => 
-        (c.name || '').toLowerCase().includes(clientDropdownQuery.toLowerCase()) || 
-        (c.document || '').toLowerCase().includes(clientDropdownQuery.toLowerCase())
-    );
-
     // ==========================================
     // LÓGICA DE FACTURACIÓN
     // ==========================================
@@ -296,7 +300,8 @@ export default function FormulariosSQF() {
     };
 
     const removeAreaBlock = (idToRemove) => {
-        setBillingAreas(billingAreas.filter(area => area.id !== idToRemove).map((area, index) => ({ ...area, id: index + 1 })));
+        const newAreas = billingAreas.filter(area => area.id !== idToRemove).map((area, index) => ({ ...area, id: index + 1 }));
+        setBillingAreas(newAreas);
     };
 
     const updateArea = (id, field, value) => {
@@ -315,28 +320,28 @@ export default function FormulariosSQF() {
         setNcErrors({});
     };
 
-    // EL MAGICO SEND CONTRACT TO BILLING
     const sendContractToBilling = (contract) => {
         setActiveSection('billing');
         setBillingReqType('facturacion');
         setBillingType('Servicio actual');
         setBillingClientType('Cliente antiguo');
         
-        setBillingClientName(contract.clientName || '');
+        setBillingClientName(contract?.clientName || '');
         
         let sType = 'Otro';
-        if (contract.contractType === 'Mensual' || contract.contractType?.includes('Mensual')) sType = 'Fee mensual';
-        else if (contract.contractType === 'Proyecto') sType = 'Proyecto';
+        const cTypeStr = String(contract?.contractType || '');
+        if (cTypeStr === 'Mensual' || cTypeStr.includes('Mensual')) sType = 'Fee mensual';
+        else if (cTypeStr === 'Proyecto') sType = 'Proyecto';
         setServiceType(sType);
 
-        const val = contract.value ? formatCurrency(contract.value) : '';
+        const val = contract?.value ? formatCurrency(contract.value) : '';
         if (sType === 'Fee mensual') { setBillingValorMes(val); setBillingValorProyecto(''); }
         else { setBillingValorProyecto(val); setBillingValorMes(''); }
 
-        setBillingCloser(contract.manager || '');
-        setBillingAreas([{ id: 1, centro: 'Administración', concepto: contract.name || '', valor: val }]);
+        setBillingCloser(contract?.manager || '');
+        setBillingAreas([{ id: 1, centro: 'Administración', concepto: contract?.name || '', valor: val }]);
         
-        showToastMsg('success-discrete', '', `Contrato "${contract.name}" cargado para facturar.`);
+        showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
     };
 
     const handleBillingSubmit = async (e) => {
@@ -374,11 +379,11 @@ export default function FormulariosSQF() {
             company: billingCompany,
             saleType, crossSalePerson: saleType === 'Venta cruzada' ? crossSalePerson : '',
             serviceType,
-            valorMes: parseInt(billingValorMes.replace(/\D/g, '') || '0', 10),
-            valorProyecto: parseInt(billingValorProyecto.replace(/\D/g, '') || '0', 10),
+            valorMes: parseInt(String(billingValorMes).replace(/\D/g, '') || '0', 10),
+            valorProyecto: parseInt(String(billingValorProyecto).replace(/\D/g, '') || '0', 10),
             origin, originRef: ['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) ? originRef : '',
             closer: billingCloser,
-            areas: JSON.stringify(billingAreas.map(a => ({ ...a, valor: parseInt(a.valor.replace(/\D/g, ''), 10) }))),
+            areas: JSON.stringify(billingAreas.map(a => ({ ...a, valor: parseInt(String(a.valor).replace(/\D/g, ''), 10) }))),
             createdAt: new Date().toISOString()
         };
 
@@ -412,7 +417,7 @@ export default function FormulariosSQF() {
         formData.append('id', generateId('NC'));
         formData.append('tipoSolicitud', 'Nota Crédito');
         formData.append('createdAt', new Date().toISOString());
-        formData.set('ncValue', parseInt(formData.get('ncValue').replace(/\D/g, '') || '0', 10));
+        formData.set('ncValue', parseInt(String(formData.get('ncValue')).replace(/\D/g, '') || '0', 10));
 
         try {
             await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
@@ -427,8 +432,6 @@ export default function FormulariosSQF() {
     };
 
     const markAsValidated = (type, id) => {
-        // En una app real esto haría un POST a N8N para actualizar el status.
-        // Por ahora, como es frontend-only, solo mostramos el éxito visualmente.
         showToastMsg('success', 'Validación Exitosa', 'El proceso ha sido marcado como validado.');
     };
 
@@ -472,7 +475,6 @@ export default function FormulariosSQF() {
                                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                                 </svg> Auditoría
                             </button>
-                            {/* Integración con Intranet */}
                             <button className="nav-btn" onClick={() => navigate('/admin2')} style={{ marginLeft: '8px', paddingLeft: '16px', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
                                 ← Volver
                             </button>
@@ -558,7 +560,7 @@ export default function FormulariosSQF() {
                                         <textarea name="info" className="form-input form-textarea" placeholder="Observaciones, condiciones especiales..." rows="3"></textarea>
                                     </div>
 
-                                    {/* Uploaders protegidos para React */}
+                                    {/* Uploaders protegidos */}
                                     <div className="form-group">
                                         <label className="form-label required">RUT del Cliente</label>
                                         <div className={`file-upload-zone file-upload-sm ${rutFileName ? 'has-file' : ''}`} onClick={() => rutRef.current.click()}>
@@ -632,10 +634,10 @@ export default function FormulariosSQF() {
                                         <tbody>
                                             {filteredClients.map((c, i) => (
                                                 <tr key={i} onClick={() => { setAuditorModalItem(c); setAuditorModalType('client'); }} style={{ cursor: 'pointer' }} title="Haga clic para ver detalles">
-                                                    <td className="td-wrap"><strong>{c.name || ''}</strong> {c.source === 'historico' && <span style={{ marginLeft: '5px', background: 'rgba(0,169,206,.12)', color: '#006e87', padding: '2px 6px', borderRadius: '50px', fontSize: '10px', fontWeight: '700' }} title="Cliente Histórico">H</span>}</td>
-                                                    <td>{c.document || ''}</td>
-                                                    <td>{c.email || ''}</td>
-                                                    <td>{c.phone || ''}</td>
+                                                    <td className="td-wrap"><strong>{c?.name || ''}</strong> {c?.source === 'historico' && <span style={{ marginLeft: '5px', background: 'rgba(0,169,206,.12)', color: '#006e87', padding: '2px 6px', borderRadius: '50px', fontSize: '10px', fontWeight: '700' }} title="Cliente Histórico">H</span>}</td>
+                                                    <td>{c?.document || ''}</td>
+                                                    <td>{c?.email || ''}</td>
+                                                    <td>{c?.phone || ''}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -685,7 +687,7 @@ export default function FormulariosSQF() {
                                     {nitLookupResult?.type === 'found' && (
                                         <div className="lookup-result success">
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                <div><strong>✔ Cliente Encontrado:</strong> <br/> {nitLookupResult.client.name}</div>
+                                                <div><strong>✔ Cliente Encontrado:</strong> <br/> {nitLookupResult.client?.name || ''}</div>
                                                 <button type="button" className="btn-primary" style={{ width: '100%', borderRadius: '6px', padding: '12px', fontWeight: '600' }} onClick={() => startContractForClient(nitLookupResult.client)}>Generar Contrato</button>
                                             </div>
                                         </div>
@@ -733,7 +735,6 @@ export default function FormulariosSQF() {
                                         </div>
                                     </div>
 
-                                    {/* Selector de Cliente */}
                                     <div className="form-group full-width">
                                         <label className="form-label required">Cliente Vinculado</label>
                                         <div className="client-selector-wrapper">
@@ -744,8 +745,8 @@ export default function FormulariosSQF() {
                                                         <div className="client-dropdown">
                                                             {dropdownClients.length > 0 ? dropdownClients.map(c => (
                                                                 <div key={c.id} className="client-dropdown-item" onClick={() => selectClientFromDropdown(c)}>
-                                                                    <div style={{ fontWeight: 500 }}>{c.name}</div>
-                                                                    <div style={{ fontSize: '0.8rem', color: '#666' }}>NIT: {c.document}</div>
+                                                                    <div style={{ fontWeight: 500 }}>{c?.name || ''}</div>
+                                                                    <div style={{ fontSize: '0.8rem', color: '#666' }}>NIT: {c?.document || ''}</div>
                                                                 </div>
                                                             )) : <div className="dropdown-empty">No se encontraron clientes</div>}
                                                         </div>
@@ -757,7 +758,7 @@ export default function FormulariosSQF() {
                                         {selectedClientForContract && (
                                             <div className="selected-client-badge">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="badge-avatar-icon"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                                                <span>{selectedClientForContract.name} (NIT: {selectedClientForContract.document})</span>
+                                                <span>{selectedClientForContract?.name} (NIT: {selectedClientForContract?.document})</span>
                                                 <button type="button" className="badge-remove" onClick={() => setSelectedClientForContract(null)}>✕</button>
                                             </div>
                                         )}
@@ -845,11 +846,11 @@ export default function FormulariosSQF() {
                                         <tbody>
                                             {filteredContracts.map((c, i) => (
                                                 <tr key={i} onClick={() => { setAuditorModalItem(c); setAuditorModalType('contract'); }} style={{ cursor: 'pointer' }} title="Haga clic para ver detalles">
-                                                    <td className="td-wrap"><strong>{c.name || ''}</strong></td>
-                                                    <td>{c.clientName || ''}</td>
-                                                    <td><span className="type-chip">{c.contractType || ''}</span></td>
-                                                    <td><span className="card-value">{c.valueFormatted || formatCurrencyDisplay(c.value)}</span></td>
-                                                    <td>{c.startDate || ''} a {c.endDate || ''}</td>
+                                                    <td className="td-wrap"><strong>{c?.name || ''}</strong></td>
+                                                    <td>{c?.clientName || ''}</td>
+                                                    <td><span className="type-chip">{c?.contractType || ''}</span></td>
+                                                    <td><span className="card-value">{c?.valueFormatted || formatCurrencyDisplay(c?.value)}</span></td>
+                                                    <td>{c?.startDate || ''} a {c?.endDate || ''}</td>
                                                     <td>
                                                         <button type="button" className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); sendContractToBilling(c); }} style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px' }}><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
@@ -1085,22 +1086,22 @@ export default function FormulariosSQF() {
                         <div className="list-card">
                             <div className="list-header"><h2 className="list-title">Solicitudes de Clientes</h2></div>
                             <div>
-                                {clients.filter(c => c.source !== 'historico').length === 0 ? (
+                                {clients.filter(c => c?.source !== 'historico').length === 0 ? (
                                     <div className="empty-state"><p>No hay solicitudes nuevas de clientes.</p></div>
                                 ) : (
                                     <div className="auditor-list">
-                                        {clients.filter(c => c.source !== 'historico').map((c, i) => {
-                                            const isPending = c.status !== 'Validado';
+                                        {clients.filter(c => c?.source !== 'historico').map((c, i) => {
+                                            const isPending = c?.status !== 'Validado';
                                             return (
                                                 <div key={i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('client'); }}>
                                                     <div className="auditor-card-header">
-                                                        <div><h4 className="auditor-item-title">{c.name}</h4><p className="auditor-item-subtitle">NIT: {c.document}</p></div>
-                                                        <span className={`status-badge ${isPending ? 'pending' : 'validated'}`}>{c.status || 'Pendiente'}</span>
+                                                        <div><h4 className="auditor-item-title">{c?.name || ''}</h4><p className="auditor-item-subtitle">NIT: {c?.document || ''}</p></div>
+                                                        <span className={`status-badge ${isPending ? 'pending' : 'validated'}`}>{c?.status || 'Pendiente'}</span>
                                                     </div>
                                                     <div className="auditor-card-footer">
-                                                        <span className="auditor-date">Creado: {formatDateSafe(c.createdAt)}</span>
+                                                        <span className="auditor-date">Creado: {formatDateSafe(c?.createdAt)}</span>
                                                         {isPending ? (
-                                                            <button className="btn-validate" onClick={(e) => { e.stopPropagation(); markAsValidated('client', c.id); }}>Validar</button>
+                                                            <button className="btn-validate" onClick={(e) => { e.stopPropagation(); markAsValidated('client', c?.id); }}>Validar</button>
                                                         ) : (
                                                             <span className="validated-info">Validado</span>
                                                         )}
@@ -1121,17 +1122,17 @@ export default function FormulariosSQF() {
                                 ) : (
                                     <div className="auditor-list">
                                         {contracts.map((c, i) => {
-                                            const isPending = c.status !== 'Validado';
+                                            const isPending = c?.status !== 'Validado';
                                             return (
                                                 <div key={i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('contract'); }}>
                                                     <div className="auditor-card-header">
-                                                        <div><h4 className="auditor-item-title">{c.name}</h4><p className="auditor-item-subtitle">Cliente: {c.clientName}</p></div>
-                                                        <span className={`status-badge ${isPending ? 'pending' : 'validated'}`}>{c.status || 'Pendiente'}</span>
+                                                        <div><h4 className="auditor-item-title">{c?.name || ''}</h4><p className="auditor-item-subtitle">Cliente: {c?.clientName || ''}</p></div>
+                                                        <span className={`status-badge ${isPending ? 'pending' : 'validated'}`}>{c?.status || 'Pendiente'}</span>
                                                     </div>
                                                     <div className="auditor-card-footer">
-                                                        <span className="auditor-date">Creado: {formatDateSafe(c.createdAt)}</span>
+                                                        <span className="auditor-date">Creado: {formatDateSafe(c?.createdAt)}</span>
                                                         {isPending ? (
-                                                            <button className="btn-validate" onClick={(e) => { e.stopPropagation(); markAsValidated('contract', c.id); }}>Validar</button>
+                                                            <button className="btn-validate" onClick={(e) => { e.stopPropagation(); markAsValidated('contract', c?.id); }}>Validar</button>
                                                         ) : (
                                                             <span className="validated-info">Validado</span>
                                                         )}
