@@ -64,7 +64,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     tipo_entidad:         '',
     tipo_contrato:        '',
     incluir_salario:      'Sí',
-    salario:              'DOS MILLONES DE PESOS M/CTE ($2.000.000)', // Datos de prueba predeterminados
+    salario:              'DOS MILLONES DE PESOS ($2.000.000)',
     auxilio_transporte:  'No',
     ingresos_adicionales: '',
     // Empresa
@@ -94,7 +94,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
       tipo_entidad:         prefill.tipo_entidad        || '',
       tipo_contrato:        prefill.tipo_contrato       || '',
       incluir_salario:      prefill.incluir_salario     || 'Sí',
-      salario:              prefill.salario             || 'DOS MILLONES DE PESOS M/CTE ($2.000.000)',
+      salario:              prefill.salario             || 'DOS MILLONES DE PESOS ($2.000.000)',
       auxilio_transporte:  prefill.auxilio_transporte  || 'No',
       ingresos_adicionales: prefill.ingresos_adicionales || '',
     }));
@@ -332,7 +332,14 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cuerpo</p>
-            <Field label="Tipo de contrato" name="tipo_contrato" value={form.tipo_contrato} onChange={handleChange} placeholder="Ej: término indefinido" />
+            <FieldSelect label="Tipo de contrato" name="tipo_contrato" value={form.tipo_contrato} onChange={handleChange}>
+              <option value="">— Seleccionar tipo —</option>
+              <option value="término indefinido">Término Indefinido</option>
+              <option value="término fijo">Término Fijo</option>
+              <option value="obra o labor">Obra o Labor</option>
+              <option value="prestación de servicios">Prestación de Servicios</option>
+              <option value="aprendizaje">Aprendizaje</option>
+            </FieldSelect>
             <FieldSelect label="¿Incluir salario?" name="incluir_salario" value={form.incluir_salario} onChange={handleChange}>
               <option value="Sí">Sí</option>
               <option value="No">No</option>
@@ -349,9 +356,9 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Firma</p>
-            <Field label="Nombre del firmante" name="firmante_nombre" value={form.firmante_nombre} onChange={handleChange} />
-            <Field label="C.C. firmante" name="firmante_cc" value={form.firmante_cc} onChange={handleChange} />
-            <Field label="Cargo firmante" name="firmante_cargo" value={form.firmante_cargo} onChange={handleChange} placeholder="Ej: Representante Legal" />
+            <Field label="Nombre del firmante" name="firmante_nombre" value={form.firmante_nombre} onChange={handleChange} placeholder="PAOLA ANDREA AGUILAR TAMAYO" />
+            <Field label="C.C. firmante" name="firmante_cc" value={form.firmante_cc} onChange={handleChange} placeholder="21468161" />
+            <Field label="Cargo firmante" name="firmante_cargo" value={form.firmante_cargo} onChange={handleChange} placeholder="LIDER DE GESTIÓN HUMANA" />
           </div>
 
           {/* Enviar por correo */}
