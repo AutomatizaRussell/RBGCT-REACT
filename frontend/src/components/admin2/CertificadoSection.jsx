@@ -194,7 +194,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
   return (
     <>
-      <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400&display=swap" rel="stylesheet" />
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -443,8 +443,8 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
         <div style={{ marginTop: '4pt', width: '280pt' }}>
           {/* Nombre en cursiva = firma */}
           <p style={{
-            fontFamily: script, fontSize: '28pt', color: '#001e33',
-            margin: '0 0 -4pt 0', lineHeight: 1.15,
+            fontFamily: script, fontSize: '19pt', color: '#001e33',
+            margin: '0 0 -2pt 0', lineHeight: 1.2, fontWeight: 400,
           }}>
             {toTitleCase(form.firmante_nombre)}
           </p>

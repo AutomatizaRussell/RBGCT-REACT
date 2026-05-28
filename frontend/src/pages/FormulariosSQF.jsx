@@ -1,64 +1,65 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './FormulariosSQF.css'; // <-- Importamos tus estilos originales
 
-// Webhooks originales de n8n
 const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',
     contract: 'https://n8n.rbgct.cloud/webhook/contratos-crud',
     billing: 'https://n8n.rbgct.cloud/webhook/flujo_Facturacion_SQF',
 };
 
-// Generador de IDs
 const generateId = (prefix) => {
     return `${prefix}-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Date.now().toString().slice(-4)}`;
 };
 
 export default function FormulariosSQF() {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('clientes');
     
-    // Estados Globales
+    // ==========================================
+    // ESTADOS (Reemplazan las variables de app.js)
+    // ==========================================
+    const [activeSection, setActiveSection] = useState('clients');
     const [clients, setClients] = useState([]);
     const [contracts, setContracts] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [toast, setToast] = useState(null);
+    
+    // Toggles de la UI original
+    const [showClientForm, setShowClientForm] = useState(false);
+    const [showContractForm, setShowContractForm] = useState(false);
+    
+    // Estado dinámico para Facturación (Las 3 áreas)
+    const [billingAreas, setBillingAreas] = useState([{ id: 1, centro: '', concepto: '', valor: '' }]);
+    const [billingReqType, setBillingReqType] = useState('facturacion');
 
-    // Carga inicial de datos desde n8n
+    // Notificaciones (Toast original)
+    const [toast, setToast] = useState({ show: false, type: '', title: '', message: '' });
+
+    // ==========================================
+    // INICIALIZACIÓN (Equivalente al DOMContentLoaded)
+    // ==========================================
     useEffect(() => {
-        loadData();
+        loadDataFromWebhooks();
     }, []);
 
-    const loadData = async () => {
-        setIsLoading(true);
+    const loadDataFromWebhooks = async () => {
         try {
-            const [clientsRes, contractsRes] = await Promise.all([
-                fetch(N8N_WEBHOOKS.client, { headers: { 'Accept': 'application/json' } }).catch(() => null),
-                fetch(N8N_WEBHOOKS.contract, { headers: { 'Accept': 'application/json' } }).catch(() => null)
-            ]);
+            const clientsRes = await fetch(N8N_WEBHOOKS.client, { headers: { 'Accept': 'application/json' } });
+            if (clientsRes.ok) setClients(await clientsRes.json());
+        } catch (e) { console.warn('Error cargando clientes', e); }
 
-            if (clientsRes && clientsRes.ok) {
-                const clientsData = await clientsRes.json();
-                if (Array.isArray(clientsData)) setClients(clientsData);
-            }
-            if (contractsRes && contractsRes.ok) {
-                const contractsData = await contractsRes.json();
-                if (Array.isArray(contractsData)) setContracts(contractsData);
-            }
-        } catch (error) {
-            console.error("Error cargando datos de n8n:", error);
-        } finally {
-            setIsLoading(false);
-        }
+        try {
+            const contractsRes = await fetch(N8N_WEBHOOKS.contract, { headers: { 'Accept': 'application/json' } });
+            if (contractsRes.ok) setContracts(await contractsRes.json());
+        } catch (e) { console.warn('Error cargando contratos', e); }
     };
 
-    const showMessage = (msg, type = 'success') => {
-        setToast({ msg, type });
-        setTimeout(() => setToast(null), 4000);
+    const showToast = (type, title, message) => {
+        setToast({ show: true, type, title, message });
+        setTimeout(() => setToast({ show: false, type: '', title: '', message: '' }), 6000);
     };
 
-    // =====================================================================
-    // MANEJADORES DE ENVÍO (Sustituyen a app.js)
-    // =====================================================================
+    // ==========================================
+    // LÓGICA DE ENVÍO (app.js handleSubmit)
+    // ==========================================
     const handleClientSubmit = async (e) => {
         e.preventDefault();
         const form = e.target;
@@ -69,11 +70,12 @@ export default function FormulariosSQF() {
 
         try {
             await fetch(N8N_WEBHOOKS.client, { method: 'POST', mode: 'no-cors', body: formData });
-            showMessage('Cliente registrado exitosamente en n8n.');
+            showToast('success', 'Cliente Creado', 'La información se envió a n8n.');
             form.reset();
-            loadData();
-        } catch (err) {
-            showMessage('Error al guardar el cliente.', 'error');
+            setShowClientForm(false);
+            loadDataFromWebhooks();
+        } catch (error) {
+            showToast('error', 'Error', 'Ocurrió un error al conectar con n8n.');
         }
     };
 
@@ -87,368 +89,385 @@ export default function FormulariosSQF() {
 
         try {
             await fetch(N8N_WEBHOOKS.contract, { method: 'POST', mode: 'no-cors', body: formData });
-            showMessage('Contrato registrado exitosamente en n8n.');
+            showToast('success', 'Contrato Creado', 'La información se envió a n8n.');
             form.reset();
-            loadData();
-        } catch (err) {
-            showMessage('Error al guardar el contrato.', 'error');
+            setShowContractForm(false);
+            loadDataFromWebhooks();
+        } catch (error) {
+            showToast('error', 'Error', 'Ocurrió un error al conectar con n8n.');
         }
     };
 
-    const handleBillingSubmit = async (e) => {
-        e.preventDefault();
-        const form = e.target;
-        const formData = new FormData(form);
-        formData.append('id', generateId('BIL'));
-        formData.append('tipoSolicitud', 'Facturación');
-        formData.append('createdAt', new Date().toISOString());
-
-        try {
-            await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
-            showMessage('Solicitud de facturación enviada a n8n.');
-            form.reset();
-        } catch (err) {
-            showMessage('Error al enviar la facturación.', 'error');
+    // ==========================================
+    // MANEJO DE ÁREAS DINÁMICAS (Facturación)
+    // ==========================================
+    const addAreaBlock = () => {
+        if (billingAreas.length >= 3) {
+            showToast('error', 'Límite', 'Solo se pueden agregar hasta 3 áreas.');
+            return;
         }
+        setBillingAreas([...billingAreas, { id: billingAreas.length + 1, centro: '', concepto: '', valor: '' }]);
     };
 
-    // =====================================================================
-    // RENDERIZADO DE PESTAÑAS
-    // =====================================================================
-    
-    // 1. PESTAÑA CLIENTES
-    const renderClientes = () => (
-        <div className="space-y-8 animate-fade-in">
-            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
-                <div className="mb-6 border-b border-slate-100 pb-4">
-                    <h2 className="text-xl font-bold text-slate-800">Registrar Nuevo Cliente</h2>
-                    <p className="text-sm text-slate-500">Ingresa los datos fiscales y de contacto.</p>
-                </div>
-                
-                <form onSubmit={handleClientSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Tipo de Contribuyente *</label>
-                            <div className="flex gap-4">
-                                <label className="flex-1 border border-slate-200 rounded-xl p-4 cursor-pointer hover:border-blue-500 hover:bg-slate-50 transition-all">
-                                    <input type="radio" name="clientType" value="juridica" defaultChecked className="hidden peer" />
-                                    <div className="peer-checked:text-blue-800">
-                                        <div className="font-bold">Persona Jurídica</div>
-                                        <div className="text-xs text-slate-500">NIT de empresa</div>
-                                    </div>
-                                </label>
-                                <label className="flex-1 border border-slate-200 rounded-xl p-4 cursor-pointer hover:border-blue-500 hover:bg-slate-50 transition-all">
-                                    <input type="radio" name="clientType" value="natural" className="hidden peer" />
-                                    <div className="peer-checked:text-blue-800">
-                                        <div className="font-bold">Persona Natural</div>
-                                        <div className="text-xs text-slate-500">Cédula de ciudadanía</div>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
+    const removeAreaBlock = (idToRemove) => {
+        setBillingAreas(billingAreas.filter(area => area.id !== idToRemove).map((area, index) => ({ ...area, id: index + 1 })));
+    };
 
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">NIT Empresa / Documento *</label>
-                            <input type="text" name="document" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-colors" placeholder="Ej: 900.123.456-7" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Nombre o Razón Social *</label>
-                            <input type="text" name="name" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-colors" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Contacto de Pagos *</label>
-                            <input type="text" name="contactName" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-colors" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Correo de Facturación *</label>
-                            <input type="email" name="email" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-colors" />
-                        </div>
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Dirección del Cliente *</label>
-                            <input type="text" name="address" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-colors" />
-                        </div>
+    // Formateador de moneda original
+    const formatCurrency = (e) => {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value === '') { e.target.value = ''; return; }
+        e.target.value = new Intl.NumberFormat('es-CO').format(parseInt(value, 10));
+    };
 
-                        {/* File Uploads adaptados al estilo intranet */}
-                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors">
-                                <label className="cursor-pointer block">
-                                    <span className="font-bold text-blue-800 text-sm block mb-1">Subir RUT *</span>
-                                    <span className="text-xs text-slate-500 block mb-3">PDF, JPG, PNG - Max 10MB</span>
-                                    <input type="file" name="rutFile" required className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-800 hover:file:bg-blue-100" />
-                                </label>
-                            </div>
-                            <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors">
-                                <label className="cursor-pointer block">
-                                    <span className="font-bold text-slate-700 text-sm block mb-1">Cámara de Comercio *</span>
-                                    <span className="text-xs text-slate-500 block mb-3">PDF, JPG, PNG - Max 10MB</span>
-                                    <input type="file" name="camaraFile" required className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200" />
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="flex justify-end pt-4 border-t border-slate-100">
-                        <button type="submit" className="bg-blue-800 text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                            Registrar Cliente
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            {/* Listado de Clientes */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-slate-800">Directorio de Clientes ({clients.length})</h3>
-                    <button onClick={loadData} className="text-sm text-blue-700 hover:text-blue-900 font-semibold flex items-center gap-2">
-                        {isLoading ? 'Sincronizando...' : '⟳ Refrescar'}
-                    </button>
-                </div>
-                <div className="p-6 overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b-2 border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-                                <th className="pb-3 font-semibold">Cliente</th>
-                                <th className="pb-3 font-semibold">Documento</th>
-                                <th className="pb-3 font-semibold">Correo</th>
-                                <th className="pb-3 font-semibold">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-sm text-slate-700">
-                            {clients.map((client, i) => (
-                                <tr key={i} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                                    <td className="py-4 font-semibold text-slate-800">{client.name}</td>
-                                    <td className="py-4">{client.document}</td>
-                                    <td className="py-4">{client.email}</td>
-                                    <td className="py-4">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${client.status === 'Validado' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                            {client.status || 'Pendiente'}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                            {clients.length === 0 && !isLoading && (
-                                <tr><td colSpan="4" className="text-center py-8 text-slate-500">No hay clientes sincronizados.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
-
-    // 2. PESTAÑA CONTRATOS
-    const renderContratos = () => (
-        <div className="space-y-8 animate-fade-in">
-            {clients.length === 0 && (
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3">
-                    <span className="text-amber-600 font-bold text-xl">!</span>
-                    <div>
-                        <h4 className="font-bold text-amber-900 text-sm">No hay clientes disponibles</h4>
-                        <p className="text-xs text-amber-700 mt-1">Debes registrar al menos un cliente en la pestaña anterior para poder asignarle un contrato.</p>
-                    </div>
-                </div>
-            )}
-
-            <div className={`bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 ${clients.length === 0 ? 'opacity-50 pointer-events-none' : ''}`}>
-                <div className="mb-6 border-b border-slate-100 pb-4">
-                    <h2 className="text-xl font-bold text-slate-800">Registrar Nuevo Contrato</h2>
-                    <p className="text-sm text-slate-500">Vincula un contrato a un cliente existente.</p>
-                </div>
-                
-                <form onSubmit={handleContractSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Cliente Vinculado *</label>
-                            <select name="clientName" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 bg-slate-50">
-                                <option value="">Selecciona un cliente de la lista...</option>
-                                {clients.map((c, i) => <option key={i} value={c.name}>{c.name} - {c.document}</option>)}
-                            </select>
-                        </div>
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Tipo de Contrato *</label>
-                            <select name="contractType" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
-                                <option value="Mensual">Mensual (Facturación recurrente fija)</option>
-                                <option value="Proyecto">Proyecto (Alcance definido)</option>
-                                <option value="Horas trabajadas">Horas Trabajadas</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Nombre del Contrato *</label>
-                            <input type="text" name="name" required placeholder="Ej: Auditoría Financiera 2026" className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Valor del Contrato (COP) *</label>
-                            <input type="number" name="value" required placeholder="Ej: 5000000" className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Fecha de Inicio *</label>
-                            <input type="date" name="startDate" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Fecha de Finalización *</label>
-                            <input type="date" name="endDate" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500" />
-                        </div>
-                        <div className="md:col-span-2">
-                            <label className="block text-sm font-semibold text-slate-700 mb-1">Gerente a Cargo *</label>
-                            <input type="text" name="manager" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500" />
-                        </div>
-                    </div>
-                    
-                    <div className="flex justify-end pt-4 border-t border-slate-100">
-                        <button type="submit" className="bg-blue-800 text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-md">
-                            Guardar Contrato
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-6 border-b border-slate-100 bg-slate-50">
-                    <h3 className="text-lg font-bold text-slate-800">Contratos Registrados ({contracts.length})</h3>
-                </div>
-                <div className="p-6 overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b-2 border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-                                <th className="pb-3 font-semibold">Contrato</th>
-                                <th className="pb-3 font-semibold">Cliente</th>
-                                <th className="pb-3 font-semibold">Vigencia</th>
-                                <th className="pb-3 font-semibold">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-sm text-slate-700">
-                            {contracts.map((c, i) => (
-                                <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                                    <td className="py-4 font-semibold text-slate-800">{c.name}</td>
-                                    <td className="py-4">{c.clientName}</td>
-                                    <td className="py-4">{c.startDate} a {c.endDate}</td>
-                                    <td className="py-4">
-                                        <button onClick={() => setActiveTab('facturacion')} className="bg-slate-100 text-slate-700 hover:bg-blue-100 hover:text-blue-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">
-                                            Facturar →
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
-
-    // 3. PESTAÑA FACTURACIÓN
-    const renderFacturacion = () => (
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 animate-fade-in">
-            <div className="mb-6 border-b border-slate-100 pb-4">
-                <h2 className="text-xl font-bold text-slate-800">Solicitud de Facturación / Nota Crédito</h2>
-                <p className="text-sm text-slate-500">Envía peticiones directas al área financiera.</p>
-            </div>
-            
-            <form onSubmit={handleBillingSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">¿Qué deseas solicitar? *</label>
-                        <div className="flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" name="reqType" value="facturacion" defaultChecked className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500" />
-                                <span className="text-sm font-medium text-slate-700">Facturación Normal</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" name="reqType" value="nota-credito" className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500" />
-                                <span className="text-sm font-medium text-slate-700">Nota Crédito</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-semibold text-slate-700 mb-1">Cliente / Razón Social *</label>
-                        <input type="text" name="clientName" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1">Empresa Facturadora *</label>
-                        <select name="company" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
-                            <option value="GCT">Russell Bedford GCT</option>
-                            <option value="GLT">GLT</option>
-                            <option value="PROFIT">PROFIT</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1">Valor a Facturar (COP) *</label>
-                        <input type="number" name="valor" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500" />
-                    </div>
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-semibold text-slate-700 mb-1">Concepto / Motivo *</label>
-                        <textarea name="concepto" rows="3" required className="w-full rounded-lg border-slate-300 border p-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500"></textarea>
-                    </div>
-                </div>
-                
-                <div className="flex justify-end pt-4 border-t border-slate-100">
-                    <button type="submit" className="bg-emerald-600 text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all shadow-md">
-                        Enviar a Finanzas
-                    </button>
-                </div>
-            </form>
-        </div>
-    );
-
-    // =====================================================================
-    // ESTRUCTURA PRINCIPAL DE LA VISTA
-    // =====================================================================
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans">
+        <div className="app-wrapper"> {/* Contenedor para aislar de la intranet */}
             
-            {/* Header adaptado al estilo intranet */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Operaciones SQF</h1>
-                    <p className="text-slate-500 mt-1 text-sm">Gestión integral de clientes, contratos y facturación corporativa.</p>
+            {/* ===================== HEADER ORIGINAL ===================== */}
+            <header className="app-header">
+                <div className="header-inner">
+                    <div className="brand">
+                        <div className="brand-logo">
+                            <span className="logo-rb">RB</span>
+                            <span className="logo-gct">GCT</span>
+                        </div>
+                        <div className="brand-text">
+                            <span className="brand-name">Russell Bedford</span>
+                            <span className="brand-tagline">taking you further</span>
+                        </div>
+                    </div>
+
+                    <nav className="main-nav" role="navigation">
+                        <div role="tablist" className="nav-tablist">
+                            <button className={`nav-btn ${activeSection === 'clients' ? 'active' : ''}`} onClick={() => setActiveSection('clients')}>
+                                <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
+                                Clientes
+                            </button>
+                            <button className={`nav-btn ${activeSection === 'contracts' ? 'active' : ''}`} onClick={() => setActiveSection('contracts')}>
+                                <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                                Contratos
+                            </button>
+                            <button className={`nav-btn ${activeSection === 'billing' ? 'active' : ''}`} onClick={() => setActiveSection('billing')}>
+                                <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
+                                Facturación
+                            </button>
+                            <button className={`nav-btn ${activeSection === 'auditor' ? 'active' : ''}`} onClick={() => setActiveSection('auditor')}>
+                                <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                                Auditoría
+                            </button>
+                        </div>
+                    </nav>
                 </div>
-                <button onClick={() => navigate('/admin2')} className="inline-flex items-center justify-center px-4 py-2 bg-slate-100 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-200 transition-colors">
-                    ← Volver al Dashboard
-                </button>
-            </div>
+            </header>
 
-            {/* Pestañas de Navegación con Tailwind */}
-            <div className="flex overflow-x-auto space-x-2 mb-8 bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200 w-fit">
-                {[
-                    { id: 'clientes', label: '1. Clientes' },
-                    { id: 'contratos', label: '2. Contratos' },
-                    { id: 'facturacion', label: '3. Facturación' },
-                    { id: 'auditor', label: 'Panel Auditor' }
-                ].map((tab) => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 ${
-                            activeTab === tab.id
-                                ? 'bg-white text-blue-800 shadow-sm border border-slate-200/60'
-                                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                        }`}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
+            <main className="app-main">
 
-            {/* Renderizado Condicional */}
-            <div className="min-h-[50vh]">
-                {activeTab === 'clientes' && renderClientes()}
-                {activeTab === 'contratos' && renderContratos()}
-                {activeTab === 'facturacion' && renderFacturacion()}
-                {activeTab === 'auditor' && (
-                    <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-12 text-center">
-                        <h3 className="text-lg font-bold text-slate-700 mb-2">Panel de Auditoría</h3>
-                        <p className="text-slate-500 text-sm">Esta vista mostrará la consolidación de métricas en la próxima versión.</p>
-                    </div>  
-                )}
-            </div>
+                {/* ========== SECTION: CLIENTES ========== */}
+                <section className={`content-section ${activeSection === 'clients' ? 'active' : ''}`}>
+                    <div className="section-header">
+                        <div>
+                            <h1 className="section-title">Gestión de Clientes</h1>
+                            <p className="section-subtitle">Registre y administre los clientes de la firma.</p>
+                        </div>
+                        <button className="btn-primary btn-new" onClick={() => setShowClientForm(!showClientForm)}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="btn-icon"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                            Nuevo Cliente
+                        </button>
+                    </div>
 
-            {/* Toast Notification Minimalista */}
-            {toast && (
-                <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-lg font-bold text-sm text-white animate-fade-in-up z-50 ${toast.type === 'error' ? 'bg-red-600' : 'bg-slate-800'}`}>
-                    {toast.msg}
+                    {showClientForm && (
+                        <div className="form-card">
+                            <div className="form-card-header">
+                                <h2 className="form-card-title">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="form-card-icon"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                                    Información del Cliente
+                                </h2>
+                                <button type="button" className="btn-close" onClick={() => setShowClientForm(false)}>✕</button>
+                            </div>
+                            <form id="client-form" onSubmit={handleClientSubmit}>
+                                <div className="form-grid">
+                                    <div className="form-group full-width">
+                                        <label className="form-label required">Tipo de Contribuyente</label>
+                                        <div className="radio-group">
+                                            <label className="radio-option">
+                                                <input type="radio" name="clientType" value="natural" defaultChecked />
+                                                <span className="radio-custom"></span>
+                                                <span className="radio-text"><strong>Persona Natural</strong><small>Cédula de ciudadanía</small></span>
+                                            </label>
+                                            <label className="radio-option">
+                                                <input type="radio" name="clientType" value="juridica" />
+                                                <span className="radio-custom"></span>
+                                                <span className="radio-text"><strong>Persona Jurídica</strong><small>NIT de empresa</small></span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label className="form-label required">NIT Empresa / Documento</label>
+                                        <input type="text" name="document" className="form-input" placeholder="Ej: 900.123.456-7" required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label required">Nombre o Razón Social</label>
+                                        <input type="text" name="name" className="form-input" required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label required">Correo de Facturación</label>
+                                        <input type="email" name="email" className="form-input" required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label required">Teléfono(s) de Contacto</label>
+                                        <input type="tel" name="phone" className="form-input" required />
+                                    </div>
+
+                                    <div className="form-group full-width">
+                                        <label className="form-label required">RUT del Cliente</label>
+                                        <input type="file" name="rutFile" accept=".pdf,.jpg,.png" className="form-input" required />
+                                    </div>
+                                </div>
+
+                                <div className="form-actions">
+                                    <button type="button" className="btn-secondary" onClick={() => setShowClientForm(false)}>Cancelar</button>
+                                    <button type="submit" className="btn-primary btn-submit">
+                                        <span className="btn-label">Registrar Cliente</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
+                    <div className="list-card">
+                        <div className="list-header">
+                            <h2 className="list-title">Clientes Registrados</h2>
+                        </div>
+                        <div className="profile-scroll">
+                            <table className="profile-table">
+                                <thead>
+                                    <tr>
+                                        <th>Cliente / Razón Social</th>
+                                        <th>NIT / Documento</th>
+                                        <th>Correo Electrónico</th>
+                                        <th>Teléfono</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {clients.map((c, i) => (
+                                        <tr key={i}>
+                                            <td className="td-wrap"><strong>{c.name}</strong></td>
+                                            <td>{c.document}</td>
+                                            <td>{c.email}</td>
+                                            <td>{c.phone}</td>
+                                        </tr>
+                                    ))}
+                                    {clients.length === 0 && <tr><td colSpan="4">No hay clientes registrados aún.</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ========== SECTION: CONTRATOS ========== */}
+                <section className={`content-section ${activeSection === 'contracts' ? 'active' : ''}`}>
+                    <div className="section-header">
+                        <div>
+                            <h1 className="section-title">Gestión de Contratos</h1>
+                            <p className="section-subtitle">Cree y administre contratos y proyectos asociados a clientes.</p>
+                        </div>
+                        <button className="btn-primary btn-new" onClick={() => setShowContractForm(!showContractForm)}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="btn-icon"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                            Nuevo Contrato
+                        </button>
+                    </div>
+
+                    {showContractForm && (
+                        <div className="form-card">
+                            <div className="form-card-header">
+                                <h2 className="form-card-title">Información del Contrato</h2>
+                                <button type="button" className="btn-close" onClick={() => setShowContractForm(false)}>✕</button>
+                            </div>
+                            <form id="contract-form" onSubmit={handleContractSubmit}>
+                                <div className="form-grid">
+                                    <div className="form-group full-width">
+                                        <label className="form-label required">Cliente Vinculado</label>
+                                        <select name="clientName" className="form-input form-select" required>
+                                            <option value="">Seleccione...</option>
+                                            {clients.map((c, i) => <option key={i} value={c.name}>{c.name} ({c.document})</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label required">Nombre del Contrato</label>
+                                        <input type="text" name="name" className="form-input" required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label required">Valor del Contrato (COP)</label>
+                                        <div className="input-currency-wrapper">
+                                            <span className="currency-prefix">$</span>
+                                            <input type="text" name="value" className="form-input currency-input" onInput={formatCurrency} required />
+                                        </div>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label required">Fecha Inicio</label>
+                                        <input type="date" name="startDate" className="form-input" required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label required">Fecha Fin</label>
+                                        <input type="date" name="endDate" className="form-input" required />
+                                    </div>
+                                </div>
+                                <div className="form-actions">
+                                    <button type="button" className="btn-secondary" onClick={() => setShowContractForm(false)}>Cancelar</button>
+                                    <button type="submit" className="btn-primary btn-submit">Registrar Contrato</button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
+                    <div className="list-card">
+                        <div className="list-header">
+                            <h2 className="list-title">Contratos Registrados</h2>
+                        </div>
+                        <div className="profile-scroll">
+                            <table className="profile-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre del Contrato</th>
+                                        <th>Cliente Vinculado</th>
+                                        <th>Valor (COP)</th>
+                                        <th>Vigencia</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {contracts.map((c, i) => (
+                                        <tr key={i}>
+                                            <td className="td-wrap"><strong>{c.name}</strong></td>
+                                            <td>{c.clientName}</td>
+                                            <td><span className="card-value">{c.valueFormatted}</span></td>
+                                            <td>{c.startDate} a {c.endDate}</td>
+                                        </tr>
+                                    ))}
+                                    {contracts.length === 0 && <tr><td colSpan="4">No hay contratos registrados.</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ========== SECTION: FACTURACIÓN ========== */}
+                <section className={`content-section ${activeSection === 'billing' ? 'active' : ''}`}>
+                    <div className="section-header">
+                        <div>
+                            <h1 className="section-title">Facturación</h1>
+                            <p className="section-subtitle">Solicitudes de facturación y notas crédito.</p>
+                        </div>
+                    </div>
+
+                    <div id="billing-content">
+                        <div className="billing-step-card">
+                            <h2 className="billing-step-title"><span className="step-pill">1</span> ¿Qué deseas solicitar?</h2>
+                            <div className="radio-group radio-group-col">
+                                <label className="radio-option">
+                                    <input type="radio" name="billingReqType" value="facturacion" checked={billingReqType === 'facturacion'} onChange={(e) => setBillingReqType(e.target.value)} />
+                                    <span className="radio-custom"></span>
+                                    <span className="radio-text"><strong>Facturación</strong><small>Solicitud de factura</small></span>
+                                </label>
+                                <label className="radio-option">
+                                    <input type="radio" name="billingReqType" value="nota-credito" checked={billingReqType === 'nota-credito'} onChange={(e) => setBillingReqType(e.target.value)} />
+                                    <span className="radio-custom"></span>
+                                    <span className="radio-text"><strong>Nota Crédito</strong><small>Aplicar nota crédito</small></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {billingReqType === 'facturacion' && (
+                            <div className="form-card">
+                                <div className="form-card-header">
+                                    <h2 className="form-card-title">Solicitud de Facturación</h2>
+                                </div>
+                                <form>
+                                    <div className="form-grid">
+                                        <div className="form-group full-width">
+                                            <label className="form-label required">Cliente / Razón Social</label>
+                                            <input type="text" className="form-input" required />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label required">Empresa Facturadora</label>
+                                            <select className="form-input form-select" required>
+                                                <option value="GCT">GCT</option>
+                                                <option value="GLT">GLT</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Áreas dinámicas exactas a tu app.js */}
+                                    <div className="areas-section">
+                                        <div className="areas-header">
+                                            <h3 className="areas-title">Áreas de Facturación</h3>
+                                            {billingAreas.length < 3 && (
+                                                <button type="button" className="btn-add-area" onClick={addAreaBlock}>Agregar Área</button>
+                                            )}
+                                        </div>
+                                        <div id="areas-container">
+                                            {billingAreas.map((area, index) => (
+                                                <div className="area-block" key={area.id}>
+                                                    <div className="area-block-header">
+                                                        <span className="area-block-label">{area.id}° Área – Centro de Costos</span>
+                                                        {index > 0 && (
+                                                            <button type="button" className="btn-remove-area" onClick={() => removeAreaBlock(area.id)}>✕ Eliminar</button>
+                                                        )}
+                                                    </div>
+                                                    <div className="form-grid" style={{ gridTemplateColumns: '1fr 1.5fr 1fr' }}>
+                                                        <div className="form-group">
+                                                            <label className="form-label required">Centro</label>
+                                                            <input type="text" className="form-input" required />
+                                                        </div>
+                                                        <div className="form-group">
+                                                            <label className="form-label required">Concepto</label>
+                                                            <input type="text" className="form-input" required />
+                                                        </div>
+                                                        <div className="form-group">
+                                                            <label className="form-label required">Valor</label>
+                                                            <div className="input-currency-wrapper"><span className="currency-prefix">$</span>
+                                                                <input type="text" className="form-input currency-input" onInput={formatCurrency} required />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="form-actions">
+                                        <button type="submit" className="btn-primary btn-submit">Enviar Solicitud</button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                {/* ========== SECTION: AUDITORÍA ========== */}
+                <section className={`content-section ${activeSection === 'auditor' ? 'active' : ''}`}>
+                    <div className="section-header">
+                        <div>
+                            <h1 className="section-title">Panel de Control de Auditoría</h1>
+                            <p className="section-subtitle">Visualice y valide los procesos de creación.</p>
+                        </div>
+                    </div>
+                    <div className="form-grid">
+                        <div className="list-card p-6 text-center text-slate-500">
+                            (Módulo en conexión con estado global)
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+
+            {/* TOAST ORIGINAL RECREADO EN REACT */}
+            <div className={`toast ${toast.type} ${toast.show ? 'show' : ''}`} style={{ zIndex: 9999 }}>
+                <div className="toast-content">
+                    <div className="toast-title" style={{ fontWeight: 'bold' }}>{toast.title}</div>
+                    <div className="toast-msg">{toast.message}</div>
                 </div>
-            )}
+            </div>
 
         </div>
     );
