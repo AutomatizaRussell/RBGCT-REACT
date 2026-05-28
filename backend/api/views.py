@@ -1,5 +1,6 @@
 import jwt as pyjwt
 import uuid
+import os
 from datetime import datetime
 
 from django.db import models as django_models
@@ -3456,3 +3457,71 @@ def enviar_certificado_empleo(request):
     if ok:
         return Response({'status': 'enviado', 'detalle': result})
     return Response({'error': 'No se pudo enviar el correo.', 'detalle': result}, status=502)
+
+
+# ── Solicitudes de certificado (JSON temporal, sin modelo) ────────────────────
+
+_SOLICITUDES_FILE = os.path.join(settings.BASE_DIR, 'solicitudes_cert_temp.json')
+
+def _leer_solicitudes():
+    if not os.path.exists(_SOLICITUDES_FILE):
+        return []
+    try:
+        with open(_SOLICITUDES_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def _guardar_solicitudes(data):
+    with open(_SOLICITUDES_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def crear_solicitud_cert(request):
+    d = request.data
+    solicitud = {
+        'id':         str(uuid.uuid4())[:8],
+        'estado':     'pendiente',
+        'creado_en':  datetime.now().isoformat(),
+        'datos': {
+            'fecha':                d.get('fecha', ''),
+            'destinatario':         d.get('destinatario', ''),
+            'tipo_contrato':        d.get('tipo_contrato', ''),
+            'salario':              d.get('salario', ''),
+            'ingresos_adicionales': d.get('ingresos_adicionales', ''),
+            'nombre_empleado':      d.get('nombre_empleado', ''),
+            'tipo_documento':       d.get('tipo_documento', ''),
+            'numero_documento':     d.get('numero_documento', ''),
+            'nombre_cargo':         d.get('nombre_cargo', ''),
+            'fecha_ingreso':        d.get('fecha_ingreso', ''),
+            'correo_corporativo':   d.get('correo_corporativo', ''),
+            'id_empleado':          d.get('id_empleado', ''),
+        },
+    }
+    lista = _leer_solicitudes()
+    lista.append(solicitud)
+    _guardar_solicitudes(lista)
+    return Response({'id': solicitud['id'], 'ok': True})
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def listar_solicitudes_cert(request):
+    lista = _leer_solicitudes()
+    pendientes = [s for s in lista if s.get('estado') == 'pendiente']
+    return Response({'solicitudes': pendientes, 'total': len(pendientes)})
+
+
+@api_view(['PATCH'])
+@permission_classes([AllowAny])
+def atender_solicitud_cert(request, solicitud_id):
+    accion = request.data.get('accion', 'rechazar')
+    lista  = _leer_solicitudes()
+    for s in lista:
+        if s['id'] == solicitud_id:
+            s['estado'] = 'aceptada' if accion == 'aceptar' else 'rechazada'
+            break
+    _guardar_solicitudes(lista)
+    return Response({'ok': True})

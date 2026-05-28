@@ -4,7 +4,7 @@ import { useLocation, Outlet } from 'react-router-dom';
 import {
   Users, Activity, ShieldAlert, UserCheck,
   KeyRound, Check, X, Eye, Trash2, CheckCircle,
-  AlertTriangle, ClipboardList, FileBarChart,
+  AlertTriangle, ClipboardList, FileBarChart, FileText,
   Wrench, BookOpen, Settings, Plus, Building2, Briefcase,
   ShieldCheck, Lock, Info, Pencil,
   TrendingUp, RefreshCw, Calendar, Bell, UserX,
@@ -33,6 +33,8 @@ import {
   updateReglamentoItem,
   deleteReglamentoItem,
   moverReglamentoItem,
+  getSolicitudesCert,
+  atenderSolicitudCert,
 } from '../lib/api';
 
 import UserTable from '../components/users/UserTable';
@@ -55,6 +57,9 @@ const Admin2Dashboard = () => {
   const [alertasCount, setAlertasCount] = useState(0);
   const [alertasRecuperacion, setAlertasRecuperacion] = useState([]);
   const [showAlertasModal, setShowAlertasModal] = useState(false);
+  const [solicitudesCert, setSolicitudesCert] = useState([]);
+  const [solicitudesCertCount, setSolicitudesCertCount] = useState(0);
+  const [prefillCert, setPrefillCert] = useState(null);
   const [concurrentUsers, setConcurrentUsers] = useState(0);
   const [taskStats, setTaskStats] = useState({ pending: 0, inProgress: 0, completed: 0, total: 0 });
   const [areaStats, setAreaStats] = useState([]);
@@ -100,6 +105,16 @@ const Admin2Dashboard = () => {
       }
     } catch (err) {
       console.error('Error alertas:', err);
+    }
+  };
+
+  const fetchSolicitudesCert = async () => {
+    try {
+      const res = await getSolicitudesCert();
+      setSolicitudesCert(res?.solicitudes || []);
+      setSolicitudesCertCount(res?.total || 0);
+    } catch (err) {
+      console.error('Error solicitudes cert:', err);
     }
   };
 
@@ -159,6 +174,27 @@ const Admin2Dashboard = () => {
     }
   };
 
+  const handleAceptarSolicitudCert = async (solicitud) => {
+    try {
+      await atenderSolicitudCert(solicitud.id, 'aceptar');
+      setPrefillCert(solicitud.datos);
+      setActiveTab('certificado');
+      setShowAlertasModal(false);
+      fetchSolicitudesCert();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  };
+
+  const handleRechazarSolicitudCert = async (id) => {
+    try {
+      await atenderSolicitudCert(id, 'rechazar');
+      fetchSolicitudesCert();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  };
+
   const showAlertDetail = (alerta) => {
     if (alerta?.empleado_info) {
       const e = alerta.empleado_info;
@@ -172,11 +208,13 @@ const Admin2Dashboard = () => {
     fetchStats();
     fetchAlertsCount();
     fetchAllActivity();
+    fetchSolicitudesCert();
 
     const interval = setInterval(() => {
       fetchStats();
       fetchAlertsCount();
       fetchAllActivity();
+      fetchSolicitudesCert();
     }, 30000);
 
     return () => clearInterval(interval);
@@ -229,7 +267,7 @@ const Admin2Dashboard = () => {
       case 'certificado':
         return (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <CertificadoSection />
+            <CertificadoSection prefill={prefillCert} onPrefillUsed={() => setPrefillCert(null)} />
           </div>
         );
       case 'configuraciones':
@@ -525,12 +563,12 @@ const Admin2Dashboard = () => {
                 <RefreshCw size={16}/>
               </button>
             )}
-            <button onClick={() => alertasCount > 0 && setShowAlertasModal(true)}
+            <button onClick={() => (alertasCount > 0 || solicitudesCertCount > 0) && setShowAlertasModal(true)}
               className="relative p-2 text-slate-400 hover:text-[#001e33] hover:bg-slate-100 rounded-xl transition-all">
               <Bell size={18}/>
-              {alertasCount > 0 && (
+              {(alertasCount + solicitudesCertCount) > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] font-black flex items-center justify-center">
-                  {alertasCount}
+                  {alertasCount + solicitudesCertCount}
                 </span>
               )}
             </button>
@@ -562,6 +600,9 @@ const Admin2Dashboard = () => {
         onViewDetail={showAlertDetail}
         onAtender={handleMarkAsRead}
         onEliminar={handleEliminarAlerta}
+        solicitudesCert={solicitudesCert}
+        onAceptarCert={handleAceptarSolicitudCert}
+        onRechazarCert={handleRechazarSolicitudCert}
       />
     </div>
   );
@@ -587,88 +628,147 @@ const KpiCard = ({ label, value, sub, icon, iconBg, iconColor, accent, highlight
   </div>
 );
 
-const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEliminar }) => {
+const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEliminar, solicitudesCert, onAceptarCert, onRechazarCert }) => {
+  const [tab, setTab] = useState('alertas');
   if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}/>
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-red-50/50">
+
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-red-100 rounded-xl"><AlertTriangle className="text-red-600" size={24}/></div>
-            <div>
-              <h3 className="text-lg font-bold text-[#001e33]">Alertas del Sistema</h3>
-              <p className="text-xs text-slate-500">Solicitudes de recuperación de contraseña</p>
-            </div>
+            <div className="p-2 bg-slate-100 rounded-xl"><Bell className="text-slate-600" size={20}/></div>
+            <h3 className="text-lg font-bold text-[#001e33]">Notificaciones</h3>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
             <X size={20} className="text-slate-400"/>
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
-          {alertas.length === 0 ? (
-            <div className="text-center py-10">
-              <ShieldAlert size={48} className="mx-auto text-slate-300 mb-4"/>
-              <p className="text-slate-500">No hay alertas pendientes</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {alertas.map(alerta => (
-                <div
-                  key={alerta.id}
-                  className={`p-4 rounded-2xl border ${alerta.usuario_existe ? 'bg-red-50/50 border-red-100' : 'bg-amber-50/50 border-amber-100'}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm ${alerta.usuario_existe ? 'bg-red-500' : 'bg-amber-500'}`}>
-                        {alerta.nombre?.charAt(0).toUpperCase() || '?'}
+        {/* Tabs */}
+        <div className="flex border-b border-slate-100 px-6">
+          <button onClick={() => setTab('alertas')}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${tab === 'alertas' ? 'border-red-500 text-red-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+            <AlertTriangle size={13}/> Alertas
+            {alertas.length > 0 && <span className="px-1.5 py-0.5 bg-red-100 text-red-600 rounded-full text-[9px] font-black">{alertas.length}</span>}
+          </button>
+          <button onClick={() => setTab('certificados')}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${tab === 'certificados' ? 'border-[#001e33] text-[#001e33]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+            <FileText size={13}/> Certificados
+            {solicitudesCert.length > 0 && <span className="px-1.5 py-0.5 bg-[#001e33]/10 text-[#001e33] rounded-full text-[9px] font-black">{solicitudesCert.length}</span>}
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto max-h-[55vh]">
+
+          {/* Tab: Alertas de contraseña */}
+          {tab === 'alertas' && (
+            alertas.length === 0 ? (
+              <div className="text-center py-10">
+                <ShieldAlert size={48} className="mx-auto text-slate-300 mb-4"/>
+                <p className="text-slate-500">No hay alertas pendientes</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {alertas.map(alerta => (
+                  <div key={alerta.id}
+                    className={`p-4 rounded-2xl border ${alerta.usuario_existe ? 'bg-red-50/50 border-red-100' : 'bg-amber-50/50 border-amber-100'}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm ${alerta.usuario_existe ? 'bg-red-500' : 'bg-amber-500'}`}>
+                          {alerta.nombre?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-800">{alerta.nombre || 'Desconocido'}</p>
+                          <p className="text-xs text-slate-500">{alerta.email}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {new Date(alerta.timestamp).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-slate-800">{alerta.nombre || 'Desconocido'}</p>
-                        <p className="text-xs text-slate-500">{alerta.email}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {new Date(alerta.timestamp).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
-                        </p>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${alerta.usuario_existe ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}>
+                          {alerta.usuario_existe ? 'Usuario Existe' : 'No Registrado'}
+                        </span>
+                        <button onClick={() => onViewDetail(alerta)} className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors" title="Ver detalle">
+                          <Eye size={14} className="text-slate-600"/>
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${alerta.usuario_existe ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}>
-                        {alerta.usuario_existe ? 'Usuario Existe' : 'No Registrado'}
-                      </span>
-                      <button
-                        onClick={() => onViewDetail(alerta)}
-                        className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-                        title="Ver detalle"
-                      >
-                        <Eye size={14} className="text-slate-600"/>
+                    {alerta.empleado_info && (
+                      <div className="mt-3 pt-3 border-t border-red-100/50 text-xs text-slate-600">
+                        <span className="font-semibold">Área:</span> {alerta.empleado_info.area || 'N/A'} |{' '}
+                        <span className="font-semibold">Cargo:</span> {alerta.empleado_info.cargo || 'N/A'}
+                      </div>
+                    )}
+                    <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
+                      <button onClick={() => onAtender(alerta.id)} className="flex items-center gap-2 px-3 py-2 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg hover:bg-emerald-200 transition-colors">
+                        <CheckCircle size={14}/> Marcar Atendida
+                      </button>
+                      <button onClick={() => onEliminar(alerta.id)} className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 text-xs font-semibold rounded-lg hover:bg-red-200 transition-colors ml-auto">
+                        <Trash2 size={14}/> Eliminar
                       </button>
                     </div>
                   </div>
-                  {alerta.empleado_info && (
-                    <div className="mt-3 pt-3 border-t border-red-100/50 text-xs text-slate-600">
-                      <span className="font-semibold">Área:</span> {alerta.empleado_info.area || 'N/A'} |{' '}
-                      <span className="font-semibold">Cargo:</span> {alerta.empleado_info.cargo || 'N/A'}
-                    </div>
-                  )}
-                  <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
-                    <button
-                      onClick={() => onAtender(alerta.id)}
-                      className="flex items-center gap-2 px-3 py-2 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg hover:bg-emerald-200 transition-colors"
-                    >
-                      <CheckCircle size={14}/> Marcar Atendida
-                    </button>
-                    <button
-                      onClick={() => onEliminar(alerta.id)}
-                      className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 text-xs font-semibold rounded-lg hover:bg-red-200 transition-colors ml-auto"
-                    >
-                      <Trash2 size={14}/> Eliminar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
           )}
+
+          {/* Tab: Solicitudes de certificado */}
+          {tab === 'certificados' && (
+            solicitudesCert.length === 0 ? (
+              <div className="text-center py-10">
+                <FileText size={48} className="mx-auto text-slate-300 mb-4"/>
+                <p className="text-slate-500">No hay solicitudes de certificado pendientes</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {solicitudesCert.map(sol => {
+                  const d = sol.datos || {};
+                  const fecha = new Date(sol.creado_en).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+                  return (
+                    <div key={sol.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/40">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#001e33] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                          {d.nombre_empleado?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-[#001e33] text-sm">{d.nombre_empleado || '—'}</p>
+                          <p className="text-xs text-slate-500">{d.nombre_cargo || '—'} · {d.correo_corporativo || '—'}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{fecha}</p>
+                        </div>
+                        <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-[10px] font-bold uppercase">Pendiente</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-white rounded-xl p-3 border border-slate-100">
+                        <div><span className="font-semibold text-slate-400">Dirigido a:</span> {d.destinatario || '—'}</div>
+                        <div><span className="font-semibold text-slate-400">Contrato:</span> {d.tipo_contrato || '—'}</div>
+                        <div><span className="font-semibold text-slate-400">Salario:</span> {d.salario || '—'}</div>
+                        <div><span className="font-semibold text-slate-400">Fecha:</span> {d.fecha || '—'}</div>
+                        {d.ingresos_adicionales && d.ingresos_adicionales !== 'No aplica' && (
+                          <div className="col-span-2"><span className="font-semibold text-slate-400">Ingresos adicionales:</span> {d.ingresos_adicionales}</div>
+                        )}
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <button onClick={() => onAceptarCert(sol)}
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-500 text-white text-xs font-bold rounded-xl hover:bg-emerald-600 transition-colors">
+                          <CheckCircle size={13}/> Aceptar y generar
+                        </button>
+                        <button onClick={() => onRechazarCert(sol.id)}
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-red-100 text-red-700 text-xs font-bold rounded-xl hover:bg-red-200 transition-colors">
+                          <X size={13}/> Rechazar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          )}
+
         </div>
 
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">

@@ -13,7 +13,7 @@ const hoy = () => {
 
 // ─── Componente principal ────────────────────────────────────────────────────
 
-const CertificadoSection = () => {
+const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
   const [empleados, setEmpleados]     = useState([]);
   const [loadingEmp, setLoadingEmp]   = useState(true);
   const [seleccionado, setSeleccionado] = useState(null);
@@ -43,6 +43,28 @@ const CertificadoSection = () => {
       .catch(() => setEmpleados([]))
       .finally(() => setLoadingEmp(false));
   }, []);
+
+  // ── Pre-llenado desde solicitud (AutoGestion) ──────────────────────────────
+  useEffect(() => {
+    if (!prefill || empleados.length === 0) return;
+    setForm(prev => ({
+      ...prev,
+      fecha:                prefill.fecha               || hoy(),
+      destinatario:         prefill.destinatario        || '',
+      tipo_contrato:        prefill.tipo_contrato       || '',
+      salario:              prefill.salario             || '',
+      ingresos_adicionales: prefill.ingresos_adicionales || '',
+    }));
+    if (prefill.id_empleado) {
+      const emp = empleados.find(e => String(e.id_empleado) === String(prefill.id_empleado));
+      if (emp) {
+        setSeleccionado(emp);
+        setEmailDestino(emp.correo_corporativo || '');
+        setAreaFiltro(emp.nombre_area || '');
+      }
+    }
+    if (onPrefillUsed) onPrefillUsed();
+  }, [prefill, empleados]);
 
   const handleChange = (e) =>
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));

@@ -62,4 +62,8 @@ urlpatterns = [
     path('gestor-pdf/', views.gestor_pdf, name='gestor_pdf'),
     # Certificado de empleo — envío por correo vía n8n
     path('enviar-certificado/', views.enviar_certificado_empleo, name='enviar_certificado'),
+    # Solicitudes de certificado (JSON temporal, sin modelo)
+    path('solicitudes-cert/',                            views.listar_solicitudes_cert, name='listar_solicitudes_cert'),
+    path('solicitudes-cert/crear/',                      views.crear_solicitud_cert,    name='crear_solicitud_cert'),
+    path('solicitudes-cert/<str:solicitud_id>/atender/', views.atender_solicitud_cert,  name='atender_solicitud_cert'),
 ]

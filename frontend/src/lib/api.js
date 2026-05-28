@@ -635,3 +635,12 @@ export const enviarCertificadoEmpleo = (data) =>
     method: 'POST',
     body: JSON.stringify(data),
   });
+
+// ── SOLICITUDES DE CERTIFICADO (json temporal) ────────────────────────────
+export const crearSolicitudCert = (data) =>
+  fetchApi('/solicitudes-cert/crear/', { method: 'POST', body: JSON.stringify(data) });
+
+export const getSolicitudesCert = () => fetchApi('/solicitudes-cert/');
+
+export const atenderSolicitudCert = (id, accion) =>
+  fetchApi(`/solicitudes-cert/${id}/atender/`, { method: 'PATCH', body: JSON.stringify({ accion }) });
