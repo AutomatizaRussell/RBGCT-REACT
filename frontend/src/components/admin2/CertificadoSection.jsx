@@ -196,16 +196,25 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     <>
       <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400&display=swap" rel="stylesheet" />
       <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; }
-          .certificado-preview {
-            box-shadow: none !important;
-            border: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-        }
+         @media print {
+           @page { 
+             margin: 0; /* Quita los márgenes por defecto del navegador */
+             size: A4 portrait;
+           }
+           body { 
+             background: white !important; 
+             -webkit-print-color-adjust: exact; /* Fuerza a imprimir los colores de fondo/bordes */
+             print-color-adjust: exact;
+           }
+           .certificado-preview {
+             box-shadow: none !important;
+             border: none !important;
+             margin: 0 !important;
+             padding: 0 !important;
+             width: 100% !important; /* Evita desbordes horizontales */
+             min-height: auto !important; /* Evita que genere una segunda hoja en blanco */
+           }
+         }
       `}</style>
 
       <div className="flex gap-6 h-full no-print bg-slate-50 p-6 overflow-hidden">
