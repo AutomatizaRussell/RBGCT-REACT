@@ -36,8 +36,8 @@ prod:
 		echo "❌ .env.prod no existe"; \
 		exit 1; \
 	fi
-	docker-compose -f docker-compose.prod.yml up -d
-	docker-compose -f docker-compose.prod.yml ps
+	docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
+	docker-compose --env-file .env.prod -f docker-compose.prod.yml ps
 
 build:
 	@echo "🔨 Construyendo imágenes..."
