@@ -5,6 +5,13 @@ import { exportEmpleadosCSV, exportEmpleadosXLSX } from '../../lib/exportEmplead
 import RoleModal from './RoleModal';
 import AuthContext from '../../context/AuthContext';
 
+const getCertPermisos = () => JSON.parse(localStorage.getItem('cert_permisos') || '[]');
+const toggleCertPermiso = (id, value) => {
+  const cur = getCertPermisos();
+  const next = value ? [...new Set([...cur, id])] : cur.filter(x => x !== id);
+  localStorage.setItem('cert_permisos', JSON.stringify(next));
+};
+
 const UserTable = () => {
   const { 
     isSuperAdmin, 
@@ -35,6 +42,8 @@ const UserTable = () => {
   const [editFormData, setEditFormData] = useState({});
   const [cargos, setCargos] = useState([]);
   const [areas, setAreas] = useState([]);
+
+  const [certPermEdit, setCertPermEdit] = useState(false);
 
   // Estados para cambio de contraseña
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -159,6 +168,7 @@ const UserTable = () => {
       estado: user.estado || 'ACTIVA',
       permitir_edicion_datos: user.permitir_edicion_datos || false
     });
+    setCertPermEdit(getCertPermisos().includes(user.id_empleado));
   };
 
   const handleSaveEdit = async () => {
@@ -167,6 +177,7 @@ const UserTable = () => {
       console.log('[SAVE EDIT] Datos a enviar:', editFormData);
       console.log('[SAVE EDIT] permitir_edicion_datos:', editFormData.permitir_edicion_datos);
       await updateEmpleado(editingUser.id_empleado, editFormData);
+      toggleCertPermiso(editingUser.id_empleado, certPermEdit);
       await fetchUsers();
       setEditingUser(null);
       alert('Perfil actualizado correctamente');
@@ -787,7 +798,7 @@ const UserTable = () => {
                 
                 {/* Toggle para permitir edición de datos */}
                 <div className="flex items-center gap-3 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-                  <input 
+                  <input
                     type="checkbox"
                     id="permitir_edicion"
                     name="permitir_edicion_datos"
@@ -797,6 +808,20 @@ const UserTable = () => {
                   />
                   <label htmlFor="permitir_edicion" className="text-sm font-medium text-indigo-900 cursor-pointer">
                     Permitir que el usuario edite su propio perfil
+                  </label>
+                </div>
+
+                {/* Toggle para expedir certificados */}
+                <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                  <input
+                    type="checkbox"
+                    id="expedir_cert"
+                    checked={certPermEdit}
+                    onChange={(e) => setCertPermEdit(e.target.checked)}
+                    className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
+                  />
+                  <label htmlFor="expedir_cert" className="text-sm font-medium text-emerald-900 cursor-pointer">
+                    Puede expedir certificados de empleo
                   </label>
                 </div>
               </div>

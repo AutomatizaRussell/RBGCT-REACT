@@ -21,7 +21,9 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab }) => {
 
   const navigate = useNavigate();
 
-  const { logout } = useAuth();
+  const { logout, empleadoData } = useAuth();
+  const puedeExpedirCert = JSON.parse(localStorage.getItem('cert_permisos') || '[]')
+    .includes(empleadoData?.id_empleado);
 
 
 
@@ -195,17 +197,19 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab }) => {
           <BookOpen size={18}/> Reglamento
         </button>
 
-        {/* CERTIFICADO DE EMPLEO */}
-        <button
-          onClick={() => handleNavigation('certificado')}
-          className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
-            activeTab === 'certificado'
-            ? 'bg-white/10 text-white shadow-lg'
-            : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <FileText size={18}/> Certificado de Empleo
-        </button>
+        {/* CERTIFICADO DE EMPLEO — solo si tiene permiso */}
+        {puedeExpedirCert && (
+          <button
+            onClick={() => handleNavigation('certificado')}
+            className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
+              activeTab === 'certificado'
+              ? 'bg-white/10 text-white shadow-lg'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <FileText size={18}/> Certificado de Empleo
+          </button>
+        )}
 
 
 

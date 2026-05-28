@@ -64,7 +64,9 @@ const Admin2Dashboard = () => {
   const [taskStats, setTaskStats] = useState({ pending: 0, inProgress: 0, completed: 0, total: 0 });
   const [areaStats, setAreaStats] = useState([]);
   const [lastRefresh, setLastRefresh] = useState(new Date());
-  const { user } = useAuth();
+  const { user, empleadoData } = useAuth();
+  const puedeExpedirCert = JSON.parse(localStorage.getItem('cert_permisos') || '[]')
+    .includes(empleadoData?.id_empleado);
 
   const fetchStats = async () => {
     try {
@@ -208,13 +210,13 @@ const Admin2Dashboard = () => {
     fetchStats();
     fetchAlertsCount();
     fetchAllActivity();
-    fetchSolicitudesCert();
+    if (puedeExpedirCert) fetchSolicitudesCert();
 
     const interval = setInterval(() => {
       fetchStats();
       fetchAlertsCount();
       fetchAllActivity();
-      fetchSolicitudesCert();
+      if (puedeExpedirCert) fetchSolicitudesCert();
     }, 30000);
 
     return () => clearInterval(interval);
@@ -563,12 +565,12 @@ const Admin2Dashboard = () => {
                 <RefreshCw size={16}/>
               </button>
             )}
-            <button onClick={() => (alertasCount > 0 || solicitudesCertCount > 0) && setShowAlertasModal(true)}
+            <button onClick={() => (alertasCount > 0 || (puedeExpedirCert && solicitudesCertCount > 0)) && setShowAlertasModal(true)}
               className="relative p-2 text-slate-400 hover:text-[#001e33] hover:bg-slate-100 rounded-xl transition-all">
               <Bell size={18}/>
-              {(alertasCount + solicitudesCertCount) > 0 && (
+              {(alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0)) > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] font-black flex items-center justify-center">
-                  {alertasCount + solicitudesCertCount}
+                  {alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0)}
                 </span>
               )}
             </button>
@@ -600,9 +602,10 @@ const Admin2Dashboard = () => {
         onViewDetail={showAlertDetail}
         onAtender={handleMarkAsRead}
         onEliminar={handleEliminarAlerta}
-        solicitudesCert={solicitudesCert}
+        solicitudesCert={puedeExpedirCert ? solicitudesCert : []}
         onAceptarCert={handleAceptarSolicitudCert}
         onRechazarCert={handleRechazarSolicitudCert}
+        showCertTab={puedeExpedirCert}
       />
     </div>
   );
@@ -628,7 +631,7 @@ const KpiCard = ({ label, value, sub, icon, iconBg, iconColor, accent, highlight
   </div>
 );
 
-const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEliminar, solicitudesCert, onAceptarCert, onRechazarCert }) => {
+const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEliminar, solicitudesCert, onAceptarCert, onRechazarCert, showCertTab }) => {
   const [tab, setTab] = useState('alertas');
   if (!isOpen) return null;
 
@@ -655,11 +658,13 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
             <AlertTriangle size={13}/> Alertas
             {alertas.length > 0 && <span className="px-1.5 py-0.5 bg-red-100 text-red-600 rounded-full text-[9px] font-black">{alertas.length}</span>}
           </button>
-          <button onClick={() => setTab('certificados')}
-            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${tab === 'certificados' ? 'border-[#001e33] text-[#001e33]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
-            <FileText size={13}/> Certificados
-            {solicitudesCert.length > 0 && <span className="px-1.5 py-0.5 bg-[#001e33]/10 text-[#001e33] rounded-full text-[9px] font-black">{solicitudesCert.length}</span>}
-          </button>
+          {showCertTab && (
+            <button onClick={() => setTab('certificados')}
+              className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${tab === 'certificados' ? 'border-[#001e33] text-[#001e33]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+              <FileText size={13}/> Certificados
+              {solicitudesCert.length > 0 && <span className="px-1.5 py-0.5 bg-[#001e33]/10 text-[#001e33] rounded-full text-[9px] font-black">{solicitudesCert.length}</span>}
+            </button>
+          )}
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[55vh]">
