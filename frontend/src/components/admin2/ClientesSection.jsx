@@ -1584,7 +1584,7 @@ export default function ClientesSection() {
           );
         })}
         <button
-          onClick={() => navigate('/admin2/formularios-sqf')}
+          onClick={() => navigate('/ver-sqf')}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all text-slate-500 hover:text-slate-700 hover:bg-slate-100 ml-1"
         >
           <ExternalLink size={14}/> Formularios SQF
