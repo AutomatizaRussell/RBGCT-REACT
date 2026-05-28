@@ -1,1 +1,17 @@
 @import "tailwindcss";
+
+.input-modern {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-modern:focus {
+  border-color: #001e33;
+  box-shadow: 0 0 0 3px rgba(0, 30, 51, 0.08);
+}
