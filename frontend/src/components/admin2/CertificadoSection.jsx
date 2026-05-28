@@ -118,7 +118,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
   const handleEmpresaSelect = (e) => {
     const v = e.target.value;
     if (v === 'GLT') setForm(prev => ({ ...prev, nombre_empresa: 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S', nit_empresa: '900.930.391-1' }));
-    else if (v === 'GCT') setForm(prev => ({ ...prev, nombre_empresa: 'GCT RUSSELL BEDFORD', nit_empresa: '900.000.000-0' }));
+    else if (v === 'GCT') setForm(prev => ({ ...prev, nombre_empresa: 'GCT RUSSELL BEDFORD', nit_empresa: '900.930.391-1' }));
   };
 
   const handleEmpleado = (e) => {

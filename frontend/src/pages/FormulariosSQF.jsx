@@ -18,6 +18,7 @@ export default function FormulariosSQF() {
     // ==========================================
     // ESTADOS (Reemplazan las variables de app.js)
     // ==========================================
+    
     const [activeSection, setActiveSection] = useState('clients');
     const [clients, setClients] = useState([]);
     const [contracts, setContracts] = useState([]);
