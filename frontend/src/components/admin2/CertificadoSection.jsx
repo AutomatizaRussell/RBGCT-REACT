@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAllEmpleados, enviarCertificadoEmpleo } from '../../lib/api';
-import { Printer, User, RefreshCw, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { Printer, User, RefreshCw, Send, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -54,29 +54,25 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
   const [areaFiltro, setAreaFiltro]     = useState('');
   const [emailDestino, setEmailDestino] = useState('');
   const [enviando, setEnviando]         = useState(false);
-  const [envioStatus, setEnvioStatus]   = useState(null); // 'ok' | 'error' | null
+  const [envioStatus, setEnvioStatus]   = useState(null);
 
-  // Campos que vienen del formulario (externos)
   const [form, setForm] = useState({
-    fecha:                hoy(),
-    consecutivo:          '',
-    destinatario:         '',
-    tipo_entidad:         '',
-    tipo_contrato:        '',
-    incluir_salario:      'Sí',
-    salario:              'DOS MILLONES DE PESOS ($2.000.000)',
-    auxilio_transporte:  'No',
+    fecha: hoy(),
+    consecutivo: '',
+    destinatario: '',
+    tipo_entidad: '',
+    tipo_contrato: '',
+    incluir_salario: 'Sí',
+    salario: 'DOS MILLONES DE PESOS ($2.000.000)',
+    auxilio_transporte: 'No',
     ingresos_adicionales: '',
-    // Empresa
-    nombre_empresa:       'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S',
-    nit_empresa:          '900.930.391-1',
-    // Firma
-    firmante_nombre:      'PAOLA ANDREA AGUILAR TAMAYO',
-    firmante_cc:          '21468161',
-    firmante_cargo:       'LIDER DE GESTIÓN HUMANA',
+    nombre_empresa: 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S',
+    nit_empresa: '900.930.391-1',
+    firmante_nombre: 'PAOLA ANDREA AGUILAR TAMAYO',
+    firmante_cc: '21468161',
+    firmante_cargo: 'LIDER DE GESTIÓN HUMANA',
   });
 
-  // ── Carga empleados ────────────────────────────────────────────────────────
   useEffect(() => {
     getAllEmpleados()
       .then(data => setEmpleados(Array.isArray(data) ? data : data.results || []))
@@ -84,18 +80,17 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
       .finally(() => setLoadingEmp(false));
   }, []);
 
-  // ── Pre-llenado desde solicitud (AutoGestion) ──────────────────────────────
   useEffect(() => {
     if (!prefill || empleados.length === 0) return;
     setForm(prev => ({
       ...prev,
-      fecha:                prefill.fecha               || hoy(),
-      destinatario:         prefill.nombre_entidad      || prefill.destinatario || '',
-      tipo_entidad:         prefill.tipo_entidad        || '',
-      tipo_contrato:        prefill.tipo_contrato       || '',
-      incluir_salario:      prefill.incluir_salario     || 'Sí',
-      salario:              prefill.salario             || 'DOS MILLONES DE PESOS ($2.000.000)',
-      auxilio_transporte:  prefill.auxilio_transporte  || 'No',
+      fecha: prefill.fecha || hoy(),
+      destinatario: (prefill.nombre_entidad || prefill.destinatario || '').toUpperCase(),
+      tipo_entidad: prefill.tipo_entidad || '',
+      tipo_contrato: prefill.tipo_contrato || '',
+      incluir_salario: prefill.incluir_salario || 'Sí',
+      salario: prefill.salario || 'DOS MILLONES DE PESOS ($2.000.000)',
+      auxilio_transporte: prefill.auxilio_transporte || 'No',
       ingresos_adicionales: prefill.ingresos_adicionales || '',
     }));
     if (prefill.id_empleado) {
@@ -110,540 +105,250 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
   }, [prefill, empleados]);
 
   const handleChange = (e) =>
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value.toUpperCase() }));
 
   const handleSalarioBlur = (e) => {
     const raw = e.target.value.trim().replace(/[.\s]/g, '').replace(/,/g, '');
     const num = parseInt(raw, 10);
-    if (!isNaN(num) && num > 0 && /^\d+$/.test(raw)) {
-      const letras = numeroALetras(num);
-      if (letras) setForm(prev => ({ ...prev, salario: letras }));
+    if (!isNaN(num) && num > 0) {
+      setForm(prev => ({ ...prev, salario: numeroALetras(num) }));
     }
   };
 
   const handleEmpresaSelect = (e) => {
     const v = e.target.value;
     if (v === 'GLT') setForm(prev => ({ ...prev, nombre_empresa: 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S', nit_empresa: '900.930.391-1' }));
-    else if (v === 'GCT') setForm(prev => ({ ...prev, nombre_empresa: 'GCT RUSSELL BEDFORD', nit_empresa: '' }));
+    else if (v === 'GCT') setForm(prev => ({ ...prev, nombre_empresa: 'GCT RUSSELL BEDFORD', nit_empresa: '900.000.000-0' }));
   };
 
   const handleEmpleado = (e) => {
     const emp = empleados.find(em => String(em.id_empleado) === e.target.value);
     setSeleccionado(emp || null);
-    // Auto-rellenar con el correo corporativo del empleado
     setEmailDestino(emp?.correo_corporativo || '');
   };
 
-  // Áreas únicas derivadas de la lista de empleados activos
-  const areas = [...new Set(
-    empleados.filter(e => e.estado === 'ACTIVA' && e.nombre_area).map(e => e.nombre_area)
-  )].sort();
+  const areas = [...new Set(empleados.filter(e => e.estado === 'ACTIVA' && e.nombre_area).map(e => e.nombre_area))].sort();
+  const empleadosFiltrados = empleados.filter(e => e.estado === 'ACTIVA').filter(e => !areaFiltro || e.nombre_area === areaFiltro);
 
-  // Empleados filtrados por área seleccionada
-  const empleadosFiltrados = empleados
-    .filter(e => e.estado === 'ACTIVA')
-    .filter(e => !areaFiltro || e.nombre_area === areaFiltro);
-
-  // ── Datos del certificado ─────────────────────────────────────────────────
   const emp = seleccionado;
-  const nombreEmp   = emp?.nombre_completo         || '[NOMBRE COMPLETO DEL EMPLEADO]';
-  const tipoDoc     = emp?.tipo_documento           || '[TIPO DE DOCUMENTO]';
-  const numDoc      = emp?.numero_documento         || '[NÚMERO DE DOCUMENTO]';
-  
-  // Aplicación del filtro de formato formal al cargo del empleado
-  const cargoRaw    = emp?.nombre_cargo || '';
-  const cargo       = cargoRaw ? limpiarCargo(cargoRaw) : '[CARGO]';
-
-  const fechaIngreso= emp?.fecha_ingreso
+  const nombreEmp = emp?.nombre_completo || '[NOMBRE COMPLETO DEL EMPLEADO]';
+  const tipoDoc = emp?.tipo_documento || 'C.C.';
+  const numDoc = emp?.numero_documento || '[NÚMERO]';
+  const cargo = emp?.nombre_cargo ? limpiarCargo(emp.nombre_cargo) : '[CARGO]';
+  const fechaIngreso = emp?.fecha_ingreso
     ? new Date(emp.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
-    : '[FECHA DE INGRESO]';
+    : '[FECHA]';
 
   const handlePrint = () => window.print();
 
-  const handleEnviarCorreo = async () => {
-    if (!emailDestino.trim()) return;
-    setEnviando(true);
-    setEnvioStatus(null);
-    try {
-      // 1. Capturar el elemento del certificado como imagen
-      const { default: html2canvas } = await import('html2canvas');
-      const { jsPDF } = await import('jspdf');
-
-      const elemento = document.querySelector('.certificado-preview');
-      const canvas   = await html2canvas(elemento, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-      const imgData  = canvas.toDataURL('image/png');
-
-      // 2. Generar PDF tamaño carta
-      const pdf    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-      const pdfW   = pdf.internal.pageSize.getWidth();
-      const pdfH   = (canvas.height * pdfW) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
-
-      // 3. Convertir a base64 via ArrayBuffer (compatible con jsPDF v4)
-      const arrayBuffer = pdf.output('arraybuffer');
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = '';
-      bytes.forEach(b => { binary += String.fromCharCode(b); });
-      const pdfBase64 = btoa(binary);
-
-      // 4. Enviar al backend con el PDF adjunto
-      await enviarCertificadoEmpleo({
-        email_destino:        emailDestino.trim(),
-        nombre_empleado:      nombreEmp,
-        tipo_documento:       tipoDoc,
-        numero_documento:     numDoc,
-        cargo,
-        fecha_ingreso:        fechaIngreso,
-        destinatario:         form.destinatario,
-        tipo_entidad:         form.tipo_entidad,
-        nombre_empresa:       form.nombre_empresa,
-        nit_empresa:          form.nit_empresa,
-        tipo_contrato:        form.tipo_contrato,
-        incluir_salario:      form.incluir_salario,
-        salario:              form.salario,
-        auxilio_transporte:   form.auxilio_transporte,
-        ingresos_adicionales: form.ingresos_adicionales,
-        fecha:                form.fecha,
-        consecutivo:          form.consecutivo,
-        firmante_nombre:      form.firmante_nombre,
-        firmante_cc:          form.firmante_cc,
-        firmante_cargo:       form.firmante_cargo,
-        // PDF adjunto
-        pdf_base64:           pdfBase64,
-        pdf_nombre:           `Certificado_${nombreEmp.replace(/\s+/g, '_')}_${form.consecutivo || 'SN'}.pdf`,
-      });
-      setEnvioStatus('ok');
-    } catch (err) {
-      console.error('[Certificado] Error al generar/enviar PDF:', err);
-      setEnvioStatus('error');
-    } finally {
-      setEnviando(false);
-      setTimeout(() => setEnvioStatus(null), 4000);
-    }
-  };
-
   return (
     <>
-      {/* ── CSS de impresión ── */}
+      <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap" rel="stylesheet" />
       <style>{`
         @media print {
           .no-print { display: none !important; }
-          .solo-print { display: block !important; }
-          body { background: white !important; margin: 0; }
+          body { background: white !important; }
           .certificado-preview {
             box-shadow: none !important;
             border: none !important;
             margin: 0 !important;
-            padding: 40px 60px !important;
-            max-width: 100% !important;
-            width: 100% !important;
+            padding: 0 !important;
           }
-        }
-        @media screen {
-          .solo-print { display: none; }
         }
       `}</style>
 
-      <div className="flex gap-6 h-full no-print">
+      <div className="flex gap-6 h-full no-print bg-slate-50 p-6 overflow-hidden">
+        {/* PANEL IZQUIERDO */}
+        <div className="w-96 flex-shrink-0 space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 bg-[#001e33] rounded-lg text-white"><FileText size={20}/></div>
+            <h2 className="text-lg font-bold text-slate-800">Generador Legal</h2>
+          </div>
 
-        {/* ── Panel izquierdo: formulario ─────────────────────────────────── */}
-        <div className="w-80 flex-shrink-0 space-y-4 overflow-y-auto pb-6">
-
-          {/* Selector de empleado */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <User size={13}/> Empleado
-            </p>
-            {loadingEmp ? (
-              <div className="flex items-center gap-2 text-slate-400 text-xs">
-                <RefreshCw size={14} className="animate-spin"/> Cargando...
-              </div>
-            ) : (
-              <>
-                {/* Filtro por área */}
-                <select
-                  value={areaFiltro}
-                  onChange={e => { setAreaFiltro(e.target.value); setSeleccionado(null); setEmailDestino(''); }}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 bg-slate-50"
-                >
+          <Section icon={<User size={14}/>} title="Empleado">
+            {loadingEmp ? <div className="animate-pulse text-xs">Cargando nómina...</div> : (
+              <div className="space-y-3">
+                <select value={areaFiltro} onChange={e => setAreaFiltro(e.target.value)} className="input-modern bg-slate-50">
                   <option value="">— Todas las áreas —</option>
-                  {areas.map(a => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
+                  {areas.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
-
-                {/* Selector de empleado */}
-                <select
-                  onChange={handleEmpleado}
-                  value={emp?.id_empleado || ''}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10"
-                >
+                <select onChange={handleEmpleado} value={emp?.id_empleado || ''} className="input-modern">
                   <option value="">— Seleccionar empleado —</option>
-                  {empleadosFiltrados.map(e => (
-                    <option key={e.id_empleado} value={e.id_empleado}>
-                      {e.nombre_completo}
-                    </option>
-                  ))}
+                  {empleadosFiltrados.map(e => <option key={e.id_empleado} value={e.id_empleado}>{e.nombre_completo}</option>)}
                 </select>
-              </>
-            )}
-
-            {/* Datos auto-llenados del empleado */}
-            {emp && (
-              <div className="bg-slate-50 rounded-xl p-3 space-y-1.5 text-xs text-slate-600">
-                <div><span className="font-semibold">Correo:</span> {emp.correo_corporativo}</div>
-                <div><span className="font-semibold">Doc:</span> {tipoDoc} {numDoc}</div>
-                <div><span className="font-semibold">Cargo original:</span> {cargoRaw}</div>
-                <div><span className="font-semibold">Cargo certificado:</span> <span className="text-emerald-700 font-medium">{cargo}</span></div>
-                <div><span className="font-semibold">Ingreso:</span> {fechaIngreso}</div>
               </div>
             )}
-          </div>
+          </Section>
 
-          {/* Campos externos */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Encabezado</p>
-            <Field label="Fecha" name="fecha" value={form.fecha} onChange={handleChange} />
-            <Field label="Consecutivo" name="consecutivo" value={form.consecutivo} onChange={handleChange} placeholder="Ej: AD-26-151" />
-            <Field label="Nombre entidad destinataria" name="destinatario" value={form.destinatario} onChange={handleChange} placeholder="Ej: BANCOLOMBIA" />
-            <FieldSelect label="Tipo de entidad" name="tipo_entidad" value={form.tipo_entidad} onChange={handleChange}>
-              <option value="">— Sin especificar —</option>
-              <option value="Financiera">Financiera</option>
-              <option value="Universitaria">Universitaria</option>
-              <option value="Gobierno">Gobierno / Entidad Pública</option>
-              <option value="Empresa">Empresa Privada</option>
-              <option value="Salud">Salud / EPS</option>
-              <option value="Otra">Otra</option>
-            </FieldSelect>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Empresa emisora</p>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Seleccionar empresa</label>
-              <select onChange={handleEmpresaSelect} className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 bg-white">
-                <option value="GLT">GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S</option>
+          <Section title="Estructura del Documento">
+            <Field label="Fecha Emisión" name="fecha" value={form.fecha} onChange={handleChange} />
+            <Field label="Consecutivo" name="consecutivo" value={form.consecutivo} onChange={handleChange} placeholder="AD-26-XXX" />
+            <Field label="Destinatario" name="destinatario" value={form.destinatario} onChange={handleChange} />
+            <FieldSelect label="Empresa Emisora" name="emp_selector" onChange={handleEmpresaSelect}>
+                <option value="GLT">GLT GESTIÓN LEGAL</option>
                 <option value="GCT">GCT RUSSELL BEDFORD</option>
-              </select>
-            </div>
-            <Field label="Nombre empresa (editable)" name="nombre_empresa" value={form.nombre_empresa} onChange={handleChange} />
-            <Field label="NIT" name="nit_empresa" value={form.nit_empresa} onChange={handleChange} placeholder="Ej: 900.930.391-1" />
-          </div>
+            </FieldSelect>
+          </Section>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cuerpo</p>
-            <FieldSelect label="Tipo de contrato" name="tipo_contrato" value={form.tipo_contrato} onChange={handleChange}>
-              <option value="">— Seleccionar tipo —</option>
-              <option value="término indefinido">Término Indefinido</option>
-              <option value="término fijo">Término Fijo</option>
+          <Section title="Condiciones Laborales">
+            <FieldSelect label="Tipo Contrato" name="tipo_contrato" value={form.tipo_contrato} onChange={handleChange}>
+              <option value="">— Seleccionar —</option>
+              <option value="término indefinido">Indefinido</option>
+              <option value="término fijo">Fijo</option>
               <option value="obra o labor">Obra o Labor</option>
-              <option value="prestación de servicios">Prestación de Servicios</option>
-              <option value="aprendizaje">Aprendizaje</option>
             </FieldSelect>
-            <FieldSelect label="¿Incluir salario?" name="incluir_salario" value={form.incluir_salario} onChange={handleChange}>
-              <option value="Sí">Sí</option>
-              <option value="No">No</option>
-            </FieldSelect>
-            {form.incluir_salario === 'Sí' && (
-              <Field label="Salario — escribe número y sal del campo para convertir" name="salario" value={form.salario} onChange={handleChange} onBlur={handleSalarioBlur} placeholder="Ej: 3000000 o DOS MILLONES..." />
-            )}
-            <FieldSelect label="¿Auxilio de transporte aplica?" name="auxilio_transporte" value={form.auxilio_transporte} onChange={handleChange}>
-              <option value="Sí">Sí</option>
-              <option value="No">No</option>
-            </FieldSelect>
-            <FieldArea label="Ingresos adicionales" name="ingresos_adicionales" value={form.ingresos_adicionales} onChange={handleChange} placeholder="Ej: comisiones, bonificaciones..." />
-          </div>
+            <div className="flex gap-4">
+              <FieldSelect label="Salario" name="incluir_salario" value={form.incluir_salario} onChange={handleChange}>
+                <option value="Sí">Incluir</option>
+                <option value="No">Omitir</option>
+              </FieldSelect>
+              <FieldSelect label="Auxilio" name="auxilio_transporte" value={form.auxilio_transporte} onChange={handleChange}>
+                <option value="Sí">Sí</option>
+                <option value="No">No</option>
+              </FieldSelect>
+            </div>
+            {form.incluir_salario === 'Sí' && <Field label="Monto Salarial" name="salario" value={form.salario} onChange={handleChange} onBlur={handleSalarioBlur} />}
+          </Section>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Firma</p>
-            <Field label="Nombre del firmante" name="firmante_nombre" value={form.firmante_nombre} onChange={handleChange} placeholder="PAOLA ANDREA AGUILAR TAMAYO" />
-            <Field label="C.C. firmante" name="firmante_cc" value={form.firmante_cc} onChange={handleChange} placeholder="21468161" />
-            <Field label="Cargo firmante" name="firmante_cargo" value={form.firmante_cargo} onChange={handleChange} placeholder="LIDER DE GESTIÓN HUMANA" />
-          </div>
+          <Section title="Responsable de Firma">
+            <Field label="Nombre del Firmante" name="firmante_nombre" value={form.firmante_nombre} onChange={handleChange} />
+            <Field label="Cargo del Firmante" name="firmante_cargo" value={form.firmante_cargo} onChange={handleChange} />
+          </Section>
 
-          {/* Enviar por correo */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <Send size={13}/> Enviar por correo
-            </p>
-            <input
-              type="email"
-              value={emailDestino}
-              onChange={e => setEmailDestino(e.target.value)}
-              placeholder="correo@destino.com"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10"
-            />
-            <button
-              onClick={handleEnviarCorreo}
-              disabled={enviando || !emailDestino.trim()}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold uppercase tracking-wider hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {enviando
-                ? <><RefreshCw size={14} className="animate-spin"/> Enviando...</>
-                : <><Send size={14}/> Enviar certificado</>}
-            </button>
-
-            {/* Feedback */}
-            {envioStatus === 'ok' && (
-              <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
-                <CheckCircle size={14}/> Certificado enviado correctamente
-              </div>
-            )}
-            {envioStatus === 'error' && (
-              <div className="flex items-center gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
-                <AlertCircle size={14}/> No se pudo enviar. Verifica la conexión con n8n.
-              </div>
-            )}
-          </div>
-
-          {/* Botón imprimir */}
-          <button
-            onClick={handlePrint}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#001e33] text-white rounded-xl text-sm font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-lg"
-          >
-            <Printer size={16}/> Imprimir / Exportar PDF
+          <button onClick={handlePrint} className="w-full py-4 bg-[#001e33] hover:bg-[#002e4d] text-white rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95">
+            <Printer size={18}/> IMPRIMIR DOCUMENTO
           </button>
-
-          {/* Lista de campos */}
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-            <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">Campos a completar</p>
-            <ol className="text-xs text-amber-700 space-y-1 list-decimal list-inside leading-relaxed">
-              <li>Fecha del certificado</li>
-              <li>Consecutivo del documento</li>
-              <li>Nombre y tipo de entidad</li>
-              <li>Nombre completo del empleado <span className="text-amber-500">(auto)</span></li>
-              <li>Tipo de documento <span className="text-amber-500">(auto)</span></li>
-              <li>Número de documento <span className="text-amber-500">(auto)</span></li>
-              <li>Cargo <span className="text-amber-500">(auto cleaned)</span></li>
-              <li>Fecha de ingreso <span className="text-amber-500">(auto)</span></li>
-              <li>Tipo de contrato</li>
-              <li>¿Incluir salario? + monto</li>
-              <li>¿Auxilio de transporte?</li>
-              <li>Nombre del firmante</li>
-              <li>C.C. del firmante</li>
-              <li>Cargo del firmante</li>
-            </ol>
-          </div>
         </div>
 
-        {/* ── Panel derecho: previsualización ─────────────────────────────── */}
-        <div className="flex-1 overflow-auto pb-6">
+        {/* PANEL PREVISUALIZACIÓN */}
+        <div className="flex-1 bg-white rounded-3xl shadow-2xl overflow-y-auto p-12 flex justify-center border border-slate-200">
           <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
         </div>
       </div>
 
-      {/* Versión solo para impresión */}
-      <div className="solo-print">
+      {/* VERSIÓN IMPRESIÓN */}
+      <div className="hidden solo-print">
         <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
       </div>
     </>
   );
 };
 
-// ─── Sub-componente: el certificado en sí (solo inline styles para html2canvas) ──
+// ─── Sub-componente: Certificado Estilizado ──────────────────────────────────
 
 const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, area }) => {
-  const val = (v, placeholder) => v?.trim() || placeholder;
-  const cargoCert = limpiarCargo(cargo);
-  const empresa   = val(form.nombre_empresa, 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S');
-
-  const ff = { sans: 'Arial, Helvetica, sans-serif', serif: 'Georgia, "Times New Roman", serif' };
+  const empresa = form.nombre_empresa || 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S';
+  const fonts = {
+    serif: '"Times New Roman", Times, serif',
+    sans: 'Arial, sans-serif',
+    signature: '"Dancing Script", cursive'
+  };
 
   return (
     <div className="certificado-preview" style={{
-      backgroundColor: '#ffffff', maxWidth: '700px', margin: '0 auto',
-      minHeight: '920px', fontFamily: ff.serif, color: '#1a1a1a',
-      border: '1px solid #d1d5db', boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+      width: '210mm', minHeight: '297mm', padding: '25mm 25mm',
+      backgroundColor: 'white', color: '#1a1a1a', fontFamily: fonts.serif,
+      position: 'relative', fontSize: '12pt', lineHeight: '1.6'
     }}>
-
-      {/* ── Franja superior ── */}
-      <div style={{ height: '7px', backgroundColor: '#001e33' }} />
-
-      {/* ── Membrete ── */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-        padding: '1.5rem 2.75rem 1.25rem', borderBottom: '1px solid #e5e7eb',
-      }}>
-        {/* Logo */}
+      {/* Membrete Minimalista */}
+      <div style={{ borderBottom: '1.5pt solid #001e33', paddingBottom: '10pt', marginBottom: '30pt', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <p style={{ fontSize: '22px', fontWeight: '900', color: '#001e33', letterSpacing: '-0.5px', margin: 0, lineHeight: 1, fontFamily: ff.sans }}>RUSSELL</p>
-          <p style={{ fontSize: '12px', color: '#6b7280', fontWeight: '300', letterSpacing: '0.28em', margin: '2px 0 6px', fontFamily: ff.sans }}>BEDFORD</p>
-          <p style={{ fontSize: '10px', color: '#9ca3af', letterSpacing: '0.04em', margin: 0, fontFamily: ff.sans }}>
-            {empresa}{form.nit_empresa ? ` · NIT ${form.nit_empresa}` : ''}
-          </p>
+            <h1 style={{ margin: 0, fontSize: '24pt', fontWeight: '900', fontFamily: fonts.sans, color: '#001e33' }}>RUSSELL BEDFORD</h1>
+            <p style={{ margin: 0, fontSize: '9pt', fontFamily: fonts.sans, color: '#666', letterSpacing: '2pt' }}>GLOBAL NETWORK · QUALITY MATTERS</p>
         </div>
-        {/* Ref + Fecha */}
-        <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px', fontFamily: ff.sans }}>
-            Medellín, {val(form.fecha, '[FECHA]')}
-          </p>
-          <span style={{
-            display: 'inline-block', border: '1px solid #d1d5db', padding: '3px 10px',
-            borderRadius: '3px', fontSize: '10px', fontWeight: '700', color: '#374151',
-            letterSpacing: '0.12em', fontFamily: ff.sans,
-          }}>
-            {val(form.consecutivo, 'AD-XX-XXX')}
-          </span>
+        <div style={{ textAlign: 'right', fontFamily: fonts.sans, fontSize: '9pt', color: '#444' }}>
+            <p style={{ margin: 0, fontWeight: 'bold' }}>{form.consecutivo || 'REF: AD-2026'}</p>
+            <p style={{ margin: 0 }}>Medellín, {form.fecha}</p>
         </div>
       </div>
 
-      {/* ── Cuerpo del documento ── */}
-      <div style={{ padding: '2rem 2.75rem 2.75rem' }}>
+      {/* Contenido */}
+      <div style={{ padding: '0 5pt' }}>
+        <h2 style={{ textAlign: 'center', textTransform: 'uppercase', fontSize: '14pt', letterSpacing: '3pt', borderBottom: '0.5pt solid #eee', paddingBottom: '10pt', marginBottom: '30pt' }}>Certificación Laboral</h2>
 
-        {/* Título centrado */}
-        <p style={{
-          textAlign: 'center', fontSize: '12px', fontWeight: '700', color: '#001e33',
-          textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: ff.sans,
-          borderBottom: '2px solid #001e33', paddingBottom: '0.6rem', marginBottom: '1.75rem',
-        }}>
-          Certificado de Empleo
-        </p>
-
-        {/* Destinatario */}
-        <div style={{ marginBottom: '1.5rem', fontSize: '13px' }}>
-          <p style={{ margin: '0 0 1px', color: '#374151' }}>Señores</p>
-          <p style={{ margin: '0 0 1px', fontWeight: '700', color: '#001e33', textTransform: 'uppercase' }}>
-            {val(form.destinatario, '[NOMBRE DEL DESTINATARIO]')}
-          </p>
-          {form.tipo_entidad && (
-            <p style={{ margin: '0 0 1px', color: '#6b7280', fontStyle: 'italic', fontSize: '12px' }}>
-              Entidad {form.tipo_entidad}
-            </p>
-          )}
-          <p style={{ margin: 0, color: '#374151' }}>Medellín</p>
+        <div style={{ marginBottom: '25pt' }}>
+            <p style={{ margin: 0 }}>Señores:</p>
+            <p style={{ margin: 0, fontWeight: 'bold', textTransform: 'uppercase' }}>{form.destinatario || 'A QUIEN INTERESE'}</p>
+            <p style={{ margin: 0 }}>Ciudad</p>
         </div>
 
-        {/* Asunto */}
-        <p style={{ fontSize: '13px', margin: '0 0 1.5rem', color: '#1a1a1a' }}>
-          <strong>Asunto:</strong> Certificación laboral
+        <p style={{ textAlign: 'justify', marginBottom: '20pt' }}>
+            La suscrita empresa <strong>{empresa}</strong>, con NIT <strong>{form.nit_empresa}</strong>, hace constar que el(la) señor(a) 
+            <strong> {nombreEmp.toUpperCase()}</strong>, identificado(a) con {tipoDoc} No. <strong>{numDoc}</strong>, se encuentra vinculado(a) con nuestra organización 
+            desde el <strong>{fechaIngreso}</strong>, mediante un contrato a <strong>{form.tipo_contrato || '[TIPO DE CONTRATO]'}</strong>, desempeñando actualmente 
+            el cargo de <strong>{cargo}</strong>{area ? ` en el área de ${area.toUpperCase()}` : ''}.
         </p>
 
-        {/* Cuerpo */}
-        <div style={{ fontSize: '13.5px', lineHeight: '1.9', textAlign: 'justify', color: '#1a1a1a' }}>
-
-          <p style={{ margin: '0 0 1.1rem' }}>
-            La suscrita empresa certifica que{' '}
-            <strong>{(nombreEmp || '').toUpperCase()}</strong>, identificado(a) con{' '}
-            {tipoDoc} N.° <strong>{numDoc}</strong>, labora en{' '}
-            <strong>{empresa}</strong>
-            {form.nit_empresa ? <>, con NIT <strong>{form.nit_empresa}</strong>,</> : ','}{' '}
-            desde el <strong>{fechaIngreso}</strong>, vinculado(a) mediante contrato de{' '}
-            <strong>{val(form.tipo_contrato, '[TIPO DE CONTRATO]')}</strong>,{' '}
-            desempeñando el cargo de <strong>{val(cargoCert, '[CARGO]')}</strong>
-            {area ? <> en el área de <strong>{area.toUpperCase()}</strong></> : ''}.
-          </p>
-
-          {form.incluir_salario === 'Sí' && (
-            <p style={{ margin: '0 0 1.1rem' }}>
-              Devenga un salario mensual de{' '}
-              <strong>{val(form.salario, '[SALARIO EN LETRAS Y CIFRAS]')}</strong>
-              {form.auxilio_transporte === 'Sí'
-                ? <>, más auxilio de transporte de conformidad con la normativa laboral vigente{form.ingresos_adicionales ? `; ${form.ingresos_adicionales}` : ''}.</>
-                : form.ingresos_adicionales
-                  ? <>; {form.ingresos_adicionales}.</>
-                  : '.'
-              }
+        {form.incluir_salario === 'Sí' && (
+            <p style={{ textAlign: 'justify', marginBottom: '20pt' }}>
+                Su remuneración mensual actual es de <strong>{form.salario}</strong>
+                {form.auxilio_transporte === 'Sí' ? ', más auxilio de transporte legal vigente.' : '.'}
+                {form.ingresos_adicionales && ` Adicionalmente percibe: ${form.ingresos_adicionales}.`}
             </p>
-          )}
+        )}
 
-          {form.incluir_salario !== 'Sí' && form.auxilio_transporte === 'Sí' && (
-            <p style={{ margin: '0 0 1.1rem' }}>
-              Recibe auxilio de transporte de conformidad con la normativa laboral vigente
-              {form.ingresos_adicionales ? `; ${form.ingresos_adicionales}` : ''}.
-            </p>
-          )}
-
-          <p style={{ margin: '0 0 1.1rem' }}>
-            La presente certificación se expide a solicitud del interesado(a), para los fines
-            que estime convenientes.
-          </p>
-        </div>
-
-        {/* Cierre */}
-        <p style={{ fontSize: '13.5px', color: '#374151', margin: '2.5rem 0 2.5rem' }}>
-          Atentamente,
+        <p style={{ textAlign: 'justify', marginBottom: '40pt' }}>
+            Para constancia de lo anterior se firma en la ciudad de Medellín, a los {new Date().getDate()} días del mes de {new Date().toLocaleDateString('es-CO', {month: 'long'})} de {new Date().getFullYear()}.
         </p>
 
-        {/* Firma */}
-        <div style={{ borderTop: '1px solid #9ca3af', paddingTop: '0.6rem', width: '260px' }}>
-          <p style={{
-            fontSize: '13px', fontWeight: '700', fontStyle: 'italic',
-            color: '#001e33', margin: '0 0 3px',
-            fontFamily: ff.serif,
-          }}>
-            {val(form.firmante_nombre, '[NOMBRE DEL FIRMANTE]')}
-          </p>
-          {form.firmante_cc && (
-            <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 2px', fontFamily: ff.sans }}>
-              C.C. {form.firmante_cc}
-            </p>
-          )}
-          <p style={{ fontSize: '11px', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 2px', fontFamily: ff.sans }}>
-            {val(form.firmante_cargo, '[CARGO DEL FIRMANTE]')}
-          </p>
-          <p style={{ fontSize: '11px', fontWeight: '700', color: '#001e33', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, fontFamily: ff.sans }}>
-            {empresa}
-          </p>
-        </div>
+        <p style={{ marginBottom: '45pt' }}>Cordialmente,</p>
 
+        {/* ÁREA DE FIRMA MEJORADA */}
+        <div style={{ width: '300pt', borderTop: '1pt solid #000', position: 'relative', marginTop: '50pt' }}>
+            {/* El nombre en cursiva actuando como firma */}
+            <p style={{ 
+                position: 'absolute', 
+                top: '-45pt', 
+                left: '10pt',
+                fontFamily: fonts.signature, 
+                fontSize: '28pt', 
+                color: '#002e4d',
+                opacity: 0.9
+            }}>
+                {form.firmante_nombre.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.substring(1)).join(' ')}
+            </p>
+            
+            <p style={{ margin: '5pt 0 0', fontWeight: 'bold', fontSize: '11pt', textTransform: 'uppercase' }}>{form.firmante_nombre}</p>
+            <p style={{ margin: 0, fontSize: '10pt' }}>{form.firmante_cargo}</p>
+            <p style={{ margin: 0, fontSize: '10pt', fontWeight: 'bold' }}>{empresa}</p>
+            <p style={{ margin: 0, fontSize: '9pt', color: '#666' }}>C.C. {form.firmante_cc}</p>
+        </div>
       </div>
 
-      {/* ── Pie de página ── */}
-      <div style={{
-        borderTop: '1px solid #e5e7eb', padding: '0.6rem 2.75rem',
-        display: 'flex', justifyContent: 'center',
-      }}>
-        <p style={{ fontSize: '9px', color: '#9ca3af', margin: 0, letterSpacing: '0.05em', fontFamily: ff.sans, textAlign: 'center' }}>
-          {empresa}{form.nit_empresa ? ` · NIT ${form.nit_empresa}` : ''} · Medellín, Colombia
-        </p>
+      {/* Pie de página */}
+      <div style={{ position: 'absolute', bottom: '20mm', left: '25mm', right: '25mm', textAlign: 'center', borderTop: '0.5pt solid #eee', paddingTop: '10pt' }}>
+          <p style={{ fontSize: '8pt', color: '#999', fontFamily: fonts.sans, margin: 0 }}>
+              Esta certificación es válida sin sellos físicos según políticas internas de {empresa}. <br/>
+              Medellín - Colombia · www.russellbedford.com.co
+          </p>
       </div>
-
     </div>
   );
 };
 
-// ─── Inputs reutilizables ────────────────────────────────────────────────────
+// ─── Estilos Auxiliares ──────────────────────────────────────────────────────
 
-const Field = ({ label, name, value, onChange, onBlur, placeholder }) => (
-  <div>
-    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</label>
-    <input
-      type="text"
-      name={name}
-      value={value}
-      onChange={onChange}
-      onBlur={onBlur}
-      placeholder={placeholder}
-      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10"
-    />
+const Section = ({ title, icon, children }) => (
+  <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+    <div className="flex items-center gap-2 border-bottom pb-2">
+        <span className="text-slate-400">{icon}</span>
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[2px]">{title}</h3>
+    </div>
+    {children}
   </div>
 );
 
-const FieldArea = ({ label, name, value, onChange, placeholder }) => (
-  <div>
-    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</label>
-    <textarea
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      rows={3}
-      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 resize-none"
-    />
+const Field = ({ label, ...props }) => (
+  <div className="space-y-1">
+    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">{label}</label>
+    <input {...props} className="input-modern" />
   </div>
 );
 
-const FieldSelect = ({ label, name, value, onChange, children }) => (
-  <div>
-    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</label>
-    <select
-      name={name}
-      value={value}
-      onChange={onChange}
-      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 bg-white"
-    >
-      {children}
-    </select>
+const FieldSelect = ({ label, children, ...props }) => (
+  <div className="space-y-1 w-full">
+    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">{label}</label>
+    <select {...props} className="input-modern">{children}</select>
   </div>
 );
 
