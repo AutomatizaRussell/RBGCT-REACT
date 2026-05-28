@@ -130,6 +130,19 @@ const TaskDetailModal = ({ tarea, onClose, onActualizar }) => {
 
 // ── Modal de solicitud de certificado ────────────────────────────────────────
 
+const CertField = ({ label, id, type = 'text', value, onChange, required, placeholder }) => (
+  <div className="flex flex-col gap-1">
+    <label htmlFor={id} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+      {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+    </label>
+    <input
+      id={id} type={type} value={value} onChange={e => onChange(e.target.value)}
+      required={required} placeholder={placeholder}
+      className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#001e33]/20 focus:border-[#001e33] text-[#001e33] placeholder:text-slate-300 bg-white"
+    />
+  </div>
+);
+
 const CertificadoModal = ({ empleadoData, onClose }) => {
   const [enviando, setEnviando] = useState(false);
   const [status, setStatus] = useState(null); // 'ok' | 'error'
@@ -174,19 +187,6 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
     }
   };
 
-  const Field = ({ label, id, type = 'text', value, onChange, required, placeholder }) => (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-      </label>
-      <input
-        id={id} type={type} value={value} onChange={e => onChange(e.target.value)}
-        required={required} placeholder={placeholder}
-        className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#001e33]/20 focus:border-[#001e33] text-[#001e33] placeholder:text-slate-300 bg-white"
-      />
-    </div>
-  );
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={!enviando ? onClose : undefined}/>
@@ -228,11 +228,11 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-3">
 
-            <Field label="Fecha del certificado" id="fecha" type="date" value={form.fecha} onChange={v => set('fecha', v)} required/>
-            <Field label="Dirigido a" id="destinatario" value={form.destinatario} onChange={v => set('destinatario', v)} required placeholder="A quien corresponda"/>
-            <Field label="Tipo de contrato" id="tipo_contrato" value={form.tipo_contrato} onChange={v => set('tipo_contrato', v)} required placeholder="Ej: Término Indefinido"/>
-            <Field label="Salario mensual" id="salario" value={form.salario} onChange={v => set('salario', v)} required placeholder="Ej: $3.500.000"/>
-            <Field label="Ingresos adicionales" id="ingresos_adicionales" value={form.ingresos_adicionales} onChange={v => set('ingresos_adicionales', v)} placeholder="Ej: No aplica"/>
+            <CertField label="Fecha del certificado" id="fecha" type="date" value={form.fecha} onChange={v => set('fecha', v)} required/>
+            <CertField label="Dirigido a" id="destinatario" value={form.destinatario} onChange={v => set('destinatario', v)} required placeholder="A quien corresponda"/>
+            <CertField label="Tipo de contrato" id="tipo_contrato" value={form.tipo_contrato} onChange={v => set('tipo_contrato', v)} required placeholder="Ej: Término Indefinido"/>
+            <CertField label="Salario mensual" id="salario" value={form.salario} onChange={v => set('salario', v)} required placeholder="Ej: $3.500.000"/>
+            <CertField label="Ingresos adicionales" id="ingresos_adicionales" value={form.ingresos_adicionales} onChange={v => set('ingresos_adicionales', v)} placeholder="Ej: No aplica"/>
 
             {status === 'error' && (
               <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-100 text-sm text-red-600">
