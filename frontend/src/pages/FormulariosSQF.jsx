@@ -490,6 +490,7 @@ export default function FormulariosSQF() {
     return (
         <div className="sqf-wrapper">
             {/* ===================== HEADER ===================== */}
+            {/* ===================== HEADER ===================== */}
             <header className="app-header">
                 <div className="header-inner">
                     <div className="brand">
@@ -524,9 +525,14 @@ export default function FormulariosSQF() {
                                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                                 </svg> Auditoría
                             </button>
-                            <button className="nav-btn" onClick={() => navigate('/admin2')} style={{ marginLeft: '8px', paddingLeft: '16px', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
-                                ← Volver
-                            </button>
+                            
+                            {/* Separador y botón Volver alineado a la derecha */}
+                            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                                <div style={{ height: '20px', width: '1px', backgroundColor: 'rgba(255,255,255,0.2)', margin: '0 8px' }}></div>
+                                <button className="nav-btn" onClick={() => navigate('/admin2')}>
+                                    ← Volver
+                                </button>
+                            </div>
                         </div>
                     </nav>
                 </div>

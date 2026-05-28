@@ -246,3 +246,55 @@
 .file-input-hidden { display: none; }
 .app-footer { text-align: center; padding: 24px 20px; font-size: 12px; color: var(--color-text-light); border-top: 1px solid var(--color-border); margin-top: 40px; }
 .icon-sm { width: 14px; height: 14px; }
+
+
+
+
+/* ============================================================
+   FIX DEFINITIVO: BLINDAJE DE NAVEGACIÓN CONTRA TAILWIND
+   ============================================================ */
+.sqf-wrapper .main-nav { 
+    display: flex !important; 
+    align-items: center !important; 
+    background: rgba(255,255,255,.1) !important; 
+    border-radius: 50px !important; 
+    padding: 5px !important; 
+}
+.sqf-wrapper .nav-tablist { 
+    display: flex !important; 
+    align-items: center !important; 
+    gap: 6px !important; 
+    width: 100% !important;
+}
+.sqf-wrapper .nav-btn { 
+    display: flex !important; 
+    align-items: center !important; 
+    gap: 8px !important; 
+    padding: 9px 22px !important; 
+    border: none !important; 
+    border-radius: 50px !important; 
+    background-color: transparent !important; 
+    color: rgba(255,255,255,.7) !important; 
+    font-size: 14px !important; 
+    font-weight: 500 !important; 
+    font-family: inherit !important; 
+    cursor: pointer !important; 
+    white-space: nowrap !important; 
+    margin: 0 !important;
+}
+.sqf-wrapper .nav-btn:hover { 
+    color: #fff !important; 
+    background-color: rgba(255,255,255,.15) !important; 
+}
+.sqf-wrapper .nav-btn.active { 
+    background-color: #fff !important; 
+    color: var(--color-blue-dark) !important; 
+    font-weight: 600 !important; 
+    box-shadow: var(--shadow-sm) !important; 
+    opacity: 1 !important;
+}
+.sqf-wrapper .nav-icon { 
+    width: 16px !important; 
+    height: 16px !important; 
+    flex-shrink: 0 !important; 
+}
