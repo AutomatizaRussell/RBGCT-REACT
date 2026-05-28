@@ -11,6 +11,15 @@ const hoy = () => {
   });
 };
 
+// Limpia el cargo para que se vea más formal (remueve diagonales, guiones y números de nivel al final)
+const limpiarCargo = (cargo) => {
+  if (!cargo) return '';
+  // Tomar solo la primera parte antes de un slash '/' o guion '-'
+  const primeraParte = cargo.split(/[/\-]/)[0];
+  // Eliminar números de nivel al final del texto (ej: "Senior 2" -> "Senior")
+  return primeraParte.replace(/\s+\d+\s*$/, '').trim();
+};
+
 // ─── Componente principal ────────────────────────────────────────────────────
 
 const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
@@ -24,19 +33,19 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
   // Campos que vienen del formulario (externos)
   const [form, setForm] = useState({
-    fecha:               hoy(),
-    consecutivo:         '',
-    destinatario:        '',
-    tipo_entidad:        '',
-    tipo_contrato:       '',
-    incluir_salario:     'Sí',
-    salario:             '',
+    fecha:                hoy(),
+    consecutivo:          '',
+    destinatario:         '',
+    tipo_entidad:         '',
+    tipo_contrato:        '',
+    incluir_salario:      'Sí',
+    salario:              'DOS MILLONES DE PESOS M/CTE ($2.000.000)', // Datos de prueba predeterminados
     auxilio_transporte:  'No',
     ingresos_adicionales: '',
     // Firma
-    firmante_nombre:     '',
-    firmante_cc:         '',
-    firmante_cargo:      '',
+    firmante_nombre:      '',
+    firmante_cc:          '',
+    firmante_cargo:       '',
   });
 
   // ── Carga empleados ────────────────────────────────────────────────────────
@@ -52,12 +61,12 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     if (!prefill || empleados.length === 0) return;
     setForm(prev => ({
       ...prev,
-      fecha:               prefill.fecha               || hoy(),
-      destinatario:        prefill.nombre_entidad      || prefill.destinatario || '',
-      tipo_entidad:        prefill.tipo_entidad        || '',
-      tipo_contrato:       prefill.tipo_contrato       || '',
-      incluir_salario:     prefill.incluir_salario     || 'Sí',
-      salario:             prefill.salario             || '',
+      fecha:                prefill.fecha               || hoy(),
+      destinatario:         prefill.nombre_entidad      || prefill.destinatario || '',
+      tipo_entidad:         prefill.tipo_entidad        || '',
+      tipo_contrato:        prefill.tipo_contrato       || '',
+      incluir_salario:      prefill.incluir_salario     || 'Sí',
+      salario:              prefill.salario             || 'DOS MILLONES DE PESOS M/CTE ($2.000.000)',
       auxilio_transporte:  prefill.auxilio_transporte  || 'No',
       ingresos_adicionales: prefill.ingresos_adicionales || '',
     }));
@@ -92,14 +101,16 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     .filter(e => e.estado === 'ACTIVA')
     .filter(e => !areaFiltro || e.nombre_area === areaFiltro);
 
-
-
   // ── Datos del certificado ─────────────────────────────────────────────────
   const emp = seleccionado;
   const nombreEmp   = emp?.nombre_completo         || '[NOMBRE COMPLETO DEL EMPLEADO]';
   const tipoDoc     = emp?.tipo_documento           || '[TIPO DE DOCUMENTO]';
   const numDoc      = emp?.numero_documento         || '[NÚMERO DE DOCUMENTO]';
-  const cargo       = emp?.nombre_cargo             || '[CARGO]';
+  
+  // Aplicación del filtro de formato formal al cargo del empleado
+  const cargoRaw    = emp?.nombre_cargo || '';
+  const cargo       = cargoRaw ? limpiarCargo(cargoRaw) : '[CARGO]';
+
   const fechaIngreso= emp?.fecha_ingreso
     ? new Date(emp.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
     : '[FECHA DE INGRESO]';
@@ -237,7 +248,8 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
               <div className="bg-slate-50 rounded-xl p-3 space-y-1.5 text-xs text-slate-600">
                 <div><span className="font-semibold">Correo:</span> {emp.correo_corporativo}</div>
                 <div><span className="font-semibold">Doc:</span> {tipoDoc} {numDoc}</div>
-                <div><span className="font-semibold">Cargo:</span> {cargo}</div>
+                <div><span className="font-semibold">Cargo original:</span> {cargoRaw}</div>
+                <div><span className="font-semibold">Cargo certificado:</span> <span className="text-emerald-700 font-medium">{cargo}</span></div>
                 <div><span className="font-semibold">Ingreso:</span> {fechaIngreso}</div>
               </div>
             )}
@@ -268,7 +280,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
               <option value="No">No</option>
             </FieldSelect>
             {form.incluir_salario === 'Sí' && (
-              <Field label="Salario (en texto)" name="salario" value={form.salario} onChange={handleChange} placeholder="Ej: TRES MILLONES ($3.000.000)" />
+              <Field label="Salario (en texto)" name="salario" value={form.salario} onChange={handleChange} placeholder="Ej: UN MILLÓN QUINIENTOS VEINTIÚNMIL SESENTA Y DOS PESOS ($1.521.062)" />
             )}
             <FieldSelect label="¿Auxilio de transporte aplica?" name="auxilio_transporte" value={form.auxilio_transporte} onChange={handleChange}>
               <option value="Sí">Sí</option>
@@ -337,7 +349,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
               <li>Nombre completo del empleado <span className="text-amber-500">(auto)</span></li>
               <li>Tipo de documento <span className="text-amber-500">(auto)</span></li>
               <li>Número de documento <span className="text-amber-500">(auto)</span></li>
-              <li>Cargo <span className="text-amber-500">(auto)</span></li>
+              <li>Cargo <span className="text-amber-500">(auto cleaned)</span></li>
               <li>Fecha de ingreso <span className="text-amber-500">(auto)</span></li>
               <li>Tipo de contrato</li>
               <li>¿Incluir salario? + monto</li>
