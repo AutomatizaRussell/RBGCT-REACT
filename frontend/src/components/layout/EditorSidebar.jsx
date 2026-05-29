@@ -1,16 +1,17 @@
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  History, 
+import {
+  LayoutDashboard,
+  Calendar,
+  History,
   LogOut,
   UserCircle,
   BookOpen,
-  Wrench
+  Wrench,
+  X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
-export const EditorSidebar = ({ activeTab, setActiveTab }) => {
+export const EditorSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
 
@@ -26,6 +27,7 @@ export const EditorSidebar = ({ activeTab, setActiveTab }) => {
 
   const handleNavigation = (tab) => {
     setActiveTab(tab);
+    onClose?.();
     switch (tab) {
       case 'dashboard': navigate('/editor'); break;
       case 'tasks':     navigate('/editor/tareas'); break;
@@ -38,16 +40,21 @@ export const EditorSidebar = ({ activeTab, setActiveTab }) => {
   };
 
   return (
-    <aside className="w-64 bg-[#001871] text-white flex flex-col h-screen sticky top-0 shadow-2xl z-20">
+    <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col bg-[#001871] text-white shadow-2xl transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:translate-x-0 lg:z-20 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       {/* Branding */}
-      <div className="p-8">
-        <h1 className="text-xl font-bold tracking-tighter uppercase leading-none text-white">
-          RUSSELL<br/>
-          <span className="text-slate-400 font-light text-lg tracking-normal">BEDFORD</span>
-        </h1>
-        <div className="mt-2 inline-block px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-[9px] font-bold text-emerald-400 uppercase tracking-widest">
-          Content Editor
+      <div className="flex items-center justify-between p-8 pb-6">
+        <div>
+          <h1 className="text-xl font-bold tracking-tighter uppercase leading-none text-white">
+            RUSSELL<br/>
+            <span className="text-slate-400 font-light text-lg tracking-normal">BEDFORD</span>
+          </h1>
+          <div className="mt-2 inline-block px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-[9px] font-bold text-emerald-400 uppercase tracking-widest">
+            Content Editor
+          </div>
         </div>
+        <button type="button" onClick={onClose} className="lg:hidden p-1 text-slate-400 hover:text-white transition-colors self-start mt-1">
+          <X size={20} />
+        </button>
       </div>
 
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto">

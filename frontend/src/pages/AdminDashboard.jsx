@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'; 
 import { Sidebar } from '../components/layout/Sidebar';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Users, Activity, ShieldAlert, Zap, Database, Plus, X, AlertTriangle, Eye, Trash2, CheckCircle, Lock, Edit3, Clock, Building2, Phone, MapPin } from 'lucide-react';
+import { Users, Activity, ShieldAlert, Zap, Database, Plus, X, AlertTriangle, Eye, Trash2, CheckCircle, Lock, Edit3, Clock, Building2, Phone, MapPin, Menu } from 'lucide-react';
 import StatCard from '../components/ui/StatCard';
 import RecentUserRow from '../components/ui/RecentUserRow';
 import ActionButton from '../components/ui/ActionButton';
@@ -43,6 +43,7 @@ const AdminDashboard = () => {
   const [concurrentUsers, setConcurrentUsers] = useState(0);
   const [n8nStatus, setN8nStatus] = useState({ connected: false, ping: null, loading: true });
   const [alertDetail, setAlertDetail] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const activeTabRef = useRef('dashboard');
   const hasMountedTabEffect = useRef(false);
   const location = useLocation();
@@ -416,27 +417,35 @@ const AdminDashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001871]">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-10 shadow-sm relative z-10">
-          <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5">Control Global</p>
-            <h2 className="text-xl font-black text-[#001871] tracking-tight">
-              {getHeaderTitle()}
-            </h2>
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header className="h-16 lg:h-20 bg-white border-b border-slate-100 flex items-center justify-between px-4 lg:px-10 shadow-sm relative z-10">
+          <div className="flex items-center gap-2 min-w-0">
+            <button type="button" onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-slate-500 hover:text-[#001871] hover:bg-slate-100 rounded-lg transition-colors shrink-0">
+              <Menu size={20} />
+            </button>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5 hidden sm:block">Control Global</p>
+              <h2 className="text-base lg:text-xl font-black text-[#001871] tracking-tight truncate">
+                {getHeaderTitle()}
+              </h2>
+            </div>
           </div>
-          {/* Botón Crear Usuario - Solo SuperAdmin en Gestión de Personal */}
           {isSuperAdmin && activeTab === 'users' && (
             <button
               onClick={() => navigate('/admin/usuarios/nuevo')}
-              className="flex items-center gap-2 px-4 py-2 bg-[#001871] text-white rounded-lg hover:bg-[#003366] transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-[#001871] text-white rounded-lg hover:bg-[#003366] transition-colors text-xs lg:text-sm font-medium shrink-0 ml-2"
             >
               <Plus size={16} />
-              Crear Usuario
+              <span className="hidden sm:inline">Crear Usuario</span>
+              <span className="sm:hidden">Crear</span>
             </button>
           )}
         </header>
-        <div className="p-10 overflow-auto flex-1">{renderContent()}</div>
+        <div className="p-4 lg:p-10 overflow-auto flex-1">{renderContent()}</div>
       </main>
       
       {/* Modal de Alertas */}

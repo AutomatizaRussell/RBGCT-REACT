@@ -3,7 +3,7 @@ import { useLocation, Outlet, useNavigate } from 'react-router-dom';
 import {
   ClipboardList, Clock, CheckCircle2, PlayCircle,
   BookOpen, Wrench, Bell, RefreshCw, ArrowRight, Activity,
-  AlertTriangle, X, CalendarDays
+  AlertTriangle, X, CalendarDays, Menu
 } from 'lucide-react';
 import { UserSidebar } from '../components/layout/UserSidebar';
 import { useAuth } from '../hooks/useAuth';
@@ -12,6 +12,7 @@ import UtilidadesSection from '../components/admin2/UtilidadesSection';
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { empleadoData } = useAuth();
@@ -100,16 +101,24 @@ const UserDashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001871]">
-      <UserSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+      <UserSidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden border-l border-slate-200/80 bg-[#f1f5f9]">
         {/* Header */}
-        <header className="relative z-10 flex h-[4.25rem] shrink-0 items-center justify-between border-b border-slate-100 bg-white px-6 shadow-sm lg:px-10">
-          <div className="min-w-0 pr-4">
-            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-500">Portal del empleado</p>
-            <h2 className="mt-0.5 truncate text-lg font-semibold tracking-tight text-[#001871] lg:text-xl">
-              {isHome ? `${saludo}, ${nombreUsuario}` : (getHeaderTitle() || 'Portal Empleado')}
-            </h2>
+        <header className="relative z-10 flex h-14 lg:h-[4.25rem] shrink-0 items-center justify-between border-b border-slate-100 bg-white px-4 shadow-sm lg:px-10">
+          <div className="flex items-center gap-2 min-w-0 pr-2">
+            <button type="button" onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-slate-500 hover:text-[#001871] hover:bg-slate-100 rounded-lg transition-colors shrink-0">
+              <Menu size={20} />
+            </button>
+            <div className="min-w-0">
+              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-500 hidden sm:block">Portal del empleado</p>
+              <h2 className="truncate text-base lg:text-xl font-semibold tracking-tight text-[#001871]">
+                {isHome ? `${saludo}, ${nombreUsuario}` : (getHeaderTitle() || 'Portal Empleado')}
+              </h2>
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             <div className="relative" ref={notifRef}>

@@ -8,7 +8,7 @@ import {
   Wrench, BookOpen, Settings, Plus, Building2, Briefcase,
   ShieldCheck, Lock, Info, Pencil,
   TrendingUp, RefreshCw, Calendar, Bell, UserX,
-  CheckCircle2, Clock, BarChart2, ArrowRight
+  CheckCircle2, Clock, BarChart2, ArrowRight, Menu
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -60,6 +60,7 @@ const formatDateOnly = (value, locale = 'es-CO', options = { dateStyle: 'medium'
 
 const Admin2Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [employeeStats, setEmployeeStats] = useState({ totalCount: 0, activeCount: 0, loading: true });
@@ -591,15 +592,23 @@ const Admin2Dashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001871]">
-      <Admin2Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+      <Admin2Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-10 shadow-sm relative z-10">
-          <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5">Gestión Administrativa</p>
-            <h2 className="text-xl font-black text-[#001871] tracking-tight">{getHeaderTitle()}</h2>
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header className="h-16 lg:h-20 bg-white border-b border-slate-100 flex items-center justify-between px-4 lg:px-10 shadow-sm relative z-10">
+          <div className="flex items-center gap-2 min-w-0">
+            <button type="button" onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-slate-500 hover:text-[#001871] hover:bg-slate-100 rounded-lg transition-colors shrink-0">
+              <Menu size={20} />
+            </button>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5 hidden sm:block">Gestión Administrativa</p>
+              <h2 className="text-base lg:text-xl font-black text-[#001871] tracking-tight truncate">{getHeaderTitle()}</h2>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 lg:gap-4 shrink-0">
             {activeTab === 'dashboard' && (
               <button onClick={() => { fetchStats(); fetchAllActivity(); }}
                 className="p-2 text-slate-400 hover:text-[#001871] hover:bg-slate-100 rounded-xl transition-all" title="Actualizar datos">
@@ -631,7 +640,7 @@ const Admin2Dashboard = () => {
           </div>
         </header>
 
-        <div className="p-8 overflow-auto flex-1">
+        <div className="p-4 lg:p-8 overflow-auto flex-1">
           {renderContent()}
         </div>
       </main>

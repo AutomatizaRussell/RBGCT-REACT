@@ -9,6 +9,7 @@ import {
   CalendarDays,
   FileText,
   Building2,
+  X,
 } from 'lucide-react';
 
 import { useState, useEffect } from 'react';
@@ -18,7 +19,7 @@ import { getCertPermisosBackend } from '../../lib/api';
 
 
 
-export const Admin2Sidebar = ({ activeTab, setActiveTab }) => {
+export const Admin2Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
   const navigate = useNavigate();
 
@@ -40,37 +41,31 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab }) => {
   // Función para navegar dentro del módulo de Admin Normal
 
   const handleNavigation = (tab) => {
-
     setActiveTab(tab);
-
-    navigate('/admin2'); // Regresa a la base del dashboard operativo
-
+    navigate('/admin2');
+    onClose?.();
   };
 
 
 
   return (
 
-    <aside className="w-64 bg-[#001871] text-white flex flex-col h-screen sticky top-0 shadow-2xl z-20">
+    <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col bg-[#001871] text-white shadow-2xl transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:translate-x-0 lg:z-20 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
 
       {/* Branding */}
-
-      <div className="p-8">
-
-        <h1 className="text-xl font-bold tracking-tighter uppercase leading-none text-white">
-
-          RUSSELL<br/>
-
-          <span className="text-slate-400 font-light text-lg tracking-normal">BEDFORD</span>
-
-        </h1>
-
-        <div className="mt-2 inline-block px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-[9px] font-bold text-blue-400 uppercase tracking-widest">
-
-          Administrative Mode
-
+      <div className="flex items-center justify-between p-8 pb-6">
+        <div>
+          <h1 className="text-xl font-bold tracking-tighter uppercase leading-none text-white">
+            RUSSELL<br/>
+            <span className="text-slate-400 font-light text-lg tracking-normal">BEDFORD</span>
+          </h1>
+          <div className="mt-2 inline-block px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-[9px] font-bold text-blue-400 uppercase tracking-widest">
+            Administrative Mode
+          </div>
         </div>
-
+        <button type="button" onClick={onClose} className="lg:hidden p-1 text-slate-400 hover:text-white transition-colors self-start mt-1">
+          <X size={20} />
+        </button>
       </div>
 
 

@@ -11,7 +11,8 @@ import {
   Eye,
   BookOpen,
   History,
-  ChevronRight
+  ChevronRight,
+  Menu
 } from 'lucide-react';
 import TaskDashboard from '../components/tasks/TaskDashboard';
 import UtilidadesSection from '../components/admin2/UtilidadesSection';
@@ -21,6 +22,7 @@ import ActionButton from '../components/ui/ActionButton';
 
 const EditorDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -174,26 +176,33 @@ const EditorDashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001871]">
-      {/* Corregido: Usamos el nombre correcto del componente importado */}
-      <EditorSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+      <EditorSidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-10 shadow-sm relative z-10">
-          <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5">Editor Workspace</p>
-            <h2 className="text-xl font-black text-[#001871] tracking-tight">
-              {location.pathname.includes('cursos') ? 'Gestión de Cursos' :
-               location.pathname.includes('historial') ? 'Historial de Cambios' :
-               location.pathname.includes('tareas') ? 'Calendario de Tareas' :
-               location.pathname.includes('herramientas') ? 'Herramientas' :
-               location.pathname.includes('perfil') ? 'Mi Perfil' :
-               location.pathname.includes('biblioteca') ? 'Biblioteca de Medios' :
-               'Panel de Edición'}
-            </h2>
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header className="h-16 lg:h-20 bg-white border-b border-slate-100 flex items-center justify-between px-4 lg:px-10 shadow-sm relative z-10">
+          <div className="flex items-center gap-2 min-w-0">
+            <button type="button" onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-slate-500 hover:text-[#001871] hover:bg-slate-100 rounded-lg transition-colors shrink-0">
+              <Menu size={20} />
+            </button>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5 hidden sm:block">Editor Workspace</p>
+              <h2 className="text-base lg:text-xl font-black text-[#001871] tracking-tight truncate">
+                {location.pathname.includes('cursos') ? 'Gestión de Cursos' :
+                 location.pathname.includes('historial') ? 'Historial de Cambios' :
+                 location.pathname.includes('tareas') ? 'Calendario de Tareas' :
+                 location.pathname.includes('herramientas') ? 'Herramientas' :
+                 location.pathname.includes('perfil') ? 'Mi Perfil' :
+                 location.pathname.includes('biblioteca') ? 'Biblioteca de Medios' :
+                 'Panel de Edición'}
+              </h2>
+            </div>
           </div>
         </header>
 
-        <div className="p-10 overflow-auto flex-1">
+        <div className="p-4 lg:p-10 overflow-auto flex-1">
           {renderContent()}
         </div>
       </main>
