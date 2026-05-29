@@ -148,7 +148,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     try {
       const { default: html2canvas } = await import('html2canvas');
       const { jsPDF } = await import('jspdf');
-      const elemento = document.querySelector('.certificado-preview');
+      const elemento = document.querySelector('.no-print .certificado-preview') || document.querySelector('.certificado-preview');
       if (!elemento) throw new Error('No se encontró la vista previa del certificado');
       if (document.fonts?.ready) await document.fonts.ready;
 
@@ -166,13 +166,22 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter', compress: true });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
-      const renderW = canvas.width * ratio;
-      const renderH = canvas.height * ratio;
-      const offsetX = (pageW - renderW) / 2;
-      const offsetY = (pageH - renderH) / 2;
+      const renderW = pageW;
+      const renderH = (canvas.height * renderW) / canvas.width;
 
-      pdf.addImage(imgData, 'JPEG', offsetX, offsetY, renderW, renderH, undefined, 'MEDIUM');
+      let heightLeft = renderH;
+      let positionY = 0;
+
+      pdf.addImage(imgData, 'JPEG', 0, positionY, renderW, renderH, undefined, 'MEDIUM');
+      heightLeft -= pageH;
+
+      while (heightLeft > 0) {
+        positionY = heightLeft - renderH;
+        pdf.addPage('letter', 'portrait');
+        pdf.addImage(imgData, 'JPEG', 0, positionY, renderW, renderH, undefined, 'MEDIUM');
+        heightLeft -= pageH;
+      }
+
       const pdfBase64 = pdf.output('datauristring').split(',')[1];
 
       await enviarCertificadoEmpleo({
