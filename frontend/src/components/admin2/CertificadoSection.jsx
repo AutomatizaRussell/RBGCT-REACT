@@ -150,6 +150,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
       const { jsPDF } = await import('jspdf');
       const elemento = document.querySelector('.certificado-preview');
       if (!elemento) throw new Error('No se encontró la vista previa del certificado');
+      if (document.fonts?.ready) await document.fonts.ready;
 
       const canvas = await html2canvas(elemento, {
         scale: 2,
@@ -162,14 +163,10 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
       });
 
       const imgData = canvas.toDataURL('image/jpeg', 0.92);
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter', compress: true });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 8;
-      const maxW = pageW - (margin * 2);
-      const maxH = pageH - (margin * 2);
-
-      const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
+      const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
       const renderW = canvas.width * ratio;
       const renderH = canvas.height * ratio;
       const offsetX = (pageW - renderW) / 2;
@@ -222,8 +219,8 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
          @media print {
            @page { 
-             margin: 10mm;
-             size: A4 portrait;
+             margin: 0;
+             size: letter portrait;
            }
 
            html, body {
@@ -399,8 +396,8 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
 
   return (
     <div className="certificado-preview" style={{
-      width: '210mm', minHeight: '297mm', backgroundColor: '#fff',
-      color: '#111', fontFamily: serif, fontSize: '11.5pt', lineHeight: '1.75',
+      width: '215.9mm', minHeight: '279.4mm', backgroundColor: '#fff',
+      color: '#111', fontFamily: serif, fontSize: '11pt', lineHeight: '1.7',
       boxShadow: '0 0 0 1px #e5e7eb, 0 8px 32px rgba(0,0,0,0.10)',
     }}>
 
@@ -410,7 +407,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
       {/* ── Membrete ─────────────────────────────────────────────── */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-        padding: '18pt 28pt 14pt', borderBottom: '1pt solid #001e33',
+        padding: '12mm 20mm 7mm', borderBottom: '1pt solid #001e33',
       }}>
         <div>
           <p style={sn({ margin: 0, fontSize: '20pt', fontWeight: '900', color: '#001e33', letterSpacing: '-0.5pt', lineHeight: 1 })}>
@@ -433,7 +430,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
       </div>
 
       {/* ── Cuerpo del documento ─────────────────────────────────── */}
-      <div style={{ padding: '24pt 28pt 28pt' }}>
+      <div style={{ padding: '12mm 20mm 14mm' }}>
 
         {/* Título */}
         <p style={sn({
@@ -504,16 +501,18 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
         <p style={sr({ margin: '0 0 4pt' })}>Atentamente,</p>
 
         {/* ── Bloque de firma ── */}
-        <div style={{ marginTop: '4pt', width: '280pt' }}>
+        <div style={{ marginTop: '10pt', width: '95mm' }}>
           {/* Nombre en cursiva = firma */}
-          <p style={{
-            fontFamily: script, fontSize: '19pt', color: '#001e33',
-            margin: '0 0 -2pt 0', lineHeight: 1.2, fontWeight: 400,
-          }}>
-            {toTitleCase(form.firmante_nombre)}
-          </p>
+          <div style={{ minHeight: '34pt', display: 'flex', alignItems: 'flex-end' }}>
+            <p style={{
+              fontFamily: script, fontSize: '17pt', color: '#001e33',
+              margin: 0, lineHeight: 1.1, fontWeight: 400,
+            }}>
+              {toTitleCase(form.firmante_nombre)}
+            </p>
+          </div>
           {/* Línea */}
-          <div style={{ borderTop: '1pt solid #9ca3af', marginBottom: '6pt' }} />
+          <div style={{ borderTop: '1pt solid #9ca3af', marginTop: '5pt', marginBottom: '7pt' }} />
           {/* Datos */}
           <p style={sn({ margin: '0 0 2pt', fontSize: '9.5pt', fontWeight: '700', textTransform: 'uppercase', color: '#111' })}>
             {form.firmante_nombre}
@@ -534,7 +533,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
 
       {/* ── Pie de página ─────────────────────────────────────────── */}
       <div style={{
-        borderTop: '1pt solid #e5e7eb', padding: '8pt 28pt',
+        borderTop: '1pt solid #e5e7eb', padding: '4mm 20mm',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <p style={sn({ margin: 0, fontSize: '7.5pt', color: '#9ca3af' })}>
