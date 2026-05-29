@@ -145,63 +145,64 @@ const UserTable = () => {
 
       {/* TABLA */}
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[520px]">
           <thead>
             <tr className="border-b border-slate-50">
-              <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Colaborador</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Área</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Estado</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Correo Corp.</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Fecha Ingreso</th>
-              <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Acciones</th>
+              <th className="px-4 sm:px-8 py-4 sm:py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Colaborador</th>
+              <th className="px-4 sm:px-8 py-4 sm:py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] hidden sm:table-cell">Área</th>
+              <th className="px-4 sm:px-8 py-4 sm:py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] hidden md:table-cell">Estado</th>
+              <th className="px-4 sm:px-8 py-4 sm:py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] hidden lg:table-cell">Correo Corp.</th>
+              <th className="px-4 sm:px-8 py-4 sm:py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] hidden lg:table-cell">Ingreso</th>
+              <th className="px-4 sm:px-8 py-4 sm:py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {filteredUsers.map((user) => (
               <tr key={user.id_empleado} className="hover:bg-slate-50/50 transition-colors group">
-                <td className="px-8 py-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-[#f1f5f9] rounded-full flex items-center justify-center font-bold text-[#001871] text-xs">
+                <td className="px-4 sm:px-8 py-4 sm:py-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-[#f1f5f9] rounded-full flex items-center justify-center font-bold text-[#001871] text-xs shrink-0">
                       {user.datos_personales?.nom_empleado?.charAt(0)}
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-800 tracking-tight">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-800 tracking-tight truncate">
                         {user.datos_personales?.nom_empleado} {user.datos_personales?.ape_empleado}
                       </p>
                       <p className="text-[11px] text-slate-400 font-medium">ID: {user.datos_personales?.id_cc}</p>
                     </div>
                   </div>
                 </td>
-                <td className="px-8 py-6">
+                <td className="px-4 sm:px-8 py-4 sm:py-6 hidden sm:table-cell">
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
                     <Briefcase size={14} className="text-slate-400" />
                     {user.administracion?.nom_area || 'N/A'}
                   </div>
                 </td>
-                <td className="px-8 py-6">
+                <td className="px-4 sm:px-8 py-4 sm:py-6 hidden md:table-cell">
                   <span className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-tighter px-3 py-1 rounded-full ${
                     user.estado?.toLowerCase() === 'activa' || user.estado?.toLowerCase() === 'activo'
-                      ? 'bg-green-50 text-green-600' 
+                      ? 'bg-green-50 text-green-600'
                       : 'bg-slate-100 text-slate-500'
                   }`}>
                     <Activity size={10} />
                     {user.estado || 'N/A'}
                   </span>
                 </td>
-                <td className="px-8 py-6 text-xs font-semibold text-slate-600">
+                <td className="px-4 sm:px-8 py-4 sm:py-6 text-xs font-semibold text-slate-600 hidden lg:table-cell">
                   <div className="flex items-center gap-1">
                     <Mail size={12} className="text-slate-400" />
-                    {user.correo_corporativo}
+                    <span className="truncate max-w-[140px]">{user.correo_corporativo}</span>
                   </div>
                 </td>
-                <td className="px-8 py-6 text-xs font-semibold text-slate-600">
+                <td className="px-4 sm:px-8 py-4 sm:py-6 text-xs font-semibold text-slate-600 hidden lg:table-cell">
                   <div className="flex items-center gap-1">
                     <Calendar size={12} className="text-slate-400" />
                     {user.fecha_ingreso}
                   </div>
                 </td>
-                <td className="px-8 py-6">
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <td className="px-4 sm:px-8 py-4 sm:py-6">
+                  <div className="flex items-center gap-2">
                     <button onClick={() => setEditingUser(user)} className="p-2 hover:bg-blue-50 hover:text-blue-600 text-slate-400 rounded-lg transition-colors">
                       <Edit2 size={14} />
                     </button>
@@ -214,6 +215,7 @@ const UserTable = () => {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* MODAL DE EDICIÓN COMPLETO */}
@@ -233,12 +235,12 @@ const UserTable = () => {
               </button>
             </div>
 
-            <form className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar" onSubmit={handleUpdate}>
+            <form className="p-4 sm:p-8 space-y-6 sm:space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar" onSubmit={handleUpdate}>
               <div className="space-y-4">
                 <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2">
                   <span className="w-4 h-[1px] bg-blue-500"></span> Información Personal
                 </h4>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nombres</label>
                     <input name="nom_empleado" type="text" defaultValue={editingUser.datos_personales?.nom_empleado} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none transition-all focus:bg-white focus:border-blue-200" required />
@@ -272,7 +274,7 @@ const UserTable = () => {
                 <h4 className="text-[10px] font-black text-purple-500 uppercase tracking-[0.2em] flex items-center gap-2">
                   <span className="w-4 h-[1px] bg-purple-500"></span> Información Administrativa
                 </h4>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Correo Corporativo</label>
                     <input name="correo_corporativo" type="email" defaultValue={editingUser.correo_corporativo} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm" required />
@@ -285,7 +287,7 @@ const UserTable = () => {
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Área / Departamento</label>
                     <input name="nom_area" type="text" defaultValue={editingUser.administracion?.nom_area} className="w-full p-4 bg-slate-100 border border-slate-100 rounded-2xl text-sm cursor-not-allowed" readOnly />

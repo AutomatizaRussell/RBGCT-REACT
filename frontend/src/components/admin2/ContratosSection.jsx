@@ -207,7 +207,7 @@ const ContratoForm = ({ empleado, contrato, mode, onSaved, onCancel }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Tipo de contrato" required>
           <Select value={form.tipo_contrato} onChange={e => set('tipo_contrato', e.target.value)} required>
             {TIPO_CONTRATO.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -226,7 +226,7 @@ const ContratoForm = ({ empleado, contrato, mode, onSaved, onCancel }) => {
         </Field>
       </div>
 
-      <div className="border-t border-slate-100 pt-4 grid grid-cols-2 gap-3">
+      <div className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Salario" required>
           <Input type="number" value={form.salario} onChange={e => set('salario', e.target.value)} placeholder="Ej: 1800000" required />
         </Field>
@@ -248,7 +248,7 @@ const ContratoForm = ({ empleado, contrato, mode, onSaved, onCancel }) => {
         </Field>
       </div>
 
-      <div className="border-t border-slate-100 pt-4 grid grid-cols-2 gap-3">
+      <div className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Jornada">
           <Select value={form.jornada} onChange={e => set('jornada', e.target.value)}>
             {JORNADA.map(j => <option key={j.value} value={j.value}>{j.label}</option>)}
@@ -348,7 +348,7 @@ const SeguridadSocialForm = ({ empleado, afiliacion, onSaved }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <SectionTitle label="EPS — Salud" />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="EPS">
           <Select value={form.eps} onChange={e => set('eps', e.target.value)}>
             <option value="">Seleccionar...</option>
@@ -364,7 +364,7 @@ const SeguridadSocialForm = ({ empleado, afiliacion, onSaved }) => {
       </div>
 
       <SectionTitle label="AFP — Pensión" />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="AFP">
           <Select value={form.afp} onChange={e => set('afp', e.target.value)}>
             <option value="">Seleccionar...</option>
@@ -380,7 +380,7 @@ const SeguridadSocialForm = ({ empleado, afiliacion, onSaved }) => {
       </div>
 
       <SectionTitle label="ARL — Riesgos Laborales" />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="ARL">
           <Select value={form.arl} onChange={e => set('arl', e.target.value)}>
             <option value="">Seleccionar...</option>
@@ -402,7 +402,7 @@ const SeguridadSocialForm = ({ empleado, afiliacion, onSaved }) => {
       </div>
 
       <SectionTitle label="Caja de Compensación Familiar" />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Caja">
           <Select value={form.caja_compensacion} onChange={e => set('caja_compensacion', e.target.value)}>
             <option value="">Seleccionar...</option>
@@ -708,7 +708,7 @@ export default function ContratosSection() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
             {[
               { label: 'Sin contrato', value: sinContrato,  color: 'bg-red-50 text-red-700 border-red-100',    key: 'sin_contrato' },
               { label: 'Por vencer',   value: porVencer,    color: 'bg-amber-50 text-amber-700 border-amber-100', key: 'por_vencer' },

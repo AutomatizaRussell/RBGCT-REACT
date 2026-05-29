@@ -370,34 +370,35 @@ const UserTable = () => {
 
       {/* TABLA CENTRALIZADA */}
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[560px]">
           <thead>
             <tr className="bg-slate-50/50 border-b border-slate-100">
-              <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Usuario</th>
-              <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Permisos/Área</th>
-              <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Acceso</th>
-              <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Gestión de Seguridad</th>
+              <th className="px-4 sm:px-8 py-4 sm:py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Usuario</th>
+              <th className="px-4 sm:px-8 py-4 sm:py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:table-cell">Permisos/Área</th>
+              <th className="px-4 sm:px-8 py-4 sm:py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest hidden md:table-cell">Acceso</th>
+              <th className="px-4 sm:px-8 py-4 sm:py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {filteredUsers.map((user) => (
-              <tr 
-                key={user.id_empleado} 
+              <tr
+                key={user.id_empleado}
                 className="hover:bg-slate-50/50 transition-colors cursor-pointer group"
                 onClick={() => setSelectedUser(user)}
               >
-                <td className="px-8 py-6">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ${user.estado === 'ACTIVA' ? 'bg-[#001871] text-white' : 'bg-slate-200 text-slate-500'}`}>
+                <td className="px-4 sm:px-8 py-4 sm:py-6">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${user.estado === 'ACTIVA' ? 'bg-[#001871] text-white' : 'bg-slate-200 text-slate-500'}`}>
                       {user.primer_nombre?.charAt(0)}
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">{user.primer_nombre} {user.segundo_nombre} {user.primer_apellido} {user.segundo_apellido}</p>
-                      <p className="text-[11px] text-slate-400">{user.correo_corporativo}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-800 truncate">{user.primer_nombre} {user.primer_apellido}</p>
+                      <p className="text-[11px] text-slate-400 truncate hidden sm:block">{user.correo_corporativo}</p>
                     </div>
                   </div>
                 </td>
-                <td className="px-8 py-6">
+                <td className="px-4 sm:px-8 py-4 sm:py-6 hidden sm:table-cell">
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-700">{user.nombre_area || 'Sin Área'}</span>
                     <span className="text-[10px] font-black uppercase text-blue-500 mt-1 flex items-center gap-1">
@@ -406,14 +407,14 @@ const UserTable = () => {
                     </span>
                   </div>
                 </td>
-                <td className="px-8 py-6">
+                <td className="px-4 sm:px-8 py-4 sm:py-6 hidden md:table-cell">
                   <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center w-fit gap-1.5 ${user.estado === 'ACTIVA' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
                     <div className={`w-1.5 h-1.5 rounded-full ${user.estado === 'ACTIVA' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                    {user.estado === 'ACTIVA' ? 'Habilitado' : 'Suspendido'}
+                    {user.estado === 'ACTIVA' ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
-                <td className="px-8 py-6 text-right" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-end gap-2">
+                <td className="px-4 sm:px-8 py-4 sm:py-6 text-right" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end gap-1 sm:gap-2">
                     {/* ACCIÓN: REACTIVAR - Solo Super Admin para usuarios inactivos */}
                     {user.estado === 'INACTIVA' && canReactivateUsers && (
                       <button 
@@ -463,6 +464,7 @@ const UserTable = () => {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* MODALES MANTENIDOS */}
@@ -470,17 +472,17 @@ const UserTable = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#001871]/80 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setSelectedUser(null)}></div>
           <div className="bg-white rounded-[40px] w-full max-w-2xl relative z-10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="bg-[#001871] p-8 text-white flex justify-between items-start">
-              <div className="flex items-center gap-5">
-                <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-2xl font-black">{selectedUser.primer_nombre?.charAt(0)}</div>
-                <div>
-                  <h3 className="text-2xl font-black tracking-tight">{selectedUser.primer_nombre} {selectedUser.segundo_nombre} {selectedUser.primer_apellido} {selectedUser.segundo_apellido}</h3>
-                  <p className="text-slate-400 text-sm">{selectedUser.correo_corporativo}</p>
+            <div className="bg-[#001871] p-5 sm:p-8 text-white flex justify-between items-start">
+              <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/10 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black shrink-0">{selectedUser.primer_nombre?.charAt(0)}</div>
+                <div className="min-w-0">
+                  <h3 className="text-lg sm:text-2xl font-black tracking-tight truncate">{selectedUser.primer_nombre} {selectedUser.primer_apellido}</h3>
+                  <p className="text-slate-400 text-xs sm:text-sm truncate">{selectedUser.correo_corporativo}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedUser(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors"><X size={24}/></button>
+              <button onClick={() => setSelectedUser(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors shrink-0"><X size={20}/></button>
             </div>
-            <div className="p-10 grid grid-cols-2 gap-8">
+            <div className="p-4 sm:p-10 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
               <DetailItem icon={<Hash size={16}/>} label="ID Empleado" value={selectedUser.id_empleado} />
               <DetailItem icon={<Info size={16}/>} label="Área" value={selectedUser.nombre_area} />
               <DetailItem icon={<Briefcase size={16}/>} label="Cargo" value={selectedUser.nombre_cargo} />

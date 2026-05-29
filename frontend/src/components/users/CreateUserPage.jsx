@@ -192,7 +192,7 @@ const CreateUserPage = () => {
   };
 
   return (
-    <div className="p-10 animate-in fade-in duration-500">
+    <div className="p-4 sm:p-10 animate-in fade-in duration-500">
       {/* BOTÓN REGRESAR */}
       <button 
         type="button"
@@ -253,13 +253,13 @@ const CreateUserPage = () => {
 
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
         {/* CABECERA FORMULARIO */}
-        <div className="p-10 border-b border-slate-50">
+        <div className="p-5 sm:p-10 border-b border-slate-50">
           <h3 className="text-xl font-black text-[#001871]">Nuevo Registro</h3>
           <p className="text-slate-400 text-sm mt-1">Alta de colaborador en el sistema GCT.</p>
         </div>
 
         {/* CUERPO FORMULARIO */}
-        <form className="p-10 space-y-8" onSubmit={handleSubmit}>
+        <form className="p-4 sm:p-10 space-y-6 sm:space-y-8" onSubmit={handleSubmit}>
           
           {/* OPCIÓN: CREAR CON DATOS COMPLETOS O MÍNIMOS */}
           <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
@@ -281,7 +281,7 @@ const CreateUserPage = () => {
             </label>
           </div>
 
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
             
             {/* EMAIL - SIEMPRE REQUERIDO */}
             <div className="space-y-2">
@@ -383,7 +383,7 @@ const CreateUserPage = () => {
               <div className="pt-6 border-t border-slate-100">
                 <h4 className="text-sm font-bold text-[#001871] mb-6">Datos Personales Completos</h4>
                 
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                   {/* NOMBRES */}
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
