@@ -120,6 +120,20 @@ const Admin2Dashboard = () => {
     }
   };
 
+  const checkCertPermisos = async () => {
+    if (!empleadoData?.id_empleado) return;
+    try {
+      const res = await getCertPermisosBackend();
+      const ids = (res.permisos || []).map(String);
+      const tiene = ids.includes(String(empleadoData.id_empleado));
+      const antesNo = !certPermRef.current;
+      certPermRef.current = tiene;
+      setPuedeExpedirCert(tiene);
+      // Si acaba de ganar el permiso, cargar las solicitudes pendientes
+      if (tiene && antesNo) fetchSolicitudesCert();
+    } catch { /* silencioso */ }
+  };
+
   const fetchAllActivity = async () => {
     try {
       setLoading(true);
@@ -212,15 +226,7 @@ const Admin2Dashboard = () => {
 
   useEffect(() => {
     if (!empleadoData?.id_empleado) return;
-    getCertPermisosBackend()
-      .then(res => {
-        const ids = (res.permisos || []).map(String);
-        const tiene = ids.includes(String(empleadoData.id_empleado));
-        setPuedeExpedirCert(tiene);
-        certPermRef.current = tiene;
-        if (tiene) fetchSolicitudesCert();
-      })
-      .catch(() => {});
+    checkCertPermisos();
   }, [empleadoData?.id_empleado]);
 
   useEffect(() => {
@@ -229,7 +235,7 @@ const Admin2Dashboard = () => {
       if (activeTabRef.current !== 'dashboard') return;
       fetchStats();
       fetchAllActivity();
-      if (certPermRef.current) fetchSolicitudesCert();
+      checkCertPermisos();
     };
 
     refreshDashboard();
@@ -260,7 +266,7 @@ const Admin2Dashboard = () => {
     if (activeTab === 'dashboard' && document.visibilityState === 'visible') {
       fetchStats();
       fetchAllActivity();
-      if (certPermRef.current) fetchSolicitudesCert();
+      checkCertPermisos();
     }
   }, [activeTab]);
 

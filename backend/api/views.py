@@ -3514,22 +3514,35 @@ def enviar_certificado_empleo(request):
 
 
 # ── Solicitudes de certificado (JSON temporal, sin modelo) ────────────────────
+import fcntl
 
-_SOLICITUDES_FILE = '/tmp/solicitudes_cert_temp.json'
+# Rutas en volumen persistente (media_volume_prod) para sobrevivir reinicios
+_MEDIA_DIR = os.path.join(settings.MEDIA_ROOT, 'cert_data')
+_SOLICITUDES_FILE = os.path.join(_MEDIA_DIR, 'solicitudes_cert.json')
+
+def _ensure_cert_dir():
+    os.makedirs(_MEDIA_DIR, exist_ok=True)
 
 def _leer_solicitudes():
+    _ensure_cert_dir()
     if not os.path.exists(_SOLICITUDES_FILE):
         return []
     try:
         with open(_SOLICITUDES_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            fcntl.flock(f, fcntl.LOCK_SH)
+            data = json.load(f)
+            fcntl.flock(f, fcntl.LOCK_UN)
+            return data
     except Exception:
         return []
 
 def _guardar_solicitudes(data):
+    _ensure_cert_dir()
     try:
         with open(_SOLICITUDES_FILE, 'w', encoding='utf-8') as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
             json.dump(data, f, ensure_ascii=False, indent=2)
+            fcntl.flock(f, fcntl.LOCK_UN)
     except Exception as e:
         logger.error(f'[solicitudes_cert] Error al guardar: {e}')
         raise
@@ -3596,21 +3609,28 @@ def atender_solicitud_cert(request, solicitud_id):
 
 # ── Permisos de certificado (JSON temporal, sin modelo) ───────────────────────
 
-_CERT_PERMISOS_FILE = '/tmp/cert_permisos.json'
+_CERT_PERMISOS_FILE = os.path.join(_MEDIA_DIR, 'cert_permisos.json')
 
 def _leer_cert_permisos():
+    _ensure_cert_dir()
     if not os.path.exists(_CERT_PERMISOS_FILE):
         return []
     try:
         with open(_CERT_PERMISOS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            fcntl.flock(f, fcntl.LOCK_SH)
+            data = json.load(f)
+            fcntl.flock(f, fcntl.LOCK_UN)
+            return data
     except Exception:
         return []
 
 def _guardar_cert_permisos(data):
+    _ensure_cert_dir()
     try:
         with open(_CERT_PERMISOS_FILE, 'w', encoding='utf-8') as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
             json.dump(data, f, ensure_ascii=False)
+            fcntl.flock(f, fcntl.LOCK_UN)
     except Exception as e:
         logger.error(f'[cert_permisos] Error al guardar: {e}')
         raise
