@@ -111,10 +111,10 @@ export default function LimpiadorMetadatos() {
         className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all group"
         title="Limpiador de Metadatos + MarkItDown"
       >
-        <div className="p-1.5 bg-[#001e33] rounded-lg">
+        <div className="p-1.5 bg-[#001871] rounded-lg">
           <FileText size={16} className="text-white" />
         </div>
-        <span className="text-sm font-medium text-slate-700 group-hover:text-[#001e33]">
+        <span className="text-sm font-medium text-slate-700 group-hover:text-[#001871]">
           Limpiar Metadatos
         </span>
         <ChevronDown size={16} className="text-slate-400" />
@@ -128,10 +128,10 @@ export default function LimpiadorMetadatos() {
       {/* Header con botón cerrar */}
       <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-[#001e33] rounded-lg">
+          <div className="p-1.5 bg-[#001871] rounded-lg">
             <FileText size={16} className="text-white" />
           </div>
-          <span className="font-bold text-[#001e33] text-sm">Limpiador de Metadatos</span>
+          <span className="font-bold text-[#001871] text-sm">Limpiador de Metadatos</span>
         </div>
         <button
           onClick={() => setExpandido(false)}
@@ -192,7 +192,7 @@ export default function LimpiadorMetadatos() {
             className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all ${
               exitoso
                 ? 'bg-emerald-500 text-white'
-                : 'bg-[#001e33] text-white hover:bg-slate-800 disabled:opacity-50'
+                : 'bg-[#001871] text-white hover:bg-slate-800 disabled:opacity-50'
             }`}
           >
             {convirtiendo ? (

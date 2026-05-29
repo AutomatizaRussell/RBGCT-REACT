@@ -90,7 +90,7 @@ export default function MisClienteDetalle() {
         <button
           type="button"
           onClick={() => navigate('/app/mis-clientes')}
-          className="mt-8 text-[10px] font-bold uppercase tracking-widest text-blue-600 transition-colors hover:text-[#001e33]"
+          className="mt-8 text-[10px] font-bold uppercase tracking-widest text-blue-600 transition-colors hover:text-[#001871]"
         >
           Volver a mis clientes
         </button>
@@ -105,7 +105,7 @@ export default function MisClienteDetalle() {
         <button
           type="button"
           onClick={() => navigate('/app/mis-clientes')}
-          className="mt-6 text-[10px] font-bold uppercase tracking-widest text-blue-600 transition-colors hover:text-[#001e33]"
+          className="mt-6 text-[10px] font-bold uppercase tracking-widest text-blue-600 transition-colors hover:text-[#001871]"
         >
           Volver a mis clientes
         </button>
@@ -135,7 +135,7 @@ export default function MisClienteDetalle() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-lg font-bold tracking-tight text-[#001e33] sm:text-xl">{empresa.razon_social}</h2>
+                <h2 className="text-lg font-bold tracking-tight text-[#001871] sm:text-xl">{empresa.razon_social}</h2>
                 <Badge className={estadoClass}>{empresa.estado_display || estadoKey}</Badge>
                 {empresa.nivel_riesgo && empresa.nivel_riesgo !== 'bajo' && (
                   <Badge className="border-blue-200 bg-blue-50 text-blue-700">
@@ -184,7 +184,7 @@ export default function MisClienteDetalle() {
                   <div>
                     <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Correo</dt>
                     <dd className="mt-0.5">
-                      <a href={`mailto:${empresa.email_principal}`} className="font-medium text-blue-600 hover:text-[#001e33] hover:underline">
+                      <a href={`mailto:${empresa.email_principal}`} className="font-medium text-blue-600 hover:text-[#001871] hover:underline">
                         {empresa.email_principal}
                       </a>
                     </dd>
@@ -224,7 +224,7 @@ export default function MisClienteDetalle() {
               <ul className="space-y-3">
                 {empresa.contactos.filter((c) => c.activo !== false).map((c) => (
                   <li key={c.id} className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 text-sm">
-                    <p className="font-semibold text-[#001e33]">
+                    <p className="font-semibold text-[#001871]">
                       {c.nombre}
                       {c.es_principal && (
                         <Badge className="ml-2 border-blue-200 bg-blue-50 text-blue-700">Principal</Badge>

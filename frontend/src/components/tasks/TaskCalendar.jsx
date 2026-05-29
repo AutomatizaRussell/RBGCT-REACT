@@ -119,11 +119,11 @@ const TaskCalendar = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
         <div className="flex items-center gap-4">
-          <div className="p-2 bg-[#001e33] rounded-xl">
+          <div className="p-2 bg-[#001871] rounded-xl">
             <Calendar size={20} className="text-white" />
           </div>
           <div>
-            <h3 className="font-bold text-lg text-[#001e33] capitalize">
+            <h3 className="font-bold text-lg text-[#001871] capitalize">
               {monthName} {year}
             </h3>
             <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
@@ -188,13 +188,13 @@ const TaskCalendar = ({
                   onClick={() => handleDayClick(day)}
                   className={`h-24 border rounded-xl p-2 cursor-pointer transition-all relative overflow-hidden
                     ${today 
-                      ? 'border-[#001e33] bg-[#001e33]/5' 
+                      ? 'border-[#001871] bg-[#001871]/5' 
                       : selected
                         ? 'border-indigo-500 bg-indigo-50'
                         : 'border-slate-100 hover:border-indigo-200 hover:bg-slate-50'
                     }`}
                 >
-                  <span className={`text-sm font-bold ${today ? 'text-[#001e33]' : 'text-slate-600'}`}>
+                  <span className={`text-sm font-bold ${today ? 'text-[#001871]' : 'text-slate-600'}`}>
                     {day}
                   </span>
 
@@ -225,7 +225,7 @@ const TaskCalendar = ({
                         e.stopPropagation();
                         if (onSelectDate) onSelectDate(selectedDate, true);
                       }}
-                      className="absolute bottom-2 right-2 p-1.5 bg-[#001e33] text-white rounded-lg hover:bg-slate-800 transition-colors"
+                      className="absolute bottom-2 right-2 p-1.5 bg-[#001871] text-white rounded-lg hover:bg-slate-800 transition-colors"
                     >
                       <Plus size={12} />
                     </button>

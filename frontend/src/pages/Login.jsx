@@ -260,10 +260,10 @@ const Login = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-[#001e33] rounded-2xl mb-4 shadow-xl shadow-blue-900/20">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-[#001871] rounded-2xl mb-4 shadow-xl shadow-blue-900/20">
             <Building2 className="text-white" size={40} />
           </div>
-          <h1 className="text-2xl font-black text-[#001e33] tracking-tight">
+          <h1 className="text-2xl font-black text-[#001871] tracking-tight">
             RUSSELL <span className="text-slate-400 font-light">BEDFORD</span>
           </h1>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">
@@ -273,7 +273,7 @@ const Login = () => {
 
         {/* Formulario */}
         <div className="bg-white rounded-[32px] border border-slate-100 shadow-xl p-8">
-          <h2 className="text-lg font-black text-[#001e33] mb-6">Iniciar Sesión</h2>
+          <h2 className="text-lg font-black text-[#001871] mb-6">Iniciar Sesión</h2>
           
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-medium">
@@ -292,7 +292,7 @@ const Login = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                 placeholder="usuario@russellbedford.com.co"
               />
             </div>
@@ -308,13 +308,13 @@ const Login = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium pr-12"
+                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium pr-12"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#001e33] transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#001871] transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -325,7 +325,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#001e33] text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-blue-900/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-[#001871] text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-blue-900/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -353,7 +353,7 @@ const Login = () => {
           <div className="mt-6 pt-6 border-t border-slate-100 text-center">
             <button 
               onClick={handleForgotPassword}
-              className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-[#001e33] transition-colors"
+              className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-[#001871] transition-colors"
               type="button"
             >
               ¿Olvidó su contraseña?
@@ -384,7 +384,7 @@ const Login = () => {
               <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle size={32} className="text-amber-600" />
               </div>
-              <h2 className="text-xl font-bold text-[#001e33] mb-2">
+              <h2 className="text-xl font-bold text-[#001871] mb-2">
                 {recoveryStep === 1 && 'Recuperar Contraseña'}
                 {recoveryStep === 2 && 'Verificar Código'}
                 {recoveryStep === 3 && 'Nueva Contraseña'}
@@ -397,9 +397,9 @@ const Login = () => {
               
               {/* Indicador de progreso */}
               <div className="flex items-center justify-center gap-2 mt-4">
-                <div className={`w-8 h-2 rounded-full ${recoveryStep >= 1 ? 'bg-[#001e33]' : 'bg-slate-200'}`}></div>
-                <div className={`w-8 h-2 rounded-full ${recoveryStep >= 2 ? 'bg-[#001e33]' : 'bg-slate-200'}`}></div>
-                <div className={`w-8 h-2 rounded-full ${recoveryStep >= 3 ? 'bg-[#001e33]' : 'bg-slate-200'}`}></div>
+                <div className={`w-8 h-2 rounded-full ${recoveryStep >= 1 ? 'bg-[#001871]' : 'bg-slate-200'}`}></div>
+                <div className={`w-8 h-2 rounded-full ${recoveryStep >= 2 ? 'bg-[#001871]' : 'bg-slate-200'}`}></div>
+                <div className={`w-8 h-2 rounded-full ${recoveryStep >= 3 ? 'bg-[#001871]' : 'bg-slate-200'}`}></div>
               </div>
             </div>
 
@@ -413,7 +413,7 @@ const Login = () => {
                     value={recoveryEmail}
                     onChange={(e) => setRecoveryEmail(e.target.value)}
                     placeholder="correo@russellbedford.com"
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none transition-all text-sm"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001871] focus:ring-2 focus:ring-[#001871]/10 outline-none transition-all text-sm"
                     required
                   />
                 </div>
@@ -432,7 +432,7 @@ const Login = () => {
                 <button
                   type="submit"
                   disabled={recoveryLoading}
-                  className="w-full bg-[#001e33] text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-[#001871] text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {recoveryLoading ? (
                     <>
@@ -450,7 +450,7 @@ const Login = () => {
               <form onSubmit={handleVerifyCode} className="space-y-4">
                 <div className="text-center mb-4">
                   <p className="text-sm text-slate-500">Código enviado a:</p>
-                  <p className="font-medium text-[#001e33]">{recoveryEmail}</p>
+                  <p className="font-medium text-[#001871]">{recoveryEmail}</p>
                 </div>
                 
                 <div className="relative">
@@ -461,7 +461,7 @@ const Login = () => {
                     onChange={(e) => setRecoveryCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="Código de 6 dígitos"
                     maxLength={6}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none transition-all text-sm text-center text-2xl tracking-[0.5em] font-bold"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001871] focus:ring-2 focus:ring-[#001871]/10 outline-none transition-all text-sm text-center text-2xl tracking-[0.5em] font-bold"
                     required
                   />
                 </div>
@@ -480,7 +480,7 @@ const Login = () => {
                 <button
                   type="submit"
                   disabled={recoveryLoading}
-                  className="w-full bg-[#001e33] text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-[#001871] text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {recoveryLoading ? (
                     <>
@@ -494,7 +494,7 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => setRecoveryStep(1)}
-                  className="w-full py-2 text-sm text-slate-500 hover:text-[#001e33] transition-colors"
+                  className="w-full py-2 text-sm text-slate-500 hover:text-[#001871] transition-colors"
                 >
                   ← Volver al paso anterior
                 </button>
@@ -511,7 +511,7 @@ const Login = () => {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Nueva contraseña (mínimo 6 caracteres)"
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none transition-all text-sm"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001871] focus:ring-2 focus:ring-[#001871]/10 outline-none transition-all text-sm"
                     required
                     minLength={6}
                   />
@@ -524,7 +524,7 @@ const Login = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirmar contraseña"
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none transition-all text-sm"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#001871] focus:ring-2 focus:ring-[#001871]/10 outline-none transition-all text-sm"
                     required
                   />
                 </div>
@@ -543,7 +543,7 @@ const Login = () => {
                 <button
                   type="submit"
                   disabled={recoveryLoading}
-                  className="w-full bg-[#001e33] text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-[#001871] text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {recoveryLoading ? (
                     <>

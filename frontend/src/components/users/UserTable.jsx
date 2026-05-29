@@ -324,7 +324,7 @@ const UserTable = () => {
                 type="button"
                 disabled={exporting || filteredUsers.length === 0}
                 onClick={handleExportXLSX}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-[#001e33] px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-white shadow-sm transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-[#001871] px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-white shadow-sm transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
                 title="Libro Excel (.xlsx)"
               >
                 {exporting ? <Loader2 size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />}
@@ -388,7 +388,7 @@ const UserTable = () => {
               >
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ${user.estado === 'ACTIVA' ? 'bg-[#001e33] text-white' : 'bg-slate-200 text-slate-500'}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ${user.estado === 'ACTIVA' ? 'bg-[#001871] text-white' : 'bg-slate-200 text-slate-500'}`}>
                       {user.primer_nombre?.charAt(0)}
                     </div>
                     <div>
@@ -468,9 +468,9 @@ const UserTable = () => {
       {/* MODALES MANTENIDOS */}
       {selectedUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#001e33]/80 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setSelectedUser(null)}></div>
+          <div className="absolute inset-0 bg-[#001871]/80 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setSelectedUser(null)}></div>
           <div className="bg-white rounded-[40px] w-full max-w-2xl relative z-10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="bg-[#001e33] p-8 text-white flex justify-between items-start">
+            <div className="bg-[#001871] p-8 text-white flex justify-between items-start">
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-2xl font-black">{selectedUser.primer_nombre?.charAt(0)}</div>
                 <div>
@@ -490,7 +490,7 @@ const UserTable = () => {
               <DetailItem icon={<Shield size={16}/>} label="UUID Autenticación" value={selectedUser.auth_id} colSpan />
             </div>
             <div className="bg-slate-50 p-6 flex justify-end">
-              <button onClick={() => setSelectedUser(null)} className="px-8 py-3 bg-[#001e33] text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform">Cerrar Ficha</button>
+              <button onClick={() => setSelectedUser(null)} className="px-8 py-3 bg-[#001871] text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform">Cerrar Ficha</button>
             </div>
           </div>
         </div>
@@ -503,7 +503,7 @@ const UserTable = () => {
             <div className={`w-20 h-20 mx-auto rounded-3xl flex items-center justify-center ${managingUser.estado === 'ACTIVA' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
               {managingUser.estado === 'ACTIVA' ? <UserCheck size={40} /> : <UserX size={40} />}
             </div>
-            <h3 className="text-2xl font-black text-[#001e33]">Control de Acceso</h3>
+            <h3 className="text-2xl font-black text-[#001871]">Control de Acceso</h3>
             <button 
               onClick={() => toggleUserStatus(managingUser)}
               disabled={updating}
@@ -536,16 +536,16 @@ const UserTable = () => {
       {/* MODAL DE EDICIÓN DE PERFIL COMPLETO */}
       {editingUser && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#001e33]/80 backdrop-blur-md" onClick={() => setEditingUser(null)}></div>
+          <div className="absolute inset-0 bg-[#001871]/80 backdrop-blur-md" onClick={() => setEditingUser(null)}></div>
           <div className="bg-white rounded-[32px] w-full max-w-4xl relative z-10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="bg-[#001e33] p-6 flex justify-between items-center">
+            <div className="bg-[#001871] p-6 flex justify-between items-center">
               <h3 className="text-xl font-black text-white">Editar Perfil Completo de Empleado</h3>
               <button onClick={() => setEditingUser(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors"><X size={24} className="text-white"/></button>
             </div>
             <div className="p-8 space-y-8 max-h-[80vh] overflow-y-auto">
               {/* SECCIÓN: DATOS BÁSICOS */}
               <div className="space-y-4">
-                <h4 className="text-sm font-bold text-[#001e33] uppercase tracking-widest border-b border-slate-200 pb-2">Datos Básicos</h4>
+                <h4 className="text-sm font-bold text-[#001871] uppercase tracking-widest border-b border-slate-200 pb-2">Datos Básicos</h4>
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Primer Nombre *</label>
@@ -598,7 +598,7 @@ const UserTable = () => {
 
               {/* SECCIÓN: CONTACTO */}
               <div className="space-y-4">
-                <h4 className="text-sm font-bold text-[#001e33] uppercase tracking-widest border-b border-slate-200 pb-2">Información de Contacto</h4>
+                <h4 className="text-sm font-bold text-[#001871] uppercase tracking-widest border-b border-slate-200 pb-2">Información de Contacto</h4>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="col-span-2">
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Correo Corporativo *</label>
@@ -673,7 +673,7 @@ const UserTable = () => {
 
               {/* SECCIÓN: DATOS PERSONALES */}
               <div className="space-y-4">
-                <h4 className="text-sm font-bold text-[#001e33] uppercase tracking-widest border-b border-slate-200 pb-2">Datos Personales</h4>
+                <h4 className="text-sm font-bold text-[#001871] uppercase tracking-widest border-b border-slate-200 pb-2">Datos Personales</h4>
                 <div className="grid grid-cols-3 gap-6">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Fecha de Nacimiento</label>
@@ -723,7 +723,7 @@ const UserTable = () => {
 
               {/* SECCIÓN: ASIGNACIÓN */}
               <div className="space-y-4">
-                <h4 className="text-sm font-bold text-[#001e33] uppercase tracking-widest border-b border-slate-200 pb-2">Asignación</h4>
+                <h4 className="text-sm font-bold text-[#001871] uppercase tracking-widest border-b border-slate-200 pb-2">Asignación</h4>
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Área / Departamento</label>
@@ -772,7 +772,7 @@ const UserTable = () => {
 
               {/* SECCIÓN: PERMISOS Y CONFIGURACIÓN */}
               <div className="space-y-4">
-                <h4 className="text-sm font-bold text-[#001e33] uppercase tracking-widest border-b border-slate-200 pb-2">Permisos y Configuración</h4>
+                <h4 className="text-sm font-bold text-[#001871] uppercase tracking-widest border-b border-slate-200 pb-2">Permisos y Configuración</h4>
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Rol/Permisos</label>
@@ -835,7 +835,7 @@ const UserTable = () => {
               {isSuperAdmin && (
                 <div className="space-y-4 border-t border-slate-200 pt-6">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-[#001e33] uppercase tracking-widest flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-[#001871] uppercase tracking-widest flex items-center gap-2">
                       <Lock size={16} />
                       Seguridad - Cambiar Contraseña
                     </h4>
@@ -898,7 +898,7 @@ const UserTable = () => {
                           type="button"
                           onClick={handleChangePassword}
                           disabled={changingPassword || !newPassword || !adminPassword}
-                          className="flex-1 px-4 py-2 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#002a4a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          className="flex-1 px-4 py-2 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#002a4a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                           {changingPassword ? (
                             <>
@@ -932,7 +932,7 @@ const UserTable = () => {
                 <button 
                   onClick={handleSaveEdit} 
                   disabled={updating}
-                  className="px-6 py-3 bg-[#001e33] text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-[#002a4a] transition-colors flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-3 bg-[#001871] text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-[#002a4a] transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
                   {updating ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                   Guardar Cambios
@@ -953,7 +953,7 @@ const ConfirmDeleteModal = ({ user, onClose, onConfirm, updating }) => (
       <div className="w-16 h-16 bg-red-50 text-red-500 mx-auto rounded-full flex items-center justify-center mb-4">
         <AlertTriangle size={32} />
       </div>
-      <h3 className="text-xl font-black text-[#001e33]">¿Eliminar Registro?</h3>
+      <h3 className="text-xl font-black text-[#001871]">¿Eliminar Registro?</h3>
       <p className="text-sm text-slate-500 mt-2">
         {user?.primer_nombre} {user?.segundo_nombre} {user?.primer_apellido} {user?.segundo_apellido}
       </p>

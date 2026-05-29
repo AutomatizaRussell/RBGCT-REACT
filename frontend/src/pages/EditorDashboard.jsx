@@ -96,7 +96,7 @@ const EditorDashboard = () => {
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500">
           {/* Métricas reales */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <StatCard label="Cursos Totales" value={String(stats.cursosTotal)} icon={<BookOpen size={18}/>} subtext={stats.cursosHoy > 0 ? `+${stats.cursosHoy} hoy` : 'Sin cambios hoy'} color="text-[#001e33]" />
+            <StatCard label="Cursos Totales" value={String(stats.cursosTotal)} icon={<BookOpen size={18}/>} subtext={stats.cursosHoy > 0 ? `+${stats.cursosHoy} hoy` : 'Sin cambios hoy'} color="text-[#001871]" />
             <StatCard label="Contenidos" value={String(stats.contenidosTotal)} icon={<CheckCircle size={18} className="text-emerald-600"/>} subtext="Archivos en cursos" color="text-emerald-600" />
             <StatCard label="Cambios Hoy" value={String(stats.cambiosHoy)} icon={<History size={18}/>} subtext="Acciones registradas" color="text-blue-600" />
             <StatCard label="Cursos Activos" value={String(recentCourses.filter(c => c.activo !== false).length)} icon={<Eye size={18}/>} subtext="Visibles para usuarios" />
@@ -106,8 +106,8 @@ const EditorDashboard = () => {
             {/* Cursos Recientes / Actividad */}
             <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
               <div className="flex justify-between items-center mb-8 pb-4 border-b border-slate-100">
-                <h3 className="font-bold text-lg text-[#001e33]">Actividad Reciente</h3>
-                <button onClick={() => navigate('/editor/historial')} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-[#001e33] transition-colors flex items-center gap-1">
+                <h3 className="font-bold text-lg text-[#001871]">Actividad Reciente</h3>
+                <button onClick={() => navigate('/editor/historial')} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-[#001871] transition-colors flex items-center gap-1">
                   Ver Historial <ChevronRight size={12}/>
                 </button>
               </div>
@@ -134,7 +134,7 @@ const EditorDashboard = () => {
             <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm flex flex-col gap-6">
               <div className="flex items-center gap-4">
                  <div className="p-3 bg-slate-100 rounded-xl"><BarChart3 size={20} /></div>
-                 <h3 className="font-bold text-[#001e33]">Herramientas</h3>
+                 <h3 className="font-bold text-[#001871]">Herramientas</h3>
               </div>
               <div className="space-y-3">
                 <ActionButton label="Ir a Cursos" icon={<BookOpen size={14}/>} primary onClick={() => navigate('/editor/cursos')} />
@@ -160,7 +160,7 @@ const EditorDashboard = () => {
       return (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="mb-6">
-            <h3 className="text-lg font-bold text-[#001e33]">Herramientas</h3>
+            <h3 className="text-lg font-bold text-[#001871]">Herramientas</h3>
             <p className="text-xs text-slate-500 mt-0.5">Utilidades y herramientas de productividad</p>
           </div>
           <UtilidadesSection />
@@ -173,7 +173,7 @@ const EditorDashboard = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001e33]">
+    <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001871]">
       {/* Corregido: Usamos el nombre correcto del componente importado */}
       <EditorSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
@@ -181,7 +181,7 @@ const EditorDashboard = () => {
         <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-10 shadow-sm relative z-10">
           <div>
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5">Editor Workspace</p>
-            <h2 className="text-xl font-black text-[#001e33] tracking-tight">
+            <h2 className="text-xl font-black text-[#001871] tracking-tight">
               {location.pathname.includes('cursos') ? 'Gestión de Cursos' :
                location.pathname.includes('historial') ? 'Historial de Cambios' :
                location.pathname.includes('tareas') ? 'Calendario de Tareas' :
@@ -204,7 +204,7 @@ const EditorDashboard = () => {
 const ContentRow = ({ title, author, status, time }) => (
   <div className="flex items-center justify-between py-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 px-3 rounded-2xl transition-colors">
     <div className="flex items-center gap-4">
-      <div className="w-10 h-10 bg-[#001e33] text-white rounded-xl flex items-center justify-center">
+      <div className="w-10 h-10 bg-[#001871] text-white rounded-xl flex items-center justify-center">
         <FileText size={18} />
       </div>
       <div>

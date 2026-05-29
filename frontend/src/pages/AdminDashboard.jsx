@@ -314,7 +314,7 @@ const AdminDashboard = () => {
                   value={alertasCount.toString()} 
                   icon={<ShieldAlert size={18} className={alertasCount > 0 ? "text-red-500" : ""}/>} 
                   subtext={alertasCount > 0 ? `${alertasCount} solicitudes pendientes` : "Sin incidentes críticos"} 
-                  color={alertasCount > 0 ? "text-red-600" : "text-[#001e33]"}
+                  color={alertasCount > 0 ? "text-red-600" : "text-[#001871]"}
                 />
               </div>
 
@@ -329,7 +329,7 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
                 <div className="mb-8 pb-4 border-b border-slate-100">
-                  <h3 className="font-bold text-lg text-[#001e33]">Actividad Reciente</h3>
+                  <h3 className="font-bold text-lg text-[#001871]">Actividad Reciente</h3>
                   <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-tight">Logins y alertas en tiempo real</p>
                 </div>
                 
@@ -362,7 +362,7 @@ const AdminDashboard = () => {
               <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm flex flex-col gap-6">
                 <div className="flex items-center gap-4">
                    <div className="p-3 bg-slate-100 rounded-xl"><Database size={20} /></div>
-                   <h3 className="font-bold text-[#001e33]">Estado de Datos</h3>
+                   <h3 className="font-bold text-[#001871]">Estado de Datos</h3>
                 </div>
                 <div className="space-y-3">
                   <ActionButton label="Exportar Base de Datos" icon={<Database size={14}/>} />
@@ -415,13 +415,13 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001e33]">
+    <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001871]">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-10 shadow-sm relative z-10">
           <div>
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5">Control Global</p>
-            <h2 className="text-xl font-black text-[#001e33] tracking-tight">
+            <h2 className="text-xl font-black text-[#001871] tracking-tight">
               {getHeaderTitle()}
             </h2>
           </div>
@@ -429,7 +429,7 @@ const AdminDashboard = () => {
           {isSuperAdmin && activeTab === 'users' && (
             <button
               onClick={() => navigate('/admin/usuarios/nuevo')}
-              className="flex items-center gap-2 px-4 py-2 bg-[#001e33] text-white rounded-lg hover:bg-[#003366] transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-[#001871] text-white rounded-lg hover:bg-[#003366] transition-colors text-sm font-medium"
             >
               <Plus size={16} />
               Crear Usuario
@@ -515,7 +515,7 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
               <AlertTriangle className="text-red-600" size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-[#001e33]">Alertas del Sistema</h3>
+              <h3 className="text-lg font-bold text-[#001871]">Alertas del Sistema</h3>
               <p className="text-xs text-slate-500">Solicitudes de recuperación de contraseña</p>
             </div>
           </div>
@@ -597,7 +597,7 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
                     {alerta.usuario_existe && alerta.empleado_info && (
                       <button
                         onClick={() => onChangePassword(alerta.empleado_info)}
-                        className="flex items-center gap-2 px-3 py-2 bg-[#001e33] text-white text-xs font-semibold rounded-lg hover:bg-[#003366] transition-colors"
+                        className="flex items-center gap-2 px-3 py-2 bg-[#001871] text-white text-xs font-semibold rounded-lg hover:bg-[#003366] transition-colors"
                       >
                         <Lock size={14} />
                         Cambiar Contraseña
@@ -628,7 +628,7 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">
           <button 
             onClick={onClose}
-            className="w-full py-3 bg-[#001e33] text-white rounded-xl font-semibold hover:bg-[#003366] transition-colors"
+            className="w-full py-3 bg-[#001871] text-white rounded-xl font-semibold hover:bg-[#003366] transition-colors"
           >
             Cerrar
           </button>
@@ -664,7 +664,7 @@ const PasswordModal = ({
       {/* Modal */}
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-[#001e33]">
+        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-[#001871]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/10 rounded-xl">
               <Lock className="text-white" size={24} />
@@ -693,7 +693,7 @@ const PasswordModal = ({
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Mínimo 6 caracteres"
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#001e33] focus:ring-1 focus:ring-[#001e33] outline-none transition-all"
+              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#001871] focus:ring-1 focus:ring-[#001871] outline-none transition-all"
               minLength={6}
               required
             />
@@ -708,7 +708,7 @@ const PasswordModal = ({
               value={adminPassword}
               onChange={(e) => setAdminPassword(e.target.value)}
               placeholder="Confirma tu identidad"
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#001e33] focus:ring-1 focus:ring-[#001e33] outline-none transition-all"
+              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#001871] focus:ring-1 focus:ring-[#001871] outline-none transition-all"
               required
             />
             <p className="text-xs text-slate-500 mt-1">
@@ -727,7 +727,7 @@ const PasswordModal = ({
             <button
               type="submit"
               disabled={updating}
-              className="flex-1 py-3 bg-[#001e33] text-white rounded-xl font-semibold hover:bg-[#003366] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 bg-[#001871] text-white rounded-xl font-semibold hover:bg-[#003366] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {updating ? 'Actualizando...' : 'Actualizar'}
             </button>
@@ -763,7 +763,7 @@ const AlertDetailModal = ({ alerta, onClose, onMarcarTerminado, onEliminar, onCh
                 {alerta.nombre?.charAt(0).toUpperCase() || '?'}
               </div>
               <div>
-                <h3 className="text-lg font-black text-[#001e33]">{alerta.nombre || 'Desconocido'}</h3>
+                <h3 className="text-lg font-black text-[#001871]">{alerta.nombre || 'Desconocido'}</h3>
                 <p className="text-xs text-slate-500">{alerta.email}</p>
               </div>
             </div>
@@ -798,7 +798,7 @@ const AlertDetailModal = ({ alerta, onClose, onMarcarTerminado, onEliminar, onCh
               ].filter(f => f.value).map(f => (
                 <div key={f.label} className="px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{f.label}</p>
-                  <p className="text-xs font-semibold text-[#001e33] mt-0.5 truncate">{f.value}</p>
+                  <p className="text-xs font-semibold text-[#001871] mt-0.5 truncate">{f.value}</p>
                 </div>
               ))}
             </div>
@@ -814,7 +814,7 @@ const AlertDetailModal = ({ alerta, onClose, onMarcarTerminado, onEliminar, onCh
             {alerta.usuario_existe && emp && (
               <button
                 onClick={() => onChangePassword(emp)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[#001e33] text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#001871] text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-colors"
               >
                 <Lock size={13} /> Cambiar Contraseña
               </button>

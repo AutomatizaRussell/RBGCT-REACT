@@ -152,7 +152,7 @@ export default function EditorCursos() {
             <BookOpen size={20} className="text-white"/>
           </div>
           <div>
-            <h3 className="font-bold text-[#001e33] text-lg">Gestión de Cursos</h3>
+            <h3 className="font-bold text-[#001871] text-lg">Gestión de Cursos</h3>
             <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest">
               {cursos.length} curso{cursos.length !== 1 ? 's' : ''} disponible{cursos.length !== 1 ? 's' : ''}
             </p>
@@ -160,7 +160,7 @@ export default function EditorCursos() {
         </div>
         <button
           onClick={() => { setShowNuevoCurso(true); setEditingCurso(null); setNuevoCurso({ nombre: '', descripcion: '', visibilidad: 'todos', area_id: null, empleado_asignado_id: null }); }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm"
         >
           <Plus size={14}/> Nuevo Curso
         </button>
@@ -203,7 +203,7 @@ export default function EditorCursos() {
                   onClick={() => setNuevoCurso(p => ({ ...p, visibilidad: key, area_id: key === 'area' ? p.area_id : null, empleado_asignado_id: key === 'persona' ? p.empleado_asignado_id : null }))}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold border transition-all ${
                     nuevoCurso.visibilidad === key
-                      ? 'bg-[#001e33] text-white border-[#001e33] shadow-sm'
+                      ? 'bg-[#001871] text-white border-[#001871] shadow-sm'
                       : 'bg-white border-purple-200 text-slate-500 hover:border-purple-300'
                   }`}
                 >
@@ -243,7 +243,7 @@ export default function EditorCursos() {
             <button
               onClick={handleCrearCurso}
               disabled={saving || !nuevoCurso.nombre.trim()}
-              className="px-5 py-2.5 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              className="px-5 py-2.5 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
             >
               {saving ? <><Loader2 size={14} className="animate-spin"/> Creando...</> : <><CheckCircle2 size={14}/> Crear Curso</>}
             </button>
@@ -267,7 +267,7 @@ export default function EditorCursos() {
           <p className="text-xs text-slate-400 mb-4">Comienza creando tu primer curso para organizar contenido.</p>
           <button
             onClick={() => setShowNuevoCurso(true)}
-            className="px-5 py-2.5 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
+            className="px-5 py-2.5 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
           >
             <Plus size={14} className="inline mr-2"/> Crear Primer Curso
           </button>
@@ -313,7 +313,7 @@ export default function EditorCursos() {
                         onClick={() => setEditingCurso(p => ({ ...p, visibilidad: key, area_id: key === 'area' ? p.area_id : null, empleado_asignado_id: key === 'persona' ? p.empleado_asignado_id : null }))}
                         className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
                           editingCurso.visibilidad === key
-                            ? 'bg-[#001e33] text-white border-[#001e33] shadow-sm'
+                            ? 'bg-[#001871] text-white border-[#001871] shadow-sm'
                             : 'bg-white border-amber-200 text-slate-500 hover:border-amber-300'
                         }`}
                       >
@@ -353,7 +353,7 @@ export default function EditorCursos() {
                   <button
                     onClick={handleGuardarEditCurso}
                     disabled={saving}
-                    className="px-4 py-2 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all"
+                    className="px-4 py-2 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all"
                   >
                     {saving ? 'Guardando...' : 'Guardar Cambios'}
                   </button>
@@ -373,12 +373,12 @@ export default function EditorCursos() {
                 <span className="text-slate-400 flex-shrink-0 transition-transform duration-200">
                   {expandedId === curso.id ? <ChevronDown size={18}/> : <ChevronRight size={18}/>}
                 </span>
-                <div className="w-10 h-10 bg-gradient-to-br from-[#001e33] to-slate-700 text-white rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 shadow-sm">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#001871] to-slate-700 text-white rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 shadow-sm">
                   {curso.nombre?.charAt(0).toUpperCase() || 'C'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-bold text-[#001e33] text-sm truncate">{curso.nombre}</p>
+                    <p className="font-bold text-[#001871] text-sm truncate">{curso.nombre}</p>
                     {curso.visibilidad === 'todos' && (
                       <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100 flex items-center gap-1">
                         <Globe size={10}/> Todos
@@ -442,7 +442,7 @@ export default function EditorCursos() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <p className="text-sm font-bold text-[#001e33] truncate">{item.titulo}</p>
+                              <p className="text-sm font-bold text-[#001871] truncate">{item.titulo}</p>
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${cfg.badge}`}>
                                 {cfg.label}
                               </span>
@@ -612,7 +612,7 @@ function AddContenidoForm({ cursoId, onDone, onCancel }) {
               onClick={() => setTipo(key)}
               className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold border transition-all ${
                 tipo === key
-                  ? 'bg-[#001e33] text-white border-[#001e33] shadow-sm'
+                  ? 'bg-[#001871] text-white border-[#001871] shadow-sm'
                   : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'
               }`}
             >
@@ -705,7 +705,7 @@ function AddContenidoForm({ cursoId, onDone, onCancel }) {
         <button
           onClick={handleSubmit}
           disabled={saving || !form.titulo.trim()}
-          className="px-5 py-2.5 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+          className="px-5 py-2.5 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
         >
           {saving ? <><Loader2 size={14} className="animate-spin"/> Guardando...</> : <><CheckCircle2 size={14}/> Agregar Contenido</>}
         </button>

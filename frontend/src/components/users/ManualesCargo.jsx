@@ -44,7 +44,7 @@ const CursoCard = ({ curso }) => {
             <BookOpen size={18} className="text-indigo-600"/>
           </div>
           <div className="min-w-0">
-            <p className="font-bold text-[#001e33] text-sm">{curso.nombre}</p>
+            <p className="font-bold text-[#001871] text-sm">{curso.nombre}</p>
             {curso.descripcion && (
               <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{curso.descripcion}</p>
             )}
@@ -82,7 +82,7 @@ const CursoCard = ({ curso }) => {
                       <span className={cfg.color}>{cfg.icon}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-[#001e33]">{c.titulo}</p>
+                      <p className="text-sm font-semibold text-[#001871]">{c.titulo}</p>
                       {c.descripcion && (
                         <p className="text-[11px] text-slate-400 mt-0.5">{c.descripcion}</p>
                       )}
@@ -96,7 +96,7 @@ const CursoCard = ({ curso }) => {
                     </div>
                     {url && c.tipo !== 'texto' && c.tipo !== 'cuestionario' && (
                       <a href={url} target="_blank" rel="noopener noreferrer"
-                        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-[#001e33] text-white rounded-xl text-[10px] font-bold uppercase hover:bg-slate-800 transition-all">
+                        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-[#001871] text-white rounded-xl text-[10px] font-bold uppercase hover:bg-slate-800 transition-all">
                         {c.tipo === 'documento' || c.tipo === 'video'
                           ? <><Download size={11}/> Descargar</>
                           : <><ExternalLink size={11}/> {c.tipo === 'youtube' ? 'Ver video' : 'Abrir'}</>
@@ -165,7 +165,7 @@ const ManualesCargo = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-[#001e33]">Cursos y Capacitaciones</h3>
+          <h3 className="text-lg font-bold text-[#001871]">Cursos y Capacitaciones</h3>
           <p className="text-xs text-slate-500 mt-0.5">
             {cursos.length} curso{cursos.length !== 1 ? 's' : ''} disponible{cursos.length !== 1 ? 's' : ''}
           </p>

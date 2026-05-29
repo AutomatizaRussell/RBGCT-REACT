@@ -61,7 +61,7 @@ export const UserSidebar = ({ activeTab, setActiveTab }) => {
   );
 
   return (
-    <aside className="sticky top-0 z-20 flex h-screen w-64 shrink-0 flex-col bg-[#001e33] text-white shadow-2xl">
+    <aside className="sticky top-0 z-20 flex h-screen w-64 shrink-0 flex-col bg-[#001871] text-white shadow-2xl">
       <div className="p-8 pb-6">
         <h1 className="text-xl font-bold uppercase leading-none tracking-tighter text-white">
           RUSSELL
@@ -75,7 +75,7 @@ export const UserSidebar = ({ activeTab, setActiveTab }) => {
 
       <div className="mx-4 mb-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#001e33] text-sm font-bold text-white ring-1 ring-white/20">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#001871] text-sm font-bold text-white ring-1 ring-white/20">
             {inicial}
           </div>
           <div className="min-w-0">

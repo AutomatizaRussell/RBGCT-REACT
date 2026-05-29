@@ -52,7 +52,7 @@ const TaskDashboard = ({ userArea = null }) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-bold text-[#001e33]">Calendario de Tareas</h3>
+          <h3 className="text-lg font-bold text-[#001871]">Calendario de Tareas</h3>
           <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
             {canManageAll 
               ? 'Gestión completa de todas las áreas' 
@@ -66,7 +66,7 @@ const TaskDashboard = ({ userArea = null }) => {
               onClick={() => setViewMode('calendar')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
                 viewMode === 'calendar' 
-                  ? 'bg-white text-[#001e33] shadow-sm' 
+                  ? 'bg-white text-[#001871] shadow-sm' 
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -77,7 +77,7 @@ const TaskDashboard = ({ userArea = null }) => {
               onClick={() => setViewMode('list')}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
                 viewMode === 'list' 
-                  ? 'bg-white text-[#001e33] shadow-sm' 
+                  ? 'bg-white text-[#001871] shadow-sm' 
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -93,7 +93,7 @@ const TaskDashboard = ({ userArea = null }) => {
                 setSelectedTask(null);
                 setShowTaskManager(true);
               }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-lg shadow-blue-900/10"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-lg shadow-blue-900/10"
             >
               <Plus size={16} />
               Nueva Tarea

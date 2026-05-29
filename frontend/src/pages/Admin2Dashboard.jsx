@@ -336,7 +336,7 @@ const Admin2Dashboard = () => {
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Panel Administrativo</p>
-                <h2 className="text-2xl font-bold text-[#001e33]">{saludo}, {adminName}</h2>
+                <h2 className="text-2xl font-bold text-[#001871]">{saludo}, {adminName}</h2>
                 <p className="text-sm text-slate-400 mt-1">
                   Tienes <span className="font-bold text-amber-500">{taskStats.pending} tarea{taskStats.pending !== 1 ? 's' : ''} pendiente{taskStats.pending !== 1 ? 's' : ''}</span> y{' '}
                   <span className={`font-bold ${alertasCount > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
@@ -396,7 +396,7 @@ const Admin2Dashboard = () => {
               <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                   <div>
-                    <h3 className="font-bold text-[#001e33]">Distribución por Área</h3>
+                    <h3 className="font-bold text-[#001871]">Distribución por Área</h3>
                     <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mt-0.5">Empleados activos</p>
                   </div>
                   <div className="p-2.5 bg-blue-50 rounded-xl"><BarChart2 size={16} className="text-blue-600"/></div>
@@ -429,7 +429,7 @@ const Admin2Dashboard = () => {
               <div className="space-y-5">
                 {/* Donut visual estado */}
                 <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
-                  <h3 className="font-bold text-[#001e33] mb-4 text-sm">Estado del Equipo</h3>
+                  <h3 className="font-bold text-[#001871] mb-4 text-sm">Estado del Equipo</h3>
                   <div className="flex items-center gap-4">
                     <div className="relative w-20 h-20 flex-shrink-0">
                       <svg viewBox="0 0 36 36" className="w-20 h-20 -rotate-90">
@@ -439,7 +439,7 @@ const Admin2Dashboard = () => {
                           strokeLinecap="round"/>
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-lg font-black text-[#001e33]">
+                        <span className="text-lg font-black text-[#001871]">
                           {employeeStats.totalCount > 0 ? Math.round(employeeStats.activeCount / employeeStats.totalCount * 100) : 0}%
                         </span>
                       </div>
@@ -472,7 +472,7 @@ const Admin2Dashboard = () => {
 
                 {/* Acciones rápidas */}
                 <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
-                  <h3 className="font-bold text-[#001e33] mb-4 text-sm">Acciones Rápidas</h3>
+                  <h3 className="font-bold text-[#001871] mb-4 text-sm">Acciones Rápidas</h3>
                   <div className="space-y-2">
                     {[
                       { label: 'Gestionar Personal',  icon: <Users size={14}/>,       tab: 'users',    color: 'hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200' },
@@ -497,9 +497,9 @@ const Admin2Dashboard = () => {
               {/* Resumen de tareas */}
               <div className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                  <h3 className="font-bold text-[#001e33]">Resumen de Tareas</h3>
+                  <h3 className="font-bold text-[#001871]">Resumen de Tareas</h3>
                   <button onClick={() => setActiveTab('tasks')}
-                    className="text-[10px] font-bold text-slate-400 hover:text-[#001e33] uppercase tracking-widest transition-colors flex items-center gap-1">
+                    className="text-[10px] font-bold text-slate-400 hover:text-[#001871] uppercase tracking-widest transition-colors flex items-center gap-1">
                     Ver todo <ArrowRight size={10}/>
                   </button>
                 </div>
@@ -525,7 +525,7 @@ const Admin2Dashboard = () => {
                   ))}
                   <div className="pt-2 border-t border-slate-50 flex justify-between items-center">
                     <span className="text-xs text-slate-400">Total registradas</span>
-                    <span className="text-sm font-black text-[#001e33]">{taskStats.total}</span>
+                    <span className="text-sm font-black text-[#001871]">{taskStats.total}</span>
                   </div>
                 </div>
               </div>
@@ -534,7 +534,7 @@ const Admin2Dashboard = () => {
               <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                   <div>
-                    <h3 className="font-bold text-[#001e33]">Actividad Reciente</h3>
+                    <h3 className="font-bold text-[#001871]">Actividad Reciente</h3>
                     <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-tight mt-0.5">
                       {concurrentUsers} usuario{concurrentUsers !== 1 ? 's' : ''} en línea ahora
                     </p>
@@ -590,24 +590,24 @@ const Admin2Dashboard = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001e33]">
+    <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001871]">
       <Admin2Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-10 shadow-sm relative z-10">
           <div>
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5">Gestión Administrativa</p>
-            <h2 className="text-xl font-black text-[#001e33] tracking-tight">{getHeaderTitle()}</h2>
+            <h2 className="text-xl font-black text-[#001871] tracking-tight">{getHeaderTitle()}</h2>
           </div>
           <div className="flex items-center gap-4">
             {activeTab === 'dashboard' && (
               <button onClick={() => { fetchStats(); fetchAllActivity(); }}
-                className="p-2 text-slate-400 hover:text-[#001e33] hover:bg-slate-100 rounded-xl transition-all" title="Actualizar datos">
+                className="p-2 text-slate-400 hover:text-[#001871] hover:bg-slate-100 rounded-xl transition-all" title="Actualizar datos">
                 <RefreshCw size={16}/>
               </button>
             )}
             <button onClick={() => (alertasCount > 0 || (puedeExpedirCert && solicitudesCertCount > 0)) && setShowAlertasModal(true)}
-              className="relative p-2 text-slate-400 hover:text-[#001e33] hover:bg-slate-100 rounded-xl transition-all">
+              className="relative p-2 text-slate-400 hover:text-[#001871] hover:bg-slate-100 rounded-xl transition-all">
               <Bell size={18}/>
               {(alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0)) > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] font-black flex items-center justify-center">
@@ -617,14 +617,14 @@ const Admin2Dashboard = () => {
             </button>
             <div className="flex items-center gap-3 pl-4 border-l border-slate-100">
               <div className="text-right">
-                <p className="text-sm font-bold text-[#001e33]">
+                <p className="text-sm font-bold text-[#001871]">
                   {user?.primer_nombre ? `${user.primer_nombre} ${user.primer_apellido || ''}` : 'Administrador'}
                 </p>
                 <p className="text-[10px] text-slate-400 font-medium">
                   {new Date().toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-[#001e33] rounded-xl flex items-center justify-center text-white font-black text-sm">
+              <div className="w-10 h-10 bg-[#001871] rounded-xl flex items-center justify-center text-white font-black text-sm">
                 {user?.primer_nombre?.charAt(0) || 'A'}
               </div>
             </div>
@@ -666,7 +666,7 @@ const KpiCard = ({ label, value, sub, icon, iconBg, iconColor, accent, highlight
       </div>
       {highlight && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mt-1"/>}
     </div>
-    <p className="text-2xl font-bold text-[#001e33] leading-none mb-1.5">{value}</p>
+    <p className="text-2xl font-bold text-[#001871] leading-none mb-1.5">{value}</p>
     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest truncate">{label}</p>
     <p className="text-[10px] text-slate-400 mt-0.5 truncate">{sub}</p>
   </div>
@@ -685,7 +685,7 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-slate-100 rounded-xl"><Bell className="text-slate-600" size={20}/></div>
-            <h3 className="text-lg font-bold text-[#001e33]">Notificaciones</h3>
+            <h3 className="text-lg font-bold text-[#001871]">Notificaciones</h3>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
             <X size={20} className="text-slate-400"/>
@@ -701,9 +701,9 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
           </button>
           {showCertTab && (
             <button onClick={() => setTab('certificados')}
-              className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${tab === 'certificados' ? 'border-[#001e33] text-[#001e33]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+              className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${tab === 'certificados' ? 'border-[#001871] text-[#001871]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
               <FileText size={13}/> Certificados
-              {solicitudesCert.length > 0 && <span className="px-1.5 py-0.5 bg-[#001e33]/10 text-[#001e33] rounded-full text-[9px] font-black">{solicitudesCert.length}</span>}
+              {solicitudesCert.length > 0 && <span className="px-1.5 py-0.5 bg-[#001871]/10 text-[#001871] rounded-full text-[9px] font-black">{solicitudesCert.length}</span>}
             </button>
           )}
         </div>
@@ -779,11 +779,11 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
                   return (
                     <div key={sol.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/40">
                       <div className="flex items-start gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#001e33] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-[#001871] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                           {d.nombre_empleado?.charAt(0)?.toUpperCase() || '?'}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-[#001e33] text-sm">{d.nombre_empleado || '—'}</p>
+                          <p className="font-bold text-[#001871] text-sm">{d.nombre_empleado || '—'}</p>
                           <p className="text-xs text-slate-500">{d.nombre_cargo || '—'} · {d.correo_corporativo || '—'}</p>
                           <p className="text-[10px] text-slate-400 mt-0.5">{fecha}</p>
                         </div>
@@ -821,7 +821,7 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
         </div>
 
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">
-          <button onClick={onClose} className="w-full py-3 bg-[#001e33] text-white rounded-xl font-semibold hover:bg-[#003366] transition-colors">
+          <button onClick={onClose} className="w-full py-3 bg-[#001871] text-white rounded-xl font-semibold hover:bg-[#003366] transition-colors">
             Cerrar
           </button>
         </div>
@@ -969,7 +969,7 @@ const HerramientasTab = () => {
         {SECCIONES.map(s => (
           <button key={s.id} onClick={() => setSeccion(s.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-              seccion === s.id ? 'bg-[#001e33] text-white shadow' : 'text-slate-400 hover:text-[#001e33] hover:bg-slate-50'
+              seccion === s.id ? 'bg-[#001871] text-white shadow' : 'text-slate-400 hover:text-[#001871] hover:bg-slate-50'
             }`}>
             {s.icon} {s.label}
           </button>
@@ -987,7 +987,7 @@ const HerramientasTab = () => {
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
                   <div className="p-3 bg-blue-50 rounded-xl"><Building2 size={20} className="text-blue-600"/></div>
                   <div>
-                    <h3 className="font-bold text-[#001e33]">Áreas</h3>
+                    <h3 className="font-bold text-[#001871]">Áreas</h3>
                     <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">{areas.length} registradas</p>
                   </div>
                 </div>
@@ -1003,7 +1003,7 @@ const HerramientasTab = () => {
                                 value={editAreaName}
                                 onChange={e => setEditAreaName(e.target.value)}
                                 onKeyDown={e => { if (e.key === 'Enter') handleSaveArea(a.id); if (e.key === 'Escape') setEditingAreaId(null); }}
-                                className="flex-1 bg-transparent text-sm font-medium focus:outline-none text-[#001e33]"
+                                className="flex-1 bg-transparent text-sm font-medium focus:outline-none text-[#001871]"
                               />
                               <button onClick={() => handleSaveArea(a.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-all"><Check size={14}/></button>
                               <button onClick={() => setEditingAreaId(null)} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded-lg transition-all"><X size={14}/></button>
@@ -1011,7 +1011,7 @@ const HerramientasTab = () => {
                           ) : (
                             <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl border border-slate-100 group">
                               <div className="flex items-center gap-3 min-w-0">
-                                <span className="text-sm font-medium text-[#001e33] truncate">{a.nombre_area}</span>
+                                <span className="text-sm font-medium text-[#001871] truncate">{a.nombre_area}</span>
                                 {empleadosPorArea[a.nombre_area] > 0 && (
                                   <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold flex-shrink-0">
                                     {empleadosPorArea[a.nombre_area]}
@@ -1031,7 +1031,7 @@ const HerramientasTab = () => {
                 <div className="flex gap-2">
                   <input value={newArea} onChange={e => setNewArea(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddArea()}
                     placeholder="Nueva área..." className="flex-1 px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400"/>
-                  <button onClick={handleAddArea} disabled={saving || !newArea.trim()} className="px-4 py-2.5 bg-[#001e33] text-white rounded-xl hover:bg-slate-800 disabled:opacity-40 transition-all"><Plus size={16}/></button>
+                  <button onClick={handleAddArea} disabled={saving || !newArea.trim()} className="px-4 py-2.5 bg-[#001871] text-white rounded-xl hover:bg-slate-800 disabled:opacity-40 transition-all"><Plus size={16}/></button>
                 </div>
               </div>
 
@@ -1040,7 +1040,7 @@ const HerramientasTab = () => {
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
                   <div className="p-3 bg-emerald-50 rounded-xl"><Briefcase size={20} className="text-emerald-600"/></div>
                   <div>
-                    <h3 className="font-bold text-[#001e33]">Cargos</h3>
+                    <h3 className="font-bold text-[#001871]">Cargos</h3>
                     <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">{cargos.length} registrados</p>
                   </div>
                 </div>
@@ -1056,14 +1056,14 @@ const HerramientasTab = () => {
                                 value={editCargoName}
                                 onChange={e => setEditCargoName(e.target.value)}
                                 onKeyDown={e => { if (e.key === 'Enter') handleSaveCargo(c.id); if (e.key === 'Escape') setEditingCargoId(null); }}
-                                className="flex-1 bg-transparent text-sm font-medium focus:outline-none text-[#001e33]"
+                                className="flex-1 bg-transparent text-sm font-medium focus:outline-none text-[#001871]"
                               />
                               <button onClick={() => handleSaveCargo(c.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-all"><Check size={14}/></button>
                               <button onClick={() => setEditingCargoId(null)} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded-lg transition-all"><X size={14}/></button>
                             </div>
                           ) : (
                             <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl border border-slate-100 group">
-                              <span className="text-sm font-medium text-[#001e33]">{c.nombre_cargo}</span>
+                              <span className="text-sm font-medium text-[#001871]">{c.nombre_cargo}</span>
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onClick={() => { setEditingCargoId(c.id); setEditCargoName(c.nombre_cargo); }} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><Pencil size={13}/></button>
                                 <button onClick={() => handleDeleteCargo(c.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={13}/></button>
@@ -1077,7 +1077,7 @@ const HerramientasTab = () => {
                 <div className="flex gap-2">
                   <input value={newCargo} onChange={e => setNewCargo(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCargo()}
                     placeholder="Nuevo cargo..." className="flex-1 px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-400"/>
-                  <button onClick={handleAddCargo} disabled={saving || !newCargo.trim()} className="px-4 py-2.5 bg-[#001e33] text-white rounded-xl hover:bg-slate-800 disabled:opacity-40 transition-all"><Plus size={16}/></button>
+                  <button onClick={handleAddCargo} disabled={saving || !newCargo.trim()} className="px-4 py-2.5 bg-[#001871] text-white rounded-xl hover:bg-slate-800 disabled:opacity-40 transition-all"><Plus size={16}/></button>
                 </div>
               </div>
             </div>
@@ -1175,13 +1175,13 @@ const ReglamentoTab = () => {
         <div className="flex items-center gap-4">
           <div className="p-3 bg-indigo-50 rounded-xl"><BookOpen size={22} className="text-indigo-600"/></div>
           <div>
-            <h2 className="text-lg font-black text-[#001e33]">Reglamento Interno de Trabajo</h2>
+            <h2 className="text-lg font-black text-[#001871]">Reglamento Interno de Trabajo</h2>
             <p className="text-xs text-slate-400">Russell Bedford Colombia — {items.length} sección{items.length !== 1 ? 'es' : ''}</p>
           </div>
         </div>
         <button
           onClick={() => { setAdding(true); setEditingId(null); }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
         >
           <Plus size={14}/> Agregar Sección
         </button>
@@ -1209,7 +1209,7 @@ const ReglamentoTab = () => {
             <button
               onClick={handleAdd}
               disabled={saving || !newData.titulo.trim()}
-              className="px-5 py-2.5 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all"
+              className="px-5 py-2.5 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all"
             >
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
@@ -1253,7 +1253,7 @@ const ReglamentoTab = () => {
                     <button
                       onClick={() => handleSaveEdit(item.id)}
                       disabled={saving || !editData.titulo.trim()}
-                      className="px-5 py-2.5 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all"
+                      className="px-5 py-2.5 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all"
                     >
                       {saving ? 'Guardando...' : 'Guardar cambios'}
                     </button>
@@ -1269,7 +1269,7 @@ const ReglamentoTab = () => {
                 <div className="p-7">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-[#001e33] text-base mb-3">{item.titulo}</h3>
+                      <h3 className="font-bold text-[#001871] text-base mb-3">{item.titulo}</h3>
                       {item.contenido && (
                         <div className="space-y-2">
                           {item.contenido.split('\n').filter(l => l.trim()).map((linea, i) => (
@@ -1286,7 +1286,7 @@ const ReglamentoTab = () => {
                         onClick={() => handleMover(item.id, 'arriba')}
                         disabled={idx === 0}
                         title="Subir"
-                        className="p-2 text-slate-400 hover:text-[#001e33] hover:bg-slate-100 rounded-lg transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+                        className="p-2 text-slate-400 hover:text-[#001871] hover:bg-slate-100 rounded-lg transition-all disabled:opacity-20 disabled:cursor-not-allowed"
                       >
                         ▲
                       </button>
@@ -1294,7 +1294,7 @@ const ReglamentoTab = () => {
                         onClick={() => handleMover(item.id, 'abajo')}
                         disabled={idx === items.length - 1}
                         title="Bajar"
-                        className="p-2 text-slate-400 hover:text-[#001e33] hover:bg-slate-100 rounded-lg transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+                        className="p-2 text-slate-400 hover:text-[#001871] hover:bg-slate-100 rounded-lg transition-all disabled:opacity-20 disabled:cursor-not-allowed"
                       >
                         ▼
                       </button>
@@ -1422,7 +1422,7 @@ const ConfiguracionesTab = ({ user }) => {
         {SECCIONES_CFG.map(s => (
           <button key={s.id} onClick={() => setSeccion(s.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-              seccion === s.id ? 'bg-[#001e33] text-white shadow' : 'text-slate-400 hover:text-[#001e33] hover:bg-slate-50'
+              seccion === s.id ? 'bg-[#001871] text-white shadow' : 'text-slate-400 hover:text-[#001871] hover:bg-slate-50'
             }`}>
             {s.icon} {s.label}
           </button>
@@ -1433,11 +1433,11 @@ const ConfiguracionesTab = ({ user }) => {
       {seccion === 'cuenta' && (
         <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
           <div className="flex items-center gap-6 mb-8 pb-6 border-b border-slate-50">
-            <div className="w-20 h-20 bg-[#001e33] rounded-2xl flex items-center justify-center text-white text-3xl font-black flex-shrink-0">
+            <div className="w-20 h-20 bg-[#001871] rounded-2xl flex items-center justify-center text-white text-3xl font-black flex-shrink-0">
               {user?.primer_nombre?.charAt(0)?.toUpperCase() || 'A'}
             </div>
             <div>
-              <h2 className="text-xl font-black text-[#001e33]">{adminNombre}</h2>
+              <h2 className="text-xl font-black text-[#001871]">{adminNombre}</h2>
               <p className="text-sm text-slate-400 mt-0.5">{adminEmail}</p>
               <span className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-bold uppercase tracking-widest">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"/>Administrador
@@ -1455,7 +1455,7 @@ const ConfiguracionesTab = ({ user }) => {
             ].map(({ label, value }) => (
               <div key={label} className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-                <p className="text-sm font-semibold text-[#001e33]">{value}</p>
+                <p className="text-sm font-semibold text-[#001871]">{value}</p>
               </div>
             ))}
           </div>
@@ -1468,7 +1468,7 @@ const ConfiguracionesTab = ({ user }) => {
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
             <div className="p-3 bg-amber-50 rounded-xl"><ShieldCheck size={20} className="text-amber-600"/></div>
             <div>
-              <h3 className="font-bold text-[#001e33]">Permisos de Edición de Datos</h3>
+              <h3 className="font-bold text-[#001871]">Permisos de Edición de Datos</h3>
               <p className="text-xs text-slate-400">Permite que un empleado edite su propio perfil (uso único)</p>
             </div>
           </div>
@@ -1513,7 +1513,7 @@ const ConfiguracionesTab = ({ user }) => {
               </div>
             )}
             <button onClick={handleHabilitarEdicion} disabled={savingPerm}
-              className="w-full py-3 bg-[#001e33] text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
+              className="w-full py-3 bg-[#001871] text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
               {savingPerm ? 'Aplicando...' : 'Aplicar Cambio'}
             </button>
           </div>
@@ -1526,7 +1526,7 @@ const ConfiguracionesTab = ({ user }) => {
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
             <div className="p-3 bg-slate-100 rounded-xl"><KeyRound size={20} className="text-slate-600"/></div>
             <div>
-              <h3 className="font-bold text-[#001e33]">Resetear Contraseña de Empleado</h3>
+              <h3 className="font-bold text-[#001871]">Resetear Contraseña de Empleado</h3>
               <p className="text-xs text-slate-400">Establece una nueva contraseña para cualquier empleado</p>
             </div>
           </div>
@@ -1585,7 +1585,7 @@ const ConfiguracionesTab = ({ user }) => {
               </div>
             )}
             <button onClick={handleResetPassword} disabled={savingPass}
-              className="w-full py-3 bg-[#001e33] text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
+              className="w-full py-3 bg-[#001871] text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
               {savingPass ? 'Actualizando...' : 'Resetear Contraseña'}
             </button>
           </div>

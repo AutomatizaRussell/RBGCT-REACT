@@ -161,7 +161,7 @@ const UserTable = () => {
               <tr key={user.id_empleado} className="hover:bg-slate-50/50 transition-colors group">
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-[#f1f5f9] rounded-full flex items-center justify-center font-bold text-[#001e33] text-xs">
+                    <div className="w-10 h-10 bg-[#f1f5f9] rounded-full flex items-center justify-center font-bold text-[#001871] text-xs">
                       {user.datos_personales?.nom_empleado?.charAt(0)}
                     </div>
                     <div>
@@ -219,11 +219,11 @@ const UserTable = () => {
       {/* MODAL DE EDICIÓN COMPLETO */}
       {editingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#001e33]/40 backdrop-blur-sm" onClick={() => !updating && setEditingUser(null)}></div>
+          <div className="absolute inset-0 bg-[#001871]/40 backdrop-blur-sm" onClick={() => !updating && setEditingUser(null)}></div>
           <div className="bg-white rounded-[32px] w-full max-w-2xl relative z-10 shadow-2xl animate-in slide-in-from-bottom-8 duration-300 overflow-hidden">
             <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
               <div>
-                <h3 className="text-xl font-black text-[#001e33]">Expediente del Colaborador</h3>
+                <h3 className="text-xl font-black text-[#001871]">Expediente del Colaborador</h3>
                 <p className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mt-1">
                   Modificando Registro ID: {editingUser.datos_personales?.id_cc}
                 </p>
@@ -301,7 +301,7 @@ const UserTable = () => {
                 <button 
                   type="submit" 
                   disabled={updating}
-                  className="w-full bg-[#001e33] text-white py-5 rounded-[20px] font-bold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl hover:bg-blue-600 hover:scale-[1.02] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-wait"
+                  className="w-full bg-[#001871] text-white py-5 rounded-[20px] font-bold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl hover:bg-blue-600 hover:scale-[1.02] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-wait"
                 >
                   {updating ? (
                     <><Loader2 className="animate-spin" size={18} /> Guardando...</>

@@ -263,7 +263,7 @@ const CompleteProfile = () => {
 
   const renderStep1 = () => (
     <div className="space-y-6">
-      <h3 className="text-lg font-bold text-[#001e33]">Datos Básicos</h3>
+      <h3 className="text-lg font-bold text-[#001871]">Datos Básicos</h3>
       
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
@@ -276,7 +276,7 @@ const CompleteProfile = () => {
             name="primer_nombre"
             value={formData.primer_nombre}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. Juan"
           />
         </div>
@@ -290,7 +290,7 @@ const CompleteProfile = () => {
             name="segundo_nombre"
             value={formData.segundo_nombre}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. Carlos"
           />
         </div>
@@ -305,7 +305,7 @@ const CompleteProfile = () => {
             name="primer_apellido"
             value={formData.primer_apellido}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. García"
           />
         </div>
@@ -319,7 +319,7 @@ const CompleteProfile = () => {
             name="segundo_apellido"
             value={formData.segundo_apellido}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. López"
           />
         </div>
@@ -333,7 +333,7 @@ const CompleteProfile = () => {
             name="apodo"
             value={formData.apodo}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. Juancho, JG, Stiben..."
           />
           <p className="text-[10px] text-slate-400">Este será su nombre de usuario visible en el sistema</p>
@@ -348,7 +348,7 @@ const CompleteProfile = () => {
             name="tipo_documento"
             value={formData.tipo_documento}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
           >
             <option value="CC">Cédula de Ciudadanía (CC)</option>
             <option value="CE">Cédula de Extranjería (CE)</option>
@@ -367,7 +367,7 @@ const CompleteProfile = () => {
             name="numero_documento"
             value={formData.numero_documento}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. 1234567890"
           />
         </div>
@@ -377,7 +377,7 @@ const CompleteProfile = () => {
 
   const renderStep2 = () => (
     <div className="space-y-6">
-      <h3 className="text-lg font-bold text-[#001e33]">Datos de Contacto</h3>
+      <h3 className="text-lg font-bold text-[#001871]">Datos de Contacto</h3>
       
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
@@ -389,7 +389,7 @@ const CompleteProfile = () => {
             name="correo_personal"
             value={formData.correo_personal}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="personal@email.com"
           />
         </div>
@@ -403,7 +403,7 @@ const CompleteProfile = () => {
             name="telefono"
             value={formData.telefono}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. 300 123 4567"
           />
         </div>
@@ -417,7 +417,7 @@ const CompleteProfile = () => {
             name="nombre_contacto_emergencia"
             value={formData.nombre_contacto_emergencia}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. María García"
           />
         </div>
@@ -431,7 +431,7 @@ const CompleteProfile = () => {
             name="telefono_emergencia"
             value={formData.telefono_emergencia}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. 300 999 8888"
           />
         </div>
@@ -445,7 +445,7 @@ const CompleteProfile = () => {
             name="parentesco_emergencia"
             value={formData.parentesco_emergencia}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. Madre, Esposo, Hermano..."
           />
         </div>
@@ -459,7 +459,7 @@ const CompleteProfile = () => {
             name="direccion"
             value={formData.direccion}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Calle, número, ciudad..."
           />
         </div>
@@ -469,7 +469,7 @@ const CompleteProfile = () => {
 
   const renderStep3 = () => (
     <div className="space-y-6">
-      <h3 className="text-lg font-bold text-[#001e33]">Datos Personales</h3>
+      <h3 className="text-lg font-bold text-[#001871]">Datos Personales</h3>
       
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
@@ -481,7 +481,7 @@ const CompleteProfile = () => {
             name="fecha_nacimiento"
             value={formData.fecha_nacimiento}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
           />
         </div>
 
@@ -494,7 +494,7 @@ const CompleteProfile = () => {
             name="fecha_ingreso"
             value={formData.fecha_ingreso}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
           />
         </div>
 
@@ -506,7 +506,7 @@ const CompleteProfile = () => {
             name="sexo"
             value={formData.sexo}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] appearance-none text-sm font-medium cursor-pointer"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
           >
             <option value="">Seleccionar...</option>
             <option value="M">Masculino</option>
@@ -523,7 +523,7 @@ const CompleteProfile = () => {
             name="tipo_sangre"
             value={formData.tipo_sangre}
             onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] appearance-none text-sm font-medium cursor-pointer"
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
           >
             <option value="">Seleccionar...</option>
             <option value="A+">A+</option>
@@ -552,7 +552,7 @@ const CompleteProfile = () => {
                 name="area_id"
                 value={formData.area_id}
                 onChange={handleChange}
-                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] appearance-none text-sm font-medium cursor-pointer"
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
               >
                 <option value="">Seleccionar área...</option>
                 {areas.map(area => (
@@ -580,7 +580,7 @@ const CompleteProfile = () => {
                 name="cargo_id"
                 value={formData.cargo_id}
                 onChange={handleChange}
-                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] appearance-none text-sm font-medium cursor-pointer"
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
               >
                 <option value="">Seleccionar cargo...</option>
                 {cargos.map(cargo => (
@@ -596,7 +596,7 @@ const CompleteProfile = () => {
         {/* Contraseña Actual - Requerida cuando se edita con permiso */}
         {!empleadoData?.primer_login && empleadoData?.permitir_edicion_datos && (
           <div className="bg-amber-50 rounded-2xl p-6 border border-amber-200">
-            <h4 className="text-sm font-bold text-[#001e33] mb-4 flex items-center gap-2">
+            <h4 className="text-sm font-bold text-[#001871] mb-4 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
@@ -616,7 +616,7 @@ const CompleteProfile = () => {
                 value={formData.current_password}
                 onChange={handleChange}
                 placeholder="Ingresa tu contraseña actual"
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001e33]"
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871]"
                 required={!empleadoData?.primer_login && empleadoData?.permitir_edicion_datos}
               />
             </div>
@@ -626,7 +626,7 @@ const CompleteProfile = () => {
         {/* Contraseña - Solo en primer login */}
         {empleadoData?.primer_login && (
           <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
-            <h4 className="text-sm font-bold text-[#001e33] mb-4 flex items-center gap-2">
+            <h4 className="text-sm font-bold text-[#001871] mb-4 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
@@ -646,7 +646,7 @@ const CompleteProfile = () => {
                 value={formData.nueva_password}
                 onChange={(e) => setFormData({...formData, nueva_password: e.target.value})}
                 placeholder="Mínimo 6 caracteres"
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001e33]"
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871]"
               />
             </div>
             
@@ -659,7 +659,7 @@ const CompleteProfile = () => {
                 value={formData.confirmar_password}
                 onChange={(e) => setFormData({...formData, confirmar_password: e.target.value})}
                 placeholder="Repite la contraseña"
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001e33]"
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871]"
               />
             </div>
           </div>
@@ -679,7 +679,7 @@ const CompleteProfile = () => {
     return (
       <div className="min-h-screen bg-[#f1f5f9] flex items-center justify-center p-4">
         <div className="text-center">
-          <Loader2 size={40} className="animate-spin mx-auto mb-4 text-[#001e33]" />
+          <Loader2 size={40} className="animate-spin mx-auto mb-4 text-[#001871]" />
           <p className="text-slate-500 text-sm">Verificando permisos...</p>
         </div>
       </div>
@@ -697,7 +697,7 @@ const CompleteProfile = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
-            <h1 className="text-xl font-black text-[#001e33] tracking-tight mb-2">
+            <h1 className="text-xl font-black text-[#001871] tracking-tight mb-2">
               Actualización No Disponible
             </h1>
             <p className="text-slate-500 text-sm mb-6">
@@ -713,7 +713,7 @@ const CompleteProfile = () => {
                   default: navigate('/app');
                 }
               }}
-              className="bg-[#001e33] text-white px-6 py-3 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-slate-800 transition-all"
+              className="bg-[#001871] text-white px-6 py-3 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-slate-800 transition-all"
             >
               Volver al Inicio
             </button>
@@ -728,7 +728,7 @@ const CompleteProfile = () => {
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-black text-[#001e33] tracking-tight">
+          <h1 className="text-2xl font-black text-[#001871] tracking-tight">
             {!empleadoData?.primer_login && empleadoData?.permitir_edicion_datos 
               ? 'Actualizar Datos del Perfil' 
               : 'Completa tu Perfil'}
@@ -744,7 +744,7 @@ const CompleteProfile = () => {
         <div className="flex items-center justify-center gap-2 mb-8">
           {[1, 2, 3].map((s) => (
             <div key={s} className={`w-3 h-3 rounded-full transition-colors ${
-              s === step ? 'bg-[#001e33]' : s < step ? 'bg-emerald-500' : 'bg-slate-300'
+              s === step ? 'bg-[#001871]' : s < step ? 'bg-emerald-500' : 'bg-slate-300'
             }`} />
           ))}
         </div>
@@ -768,7 +768,7 @@ const CompleteProfile = () => {
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="text-sm font-bold text-slate-400 hover:text-[#001e33] transition-colors"
+                  className="text-sm font-bold text-slate-400 hover:text-[#001871] transition-colors"
                 >
                   ← Anterior
                 </button>
@@ -786,7 +786,7 @@ const CompleteProfile = () => {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="bg-[#001e33] text-white px-8 py-3 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2"
+                  className="bg-[#001871] text-white px-8 py-3 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2"
                 >
                   Siguiente <ArrowRight size={16} />
                 </button>

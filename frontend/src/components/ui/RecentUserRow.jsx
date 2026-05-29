@@ -11,7 +11,7 @@ export const RecentUserRow = ({ name, time, role, action, isAlert, onMarkRead, e
     }`}
   >
     <div className="flex items-center gap-4">
-      <div className={`w-10 h-10 ${isAlert ? 'bg-red-600' : estado === 'en_linea' ? 'bg-emerald-500' : 'bg-[#001e33]'} text-white rounded-xl flex items-center justify-center font-bold text-xs relative`}>
+      <div className={`w-10 h-10 ${isAlert ? 'bg-red-600' : estado === 'en_linea' ? 'bg-emerald-500' : 'bg-[#001871]'} text-white rounded-xl flex items-center justify-center font-bold text-xs relative`}>
         {isAlert ? <KeyRound size={16}/> : name.charAt(0).toUpperCase()}
         {estado === 'en_linea' && (
           <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-400 border-2 border-white rounded-full"/>

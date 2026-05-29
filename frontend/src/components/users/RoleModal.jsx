@@ -34,10 +34,10 @@ const RoleModal = ({ user, onClose, onUpdate }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-[#001e33]/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-[#001871]/60 backdrop-blur-sm">
       <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-black text-[#001e33] flex items-center gap-2">
+          <h3 className="text-xl font-black text-[#001871] flex items-center gap-2">
             <Shield size={20} className="text-blue-500" /> Gestionar Rol
           </h3>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full">
@@ -65,7 +65,7 @@ const RoleModal = ({ user, onClose, onUpdate }) => {
           <button 
             onClick={updateRole}
             disabled={isSaving}
-            className="flex-1 py-4 bg-[#001e33] text-white rounded-2xl font-bold text-xs uppercase flex items-center justify-center gap-2"
+            className="flex-1 py-4 bg-[#001871] text-white rounded-2xl font-bold text-xs uppercase flex items-center justify-center gap-2"
           >
             {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Guardar
           </button>

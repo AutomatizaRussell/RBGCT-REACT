@@ -100,7 +100,7 @@ const UserProfile = () => {
       {/* Controles */}
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-bold text-[#001e33]">Mi Perfil</h3>
+          <h3 className="text-lg font-bold text-[#001871]">Mi Perfil</h3>
           <p className="text-xs text-slate-500 mt-0.5">Gestiona tu información de contacto</p>
         </div>
         {!editando ? (
@@ -136,7 +136,7 @@ const UserProfile = () => {
       </div>
 
       {/* Card principal */}
-      <div className="bg-gradient-to-br from-[#001e33] to-slate-800 rounded-3xl p-8 text-white shadow-xl">
+      <div className="bg-gradient-to-br from-[#001871] to-slate-800 rounded-3xl p-8 text-white shadow-xl">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
           <div className="w-24 h-24 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
             <UserCircle size={48} className="text-white/80" />
@@ -169,7 +169,7 @@ const UserProfile = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Información corporativa */}
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-          <h4 className="text-sm font-bold text-[#001e33] mb-5 flex items-center gap-2">
+          <h4 className="text-sm font-bold text-[#001871] mb-5 flex items-center gap-2">
             <Briefcase size={16} className="text-indigo-600" /> Información Corporativa
           </h4>
           <div className="space-y-4">
@@ -186,7 +186,7 @@ const UserProfile = () => {
 
         {/* Información personal (editable) */}
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-          <h4 className="text-sm font-bold text-[#001e33] mb-5 flex items-center gap-2">
+          <h4 className="text-sm font-bold text-[#001871] mb-5 flex items-center gap-2">
             <User size={16} className="text-indigo-600" /> Información Personal
           </h4>
           <div className="space-y-4">
@@ -237,7 +237,7 @@ const UserProfile = () => {
 
         {/* Contacto de emergencia */}
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-          <h4 className="text-sm font-bold text-[#001e33] mb-5 flex items-center gap-2">
+          <h4 className="text-sm font-bold text-[#001871] mb-5 flex items-center gap-2">
             <Heart size={16} className="text-rose-500" /> Contacto de Emergencia
           </h4>
           <div className="space-y-4">

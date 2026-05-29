@@ -155,7 +155,7 @@ export default function ConvertidorArchivos() {
           <div className="p-1.5 bg-emerald-600 rounded-lg">
             <ArrowRight size={16} className="text-white" />
           </div>
-          <span className="font-bold text-[#001e33] text-sm">Convertidor de Archivos</span>
+          <span className="font-bold text-[#001871] text-sm">Convertidor de Archivos</span>
         </div>
         <button
           onClick={() => setExpandido(false)}

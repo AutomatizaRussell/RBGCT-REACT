@@ -12,6 +12,6 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .input-modern:focus {
-  border-color: #001e33;
+  border-color: #001871;
   box-shadow: 0 0 0 3px rgba(0, 30, 51, 0.08);
 }

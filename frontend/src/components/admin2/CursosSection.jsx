@@ -96,13 +96,13 @@ export default function CursosSection() {
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-purple-50 rounded-xl"><BookMarked size={18} className="text-purple-600"/></div>
           <div>
-            <h3 className="font-bold text-[#001e33]">Cursos</h3>
+            <h3 className="font-bold text-[#001871]">Cursos</h3>
             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">{cursos.length} curso{cursos.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
         <button
           onClick={() => { setShowNuevoCurso(true); setEditingCurso(null); }}
-          className="flex items-center gap-2 px-4 py-2 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
         >
           <Plus size={13}/> Nuevo Curso
         </button>
@@ -128,7 +128,7 @@ export default function CursosSection() {
           />
           <div className="flex gap-2">
             <button onClick={handleCrearCurso} disabled={saving || !nuevoCurso.nombre.trim()}
-              className="px-4 py-2 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
+              className="px-4 py-2 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
               {saving ? 'Creando...' : 'Crear Curso'}
             </button>
             <button onClick={() => setShowNuevoCurso(false)}
@@ -165,7 +165,7 @@ export default function CursosSection() {
                 />
                 <div className="flex gap-2">
                   <button onClick={handleGuardarEditCurso} disabled={saving}
-                    className="px-4 py-2 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
+                    className="px-4 py-2 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
                     Guardar
                   </button>
                   <button onClick={() => setEditingCurso(null)}
@@ -182,11 +182,11 @@ export default function CursosSection() {
                 <span className="text-slate-400 flex-shrink-0">
                   {expandedId === curso.id ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
                 </span>
-                <div className="w-9 h-9 bg-[#001e33] text-white rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0">
+                <div className="w-9 h-9 bg-[#001871] text-white rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0">
                   {curso.nombre.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[#001e33] text-sm truncate">{curso.nombre}</p>
+                  <p className="font-bold text-[#001871] text-sm truncate">{curso.nombre}</p>
                   {curso.descripcion && <p className="text-[10px] text-slate-400 truncate">{curso.descripcion}</p>}
                 </div>
                 <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg flex-shrink-0">
@@ -217,7 +217,7 @@ export default function CursosSection() {
                         <div key={item.id} className={`flex items-start gap-3 p-3 rounded-xl border ${cfg.color}`}>
                           <span className="mt-0.5 flex-shrink-0">{cfg.icon}</span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-[#001e33] truncate">{item.titulo}</p>
+                            <p className="text-sm font-semibold text-[#001871] truncate">{item.titulo}</p>
                             {item.descripcion && <p className="text-[10px] text-slate-500 truncate">{item.descripcion}</p>}
                             {item.url && (
                               <a href={item.url} target="_blank" rel="noopener noreferrer"
@@ -323,7 +323,7 @@ function AddContenidoForm({ cursoId, onDone, onCancel }) {
         {Object.entries(TIPO_CONFIG).map(([key, cfg]) => (
           <button key={key} onClick={() => setTipo(key)}
             className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[10px] font-bold border transition-all ${
-              tipo === key ? 'bg-[#001e33] text-white border-[#001e33]' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+              tipo === key ? 'bg-[#001871] text-white border-[#001871]' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
             }`}>
             {cfg.icon} {cfg.label}
           </button>
@@ -382,7 +382,7 @@ function AddContenidoForm({ cursoId, onDone, onCancel }) {
 
       <div className="flex gap-2 pt-1">
         <button onClick={handleSubmit} disabled={saving || !form.titulo.trim()}
-          className="px-4 py-2 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
+          className="px-4 py-2 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
           {saving ? 'Guardando...' : 'Agregar'}
         </button>
         <button onClick={onCancel}

@@ -99,7 +99,7 @@ const UserDashboard = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001e33]">
+    <div className="flex min-h-screen bg-[#f1f5f9] font-sans antialiased text-[#001871]">
       <UserSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden border-l border-slate-200/80 bg-[#f1f5f9]">
@@ -107,7 +107,7 @@ const UserDashboard = () => {
         <header className="relative z-10 flex h-[4.25rem] shrink-0 items-center justify-between border-b border-slate-100 bg-white px-6 shadow-sm lg:px-10">
           <div className="min-w-0 pr-4">
             <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-500">Portal del empleado</p>
-            <h2 className="mt-0.5 truncate text-lg font-semibold tracking-tight text-[#001e33] lg:text-xl">
+            <h2 className="mt-0.5 truncate text-lg font-semibold tracking-tight text-[#001871] lg:text-xl">
               {isHome ? `${saludo}, ${nombreUsuario}` : (getHeaderTitle() || 'Portal Empleado')}
             </h2>
           </div>
@@ -118,14 +118,14 @@ const UserDashboard = () => {
                 onClick={toggleNotif}
                 className={`relative flex h-10 w-10 items-center justify-center rounded-md border transition-colors ${
                   showNotif
-                    ? 'border-slate-200 bg-slate-50 text-[#001e33]'
-                    : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-white hover:text-[#001e33]'
+                    ? 'border-slate-200 bg-slate-50 text-[#001871]'
+                    : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-white hover:text-[#001871]'
                 }`}
                 aria-label="Notificaciones"
               >
                 <Bell size={18} strokeWidth={1.75} />
                 {taskStats.pending > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#001e33] px-1 text-[10px] font-semibold text-white">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#001871] px-1 text-[10px] font-semibold text-white">
                     {taskStats.pending > 9 ? '9+' : taskStats.pending}
                   </span>
                 )}
@@ -142,7 +142,7 @@ const UserDashboard = () => {
             </div>
             <div className="flex items-center gap-3 border-l border-slate-200 pl-3 sm:pl-4">
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold text-[#001e33]">{nombreUsuario}</p>
+                <p className="text-sm font-semibold text-[#001871]">{nombreUsuario}</p>
                 <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
                   {empleadoData?.nombre_area || 'Colaborador'}
                 </p>
@@ -150,7 +150,7 @@ const UserDashboard = () => {
               <button
                 type="button"
                 onClick={() => { setActiveTab('profile'); navigate('/app/perfil'); }}
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#001e33] text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#001871] text-sm font-semibold text-white transition-colors hover:bg-slate-800"
                 aria-label="Ir a mi perfil"
               >
                 {nombreUsuario.charAt(0).toUpperCase()}
@@ -207,13 +207,13 @@ const UserDashboard = () => {
                 <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2 lg:p-8">
                   <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-4">
                     <div>
-                      <h3 className="text-base font-semibold text-[#001e33]">Estado de mis tareas</h3>
+                      <h3 className="text-base font-semibold text-[#001871]">Estado de mis tareas</h3>
                       <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-500">Resumen personal</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => { setActiveTab('tasks'); navigate('/app/auto-gestion'); }}
-                      className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 transition-colors hover:text-[#001e33]"
+                      className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 transition-colors hover:text-[#001871]"
                     >
                       Ver todas <ArrowRight size={12} strokeWidth={2} />
                     </button>
@@ -247,7 +247,7 @@ const UserDashboard = () => {
 
                 {/* Acciones rápidas */}
                 <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
-                  <h3 className="border-b border-slate-200 pb-4 text-sm font-semibold text-[#001e33]">Accesos rápidos</h3>
+                  <h3 className="border-b border-slate-200 pb-4 text-sm font-semibold text-[#001871]">Accesos rápidos</h3>
                   <div className="mt-5 space-y-2">
                     {[
                       { label: 'Auto gestión', icon: <ClipboardList size={15} strokeWidth={1.75} />, tab: 'tasks',      path: '/app/auto-gestion' },
@@ -277,7 +277,7 @@ const UserDashboard = () => {
             <div className="mx-auto max-w-6xl animate-in fade-in duration-500">
               <div className="mb-8 border-b border-slate-200 pb-6">
                 <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-500">Productividad</p>
-                <h3 className="mt-2 text-lg font-semibold text-[#001e33]">Herramientas</h3>
+                <h3 className="mt-2 text-lg font-semibold text-[#001871]">Herramientas</h3>
                 <p className="mt-1 max-w-xl text-sm text-slate-600">Utilidades corporativas disponibles para su labor diaria.</p>
               </div>
               <UtilidadesSection />
@@ -304,8 +304,8 @@ const NotificationsPanel = ({ tareas, loading, onClose, onNavigate }) => {
   return (
     <div className="absolute right-0 top-12 z-50 w-[min(100vw-1.5rem,20rem)] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_12px_40px_-8px_rgba(15,23,42,0.18)] animate-in fade-in duration-200">
       <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#001e33]">Notificaciones</p>
-        <button type="button" onClick={onClose} className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-white hover:text-[#001e33]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#001871]">Notificaciones</p>
+        <button type="button" onClick={onClose} className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-white hover:text-[#001871]">
           <X size={14} strokeWidth={2} />
         </button>
       </div>
@@ -324,7 +324,7 @@ const NotificationsPanel = ({ tareas, loading, onClose, onNavigate }) => {
           <>
             {vencidas.length > 0 && (
               <div>
-                <p className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-[#001e33]">
+                <p className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-[#001871]">
                   <AlertTriangle size={11} strokeWidth={2} /> Vencidas ({vencidas.length})
                 </p>
                 {vencidas.map(t => (
@@ -351,7 +351,7 @@ const NotificationsPanel = ({ tareas, loading, onClose, onNavigate }) => {
           <button
             type="button"
             onClick={onNavigate}
-            className="flex w-full items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-600 transition-colors hover:text-[#001e33]"
+            className="flex w-full items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-600 transition-colors hover:text-[#001871]"
           >
             Ver todas las tareas <ArrowRight size={12} strokeWidth={2} />
           </button>
@@ -381,7 +381,7 @@ const NotifItem = ({ tarea, vencida, onNavigate, fmtFecha }) => (
       {vencida ? <AlertTriangle size={12} strokeWidth={2} /> : <Clock size={12} strokeWidth={2} />}
     </div>
     <div className="min-w-0 flex-1">
-      <p className="truncate text-xs font-bold leading-snug text-[#001e33]">{tarea.titulo}</p>
+      <p className="truncate text-xs font-bold leading-snug text-[#001871]">{tarea.titulo}</p>
       <div className="mt-1 flex flex-wrap items-center gap-2">
         {tarea.prioridad && (
           <span
@@ -418,7 +418,7 @@ const KpiCard = ({ label, value, sub, icon, iconBg, iconColor, accent, highlight
       </div>
       {highlight && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" title="Con actividad reciente" />}
     </div>
-    <p className="text-2xl font-black tabular-nums leading-none text-[#001e33] sm:text-3xl">{value}</p>
+    <p className="text-2xl font-black tabular-nums leading-none text-[#001871] sm:text-3xl">{value}</p>
     <p className="mt-3 truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</p>
     <p className="mt-1 truncate text-[11px] text-slate-500">{sub}</p>
   </div>

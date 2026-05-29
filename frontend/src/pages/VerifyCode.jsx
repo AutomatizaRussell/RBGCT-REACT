@@ -116,13 +116,13 @@ const VerifyCode = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-[#001e33] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="w-20 h-20 bg-[#001871] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <Mail className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-[#001e33]">Verificación de Código</h1>
+          <h1 className="text-2xl font-bold text-[#001871]">Verificación de Código</h1>
           <p className="text-slate-500 mt-2">
             Ingresa el código de 6 dígitos enviado a:<br />
-            <span className="font-semibold text-[#001e33]">{email}</span>
+            <span className="font-semibold text-[#001871]">{email}</span>
           </p>
         </div>
 
@@ -156,7 +156,7 @@ const VerifyCode = () => {
                   setCodigo(value);
                 }}
                 placeholder="000000"
-                className="w-full text-center text-3xl font-bold tracking-[0.5em] py-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-[#001e33] focus:bg-white outline-none transition-all"
+                className="w-full text-center text-3xl font-bold tracking-[0.5em] py-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-[#001871] focus:bg-white outline-none transition-all"
                 autoFocus
               />
               <p className="text-xs text-slate-400 mt-2 text-center">
@@ -167,7 +167,7 @@ const VerifyCode = () => {
             <button
               type="submit"
               disabled={loading || codigo.length !== 6}
-              className="w-full bg-[#001e33] text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#002d4a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-[#001871] text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#002d4a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -185,7 +185,7 @@ const VerifyCode = () => {
             <button
               onClick={reenviarCodigo}
               disabled={reenviando}
-              className="text-[#001e33] font-semibold hover:underline disabled:opacity-50 inline-flex items-center gap-2"
+              className="text-[#001871] font-semibold hover:underline disabled:opacity-50 inline-flex items-center gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${reenviando ? 'animate-spin' : ''}`} />
               {reenviando ? 'Reenviando...' : 'Reenviar código'}

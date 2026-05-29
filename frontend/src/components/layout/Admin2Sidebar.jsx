@@ -51,7 +51,7 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab }) => {
 
   return (
 
-    <aside className="w-64 bg-[#001e33] text-white flex flex-col h-screen sticky top-0 shadow-2xl z-20">
+    <aside className="w-64 bg-[#001871] text-white flex flex-col h-screen sticky top-0 shadow-2xl z-20">
 
       {/* Branding */}
 

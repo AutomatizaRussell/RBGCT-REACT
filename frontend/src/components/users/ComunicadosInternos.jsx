@@ -31,7 +31,7 @@ const ComunicadosInternos = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-[#001e33]">Reglamento Interno de Trabajo</h3>
+          <h3 className="text-lg font-bold text-[#001871]">Reglamento Interno de Trabajo</h3>
           <p className="text-xs text-slate-500 mt-0.5">
             Russell Bedford Colombia — {items.length} sección{items.length !== 1 ? 'es' : ''}
           </p>
@@ -59,7 +59,7 @@ const ComunicadosInternos = () => {
                   <span className="w-7 h-7 rounded-xl bg-indigo-50 text-indigo-600 text-[11px] font-black flex items-center justify-center flex-shrink-0">
                     {idx + 1}
                   </span>
-                  <span className="font-bold text-[#001e33] text-sm">{item.titulo}</span>
+                  <span className="font-bold text-[#001871] text-sm">{item.titulo}</span>
                 </div>
                 {expanded === item.id
                   ? <ChevronDown size={16} className="text-slate-400 flex-shrink-0"/>

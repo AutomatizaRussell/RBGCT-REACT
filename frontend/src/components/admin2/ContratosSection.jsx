@@ -285,7 +285,7 @@ const ContratoForm = ({ empleado, contrato, mode, onSaved, onCancel }) => {
       {error && <p className="text-red-500 text-xs bg-red-50 p-2 rounded-lg">{error}</p>}
       <div className="flex gap-2 pt-2">
         <button type="button" onClick={onCancel} className="flex-1 py-2.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
-        <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-[#001e33] text-white rounded-lg text-sm font-semibold hover:bg-[#002d4d] disabled:opacity-50 flex items-center justify-center gap-2">
+        <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-[#001871] text-white rounded-lg text-sm font-semibold hover:bg-[#002d4d] disabled:opacity-50 flex items-center justify-center gap-2">
           <Save size={14} />{saving ? 'Guardando...' : isEdit ? 'Actualizar contrato' : 'Crear contrato'}
         </button>
       </div>
@@ -418,7 +418,7 @@ const SeguridadSocialForm = ({ empleado, afiliacion, onSaved }) => {
       </div>
 
       {error && <p className="text-red-500 text-xs bg-red-50 p-2 rounded-lg">{error}</p>}
-      <button type="submit" disabled={saving} className="w-full py-2.5 bg-[#001e33] text-white rounded-lg text-sm font-semibold hover:bg-[#002d4d] disabled:opacity-50 flex items-center justify-center gap-2 mt-4">
+      <button type="submit" disabled={saving} className="w-full py-2.5 bg-[#001871] text-white rounded-lg text-sm font-semibold hover:bg-[#002d4d] disabled:opacity-50 flex items-center justify-center gap-2 mt-4">
         <Save size={14} />{saving ? 'Guardando...' : afiliacion ? 'Actualizar afiliaciones' : 'Guardar afiliaciones'}
       </button>
     </form>
@@ -475,7 +475,7 @@ const EmpleadoPanel = ({ empleado, onClose, onRefresh }) => {
           { k: 'ss', label: 'Seguridad Social', icon: <Shield size={13} /> }
         ].map(t => (
           <button key={t.k} onClick={() => { setTab(t.k); setMode('ver'); }}
-            className={`flex items-center gap-1.5 py-3 text-xs font-semibold border-b-2 transition-colors ${tab === t.k ? 'border-[#001e33] text-[#001e33]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+            className={`flex items-center gap-1.5 py-3 text-xs font-semibold border-b-2 transition-colors ${tab === t.k ? 'border-[#001871] text-[#001871]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
             {t.icon}{t.label}
           </button>
         ))}
@@ -580,7 +580,7 @@ const EmpleadoPanel = ({ empleado, onClose, onRefresh }) => {
               <div className="text-center py-10">
                 <FileText size={36} className="mx-auto text-slate-200 mb-3" />
                 <p className="text-slate-400 text-sm mb-4">Este empleado no tiene contrato activo</p>
-                <button onClick={() => setMode('crear')} className="px-5 py-2 bg-[#001e33] text-white rounded-lg text-sm font-semibold hover:bg-[#002d4d] flex items-center gap-2 mx-auto">
+                <button onClick={() => setMode('crear')} className="px-5 py-2 bg-[#001871] text-white rounded-lg text-sm font-semibold hover:bg-[#002d4d] flex items-center gap-2 mx-auto">
                   <Plus size={14} /> Crear contrato
                 </button>
               </div>
@@ -752,7 +752,7 @@ export default function ContratosSection() {
               return (
                 <button key={emp.id_empleado} onClick={() => setSelected(isSelected ? null : emp)}
                   className={`w-full flex items-center gap-3 px-5 py-3.5 border-b border-slate-50 text-left transition-colors ${isSelected ? 'bg-slate-50' : 'hover:bg-slate-50/80'}`}>
-                  <div className="w-8 h-8 rounded-full bg-[#001e33] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[#001871] flex items-center justify-center shrink-0">
                     <span className="text-white text-xs font-bold">{(emp.primer_nombre?.[0] || '?')}{(emp.primer_apellido?.[0] || '')}</span>
                   </div>
                   <div className="flex-1 min-w-0">

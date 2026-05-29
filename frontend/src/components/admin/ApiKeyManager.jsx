@@ -121,7 +121,7 @@ const ApiKeyManager = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-bold text-[#001e33] flex items-center gap-2">
+          <h3 className="text-lg font-bold text-[#001871] flex items-center gap-2">
             <Key className="w-5 h-5" />
             Gestión de API Keys
           </h3>
@@ -131,7 +131,7 @@ const ApiKeyManager = () => {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-lg"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-lg"
         >
           <Plus size={16} />
           Nueva API Key
@@ -180,7 +180,7 @@ const ApiKeyManager = () => {
                   <tr key={key.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                       <div>
-                        <p className="font-semibold text-sm text-[#001e33]">{key.nombre}</p>
+                        <p className="font-semibold text-sm text-[#001871]">{key.nombre}</p>
                         {key.descripcion && (
                           <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[200px]">{key.descripcion}</p>
                         )}
@@ -271,7 +271,7 @@ const ApiKeyManager = () => {
                   <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Key className="w-8 h-8 text-emerald-600" />
                   </div>
-                  <h3 className="text-lg font-bold text-[#001e33]">¡API Key Creada!</h3>
+                  <h3 className="text-lg font-bold text-[#001871]">¡API Key Creada!</h3>
                   <p className="text-sm text-slate-500 mt-1">
                     Copia esta clave ahora. No podrás verla completa de nuevo.
                   </p>
@@ -311,7 +311,7 @@ const ApiKeyManager = () => {
 
                 <button
                   onClick={closeModal}
-                  className="w-full py-3 bg-[#001e33] hover:bg-slate-800 text-white rounded-xl text-sm font-bold uppercase tracking-wider transition-colors"
+                  className="w-full py-3 bg-[#001871] hover:bg-slate-800 text-white rounded-xl text-sm font-bold uppercase tracking-wider transition-colors"
                 >
                   Entendido
                 </button>
@@ -320,7 +320,7 @@ const ApiKeyManager = () => {
               /* Create Form */
               <div className="p-6 space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-[#001e33]">Nueva API Key</h3>
+                  <h3 className="text-lg font-bold text-[#001871]">Nueva API Key</h3>
                   <button onClick={closeModal} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
                     <XIcon size={20} className="text-slate-400" />
                   </button>
@@ -336,7 +336,7 @@ const ApiKeyManager = () => {
                       value={newKeyData.nombre}
                       onChange={(e) => setNewKeyData({ ...newKeyData, nombre: e.target.value })}
                       placeholder="Ej: Integración n8n"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none text-sm"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#001871] focus:ring-2 focus:ring-[#001871]/10 outline-none text-sm"
                     />
                   </div>
 
@@ -349,7 +349,7 @@ const ApiKeyManager = () => {
                       onChange={(e) => setNewKeyData({ ...newKeyData, descripcion: e.target.value })}
                       placeholder="Para qué se usará esta API key..."
                       rows={3}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#001e33] focus:ring-2 focus:ring-[#001e33]/10 outline-none text-sm resize-none"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#001871] focus:ring-2 focus:ring-[#001871]/10 outline-none text-sm resize-none"
                     />
                   </div>
 
@@ -363,10 +363,10 @@ const ApiKeyManager = () => {
                           type="checkbox"
                           checked={newKeyData.permisos.read}
                           onChange={(e) => setNewKeyData({ ...newKeyData, permisos: { ...newKeyData.permisos, read: e.target.checked } })}
-                          className="w-4 h-4 accent-[#001e33]"
+                          className="w-4 h-4 accent-[#001871]"
                         />
                         <div>
-                          <p className="text-sm font-medium text-[#001e33]">Lectura</p>
+                          <p className="text-sm font-medium text-[#001871]">Lectura</p>
                           <p className="text-xs text-slate-500">Permite consultar datos (GET)</p>
                         </div>
                       </label>
@@ -375,10 +375,10 @@ const ApiKeyManager = () => {
                           type="checkbox"
                           checked={newKeyData.permisos.write}
                           onChange={(e) => setNewKeyData({ ...newKeyData, permisos: { ...newKeyData.permisos, write: e.target.checked } })}
-                          className="w-4 h-4 accent-[#001e33]"
+                          className="w-4 h-4 accent-[#001871]"
                         />
                         <div>
-                          <p className="text-sm font-medium text-[#001e33]">Escritura</p>
+                          <p className="text-sm font-medium text-[#001871]">Escritura</p>
                           <p className="text-xs text-slate-500">Permite crear y modificar datos (POST, PUT, PATCH)</p>
                         </div>
                       </label>
@@ -387,10 +387,10 @@ const ApiKeyManager = () => {
                           type="checkbox"
                           checked={newKeyData.permisos.delete}
                           onChange={(e) => setNewKeyData({ ...newKeyData, permisos: { ...newKeyData.permisos, delete: e.target.checked } })}
-                          className="w-4 h-4 accent-[#001e33]"
+                          className="w-4 h-4 accent-[#001871]"
                         />
                         <div>
-                          <p className="text-sm font-medium text-[#001e33]">Eliminación</p>
+                          <p className="text-sm font-medium text-[#001871]">Eliminación</p>
                           <p className="text-xs text-slate-500">Permite eliminar datos (DELETE)</p>
                         </div>
                       </label>
@@ -408,7 +408,7 @@ const ApiKeyManager = () => {
                   <button
                     onClick={handleCreate}
                     disabled={actionLoading.create || !newKeyData.nombre.trim()}
-                    className="flex-1 py-3 bg-[#001e33] text-white rounded-xl text-sm font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 py-3 bg-[#001871] text-white rounded-xl text-sm font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {actionLoading.create ? <RefreshCw className="w-4 h-4 animate-spin mx-auto" /> : 'Crear API Key'}
                   </button>

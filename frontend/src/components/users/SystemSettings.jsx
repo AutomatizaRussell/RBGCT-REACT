@@ -107,7 +107,7 @@ const SystemSettings = () => {
       {/* HEADER PERSONALIZADO */}
       <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex justify-between items-center">
         <div className="flex items-center gap-5">
-          <div className="w-14 h-14 bg-[#001e33] rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-900/20">
+          <div className="w-14 h-14 bg-[#001871] rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-900/20">
             <Settings size={28} />
           </div>
           <div>
@@ -310,7 +310,7 @@ const N8nSettings = ({ settings, setSettings, n8nStatus, testConnection }) => (
         </div>
         <button 
           onClick={testConnection}
-          className="text-xs font-bold text-[#001e33] hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors"
+          className="text-xs font-bold text-[#001871] hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors"
         >
           Probar conexión
         </button>
@@ -361,7 +361,7 @@ const DatabaseSettings = ({ settings, setSettings, onReindex }) => (
     </div>
     <button 
       onClick={onReindex}
-      className="flex items-center gap-2 text-slate-500 hover:text-[#001e33] font-bold text-xs transition-colors"
+      className="flex items-center gap-2 text-slate-500 hover:text-[#001871] font-bold text-xs transition-colors"
     >
       <RefreshCw size={14} /> Re-indexar base de datos SQLite
     </button>
@@ -375,7 +375,7 @@ const NavButton = ({ active, onClick, icon, label }) => (
     onClick={onClick}
     className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all font-bold text-sm ${
       active 
-        ? 'bg-[#001e33] text-white shadow-lg shadow-blue-900/10' 
+        ? 'bg-[#001871] text-white shadow-lg shadow-blue-900/10' 
         : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
     }`}
   >
@@ -395,7 +395,7 @@ const InputGroup = ({ label, ...props }) => (
     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
     <input 
       {...props}
-      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#001e33]/5 focus:border-[#001e33] outline-none transition-all disabled:opacity-50"
+      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#001871]/5 focus:border-[#001871] outline-none transition-all disabled:opacity-50"
     />
   </div>
 );

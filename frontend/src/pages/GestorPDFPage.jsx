@@ -610,7 +610,7 @@ export default function GestorPDFPage() {
             <Link to="/app/utilidades" className="p-2 hover:bg-slate-100 rounded-xl"><ArrowLeft size={20} className="text-slate-500" /></Link>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-gradient-to-br from-red-500 to-red-600 rounded-xl"><FileText size={24} className="text-white" /></div>
-              <div><h1 className="text-xl font-black text-[#001e33]">Gestor de PDFs</h1><p className="text-xs text-slate-400">Editor profesional</p></div>
+              <div><h1 className="text-xl font-black text-[#001871]">Gestor de PDFs</h1><p className="text-xs text-slate-400">Editor profesional</p></div>
             </div>
           </div>
           <Link to="/app" className="p-2 hover:bg-slate-100 rounded-xl"><Home size={20} className="text-slate-500" /></Link>

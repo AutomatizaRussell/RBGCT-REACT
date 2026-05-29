@@ -231,11 +231,11 @@ const TaskManager = ({
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#001e33]/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#001871]/60 backdrop-blur-sm" onClick={onClose} />
       
       <div className="bg-white rounded-[32px] w-full max-w-4xl max-h-[90vh] relative z-10 shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="bg-[#001e33] p-6 flex items-center justify-between">
+        <div className="bg-[#001871] p-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="p-2 bg-white/10 rounded-xl">
               <Calendar size={24} className="text-white" />
@@ -265,7 +265,7 @@ const TaskManager = ({
               <select
                 value={filterArea}
                 onChange={(e) => setFilterArea(e.target.value)}
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-[#001e33]"
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-[#001871]"
               >
                 <option value="all">Todas las áreas</option>
                 {AREAS.map(area => (
@@ -277,7 +277,7 @@ const TaskManager = ({
             {canManageArea && !readOnly && (
               <button
                 onClick={() => setShowForm(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors"
               >
                 <Plus size={16} />
                 Nueva Tarea
@@ -289,7 +289,7 @@ const TaskManager = ({
           {showForm && !readOnly && (
             <div className="mb-6 p-6 bg-slate-50 rounded-2xl border border-slate-200 animate-in slide-in-from-top-2">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="font-bold text-[#001e33]">
+                <h4 className="font-bold text-[#001871]">
                   {editingTask ? 'Editar Tarea' : 'Nueva Tarea'}
                 </h4>
                 <button onClick={resetForm} className="text-slate-400 hover:text-slate-600">
@@ -307,7 +307,7 @@ const TaskManager = ({
                     required
                     value={formData.titulo}
                     onChange={(e) => setFormData({...formData, titulo: e.target.value})}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001e33]"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871]"
                     placeholder="Nombre de la tarea..."
                   />
                 </div>
@@ -320,7 +320,7 @@ const TaskManager = ({
                     rows={2}
                     value={formData.descripcion}
                     onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001e33] resize-none"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871] resize-none"
                     placeholder="Detalles adicionales..."
                   />
                 </div>
@@ -340,7 +340,7 @@ const TaskManager = ({
                       });
                     }}
                     disabled={!canManageAll && userArea}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001e33] disabled:bg-slate-100"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871] disabled:bg-slate-100"
                   >
                     {/* Opción Tarea General solo para Admin/SuperAdmin */}
                     {canManageAll && (
@@ -368,7 +368,7 @@ const TaskManager = ({
                   <select
                     value={formData.prioridad}
                     onChange={(e) => setFormData({...formData, prioridad: e.target.value})}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001e33]"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871]"
                   >
                     {PRIORIDADES.map(p => (
                       <option key={p.id} value={p.id}>{p.nombre}</option>
@@ -385,7 +385,7 @@ const TaskManager = ({
                     required
                     value={formData.fecha_vencimiento}
                     onChange={(e) => setFormData({...formData, fecha_vencimiento: e.target.value})}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001e33]"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871]"
                   />
                 </div>
 
@@ -405,7 +405,7 @@ const TaskManager = ({
                       });
                     }}
                     disabled={loadingEmpleados}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001e33] disabled:bg-slate-100"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871] disabled:bg-slate-100"
                   >
                     <option value="">Tarea general del área</option>
                     {empleadosFiltrados.map(emp => (
@@ -429,7 +429,7 @@ const TaskManager = ({
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-6 py-3 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors"
+                    className="flex-1 px-6 py-3 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-colors"
                   >
                     {editingTask ? 'Guardar Cambios' : 'Crear Tarea'}
                   </button>
@@ -462,7 +462,7 @@ const TaskManager = ({
                     className={`p-4 rounded-2xl border transition-all ${
                       task.estado === 'completada' 
                         ? 'bg-slate-50 border-slate-200 opacity-60' 
-                        : 'bg-white border-slate-200 hover:border-[#001e33]/30'
+                        : 'bg-white border-slate-200 hover:border-[#001871]/30'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4">

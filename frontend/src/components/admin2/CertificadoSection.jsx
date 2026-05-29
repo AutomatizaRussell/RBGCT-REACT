@@ -282,7 +282,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         {/* PANEL IZQUIERDO */}
         <div className="w-96 flex-shrink-0 space-y-4 overflow-y-auto pr-2 custom-scrollbar">
           <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 bg-[#001e33] rounded-lg text-white"><FileText size={20}/></div>
+            <div className="p-2 bg-[#001871] rounded-lg text-white"><FileText size={20}/></div>
             <h2 className="text-lg font-bold text-slate-800">Generador Legal</h2>
           </div>
 
@@ -363,7 +363,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
             )}
           </Section>
 
-          <button onClick={handlePrint} className="w-full py-4 bg-[#001e33] hover:bg-[#002e4d] text-white rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95">
+          <button onClick={handlePrint} className="w-full py-4 bg-[#001871] hover:bg-[#002e4d] text-white rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl transition-all active:scale-95">
             <Printer size={18}/> IMPRIMIR DOCUMENTO
           </button>
         </div>
@@ -411,15 +411,15 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
     }}>
 
       {/* ── Acento superior ─────────────────────────────────────── */}
-      <div style={{ height: '5px', background: 'linear-gradient(90deg,#001e33 70%,#0a4a7c)' }} />
+      <div style={{ height: '5px', background: 'linear-gradient(90deg,#001871 70%,#0a4a7c)' }} />
 
       {/* ── Membrete ─────────────────────────────────────────────── */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-        padding: '12mm 20mm 7mm', borderBottom: '1pt solid #001e33',
+        padding: '12mm 20mm 7mm', borderBottom: '1pt solid #001871',
       }}>
         <div>
-          <p style={sn({ margin: 0, fontSize: '20pt', fontWeight: '900', color: '#001e33', letterSpacing: '-0.5pt', lineHeight: 1 })}>
+          <p style={sn({ margin: 0, fontSize: '20pt', fontWeight: '900', color: '#001871', letterSpacing: '-0.5pt', lineHeight: 1 })}>
             RUSSELL BEDFORD
           </p>
           <p style={sn({ margin: '3pt 0 0', fontSize: '7.5pt', color: '#6b7280', letterSpacing: '2.5pt', textTransform: 'uppercase' })}>
@@ -431,7 +431,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
             Medellín, {form.fecha}
           </p>
           {form.consecutivo && (
-            <p style={sn({ margin: '3pt 0 0', fontSize: '8pt', fontWeight: '700', color: '#001e33', letterSpacing: '1pt' })}>
+            <p style={sn({ margin: '3pt 0 0', fontSize: '8pt', fontWeight: '700', color: '#001871', letterSpacing: '1pt' })}>
               Ref. {form.consecutivo}
             </p>
           )}
@@ -445,7 +445,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
         <p style={sn({
           textAlign: 'center', margin: '0 0 20pt',
           fontSize: '11pt', fontWeight: '700', letterSpacing: '3pt',
-          textTransform: 'uppercase', color: '#001e33',
+          textTransform: 'uppercase', color: '#001871',
           borderBottom: '1pt solid #d1d5db', paddingBottom: '10pt',
         })}>
           Certificado de Empleo
@@ -514,7 +514,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
           {/* Nombre en cursiva = firma */}
           <div style={{ minHeight: '34pt', display: 'flex', alignItems: 'flex-end' }}>
             <p style={{
-              fontFamily: script, fontSize: '17pt', color: '#001e33',
+              fontFamily: script, fontSize: '17pt', color: '#001871',
               margin: 0, lineHeight: 1.1, fontWeight: 400,
             }}>
               {toTitleCase(form.firmante_nombre)}
@@ -529,7 +529,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
           <p style={sn({ margin: '0 0 2pt', fontSize: '9pt', color: '#374151' })}>
             {form.firmante_cargo}
           </p>
-          <p style={sn({ margin: '0 0 2pt', fontSize: '9pt', fontWeight: '700', color: '#001e33', textTransform: 'uppercase' })}>
+          <p style={sn({ margin: '0 0 2pt', fontSize: '9pt', fontWeight: '700', color: '#001871', textTransform: 'uppercase' })}>
             {empresa}
           </p>
           {form.firmante_cc && (

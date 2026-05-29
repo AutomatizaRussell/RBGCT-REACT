@@ -50,7 +50,7 @@ const TaskDetailModal = ({ tarea, onClose, onActualizar }) => {
                   </span>
                 )}
               </div>
-              <h3 className="text-lg font-black text-[#001e33] leading-snug">{tarea.titulo}</h3>
+              <h3 className="text-lg font-black text-[#001871] leading-snug">{tarea.titulo}</h3>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors flex-shrink-0 -mt-1">
               <X size={18} className="text-slate-400"/>
@@ -70,7 +70,7 @@ const TaskDetailModal = ({ tarea, onClose, onActualizar }) => {
           <div className="grid grid-cols-2 gap-3">
             <div className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Vencimiento</p>
-              <p className={`text-xs font-bold flex items-center gap-1.5 ${estaVencida ? 'text-red-600' : 'text-[#001e33]'}`}>
+              <p className={`text-xs font-bold flex items-center gap-1.5 ${estaVencida ? 'text-red-600' : 'text-[#001871]'}`}>
                 <CalendarDays size={12}/> {formatFecha(tarea.fecha_vencimiento)}
               </p>
             </div>
@@ -168,7 +168,7 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
     }
   };
 
-  const inputCls = "w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#001e33]/20 focus:border-[#001e33] text-[#001e33] placeholder:text-slate-300 bg-white";
+  const inputCls = "w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#001871]/20 focus:border-[#001871] text-[#001871] placeholder:text-slate-300 bg-white";
   const labelCls = "block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1";
 
   return (
@@ -177,7 +177,7 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in-95 duration-200">
 
         {/* Header */}
-        <div className="bg-[#001e33] px-6 pt-6 pb-5 rounded-t-3xl">
+        <div className="bg-[#001871] px-6 pt-6 pb-5 rounded-t-3xl">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-white/10 rounded-xl">
@@ -202,10 +202,10 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
               <CheckCircle2 size={40} className="text-emerald-500"/>
             </div>
             <div>
-              <h4 className="text-base font-black text-[#001e33] mb-1">¡Solicitud enviada!</h4>
+              <h4 className="text-base font-black text-[#001871] mb-1">¡Solicitud enviada!</h4>
               <p className="text-sm text-slate-500">RR.HH. procesará tu certificado y lo enviará a tu correo corporativo.</p>
             </div>
-            <button type="button" onClick={onClose} className="mt-2 px-6 py-2.5 bg-[#001e33] text-white rounded-xl text-sm font-bold hover:bg-[#002a47] transition-colors">
+            <button type="button" onClick={onClose} className="mt-2 px-6 py-2.5 bg-[#001871] text-white rounded-xl text-sm font-bold hover:bg-[#002a47] transition-colors">
               Cerrar
             </button>
           </div>
@@ -264,7 +264,7 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
                 Cancelar
               </button>
               <button type="submit" disabled={enviando}
-                className="flex-1 py-3 bg-[#001e33] text-white rounded-2xl text-sm font-bold hover:bg-[#002a47] transition-colors disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg">
+                className="flex-1 py-3 bg-[#001871] text-white rounded-2xl text-sm font-bold hover:bg-[#002a47] transition-colors disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg">
                 {enviando ? <RefreshCw size={15} className="animate-spin"/> : <Send size={15}/>}
                 {enviando ? 'Enviando...' : 'Enviar Solicitud'}
               </button>
@@ -356,17 +356,17 @@ const AutoGestion = () => {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#001e33]/5 rounded-xl">
-              <Award size={18} className="text-[#001e33]"/>
+            <div className="p-2.5 bg-[#001871]/5 rounded-xl">
+              <Award size={18} className="text-[#001871]"/>
             </div>
             <div>
-              <p className="text-sm font-bold text-[#001e33]">Certificado de Empleo</p>
+              <p className="text-sm font-bold text-[#001871]">Certificado de Empleo</p>
               <p className="text-[10px] text-slate-400 mt-0.5">Solicita tu certificado; se envía a tu correo corporativo</p>
             </div>
           </div>
           <button
             onClick={() => setShowCertModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#001e33] text-white rounded-xl text-xs font-bold hover:bg-[#002a47] transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#001871] text-white rounded-xl text-xs font-bold hover:bg-[#002a47] transition-colors shadow-sm"
           >
             <FileText size={13}/> Solicitar
           </button>
@@ -375,7 +375,7 @@ const AutoGestion = () => {
 
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-[#001e33]">Mis Tareas Asignadas</h3>
+          <h3 className="text-lg font-bold text-[#001871]">Mis Tareas Asignadas</h3>
           <p className="text-xs text-slate-500 mt-0.5">Haz clic en cualquier tarea para ver el detalle y cambiar su estado</p>
         </div>
         <div className="flex items-center gap-4">
@@ -410,7 +410,7 @@ const AutoGestion = () => {
       {tareas.length === 0 ? (
         <div className="bg-white rounded-3xl border border-slate-100 p-14 shadow-sm text-center">
           <CheckCircle2 size={48} className="text-emerald-400 mx-auto mb-4"/>
-          <h4 className="text-base font-bold text-[#001e33] mb-1">¡Sin tareas pendientes!</h4>
+          <h4 className="text-base font-bold text-[#001871] mb-1">¡Sin tareas pendientes!</h4>
           <p className="text-sm text-slate-400">El administrador aún no te ha asignado tareas.</p>
         </div>
       ) : (
@@ -438,7 +438,7 @@ const AutoGestion = () => {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-bold truncate ${tarea.estado === 'completada' ? 'text-slate-400 line-through' : 'text-[#001e33]'}`}>
+                  <p className={`text-sm font-bold truncate ${tarea.estado === 'completada' ? 'text-slate-400 line-through' : 'text-[#001871]'}`}>
                     {tarea.titulo}
                   </p>
                   <div className="flex items-center gap-3 mt-0.5 flex-wrap">

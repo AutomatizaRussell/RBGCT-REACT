@@ -74,7 +74,7 @@ export default function EditorHistorial() {
             <History size={20} className="text-white"/>
           </div>
           <div>
-            <h3 className="font-bold text-[#001e33] text-lg">Historial de Cambios</h3>
+            <h3 className="font-bold text-[#001871] text-lg">Historial de Cambios</h3>
             <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest">
               {historial.length} registro{historial.length !== 1 ? 's' : ''}
             </p>
@@ -82,7 +82,7 @@ export default function EditorHistorial() {
         </div>
         <button
           onClick={fetchHistorial}
-          className="flex items-center gap-2 px-4 py-2 bg-[#001e33] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm"
         >
           <Clock size={14}/> Actualizar
         </button>
@@ -93,7 +93,7 @@ export default function EditorHistorial() {
         <button
           onClick={() => setFiltro('todos')}
           className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-            filtro === 'todos' ? 'bg-[#001e33] text-white border-[#001e33]' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+            filtro === 'todos' ? 'bg-[#001871] text-white border-[#001871]' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
           }`}
         >
           Todos ({historial.length})
@@ -103,7 +103,7 @@ export default function EditorHistorial() {
             key={key}
             onClick={() => setFiltro(key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 ${
-              filtro === key ? 'bg-[#001e33] text-white border-[#001e33]' : `bg-white ${cfg.border} text-slate-500 hover:bg-slate-50`
+              filtro === key ? 'bg-[#001871] text-white border-[#001871]' : `bg-white ${cfg.border} text-slate-500 hover:bg-slate-50`
             }`}
           >
             <cfg.icon size={12} className={filtro === key ? 'text-white' : cfg.color}/>
@@ -149,7 +149,7 @@ export default function EditorHistorial() {
                       })}
                     </span>
                   </div>
-                  <p className="text-sm font-bold text-[#001e33] truncate">
+                  <p className="text-sm font-bold text-[#001871] truncate">
                     {item.curso_nombre || 'Curso eliminado'}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">{item.descripcion}</p>

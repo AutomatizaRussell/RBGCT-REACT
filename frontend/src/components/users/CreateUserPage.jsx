@@ -197,7 +197,7 @@ const CreateUserPage = () => {
       <button 
         type="button"
         onClick={handleBack} 
-        className="flex items-center gap-2 text-slate-400 hover:text-[#001e33] mb-6 text-sm font-bold transition-colors group"
+        className="flex items-center gap-2 text-slate-400 hover:text-[#001871] mb-6 text-sm font-bold transition-colors group"
       >
         <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 
         Volver a la lista
@@ -219,7 +219,7 @@ const CreateUserPage = () => {
           
           {/* Código de verificación */}
           {codigoVerificacion && (
-            <div className="p-6 bg-[#001e33] rounded-2xl text-white">
+            <div className="p-6 bg-[#001871] rounded-2xl text-white">
               <p className="text-sm text-white/70 mb-3">
                 Comparte este código con el usuario para su primer login:
               </p>
@@ -242,7 +242,7 @@ const CreateUserPage = () => {
               </p>
               <button
                 onClick={handleBack}
-                className="mt-4 w-full py-3 bg-white text-[#001e33] rounded-xl font-semibold hover:bg-white/90 transition-colors"
+                className="mt-4 w-full py-3 bg-white text-[#001871] rounded-xl font-semibold hover:bg-white/90 transition-colors"
               >
                 Volver a usuarios
               </button>
@@ -254,7 +254,7 @@ const CreateUserPage = () => {
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
         {/* CABECERA FORMULARIO */}
         <div className="p-10 border-b border-slate-50">
-          <h3 className="text-xl font-black text-[#001e33]">Nuevo Registro</h3>
+          <h3 className="text-xl font-black text-[#001871]">Nuevo Registro</h3>
           <p className="text-slate-400 text-sm mt-1">Alta de colaborador en el sistema GCT.</p>
         </div>
 
@@ -269,10 +269,10 @@ const CreateUserPage = () => {
                 name="crearCompleto"
                 checked={formData.crearCompleto}
                 onChange={handleChange}
-                className="mt-1 w-4 h-4 text-[#001e33] rounded border-slate-300 focus:ring-[#001e33]"
+                className="mt-1 w-4 h-4 text-[#001871] rounded border-slate-300 focus:ring-[#001871]"
               />
               <div>
-                <span className="font-medium text-[#001e33]">Crear usuario con datos completos</span>
+                <span className="font-medium text-[#001871]">Crear usuario con datos completos</span>
                 <p className="text-xs text-slate-500 mt-1">
                   Si no se selecciona, se creará solo con correo y contraseña. 
                   El usuario deberá completar sus datos en el primer login.
@@ -294,7 +294,7 @@ const CreateUserPage = () => {
                 name="correo_corporativo"
                 value={formData.correo_corporativo}
                 onChange={handleChange}
-                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                 placeholder="usuario@russellbedford.com.co" 
               />
             </div>
@@ -310,7 +310,7 @@ const CreateUserPage = () => {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                 placeholder="Mínimo 6 caracteres" 
               />
             </div>
@@ -326,7 +326,7 @@ const CreateUserPage = () => {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                 placeholder="Repite la contraseña" 
               />
             </div>
@@ -342,7 +342,7 @@ const CreateUserPage = () => {
                 name="admin_password"
                 value={formData.admin_password}
                 onChange={handleChange}
-                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                 placeholder="Ingresa tu contraseña de SuperAdmin" 
               />
               <p className="text-[10px] text-slate-400 ml-1">Requerida para verificar tu identidad</p>
@@ -359,7 +359,7 @@ const CreateUserPage = () => {
                   name="id_permisos"
                   value={formData.id_permisos}
                   onChange={handleChange}
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] appearance-none text-sm font-medium cursor-pointer"
+                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
                 >
                   {ROLES.map(rol => (
                     <option key={rol.id} value={rol.id}>
@@ -381,7 +381,7 @@ const CreateUserPage = () => {
           {formData.crearCompleto && (
             <>
               <div className="pt-6 border-t border-slate-100">
-                <h4 className="text-sm font-bold text-[#001e33] mb-6">Datos Personales Completos</h4>
+                <h4 className="text-sm font-bold text-[#001871] mb-6">Datos Personales Completos</h4>
                 
                 <div className="grid grid-cols-2 gap-8">
                   {/* NOMBRES */}
@@ -395,7 +395,7 @@ const CreateUserPage = () => {
                       name="primer_nombre"
                       value={formData.primer_nombre}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. Juan" 
                     />
                   </div>
@@ -409,7 +409,7 @@ const CreateUserPage = () => {
                       name="apodo"
                       value={formData.apodo}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. Juancho, JG, Stiben..." 
                     />
                     <p className="text-[10px] text-slate-400 ml-1">Cómo prefiere ser llamado/a en el sistema</p>
@@ -424,7 +424,7 @@ const CreateUserPage = () => {
                       name="segundo_nombre"
                       value={formData.segundo_nombre}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. Carlos" 
                     />
                   </div>
@@ -440,7 +440,7 @@ const CreateUserPage = () => {
                       name="primer_apellido"
                       value={formData.primer_apellido}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. García" 
                     />
                   </div>
@@ -454,7 +454,7 @@ const CreateUserPage = () => {
                       name="segundo_apellido"
                       value={formData.segundo_apellido}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. López" 
                     />
                   </div>
@@ -469,7 +469,7 @@ const CreateUserPage = () => {
                       name="fecha_ingreso"
                       value={formData.fecha_ingreso}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                     />
                   </div>
 
@@ -489,7 +489,7 @@ const CreateUserPage = () => {
                           required={formData.crearCompleto}
                           name="area_id"
                           onChange={handleChange}
-                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] appearance-none text-sm font-medium cursor-pointer"
+                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
                         >
                           <option value="">Seleccionar área...</option>
                           {areas.map(area => (
@@ -522,7 +522,7 @@ const CreateUserPage = () => {
                           name="cargo_id"
                           value={formData.cargo_id}
                           onChange={handleChange}
-                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] appearance-none text-sm font-medium cursor-pointer"
+                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
                         >
                           <option value="">Seleccionar cargo...</option>
                           {cargos.map(cargo => (
@@ -548,7 +548,7 @@ const CreateUserPage = () => {
                       name="telefono"
                       value={formData.telefono}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. 300 123 4567" 
                     />
                   </div>
@@ -563,7 +563,7 @@ const CreateUserPage = () => {
                       name="nombre_contacto_emergencia"
                       value={formData.nombre_contacto_emergencia}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                       placeholder="Ej. María García"
                     />
                   </div>
@@ -577,7 +577,7 @@ const CreateUserPage = () => {
                       name="telefono_emergencia"
                       value={formData.telefono_emergencia}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                       placeholder="Ej. 300 999 8888"
                     />
                   </div>
@@ -591,7 +591,7 @@ const CreateUserPage = () => {
                       name="parentesco_emergencia"
                       value={formData.parentesco_emergencia}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium"
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                       placeholder="Ej. Madre, Esposo, Hermano..."
                     />
                   </div>
@@ -606,7 +606,7 @@ const CreateUserPage = () => {
                       name="fecha_nacimiento"
                       value={formData.fecha_nacimiento}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                     />
                   </div>
 
@@ -620,7 +620,7 @@ const CreateUserPage = () => {
                       name="correo_personal"
                       value={formData.correo_personal}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="personal@email.com" 
                     />
                   </div>
@@ -635,7 +635,7 @@ const CreateUserPage = () => {
                       name="direccion"
                       value={formData.direccion}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] focus:bg-white transition-all text-sm font-medium" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Calle, número, ciudad..." 
                     />
                   </div>
@@ -650,7 +650,7 @@ const CreateUserPage = () => {
                         name="sexo"
                         value={formData.sexo}
                         onChange={handleChange}
-                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] appearance-none text-sm font-medium cursor-pointer"
+                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
                       >
                         <option value="">Seleccionar...</option>
                         <option value="M">Masculino</option>
@@ -673,7 +673,7 @@ const CreateUserPage = () => {
                         name="tipo_sangre"
                         value={formData.tipo_sangre}
                         onChange={handleChange}
-                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001e33] appearance-none text-sm font-medium cursor-pointer"
+                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
                       >
                         <option value="">Seleccionar...</option>
                         <option value="A+">A+</option>
@@ -708,7 +708,7 @@ const CreateUserPage = () => {
             <button 
               type="submit" 
               disabled={saving}
-              className="bg-[#001e33] text-white px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-blue-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-[#001871] text-white px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-blue-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <>
