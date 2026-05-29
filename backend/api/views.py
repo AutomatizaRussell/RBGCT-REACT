@@ -3393,69 +3393,105 @@ def enviar_certificado_empleo(request):
         return Response({'error': 'El campo email_destino es requerido.'}, status=400)
 
     # ── Construir HTML del certificado ─────────────────────────────────────
-    ingresos_html = f", {ingresos_adic}" if ingresos_adic else ""
-    salario_html  = f"Devenga un salario mensual de <strong>{salario}</strong>{ingresos_html}." if salario else ""
+    salario_resumen = ""
+    if salario:
+        salario_resumen = salario if not ingresos_adic else f"{salario} + {ingresos_adic}"
+    fecha_row_html = (
+        f"""
+        <tr>
+          <td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;">Fecha emisión</td>
+          <td style="padding:8px;border:1px solid #e2e8f0;color:#0f172a;font-size:12px;">{fecha_cert}</td>
+        </tr>
+        """
+        if fecha_cert else ""
+    )
+    destinatario_row_html = (
+        f"""
+        <tr>
+          <td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;">Destinatario</td>
+          <td style="padding:8px;border:1px solid #e2e8f0;color:#0f172a;font-size:12px;">{destinatario}</td>
+        </tr>
+        """
+        if destinatario else ""
+    )
+    contrato_row_html = (
+        f"""
+        <tr>
+          <td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;">Tipo contrato</td>
+          <td style="padding:8px;border:1px solid #e2e8f0;color:#0f172a;font-size:12px;">{tipo_contrato}</td>
+        </tr>
+        """
+        if tipo_contrato else ""
+    )
+    firmado_por = ""
+    if firmante_nombre:
+        firmado_por = firmante_nombre
+        if firmante_cargo:
+            firmado_por = f"{firmado_por} ({firmante_cargo})"
+        if firmante_cc:
+            firmado_por = f"{firmado_por} - C.C. {firmante_cc}"
+    firma_row_html = (
+        f"""
+        <tr>
+          <td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;">Firmado por</td>
+          <td style="padding:8px;border:1px solid #e2e8f0;color:#0f172a;font-size:12px;">{firmado_por}</td>
+        </tr>
+        """
+        if firmado_por else ""
+    )
+    salario_row_html = (
+        f"""
+        <tr>
+          <td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;">Salario</td>
+          <td style="padding:8px;border:1px solid #e2e8f0;color:#0f172a;font-size:12px;">{salario_resumen}</td>
+        </tr>
+        """
+        if salario_resumen else ""
+    )
 
     html_email = f"""
-<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:0 auto;background:#f8fafc;padding:24px;">
-  <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.06);">
-
-    <!-- Encabezado -->
-    <div style="background:#001e33;padding:28px 36px;display:flex;justify-content:space-between;align-items:center;">
-      <div>
-        <p style="margin:0;color:#ffffff;font-size:22px;font-weight:900;letter-spacing:-0.5px;">RUSSELL BEDFORD</p>
-        <p style="margin:4px 0 0;color:#94a3b8;font-size:11px;letter-spacing:2px;">taking you further</p>
-      </div>
-      <div style="text-align:right;">
-        <p style="margin:0;color:#94a3b8;font-size:11px;">Medellín, {fecha_cert}</p>
-        <p style="margin:4px 0 0;color:#ffffff;font-size:12px;font-weight:700;letter-spacing:1px;">{consecutivo}</p>
-      </div>
+<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:620px;margin:0 auto;background:#f8fafc;padding:18px;">
+  <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
+    <div style="background:#001e33;padding:14px 18px;">
+      <p style="margin:0;color:#ffffff;font-size:17px;font-weight:700;">Certificado de Empleo</p>
+      <p style="margin:6px 0 0;color:#cbd5e1;font-size:12px;">{nombre_empleado}</p>
     </div>
 
-    <!-- Cuerpo -->
-    <div style="padding:40px 36px;">
-
-      <!-- Destinatario -->
-      <p style="margin:0 0 4px;color:#475569;font-size:13px;">Señores</p>
-      <p style="margin:0 0 2px;color:#001e33;font-size:14px;font-weight:700;text-transform:uppercase;">{destinatario}.</p>
-      <p style="margin:0 0 28px;color:#475569;font-size:13px;">Medellín</p>
-
-      <!-- Texto principal -->
-      <p style="font-size:14px;color:#1e293b;line-height:1.8;margin:0 0 18px;text-align:justify;">
-        Certificamos que <strong>{nombre_empleado} identificado(a)</strong>
-        con {tipo_doc} No. <strong>{num_doc}</strong>, labora en
-        <strong>GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S</strong>
-        con Nit. <strong>900.930.391-1</strong>, desde el {fecha_ingreso},
-        con contrato a <strong>{tipo_contrato}</strong>,
-        desempeñando el cargo de <strong style="text-transform:uppercase;">{cargo}</strong>.
+    <div style="padding:18px;">
+      <p style="margin:0 0 10px;color:#334155;font-size:14px;">Hola,</p>
+      <p style="margin:0 0 14px;color:#334155;font-size:13px;line-height:1.55;">
+        Adjuntamos el certificado de empleo solicitado para
+        <strong>{nombre_empleado}</strong>.
       </p>
 
-      {f'<p style="font-size:14px;color:#1e293b;line-height:1.8;margin:0 0 18px;text-align:justify;">{salario_html}</p>' if salario_html else ''}
+      <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 14px;">
+        <tr>
+          <td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;">Documento</td>
+          <td style="padding:8px;border:1px solid #e2e8f0;color:#0f172a;font-size:12px;">{tipo_doc} {num_doc}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;">Cargo</td>
+          <td style="padding:8px;border:1px solid #e2e8f0;color:#0f172a;font-size:12px;">{cargo}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;">Fecha ingreso</td>
+          <td style="padding:8px;border:1px solid #e2e8f0;color:#0f172a;font-size:12px;">{fecha_ingreso}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;">Consecutivo</td>
+          <td style="padding:8px;border:1px solid #e2e8f0;color:#0f172a;font-size:12px;">{consecutivo or '-'}</td>
+        </tr>
+        {fecha_row_html}
+        {destinatario_row_html}
+        {contrato_row_html}
+        {firma_row_html}
+        {salario_row_html}
+      </table>
 
-      <p style="font-size:14px;color:#1e293b;line-height:1.8;margin:0 0 32px;">
-        La presente certificación se expide a solicitud del interesado(a)
-        para los fines que estime convenientes.
-      </p>
-
-      <p style="font-size:13px;color:#475569;margin:0 0 40px;">Cordialmente,</p>
-
-      <!-- Firma -->
-      <div style="border-top:1px solid #e2e8f0;padding-top:12px;display:inline-block;min-width:200px;">
-        <p style="margin:0;font-size:13px;font-weight:700;color:#001e33;text-transform:uppercase;">{firmante_nombre}</p>
-        {f'<p style="margin:2px 0 0;font-size:12px;color:#475569;">C.C. {firmante_cc}</p>' if firmante_cc else ''}
-        <p style="margin:2px 0 0;font-size:12px;color:#475569;">{firmante_cargo}</p>
-        <p style="margin:4px 0 0;font-size:12px;font-weight:600;color:#475569;">GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S</p>
-      </div>
-
-    </div>
-
-    <!-- Footer -->
-    <div style="background:#f1f5f9;padding:16px 36px;text-align:center;border-top:1px solid #e2e8f0;">
-      <p style="margin:0;font-size:11px;color:#94a3b8;">
-        NIT 900.930.391-1 · Medellín, Colombia · GLT Gestión Legal y Tributaria S.A.S
+      <p style="margin:0;color:#64748b;font-size:12px;line-height:1.5;">
+        Si no puedes visualizar el contenido del correo, descarga el archivo PDF adjunto.
       </p>
     </div>
-
   </div>
 </div>"""
 

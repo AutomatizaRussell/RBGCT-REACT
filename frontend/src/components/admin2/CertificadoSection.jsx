@@ -13,7 +13,7 @@ const hoy = () => {
 
 const limpiarCargo = (cargo) => {
   if (!cargo) return '';
-  const primeraParte = cargo.split(/[/\-]/)[0];
+  const primeraParte = cargo.split(/[/-]/)[0];
   return primeraParte.replace(/\s+\d+\s*$/, '').trim().toUpperCase();
 };
 
@@ -102,7 +102,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
       }
     }
     if (onPrefillUsed) onPrefillUsed();
-  }, [prefill, empleados]);
+  }, [prefill, empleados, onPrefillUsed]);
 
   const handleChange = (e) =>
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value.toUpperCase() }));
@@ -149,15 +149,35 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
       const { default: html2canvas } = await import('html2canvas');
       const { jsPDF } = await import('jspdf');
       const elemento = document.querySelector('.certificado-preview');
-      const canvas   = await html2canvas(elemento, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-      const imgData  = canvas.toDataURL('image/png');
-      const pdf      = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-      const pdfW     = pdf.internal.pageSize.getWidth();
-      const pdfH     = (canvas.height * pdfW) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
-      const bytes  = new Uint8Array(pdf.output('arraybuffer'));
-      let binary   = '';
-      bytes.forEach(b => { binary += String.fromCharCode(b); });
+      if (!elemento) throw new Error('No se encontró la vista previa del certificado');
+
+      const canvas = await html2canvas(elemento, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        width: elemento.scrollWidth,
+        height: elemento.scrollHeight,
+        windowWidth: elemento.scrollWidth,
+        windowHeight: elemento.scrollHeight,
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const maxW = pageW - (margin * 2);
+      const maxH = pageH - (margin * 2);
+
+      const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
+      const renderW = canvas.width * ratio;
+      const renderH = canvas.height * ratio;
+      const offsetX = (pageW - renderW) / 2;
+      const offsetY = (pageH - renderH) / 2;
+
+      pdf.addImage(imgData, 'JPEG', offsetX, offsetY, renderW, renderH, undefined, 'MEDIUM');
+      const pdfBase64 = pdf.output('datauristring').split(',')[1];
+
       await enviarCertificadoEmpleo({
         email_destino:        emailDestino.trim(),
         nombre_empleado:      nombreEmp,
@@ -179,7 +199,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         firmante_nombre:      form.firmante_nombre,
         firmante_cc:          form.firmante_cc,
         firmante_cargo:       form.firmante_cargo,
-        pdf_base64:           btoa(binary),
+        pdf_base64:           pdfBase64,
         pdf_nombre:           `Certificado_${nombreEmp.replace(/\s+/g, '_')}_${form.consecutivo || 'SN'}.pdf`,
       });
       setEnvioStatus('ok');
