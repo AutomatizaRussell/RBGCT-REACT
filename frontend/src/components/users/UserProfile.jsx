@@ -13,6 +13,14 @@ const ROLE_LABELS = {
   usuario: 'Empleado',
 };
 
+const formatDateOnly = (value, locale = 'es-ES', options = { year: 'numeric', month: 'long', day: 'numeric' }) => {
+  if (!value) return 'No registrada';
+  const normalized = String(value).includes('T') ? value : `${value}T00:00:00`;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString(locale, options);
+};
+
 const UserProfile = () => {
   const { empleadoData, userRole } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -171,9 +179,7 @@ const UserProfile = () => {
             <InfoRow
               icon={<CalendarDays size={16} />}
               label="Fecha de Ingreso"
-              value={empleado.fecha_ingreso
-                ? new Date(empleado.fecha_ingreso).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
-                : 'No registrada'}
+              value={formatDateOnly(empleado.fecha_ingreso)}
             />
           </div>
         </div>
@@ -218,7 +224,7 @@ const UserProfile = () => {
               <InfoRow
                 icon={<Heart size={16} />}
                 label="Fecha Nacimiento"
-                value={new Date(empleado.fecha_nacimiento).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+                value={formatDateOnly(empleado.fecha_nacimiento)}
               />
             )}
           </div>

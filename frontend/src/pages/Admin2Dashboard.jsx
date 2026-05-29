@@ -50,6 +50,14 @@ import StatCard from '../components/ui/StatCard';
 import RecentUserRow from '../components/ui/RecentUserRow';
 import ActionButton from '../components/ui/ActionButton';
 
+const formatDateOnly = (value, locale = 'es-CO', options = { dateStyle: 'medium' }) => {
+  if (!value) return null;
+  const normalized = String(value).includes('T') ? value : `${value}T00:00:00`;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString(locale, options);
+};
+
 const Admin2Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [recentActivity, setRecentActivity] = useState([]);
@@ -1442,7 +1450,7 @@ const ConfiguracionesTab = ({ user }) => {
               { label: 'Correo Corporativo', value: adminEmail },
               { label: 'Área',               value: miPerfil?.nombre_area || user?.nombre_area || '—' },
               { label: 'Cargo',              value: miPerfil?.nombre_cargo || user?.nombre_cargo || '—' },
-              { label: 'Fecha de Ingreso',   value: (miPerfil?.fecha_ingreso || user?.fecha_ingreso) ? new Date(miPerfil?.fecha_ingreso || user?.fecha_ingreso).toLocaleDateString('es-CO', { dateStyle: 'medium' }) : <span className="text-slate-400 italic">No registrada</span> },
+              { label: 'Fecha de Ingreso',   value: formatDateOnly(miPerfil?.fecha_ingreso || user?.fecha_ingreso) || <span className="text-slate-400 italic">No registrada</span> },
               { label: 'Estado',             value: miPerfil?.estado || 'Activo' },
             ].map(({ label, value }) => (
               <div key={label} className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
