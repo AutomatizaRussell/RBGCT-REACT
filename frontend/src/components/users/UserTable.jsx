@@ -1,36 +1,47 @@
 import { useState, useEffect, useContext } from 'react';
 import { Trash2, Shield, ShieldCheck, UserX, UserCheck, X, Check, Loader2, Search, Mail, Calendar, Hash, Briefcase, Info, AlertTriangle, Activity, Edit3, Save, UserPlus, Lock, KeyRound, FileSpreadsheet, Download } from 'lucide-react';
-import { getAllEmpleados, updateEmpleado, cambiarEstadoEmpleado, deleteEmpleado, getAllCargos, getAllAreas, actualizarPasswordEmpleado, getCertPermisosBackend, setCertPermisoBackend } from '../../lib/api';
+import { updateEmpleado, cambiarEstadoEmpleado, deleteEmpleado, actualizarPasswordEmpleado, getCertPermisosBackend, setCertPermisoBackend } from '../../lib/api';
 import { exportEmpleadosCSV, exportEmpleadosXLSX } from '../../lib/exportEmpleados';
 import RoleModal from './RoleModal';
 import AuthContext from '../../context/AuthContext';
+import { useDataCache } from '../../context/DataCacheContext';
 
 
 const UserTable = () => {
-  const { 
-    isSuperAdmin, 
+  const {
+    isSuperAdmin,
     isAdmin,
     isEditor,
-    canViewInactiveUsers, 
-    canReactivateUsers, 
+    canViewInactiveUsers,
+    canReactivateUsers,
     canDeleteUsers,
     canEditUsers,
     canChangeRoles,
     canDeactivateUsers,
     user
   } = useContext(AuthContext);
-  
+
+  const {
+    empleados: cachedEmpleados,
+    areas:     cachedAreas,
+    cargos:    cachedCargos,
+    loadingEmpleados,
+    fetchEmpleados,
+    fetchAreas,
+    fetchCargos,
+    invalidate,
+  } = useDataCache();
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [managingUser, setManagingUser] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [selectedUser, setSelectedUser] = useState(null); 
+  const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [filterTab, setFilterTab] = useState('activos'); // 'activos' | 'inactivos'
-  
-  // Estado único para el modal de Roles
+  const [filterTab, setFilterTab] = useState('activos');
+
   const [roleModalUser, setRoleModalUser] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [editFormData, setEditFormData] = useState({});
@@ -53,10 +64,10 @@ const UserTable = () => {
   const [changingPassword, setChangingPassword] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (force = false) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await getAllEmpleados();
+      const data = await fetchEmpleados(force);
       setUsers(data || []);
     } catch (err) {
       console.error('Error cargando empleados:', err);
@@ -65,28 +76,19 @@ const UserTable = () => {
     }
   };
 
-  const fetchCargos = async () => {
-    try {
-      const data = await getAllCargos();
-      setCargos(data || []);
-    } catch (err) {
-      console.error('Error cargando cargos:', err);
+  useEffect(() => {
+    // Usar datos del caché si ya están disponibles (carga instantánea)
+    if (cachedEmpleados.length > 0) {
+      setUsers(cachedEmpleados);
+      setLoading(false);
+    } else {
+      fetchUsers();
     }
-  };
-
-  const fetchAreas = async () => {
-    try {
-      const data = await getAllAreas();
-      setAreas(data || []);
-    } catch (err) {
-      console.error('Error cargando áreas:', err);
-    }
-  };
-
-  useEffect(() => { 
-    fetchUsers();
-    fetchCargos();
-    fetchAreas();
+    // Áreas y cargos del caché o fetch si no hay
+    if (cachedAreas.length > 0) setAreas(cachedAreas);
+    else fetchAreas().then(d => setAreas(d));
+    if (cachedCargos.length > 0) setCargos(cachedCargos);
+    else fetchCargos().then(d => setCargos(d));
   }, []);
 
   const toggleUserStatus = async (user) => {
@@ -109,7 +111,8 @@ const UserTable = () => {
     const nuevoEstado = user.estado === 'ACTIVA' ? 'INACTIVA' : 'ACTIVA';
     try {
       await cambiarEstadoEmpleado(user.id_empleado, nuevoEstado);
-      await fetchUsers();
+      invalidate('empleados');
+      await fetchUsers(true);
       setManagingUser(null);
       alert(`Usuario ${nuevoEstado === 'ACTIVA' ? 'activado' : 'desactivado'} correctamente`);
     } catch (err) {
@@ -124,7 +127,8 @@ const UserTable = () => {
     try {
       setDeleting(true);
       await deleteEmpleado(userToDelete.id_empleado);
-      await fetchUsers();
+      invalidate('empleados');
+      await fetchUsers(true);
       setConfirmDelete(null);
     } catch (error) {
       alert("Error al eliminar: " + error.message);
@@ -178,6 +182,7 @@ const UserTable = () => {
       console.log('[SAVE EDIT] Datos a enviar:', editFormData);
       console.log('[SAVE EDIT] permitir_edicion_datos:', editFormData.permitir_edicion_datos);
       await updateEmpleado(editingUser.id_empleado, editFormData);
+      invalidate('empleados');
       await setCertPermisoBackend(editingUser.id_empleado, certPermEdit);
       setCertPermisosBackend(prev => certPermEdit
         ? [...new Set([...prev, String(editingUser.id_empleado)])]

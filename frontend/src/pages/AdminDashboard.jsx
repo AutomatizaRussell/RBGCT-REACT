@@ -6,8 +6,8 @@ import StatCard from '../components/ui/StatCard';
 import RecentUserRow from '../components/ui/RecentUserRow';
 import ActionButton from '../components/ui/ActionButton';
 import { useAuth } from '../hooks/useAuth';
+import { useDataCache } from '../context/DataCacheContext';
 import {
-  getAllEmpleados,
   getActividadReciente,
   getAlertasRecuperacion,
   atenderAlerta,
@@ -49,12 +49,13 @@ const AdminDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isSuperAdmin, user } = useAuth();
+  const { fetchEmpleados } = useDataCache();
 
   // --- FUNCIONES DE CARGA ---
 
   const fetchStats = async () => {
     try {
-      const empleados = await getAllEmpleados();
+      const empleados = await fetchEmpleados();
       const total = empleados.length;
       const activos = empleados.filter(emp => emp.estado === 'ACTIVA');
       setEmployeeStats({ totalCount: total, activeCount: activos.length, loading: false });

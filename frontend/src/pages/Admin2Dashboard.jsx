@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useDataCache } from '../context/DataCacheContext';
 import { Admin2Sidebar } from '../components/layout/Admin2Sidebar';
 import { useLocation, Outlet } from 'react-router-dom';
 import {
@@ -79,10 +80,11 @@ const Admin2Dashboard = () => {
   const certPermRef = useRef(false);
   const activeTabRef = useRef('dashboard');
   const hasMountedTabEffect = useRef(false);
+  const { fetchEmpleados, fetchAreas, fetchCargos, invalidate: invalidateCache } = useDataCache();
 
   const fetchStats = async () => {
     try {
-      const [empleados, tareas] = await Promise.all([getAllEmpleados(), getAllTareas()]);
+      const [empleados, tareas] = await Promise.all([fetchEmpleados(), getAllTareas()]);
       const activos = empleados.filter(e => e.estado === 'ACTIVA');
       setEmployeeStats({ totalCount: empleados.length, activeCount: activos.length, loading: false });
 
@@ -864,9 +866,9 @@ const HerramientasTab = () => {
   const fetchData = async () => {
     try {
       const [areasRes, cargosRes, empsRes] = await Promise.allSettled([
-        getAllAreas({ timeoutMs: 35000 }),
-        getAllCargos({ timeoutMs: 35000 }),
-        getAllEmpleados({ timeoutMs: 35000 }),
+        fetchAreas(),
+        fetchCargos(),
+        fetchEmpleados(),
       ]);
 
       if (areasRes.status === 'fulfilled') {
@@ -907,6 +909,7 @@ const HerramientasTab = () => {
     try {
       await createArea({ nombre_area: newArea.trim() });
       setNewArea('');
+      invalidateCache('areas');
       fetchData();
     } catch (err) {
       alert('Error: ' + err.message);
@@ -920,6 +923,7 @@ const HerramientasTab = () => {
     try {
       await updateArea(id, { nombre_area: editAreaName.trim() });
       setEditingAreaId(null);
+      invalidateCache('areas');
       fetchData();
     } catch (err) {
       alert('Error: ' + err.message);
@@ -930,6 +934,7 @@ const HerramientasTab = () => {
     if (!confirm('¿Eliminar esta área?')) return;
     try {
       await deleteArea(id);
+      invalidateCache('areas');
       fetchData();
     } catch (err) {
       alert('Error: ' + err.message);
@@ -942,6 +947,7 @@ const HerramientasTab = () => {
     try {
       await createCargo({ nombre_cargo: newCargo.trim() });
       setNewCargo('');
+      invalidateCache('cargos');
       fetchData();
     } catch (err) {
       alert('Error: ' + err.message);
@@ -955,6 +961,7 @@ const HerramientasTab = () => {
     try {
       await updateCargo(id, { nombre_cargo: editCargoName.trim() });
       setEditingCargoId(null);
+      invalidateCache('cargos');
       fetchData();
     } catch (err) {
       alert('Error: ' + err.message);
@@ -965,6 +972,7 @@ const HerramientasTab = () => {
     if (!confirm('¿Eliminar este cargo?')) return;
     try {
       await deleteCargo(id);
+      invalidateCache('cargos');
       fetchData();
     } catch (err) {
       alert('Error: ' + err.message);
@@ -1361,7 +1369,7 @@ const ConfiguracionesTab = ({ user }) => {
   const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
-    getAllEmpleados().then(data => {
+    fetchEmpleados().then(data => {
       setEmpleados(data);
       // Buscar el empleado asociado al correo del admin
       const adminEmail = user?.correo_corporativo || user?.email;

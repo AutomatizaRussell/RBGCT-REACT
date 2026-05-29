@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { DataCacheProvider } from './context/DataCacheContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import FormulariosSQF from './pages/FormulariosSQF';
 
@@ -43,6 +44,7 @@ const MediaLibrary = () => <div className="p-8 font-bold text-slate-700">Bibliot
 function App() {
   return (
     <AuthProvider>
+      <DataCacheProvider>
       <Router>
         <Routes>
           {/* 1. LOGIN - Público */}
@@ -129,6 +131,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Router>
+      </DataCacheProvider>
     </AuthProvider>
   );
 }
