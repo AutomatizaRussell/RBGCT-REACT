@@ -184,6 +184,8 @@ export const AuthProvider = ({ children }) => {
         correo_personal: datos.correo_personal,
         telefono: datos.telefono,
         telefono_emergencia: datos.telefono_emergencia,
+        nombre_contacto_emergencia: datos.nombre_contacto_emergencia,
+        parentesco_emergencia: datos.parentesco_emergencia,
         fecha_nacimiento: datos.fecha_nacimiento,
         fecha_ingreso: datos.fecha_ingreso || null,
         direccion: datos.direccion,
