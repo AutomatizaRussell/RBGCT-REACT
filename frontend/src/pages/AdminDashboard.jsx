@@ -242,15 +242,20 @@ const AdminDashboard = () => {
       if (activeTabRef.current !== 'dashboard') return;
       fetchStats();
       fetchAllActivity();
-      checkN8nStatus();
     };
 
     fetchConcurrentUsers();
     refreshDashboard();
 
+    // n8n status se verifica con retraso para no bloquear la carga inicial
+    const n8nInitTimer = setTimeout(() => {
+      if (document.visibilityState === 'visible') checkN8nStatus();
+    }, 3000);
+
     // Auto-refresh cada 60 segundos solo en tab dashboard visible
     const interval = setInterval(() => {
       refreshDashboard();
+      checkN8nStatus();
     }, 60000);
 
     const onVisibilityChange = () => {
@@ -261,6 +266,7 @@ const AdminDashboard = () => {
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
+      clearTimeout(n8nInitTimer);
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };

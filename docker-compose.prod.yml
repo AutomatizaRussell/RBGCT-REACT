@@ -1,6 +1,22 @@
 version: '3.9'
 
 services:
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: rbgct-redis-prod
+    restart: always
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data_prod:/data
+    networks:
+      - gct-network-prod
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
   # PostgreSQL Database
   db:
     image: postgres:16-alpine
@@ -64,7 +80,7 @@ services:
       N8N_WEBHOOK_API_KEY: ${N8N_WEBHOOK_API_KEY}
       SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-admin@rbgct.com}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
-      CACHE_BACKEND: ${CACHE_BACKEND:-file}
+      CACHE_BACKEND: ${CACHE_BACKEND:-redis}
       CACHE_DIR: ${CACHE_DIR:-/tmp/django_cache}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/1}
       DB_CONN_MAX_AGE: ${DB_CONN_MAX_AGE:-120}
@@ -79,6 +95,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - gct-network-prod
     logging:
@@ -143,6 +161,8 @@ services:
 
 volumes:
   postgres_data_prod:
+    driver: local
+  redis_data_prod:
     driver: local
   media_volume_prod:
     driver: local

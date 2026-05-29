@@ -63,7 +63,7 @@ def _post_n8n(destinatario, payload, workflow_name):
             n8n_url,
             json=payload,
             headers={'Content-Type': 'application/json', 'X-API-Key': settings.N8N_WEBHOOK_API_KEY},
-            timeout=10
+            timeout=5
         )
         if response.status_code == 200:
             logger.info(f"[N8N] {workflow_name} enviado a {destinatario}")
@@ -97,6 +97,17 @@ def _post_n8n(destinatario, payload, workflow_name):
         except Exception:
             pass
         return False, str(e)
+
+
+def _post_n8n_async(destinatario, payload, workflow_name):
+    """Lanza _post_n8n en hilo daemon para no bloquear el request."""
+    import threading
+    t = threading.Thread(
+        target=_post_n8n,
+        args=(destinatario, payload, workflow_name),
+        daemon=True,
+    )
+    t.start()
 
 
 def enviar_email_verificacion(email, codigo, password=None, nombre=None):
@@ -2221,23 +2232,9 @@ def notificar_admin_password_restablecida(empleado):
             'timestamp': str(datetime.now())
         }
         
-        headers = {
-            'Content-Type': 'application/json',
-            'X-API-Key': settings.N8N_WEBHOOK_API_KEY
-        }
-        
-        response = requests.post(
-            n8n_url,
-            json=payload,
-            headers=headers,
-            timeout=10
-        )
-        
-        if response.status_code == 200:
-            logger.info(f"[N8N NOTIFICACION] Admin notificado de restablecimiento")
-        else:
-            logger.error(f"[N8N NOTIFICACION] Error: {response.status_code}")
-            
+        _post_n8n_async(empleado.correo_corporativo, payload, 'notificacion_password_restablecida')
+        logger.info(f"[N8N NOTIFICACION] Notificación admin enviada en background")
+
     except Exception as e:
         logger.error(f"[NOTIFICACION] Error: {str(e)}")
 
