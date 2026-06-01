@@ -1,0 +1,441 @@
+================================================================================
+         MANUAL DE USUARIO — RUSSELL BEDFORD COLOMBIA
+         Sistema de Gestión Interna
+================================================================================
+
+
+════════════════════════════════════════════════════════════════════════════════
+  ÍNDICE
+════════════════════════════════════════════════════════════════════════════════
+
+  1. CÓMO INGRESAR AL SISTEMA
+  2. ROL: ADMINISTRADOR (Admin2)
+     2.1 Panel Principal (Dashboard)
+     2.2 Gestión de Personal
+     2.3 Calendario de Tareas
+     2.4 Contratos Laborales
+     2.5 Clientes
+     2.6 Herramientas
+     2.7 Reglamento Interno
+     2.8 Certificado de Empleo
+     2.9 Configuraciones
+     2.10 Notificaciones y Alertas
+     2.11 Asistente IA (Gemini)
+  3. ROL: USUARIO (Empleado)
+     3.1 Panel Principal (Dashboard)
+     3.2 Auto-gestión (Mis Tareas)
+     3.3 Mi Perfil
+     3.4 Cursos y Capacitaciones
+     3.5 Reglamento Interno
+     3.6 Herramientas
+     3.7 Mis Clientes
+     3.8 Solicitar Certificado de Empleo
+  4. TABLA COMPARATIVA: ¿QUÉ PUEDE HACER CADA ROL?
+  5. PREGUNTAS FRECUENTES
+
+
+================================================================================
+  1. CÓMO INGRESAR AL SISTEMA
+================================================================================
+
+  1. Abra el navegador y vaya a la dirección del sistema.
+  2. Ingrese su correo corporativo y contraseña.
+  3. Si es su primer ingreso, el sistema le pedirá cambiar su contraseña.
+  4. Si olvidó su contraseña, haga clic en "¿Olvidaste tu contraseña?"
+     y el administrador recibirá una alerta para restablecerla.
+
+  ⚠  Si su cuenta aparece inactiva, contacte al administrador.
+
+
+================================================================================
+  2. ROL: ADMINISTRADOR (Admin2)
+================================================================================
+
+  El Administrador tiene acceso completo a la gestión del equipo.
+  Su panel se divide en las siguientes secciones accesibles desde
+  el menú lateral izquierdo.
+
+────────────────────────────────────────────────────────────────────────────────
+  2.1 PANEL PRINCIPAL (Dashboard)
+────────────────────────────────────────────────────────────────────────────────
+
+  Al ingresar verá un resumen con:
+
+  • Personal Total      → Cuántos empleados hay y cuántos están activos.
+  • En Línea Ahora      → Empleados conectados en los últimos 10 minutos.
+  • Tareas Activas      → Tareas en proceso, pendientes y completadas.
+  • Alertas             → Solicitudes de recuperación de contraseña
+                          u otros incidentes. (Haga clic para gestionarlas)
+
+  También verá:
+  • Distribución del equipo por área (gráfica de barras).
+  • Estado del equipo (activos vs. inactivos).
+  • Actividad reciente: quién está en línea y solicitudes pendientes.
+  • Acciones rápidas para ir directamente a cada módulo.
+
+  El panel se actualiza automáticamente cada 60 segundos.
+  Puede actualizarlo manualmente con el botón 🔄 en la parte superior.
+
+────────────────────────────────────────────────────────────────────────────────
+  2.2 GESTIÓN DE PERSONAL
+────────────────────────────────────────────────────────────────────────────────
+
+  Desde aquí puede administrar a todos los empleados del sistema.
+
+  ✔ Puede:
+    - Ver la lista completa de empleados con su área, cargo y estado.
+    - Crear nuevos empleados (genera su acceso al sistema).
+    - Editar información laboral de un empleado.
+    - Activar o desactivar empleados.
+    - Ver el perfil completo de cualquier empleado.
+    - Cambiar el rol de un empleado (Usuario / Editor / Administrador).
+
+  ✘ No puede:
+    - Eliminar empleados permanentemente (solo desactivarlos).
+
+────────────────────────────────────────────────────────────────────────────────
+  2.3 CALENDARIO DE TAREAS
+────────────────────────────────────────────────────────────────────────────────
+
+  Panel de gestión de tareas de todo el equipo.
+
+  ✔ Puede:
+    - Ver todas las tareas del sistema.
+    - Crear nuevas tareas y asignarlas a un empleado o área.
+    - Establecer fecha de vencimiento y prioridad (baja / media / alta).
+    - Cambiar el estado de cualquier tarea:
+        Pendiente → En Proceso → Completada → Cancelada
+    - Filtrar tareas por estado, área o empleado.
+
+────────────────────────────────────────────────────────────────────────────────
+  2.4 CONTRATOS LABORALES
+────────────────────────────────────────────────────────────────────────────────
+
+  Módulo para registrar y consultar contratos del personal.
+
+  ✔ Puede:
+    - Ver los contratos de todos los empleados.
+    - Registrar un nuevo contrato (tipo, salario, fechas, jornada, modalidad).
+    - Registrar afiliaciones a seguridad social (EPS, AFP, ARL, Caja).
+    - Renovar contratos y registrar novedad de terminación.
+    - Exportar información de contratos.
+
+────────────────────────────────────────────────────────────────────────────────
+  2.5 CLIENTES
+────────────────────────────────────────────────────────────────────────────────
+
+  Gestión de clientes asignados a los empleados.
+
+  ✔ Puede:
+    - Ver todos los clientes del sistema.
+    - Asignar clientes a empleados.
+    - Exportar listado de clientes.
+
+────────────────────────────────────────────────────────────────────────────────
+  2.6 HERRAMIENTAS
+────────────────────────────────────────────────────────────────────────────────
+
+  Esta sección tiene tres sub-módulos:
+
+  ► ESTRUCTURA (Áreas y Cargos)
+    - Crear, editar y eliminar Áreas de la empresa.
+    - Crear, editar y eliminar Cargos.
+    ⚠ No puede eliminar un área si tiene empleados asignados.
+
+  ► CURSOS
+    - Crear y gestionar cursos de capacitación.
+    - Agregar contenido: videos YouTube, documentos, textos, enlaces.
+    - Definir visibilidad: para todos, por área o por persona.
+    - Activar o desactivar cursos.
+    - Ver el historial de cambios de cada curso.
+
+  ► UTILIDADES
+    - Convertidor de archivos (PDF↔Word, Excel↔CSV, etc.).
+    - Gestor de PDF (unir, dividir, comprimir).
+    - Limpiador de metadatos de archivos.
+
+────────────────────────────────────────────────────────────────────────────────
+  2.7 REGLAMENTO INTERNO
+────────────────────────────────────────────────────────────────────────────────
+
+  ✔ Puede:
+    - Ver todas las secciones del reglamento.
+    - Agregar nuevas secciones (título + contenido).
+    - Editar secciones existentes.
+    - Eliminar secciones.
+    - Reordenar secciones (subir / bajar).
+
+  Los empleados solo pueden leer el reglamento, no editarlo.
+
+────────────────────────────────────────────────────────────────────────────────
+  2.8 CERTIFICADO DE EMPLEO
+────────────────────────────────────────────────────────────────────────────────
+
+  Esta sección solo aparece si el SuperAdmin le ha otorgado permiso.
+
+  ✔ Puede:
+    - Recibir solicitudes de certificado enviadas por empleados.
+    - Aceptar la solicitud y generar el certificado.
+    - Rechazar la solicitud.
+
+  Las solicitudes llegan también al ícono de campana (🔔) en la
+  parte superior derecha.
+
+────────────────────────────────────────────────────────────────────────────────
+  2.9 CONFIGURACIONES
+────────────────────────────────────────────────────────────────────────────────
+
+  Tiene tres sub-secciones:
+
+  ► MI CUENTA
+    - Ver su nombre, correo, área, cargo, fecha de ingreso y estado.
+
+  ► PERMISOS
+    - Habilitar o deshabilitar que un empleado pueda editar
+      su propio perfil (datos personales).
+    - Requiere ingresar su contraseña de administrador para confirmar.
+    - Nota: este permiso es de un solo uso; el empleado podrá
+      editar sus datos una sola vez.
+
+  ► CONTRASEÑAS
+    - Resetear la contraseña de cualquier empleado.
+    - Requiere seleccionar el empleado, escribir la nueva contraseña
+      (mínimo 8 caracteres) y confirmar con su contraseña de admin.
+
+────────────────────────────────────────────────────────────────────────────────
+  2.10 NOTIFICACIONES Y ALERTAS
+────────────────────────────────────────────────────────────────────────────────
+
+  El ícono de campana (🔔) en la barra superior muestra:
+
+  • Alertas de contraseña: cuando un usuario solicita recuperar
+    su contraseña. Puede ver el detalle, marcarla como atendida
+    o eliminarla.
+  • Solicitudes de certificado (si tiene ese permiso habilitado).
+
+  Tipos de alertas:
+  - "Usuario Existe" (rojo): el email pertenece a un empleado registrado.
+  - "No Registrado" (amarillo): el email no está en el sistema.
+
+────────────────────────────────────────────────────────────────────────────────
+  2.11 ASISTENTE IA (Gemini)
+────────────────────────────────────────────────────────────────────────────────
+
+  El botón de chat (ícono de burbuja) en la esquina inferior derecha
+  abre un asistente de inteligencia artificial.
+
+  ✔ Puede usarlo para:
+    - Hacer preguntas sobre el sistema.
+    - Redactar textos, resumir información, resolver dudas.
+
+  ✘ El asistente no tiene acceso a los datos privados del sistema.
+
+
+================================================================================
+  3. ROL: USUARIO (Empleado)
+================================================================================
+
+  El Usuario tiene acceso a su información personal y herramientas
+  de productividad. No puede ver ni modificar datos de otros empleados.
+
+────────────────────────────────────────────────────────────────────────────────
+  3.1 PANEL PRINCIPAL (Dashboard)
+────────────────────────────────────────────────────────────────────────────────
+
+  Al ingresar verá un resumen de SUS tareas:
+
+  • Pendientes      → Tareas que aún no ha iniciado.
+  • En proceso      → Tareas que está trabajando actualmente.
+  • Completadas     → Tareas que ya terminó.
+  • Total asignadas → Número total de tareas en su nombre.
+
+  También verá accesos rápidos a: Auto-gestión, Cursos,
+  Reglamento y Herramientas.
+
+────────────────────────────────────────────────────────────────────────────────
+  3.2 AUTO-GESTIÓN (Mis Tareas)
+────────────────────────────────────────────────────────────────────────────────
+
+  Aquí encontrará todas las tareas que el administrador le asignó.
+
+  ✔ Puede:
+    - Ver sus tareas con título, descripción, prioridad y fecha límite.
+    - Cambiar el estado de sus propias tareas:
+        Pendiente → En Proceso → Completada
+    - Ver las tareas vencidas (marcadas en rojo/naranja).
+
+  ✘ No puede:
+    - Crear tareas nuevas.
+    - Asignar tareas a otros compañeros.
+    - Ver las tareas de otros empleados.
+    - Eliminar tareas.
+
+  💡 Consejo: Use el ícono de campana (🔔) en la barra superior
+     para ver rápidamente sus tareas pendientes sin salir de la
+     sección actual.
+
+────────────────────────────────────────────────────────────────────────────────
+  3.3 MI PERFIL
+────────────────────────────────────────────────────────────────────────────────
+
+  Muestra su información personal y laboral.
+
+  ✔ Puede:
+    - Ver su nombre, correo, área, cargo, fecha de ingreso.
+    - Editar sus datos personales SI el administrador habilitó
+      ese permiso para usted.
+
+  ✘ No puede:
+    - Editar sus datos si el administrador no habilitó el permiso.
+    - Ver perfiles de otros empleados.
+
+  ⚠ El permiso de edición es de una sola vez. Una vez que guarde
+    sus datos, el permiso se desactiva automáticamente.
+
+────────────────────────────────────────────────────────────────────────────────
+  3.4 CURSOS Y CAPACITACIONES
+────────────────────────────────────────────────────────────────────────────────
+
+  Acceda a los cursos que la empresa ha habilitado para usted.
+
+  ✔ Puede:
+    - Ver los cursos disponibles para su área o asignados a usted.
+    - Acceder al contenido: videos, documentos, textos, enlaces.
+
+  ✘ No puede:
+    - Crear, editar o eliminar cursos.
+    - Ver cursos de otras áreas si no están habilitados para usted.
+
+────────────────────────────────────────────────────────────────────────────────
+  3.5 REGLAMENTO INTERNO
+────────────────────────────────────────────────────────────────────────────────
+
+  Consulte las normas y políticas internas de la empresa.
+
+  ✔ Puede:
+    - Leer todas las secciones del reglamento.
+
+  ✘ No puede:
+    - Crear, editar ni eliminar secciones del reglamento.
+
+────────────────────────────────────────────────────────────────────────────────
+  3.6 HERRAMIENTAS (Utilidades)
+────────────────────────────────────────────────────────────────────────────────
+
+  Herramientas de productividad disponibles para su trabajo diario.
+
+  ✔ Puede:
+    - Convertir archivos entre formatos:
+        PDF ↔ Word, Word ↔ HTML, Excel ↔ CSV, etc.
+    - Gestionar PDFs: unir, dividir o comprimir documentos.
+    - Limpiar metadatos de archivos antes de compartirlos.
+
+  Los archivos se procesan localmente y no quedan guardados
+  en el sistema.
+
+────────────────────────────────────────────────────────────────────────────────
+  3.7 MIS CLIENTES
+────────────────────────────────────────────────────────────────────────────────
+
+  Consulte los clientes asignados a su cuenta.
+
+  ✔ Puede:
+    - Ver la lista de clientes asignados a usted.
+    - Ver el detalle de cada cliente.
+
+  ✘ No puede:
+    - Ver clientes asignados a otros empleados.
+    - Agregar ni eliminar clientes.
+
+────────────────────────────────────────────────────────────────────────────────
+  3.8 SOLICITAR CERTIFICADO DE EMPLEO
+────────────────────────────────────────────────────────────────────────────────
+
+  Si necesita un certificado laboral, puede solicitarlo desde
+  la sección Auto-gestión.
+
+  Pasos:
+    1. Vaya a "Auto-gestión".
+    2. Busque el botón "Solicitar Certificado".
+    3. Complete los datos: entidad destino, asunto, si incluye
+       salario o auxilio de transporte.
+    4. Envíe la solicitud.
+    5. El administrador la recibirá, la revisará y generará
+       el certificado o la rechazará.
+
+  ⚠ La aprobación depende del administrador.
+    No es automática.
+
+
+================================================================================
+  4. TABLA COMPARATIVA: ¿QUÉ PUEDE HACER CADA ROL?
+================================================================================
+
+  FUNCIÓN                              ADMINISTRADOR    USUARIO
+  ─────────────────────────────────────────────────────────────
+  Ver dashboard global del equipo           ✔               ✘
+  Ver solo su propio dashboard              ✔               ✔
+  Gestionar empleados (crear/editar)        ✔               ✘
+  Ver lista de todos los empleados          ✔               ✘
+  Ver su propio perfil                      ✔               ✔
+  Editar su propio perfil                   ✔           Solo si admin lo habilita
+  Crear y asignar tareas                    ✔               ✘
+  Ver tareas de todo el equipo              ✔               ✘
+  Ver y cambiar estado de SUS tareas        ✔               ✔
+  Gestionar contratos laborales             ✔               ✘
+  Ver sus propios contratos                 ✘*              ✘*
+  Gestionar clientes (todos)                ✔               ✘
+  Ver sus clientes asignados                ✔               ✔
+  Crear/editar/eliminar áreas y cargos      ✔               ✘
+  Crear y gestionar cursos                  ✔               ✘
+  Ver cursos disponibles para mí            ✔               ✔
+  Editar reglamento interno                 ✔               ✘
+  Leer reglamento interno                   ✔               ✔
+  Emitir certificado de empleo              ✔ (con permiso)  ✘
+  Solicitar certificado de empleo           ✘               ✔
+  Resetear contraseña de empleados          ✔               ✘
+  Gestionar permisos de edición             ✔               ✘
+  Ver alertas de seguridad                  ✔               ✘
+  Usar herramientas / utilidades            ✔               ✔
+  Usar asistente IA (Gemini)                ✔               ✘
+
+  * Los contratos se consultan a través de Gestión de Personal (admin).
+
+
+================================================================================
+  5. PREGUNTAS FRECUENTES
+================================================================================
+
+  P: Olvidé mi contraseña, ¿qué hago?
+  R: En la pantalla de inicio haga clic en "¿Olvidaste tu contraseña?".
+     El administrador recibirá una alerta y la restablecerá por usted.
+
+  P: No puedo editar mi perfil.
+  R: La edición de perfil requiere que el administrador la habilite.
+     Solicíteselo directamente.
+
+  P: Mis tareas no aparecen.
+  R: Verifique que el administrador le haya asignado tareas.
+     Si el problema persiste, contacte al administrador.
+
+  P: No veo el módulo de Certificado de Empleo (Admin).
+  R: Este módulo solo aparece si el SuperAdmin le otorgó el permiso
+     de expedición de certificados. Contacte al SuperAdmin.
+
+  P: ¿Los archivos que convierto quedan guardados en el sistema?
+  R: No. Las herramientas de conversión y PDF procesan los archivos
+     temporalmente y no los almacenan en el sistema.
+
+  P: Cambié el estado de una tarea por error, ¿puedo revertirlo?
+  R: Sí. Abra la tarea y seleccione el estado anterior. Los estados
+     se pueden cambiar libremente mientras la tarea esté activa.
+
+  P: ¿Cómo sé si mi solicitud de certificado fue aprobada?
+  R: El administrador la aprueba o rechaza desde su panel de
+     notificaciones. Consulte con el administrador si no recibe
+     respuesta.
+
+================================================================================
+  Para soporte técnico contacte al administrador del sistema.
+  Russell Bedford Colombia — Sistema de Gestión Interna
+================================================================================

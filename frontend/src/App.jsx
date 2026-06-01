@@ -51,8 +51,6 @@ function App() {
           <Route path="/" element={<Login />} />
 
              
-          <Route path="/ver-sqf" element={<FormulariosSQF />} />
-
           {/* 2. COMPLETAR PERFIL - Primer login */}
           <Route path="/completar-perfil" element={<CompleteProfile />} />
           
