@@ -199,7 +199,7 @@ export const createTarea = (data) => fetchApi('/tareas/', {
 });
 
 export const updateTareaEstado = (id, estado) => fetchApi(`/tareas/${id}/`, {
-  method: 'PUT',
+  method: 'PATCH',
   body: JSON.stringify({ estado }),
 });
 

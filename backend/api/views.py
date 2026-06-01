@@ -1060,6 +1060,26 @@ class TareasCalendarioViewSet(viewsets.ModelViewSet):
 
         return super().create(request, *args, **kwargs)
 
+    def update(self, request, *args, **kwargs):
+        """
+        Compatibilidad y seguridad:
+        - Usuarios normales solo pueden cambiar `estado` de sus tareas.
+        - Si llega un PUT con solo `estado`, se procesa como parcial.
+        """
+        contexto = self._resolver_contexto_actor()
+        incoming_fields = set(request.data.keys())
+
+        if contexto['rol'] == 'usuario' and not incoming_fields.issubset({'estado'}):
+            return Response(
+                {'error': 'Solo puedes actualizar el estado de tus tareas'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if incoming_fields and incoming_fields.issubset({'estado'}):
+            kwargs['partial'] = True
+
+        return super().update(request, *args, **kwargs)
+
     @action(detail=False, methods=['get'])
     def por_empleado(self, request):
         empleado_id = request.query_params.get('empleado_id')
@@ -3178,6 +3198,7 @@ def convertir_archivo(request):
 # ═══════════════════════════════════════════════════════════════════════════
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def gestor_pdf(request):
     """
     Endpoint para gestionar operaciones con PDFs:
@@ -3191,54 +3212,32 @@ def gestor_pdf(request):
     - desbloquear: Quitar contraseña
     """
     try:
-        herramienta = request.POST.get('herramienta')
+        import tempfile
+        import base64
+        import io
+
+        payload = request.data if isinstance(request.data, dict) else {}
+        herramienta = (payload.get('herramienta') or request.POST.get('herramienta') or '').strip().lower()
         if not herramienta:
             return Response({'error': 'No se especificó la herramienta'}, status=400)
-        
-        # Obtener cantidad de archivos
-        cantidad = int(request.POST.get('cantidad_archivos', 0))
-        if cantidad == 0:
-            return Response({'error': 'No se proporcionaron archivos'}, status=400)
-        
-        # Leer todos los archivos
-        archivos_pdf = []
-        for i in range(cantidad):
-            archivo_key = f'archivo_{i}'
-            if archivo_key in request.FILES:
-                archivos_pdf.append(request.FILES[archivo_key])
-        
-        if len(archivos_pdf) == 0:
-            return Response({'error': 'No se encontraron archivos PDF'}, status=400)
-        
-        logger.info(f"[GESTOR PDF] Herramienta: {herramienta}, Archivos: {len(archivos_pdf)}")
-        
-        # Importar pypdf
-        try:
-            from pypdf import PdfReader, PdfWriter
-        except ImportError:
-            return Response({
-                'error': 'pypdf no está instalado',
-                'instrucciones': 'pip install pypdf'
-            }, status=503)
-        
+
         resultado_archivos = []
-        
+
+        # Herramienta "crear" usa JSON y no requiere archivos en request.FILES.
         # CREAR PDF DESDE CERO
         if herramienta == 'crear':
-            from reportlab.lib.pagesizes import letter
-            from reportlab.pdfgen import canvas
-            from reportlab.lib.utils import ImageReader
-            import io
-            import urllib.parse
-            
-            # Obtener datos del cuerpo JSON
             try:
-                body_data = json.loads(request.body.decode('utf-8'))
-            except:
-                body_data = {}
-            
-            titulo = body_data.get('titulo', 'documento')
-            paginas_data = body_data.get('paginas', [{'elementos': []}])
+                from reportlab.lib.pagesizes import letter
+                from reportlab.pdfgen import canvas
+                from reportlab.lib.utils import ImageReader
+            except ImportError:
+                return Response({
+                    'error': 'reportlab no está instalado',
+                    'instrucciones': 'pip install reportlab'
+                }, status=503)
+
+            titulo = payload.get('titulo', 'documento')
+            paginas_data = payload.get('paginas', [{'elementos': []}])
             
             output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
             c = canvas.Canvas(output_path, pagesize=letter)
@@ -3294,324 +3293,387 @@ def gestor_pdf(request):
                 'contenido_base64': base64.b64encode(contenido).decode('utf-8')
             })
             os.unlink(output_path)
-        
-        # EDITAR PDF - Agregar elementos a PDF existente
-        elif herramienta == 'editar':
-            from reportlab.lib.pagesizes import letter
-            from reportlab.pdfgen import canvas
-            from reportlab.lib.utils import ImageReader
-            import io
-            
-            archivo = archivos_pdf[0]
-            reader = PdfReader(archivo)
-            writer = PdfWriter()
-            
-            elementos_str = request.POST.get('elementos', '[]')
+        else:
+            # Obtener cantidad de archivos para herramientas que sí requieren PDF(s).
+            cantidad_raw = request.POST.get('cantidad_archivos', payload.get('cantidad_archivos', 0))
             try:
-                elementos = json.loads(elementos_str)
-            except:
-                elementos = []
+                cantidad = int(cantidad_raw or 0)
+            except (TypeError, ValueError):
+                return Response({'error': 'cantidad_archivos inválido'}, status=400)
+
+            if cantidad <= 0:
+                return Response({'error': 'No se proporcionaron archivos'}, status=400)
+
+            # Leer todos los archivos
+            archivos_pdf = []
+            for i in range(cantidad):
+                archivo_key = f'archivo_{i}'
+                if archivo_key in request.FILES:
+                    archivos_pdf.append(request.FILES[archivo_key])
+
+            # Fallback: tomar todos los archivos que llegaron si no respetan archivo_0..N.
+            if not archivos_pdf:
+                archivos_pdf = list(request.FILES.values())
+
+            if len(archivos_pdf) == 0:
+                return Response({'error': 'No se encontraron archivos PDF'}, status=400)
+
+            logger.info(f"[GESTOR PDF] Herramienta: {herramienta}, Archivos: {len(archivos_pdf)}")
+
+            # Importar pypdf
+            try:
+                from pypdf import PdfReader, PdfWriter
+            except ImportError:
+                return Response({
+                    'error': 'pypdf no está instalado',
+                    'instrucciones': 'pip install pypdf'
+                }, status=503)
+
+            # EDITAR PDF - Agregar elementos a PDF existente
+            if herramienta == 'editar':
+                try:
+                    from reportlab.lib.pagesizes import letter
+                    from reportlab.pdfgen import canvas
+                    from reportlab.lib.utils import ImageReader
+                except ImportError:
+                    return Response({
+                        'error': 'reportlab no está instalado',
+                        'instrucciones': 'pip install reportlab'
+                    }, status=503)
             
-            width, height = letter
+                archivo = archivos_pdf[0]
+                reader = PdfReader(archivo)
+                writer = PdfWriter()
             
-            for i, page in enumerate(reader.pages):
-                # Crear overlay con los elementos
-                packet = io.BytesIO()
-                c = canvas.Canvas(packet, pagesize=letter)
+                elementos_str = request.POST.get('elementos', '[]')
+                try:
+                    elementos = json.loads(elementos_str)
+                except Exception:
+                    elementos = []
+            
+                width, height = letter
+            
+                for i, page in enumerate(reader.pages):
+                    # Crear overlay con los elementos
+                    packet = io.BytesIO()
+                    c = canvas.Canvas(packet, pagesize=letter)
                 
-                for el in elementos:
-                    tipo = el.get('tipo', 'texto')
-                    contenido = el.get('contenido', '')
-                    x = el.get('x', 50)
-                    y = height - el.get('y', 50)
-                    font_size = el.get('fontSize', 12)
-                    color = el.get('color', '#000000')
+                    for el in elementos:
+                        tipo = el.get('tipo', 'texto')
+                        contenido = el.get('contenido', '')
+                        x = el.get('x', 50)
+                        y = height - el.get('y', 50)
+                        font_size = el.get('fontSize', 12)
+                        color = el.get('color', '#000000')
                     
-                    if tipo == 'texto' and contenido:
-                        color_hex = color.lstrip('#')
-                        r = int(color_hex[0:2], 16) / 255
-                        g = int(color_hex[2:4], 16) / 255
-                        b = int(color_hex[4:6], 16) / 255
+                        if tipo == 'texto' and contenido:
+                            color_hex = color.lstrip('#')
+                            r = int(color_hex[0:2], 16) / 255
+                            g = int(color_hex[2:4], 16) / 255
+                            b = int(color_hex[4:6], 16) / 255
                         
-                        c.setFillColorRGB(r, g, b)
-                        c.setFont('Helvetica', font_size)
-                        c.drawString(x, y, contenido)
+                            c.setFillColorRGB(r, g, b)
+                            c.setFont('Helvetica', font_size)
+                            c.drawString(x, y, contenido)
                     
-                    elif tipo == 'imagen' and contenido:
-                        try:
-                            if contenido.startswith('data:image'):
-                                base64_data = contenido.split(',')[1]
-                                img_data = base64.b64decode(base64_data)
-                            else:
-                                img_data = base64.b64decode(contenido)
+                        elif tipo == 'imagen' and contenido:
+                            try:
+                                if contenido.startswith('data:image'):
+                                    base64_data = contenido.split(',')[1]
+                                    img_data = base64.b64decode(base64_data)
+                                else:
+                                    img_data = base64.b64decode(contenido)
                             
-                            img_buffer = io.BytesIO(img_data)
-                            img = ImageReader(img_buffer)
-                            c.drawImage(img, x, y - 100, width=150, height=100, mask='auto')
-                        except Exception as e:
-                            logger.warning(f"[EDITAR PDF] Error al insertar imagen: {e}")
+                                img_buffer = io.BytesIO(img_data)
+                                img = ImageReader(img_buffer)
+                                c.drawImage(img, x, y - 100, width=150, height=100, mask='auto')
+                            except Exception as e:
+                                logger.warning(f"[EDITAR PDF] Error al insertar imagen: {e}")
                 
-                c.save()
-                packet.seek(0)
+                    c.save()
+                    packet.seek(0)
                 
-                # Merge overlay con página original
-                overlay_reader = PdfReader(packet)
-                page.merge_page(overlay_reader.pages[0])
-                writer.add_page(page)
-            
-            output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
-            with open(output_path, 'wb') as f:
-                writer.write(f)
-            
-            with open(output_path, 'rb') as f:
-                contenido = f.read()
-            
-            nombre_base = os.path.splitext(archivo.name)[0]
-            resultado_archivos.append({
-                'nombre': f'{nombre_base}_editado.pdf',
-                'contenido_base64': base64.b64encode(contenido).decode('utf-8')
-            })
-            os.unlink(output_path)
-        
-        # FUSIONAR PDFs
-        if herramienta == 'fusionar':
-            writer = PdfWriter()
-            
-            for archivo in archivos_pdf:
-                reader = PdfReader(archivo)
-                for page in reader.pages:
+                    # Merge overlay con página original
+                    overlay_reader = PdfReader(packet)
+                    page.merge_page(overlay_reader.pages[0])
                     writer.add_page(page)
             
-            output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
-            with open(output_path, 'wb') as f:
-                writer.write(f)
-            
-            with open(output_path, 'rb') as f:
-                contenido = f.read()
-            
-            resultado_archivos.append({
-                'nombre': 'fusionado.pdf',
-                'contenido_base64': base64.b64encode(contenido).decode('utf-8')
-            })
-            os.unlink(output_path)
-        
-        # DIVIDIR PDF
-        elif herramienta == 'dividir':
-            archivo = archivos_pdf[0]
-            reader = PdfReader(archivo)
-            total_paginas = len(reader.pages)
-            
-            for i in range(total_paginas):
-                writer = PdfWriter()
-                writer.add_page(reader.pages[i])
-                
                 output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
                 with open(output_path, 'wb') as f:
                     writer.write(f)
-                
+            
                 with open(output_path, 'rb') as f:
                     contenido = f.read()
-                
-                resultado_archivos.append({
-                    'nombre': f'pagina_{i+1}.pdf',
-                    'contenido_base64': base64.b64encode(contenido).decode('utf-8')
-                })
-                os.unlink(output_path)
-        
-        # COMPRIMIR PDF
-        elif herramienta == 'comprimir':
-            archivo = archivos_pdf[0]
-            reader = PdfReader(archivo)
-            writer = PdfWriter()
             
-            for page in reader.pages:
-                writer.add_page(page)
-            
-            output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
-            with open(output_path, 'wb') as f:
-                writer.write(f)
-            
-            with open(output_path, 'rb') as f:
-                contenido = f.read()
-            
-            nombre_base = os.path.splitext(archivo.name)[0]
-            resultado_archivos.append({
-                'nombre': f'{nombre_base}_comprimido.pdf',
-                'contenido_base64': base64.b64encode(contenido).decode('utf-8')
-            })
-            os.unlink(output_path)
-        
-        # ROTAR PÁGINAS
-        elif herramienta == 'rotar':
-            rotacion = int(request.POST.get('rotacion', 90))
-            archivo = archivos_pdf[0]
-            reader = PdfReader(archivo)
-            writer = PdfWriter()
-            
-            for page in reader.pages:
-                page.rotate(rotacion)
-                writer.add_page(page)
-            
-            output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
-            with open(output_path, 'wb') as f:
-                writer.write(f)
-            
-            with open(output_path, 'rb') as f:
-                contenido = f.read()
-            
-            nombre_base = os.path.splitext(archivo.name)[0]
-            resultado_archivos.append({
-                'nombre': f'{nombre_base}_rotado_{rotacion}.pdf',
-                'contenido_base64': base64.b64encode(contenido).decode('utf-8')
-            })
-            os.unlink(output_path)
-        
-        # EXTRAER PÁGINAS
-        elif herramienta == 'extraer':
-            paginas_str = request.POST.get('paginas', '')
-            archivo = archivos_pdf[0]
-            reader = PdfReader(archivo)
-            writer = PdfWriter()
-            
-            paginas_a_extraer = set()
-            for parte in paginas_str.split(','):
-                parte = parte.strip()
-                if '-' in parte:
-                    inicio, fin = map(int, parte.split('-'))
-                    paginas_a_extraer.update(range(inicio, fin + 1))
-                elif parte.isdigit():
-                    paginas_a_extraer.add(int(parte))
-            
-            for num_pagina in sorted(paginas_a_extraer):
-                if 1 <= num_pagina <= len(reader.pages):
-                    writer.add_page(reader.pages[num_pagina - 1])
-            
-            output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
-            with open(output_path, 'wb') as f:
-                writer.write(f)
-            
-            with open(output_path, 'rb') as f:
-                contenido = f.read()
-            
-            nombre_base = os.path.splitext(archivo.name)[0]
-            resultado_archivos.append({
-                'nombre': f'{nombre_base}_extraido.pdf',
-                'contenido_base64': base64.b64encode(contenido).decode('utf-8')
-            })
-            os.unlink(output_path)
-        
-        # MARCA DE AGUA
-        elif herramienta == 'marca':
-            texto_marca = request.POST.get('texto', '')
-            archivo = archivos_pdf[0]
-            reader = PdfReader(archivo)
-            writer = PdfWriter()
-            
-            marca_imagen = request.FILES.get('marca_imagen')
-            
-            from reportlab.lib.pagesizes import letter
-            from reportlab.pdfgen import canvas
-            from reportlab.lib.utils import ImageReader
-            import io
-            
-            for i, page in enumerate(reader.pages):
-                packet = io.BytesIO()
-                c = canvas.Canvas(packet, pagesize=letter)
-                
-                if marca_imagen:
-                    img = ImageReader(marca_imagen)
-                    c.drawImage(img, 150, 300, width=300, height=300, mask='auto')
-                elif texto_marca:
-                    c.saveState()
-                    c.setFont('Helvetica', 40)
-                    c.setFillColorRGB(0.7, 0.7, 0.7, alpha=0.3)
-                    c.translate(300, 400)
-                    c.rotate(45)
-                    c.drawCentredString(0, 0, texto_marca)
-                    c.restoreState()
-                
-                c.save()
-                packet.seek(0)
-                
-                marca_reader = PdfReader(packet)
-                page.merge_page(marca_reader.pages[0])
-                writer.add_page(page)
-            
-            output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
-            with open(output_path, 'wb') as f:
-                writer.write(f)
-            
-            with open(output_path, 'rb') as f:
-                contenido = f.read()
-            
-            nombre_base = os.path.splitext(archivo.name)[0]
-            resultado_archivos.append({
-                'nombre': f'{nombre_base}_con_marca.pdf',
-                'contenido_base64': base64.b64encode(contenido).decode('utf-8')
-            })
-            os.unlink(output_path)
-        
-        # PROTEGER PDF
-        elif herramienta == 'proteger':
-            password = request.POST.get('password', '')
-            if not password:
-                return Response({'error': 'Se requiere una contraseña'}, status=400)
-            
-            archivo = archivos_pdf[0]
-            reader = PdfReader(archivo)
-            writer = PdfWriter()
-            
-            for page in reader.pages:
-                writer.add_page(page)
-            
-            writer.encrypt(password)
-            
-            output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
-            with open(output_path, 'wb') as f:
-                writer.write(f)
-            
-            with open(output_path, 'rb') as f:
-                contenido = f.read()
-            
-            nombre_base = os.path.splitext(archivo.name)[0]
-            resultado_archivos.append({
-                'nombre': f'{nombre_base}_protegido.pdf',
-                'contenido_base64': base64.b64encode(contenido).decode('utf-8')
-            })
-            os.unlink(output_path)
-        
-        # DESBLOQUEAR PDF
-        elif herramienta == 'desbloquear':
-            password = request.POST.get('password', '')
-            archivo = archivos_pdf[0]
-            
-            try:
-                reader = PdfReader(archivo)
-                if reader.is_encrypted:
-                    reader.decrypt(password)
-                
-                writer = PdfWriter()
-                for page in reader.pages:
-                    writer.add_page(page)
-                
-                output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
-                with open(output_path, 'wb') as f:
-                    writer.write(f)
-                
-                with open(output_path, 'rb') as f:
-                    contenido = f.read()
-                
                 nombre_base = os.path.splitext(archivo.name)[0]
                 resultado_archivos.append({
-                    'nombre': f'{nombre_base}_desbloqueado.pdf',
+                    'nombre': f'{nombre_base}_editado.pdf',
                     'contenido_base64': base64.b64encode(contenido).decode('utf-8')
                 })
                 os.unlink(output_path)
-            except Exception as e:
-                return Response({'error': 'No se pudo desbloquear el PDF. Verifica la contraseña.'}, status=400)
         
-        else:
-            return Response({'error': f'Herramienta no reconocida: {herramienta}'}, status=400)
+            # FUSIONAR PDFs
+            elif herramienta == 'fusionar':
+                writer = PdfWriter()
+            
+                for archivo in archivos_pdf:
+                    reader = PdfReader(archivo)
+                    for page in reader.pages:
+                        writer.add_page(page)
+            
+                output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
+                with open(output_path, 'wb') as f:
+                    writer.write(f)
+            
+                with open(output_path, 'rb') as f:
+                    contenido = f.read()
+            
+                resultado_archivos.append({
+                    'nombre': 'fusionado.pdf',
+                    'contenido_base64': base64.b64encode(contenido).decode('utf-8')
+                })
+                os.unlink(output_path)
+        
+            # DIVIDIR PDF
+            elif herramienta == 'dividir':
+                archivo = archivos_pdf[0]
+                reader = PdfReader(archivo)
+                total_paginas = len(reader.pages)
+            
+                for i in range(total_paginas):
+                    writer = PdfWriter()
+                    writer.add_page(reader.pages[i])
+                
+                    output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
+                    with open(output_path, 'wb') as f:
+                        writer.write(f)
+                
+                    with open(output_path, 'rb') as f:
+                        contenido = f.read()
+                
+                    resultado_archivos.append({
+                        'nombre': f'pagina_{i+1}.pdf',
+                        'contenido_base64': base64.b64encode(contenido).decode('utf-8')
+                    })
+                    os.unlink(output_path)
+        
+            # COMPRIMIR PDF
+            elif herramienta == 'comprimir':
+                archivo = archivos_pdf[0]
+                reader = PdfReader(archivo)
+                writer = PdfWriter()
+            
+                for page in reader.pages:
+                    writer.add_page(page)
+            
+                output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
+                with open(output_path, 'wb') as f:
+                    writer.write(f)
+            
+                with open(output_path, 'rb') as f:
+                    contenido = f.read()
+            
+                nombre_base = os.path.splitext(archivo.name)[0]
+                resultado_archivos.append({
+                    'nombre': f'{nombre_base}_comprimido.pdf',
+                    'contenido_base64': base64.b64encode(contenido).decode('utf-8')
+                })
+                os.unlink(output_path)
+        
+            # ROTAR PÁGINAS
+            elif herramienta == 'rotar':
+                try:
+                    rotacion = int(request.POST.get('rotacion', 90))
+                except (TypeError, ValueError):
+                    return Response({'error': 'Rotación inválida'}, status=400)
+                archivo = archivos_pdf[0]
+                reader = PdfReader(archivo)
+                writer = PdfWriter()
+            
+                for page in reader.pages:
+                    try:
+                        page.rotate(rotacion)
+                    except Exception:
+                        page.rotate_clockwise(rotacion)
+                    writer.add_page(page)
+            
+                output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
+                with open(output_path, 'wb') as f:
+                    writer.write(f)
+            
+                with open(output_path, 'rb') as f:
+                    contenido = f.read()
+            
+                nombre_base = os.path.splitext(archivo.name)[0]
+                resultado_archivos.append({
+                    'nombre': f'{nombre_base}_rotado_{rotacion}.pdf',
+                    'contenido_base64': base64.b64encode(contenido).decode('utf-8')
+                })
+                os.unlink(output_path)
+        
+            # EXTRAER PÁGINAS
+            elif herramienta == 'extraer':
+                paginas_str = request.POST.get('paginas', '')
+                if not paginas_str:
+                    return Response({'error': 'Debes indicar las páginas a extraer'}, status=400)
+                archivo = archivos_pdf[0]
+                reader = PdfReader(archivo)
+                writer = PdfWriter()
+            
+                paginas_a_extraer = set()
+                for parte in paginas_str.split(','):
+                    parte = parte.strip()
+                    if '-' in parte:
+                        try:
+                            inicio, fin = map(int, parte.split('-'))
+                        except (TypeError, ValueError):
+                            continue
+                        paginas_a_extraer.update(range(inicio, fin + 1))
+                    elif parte.isdigit():
+                        paginas_a_extraer.add(int(parte))
+            
+                for num_pagina in sorted(paginas_a_extraer):
+                    if 1 <= num_pagina <= len(reader.pages):
+                        writer.add_page(reader.pages[num_pagina - 1])
+
+                if len(writer.pages) == 0:
+                    return Response({'error': 'No se encontraron páginas válidas para extraer'}, status=400)
+            
+                output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
+                with open(output_path, 'wb') as f:
+                    writer.write(f)
+            
+                with open(output_path, 'rb') as f:
+                    contenido = f.read()
+            
+                nombre_base = os.path.splitext(archivo.name)[0]
+                resultado_archivos.append({
+                    'nombre': f'{nombre_base}_extraido.pdf',
+                    'contenido_base64': base64.b64encode(contenido).decode('utf-8')
+                })
+                os.unlink(output_path)
+        
+            # MARCA DE AGUA
+            elif herramienta == 'marca':
+                texto_marca = request.POST.get('texto', '')
+                archivo = archivos_pdf[0]
+                reader = PdfReader(archivo)
+                writer = PdfWriter()
+            
+                marca_imagen = request.FILES.get('marca_imagen')
+            
+                try:
+                    from reportlab.lib.pagesizes import letter
+                    from reportlab.pdfgen import canvas
+                    from reportlab.lib.utils import ImageReader
+                except ImportError:
+                    return Response({
+                        'error': 'reportlab no está instalado',
+                        'instrucciones': 'pip install reportlab'
+                    }, status=503)
+            
+                for i, page in enumerate(reader.pages):
+                    packet = io.BytesIO()
+                    c = canvas.Canvas(packet, pagesize=letter)
+                
+                    if marca_imagen:
+                        marca_imagen.seek(0)
+                        img = ImageReader(marca_imagen)
+                        c.drawImage(img, 150, 300, width=300, height=300, mask='auto')
+                    elif texto_marca:
+                        c.saveState()
+                        c.setFont('Helvetica', 40)
+                        try:
+                            c.setFillColorRGB(0.7, 0.7, 0.7, alpha=0.3)
+                        except TypeError:
+                            c.setFillColorRGB(0.7, 0.7, 0.7)
+                        c.translate(300, 400)
+                        c.rotate(45)
+                        c.drawCentredString(0, 0, texto_marca)
+                        c.restoreState()
+                
+                    c.save()
+                    packet.seek(0)
+                
+                    marca_reader = PdfReader(packet)
+                    page.merge_page(marca_reader.pages[0])
+                    writer.add_page(page)
+            
+                output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
+                with open(output_path, 'wb') as f:
+                    writer.write(f)
+            
+                with open(output_path, 'rb') as f:
+                    contenido = f.read()
+            
+                nombre_base = os.path.splitext(archivo.name)[0]
+                resultado_archivos.append({
+                    'nombre': f'{nombre_base}_con_marca.pdf',
+                    'contenido_base64': base64.b64encode(contenido).decode('utf-8')
+                })
+                os.unlink(output_path)
+        
+            # PROTEGER PDF
+            elif herramienta == 'proteger':
+                password = request.POST.get('password', '')
+                if not password:
+                    return Response({'error': 'Se requiere una contraseña'}, status=400)
+            
+                archivo = archivos_pdf[0]
+                reader = PdfReader(archivo)
+                writer = PdfWriter()
+            
+                for page in reader.pages:
+                    writer.add_page(page)
+            
+                writer.encrypt(password)
+            
+                output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
+                with open(output_path, 'wb') as f:
+                    writer.write(f)
+            
+                with open(output_path, 'rb') as f:
+                    contenido = f.read()
+            
+                nombre_base = os.path.splitext(archivo.name)[0]
+                resultado_archivos.append({
+                    'nombre': f'{nombre_base}_protegido.pdf',
+                    'contenido_base64': base64.b64encode(contenido).decode('utf-8')
+                })
+                os.unlink(output_path)
+        
+            # DESBLOQUEAR PDF
+            elif herramienta == 'desbloquear':
+                password = request.POST.get('password', '')
+                archivo = archivos_pdf[0]
+            
+                try:
+                    reader = PdfReader(archivo)
+                    if reader.is_encrypted:
+                        reader.decrypt(password)
+                
+                    writer = PdfWriter()
+                    for page in reader.pages:
+                        writer.add_page(page)
+                
+                    output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf').name
+                    with open(output_path, 'wb') as f:
+                        writer.write(f)
+                
+                    with open(output_path, 'rb') as f:
+                        contenido = f.read()
+                
+                    nombre_base = os.path.splitext(archivo.name)[0]
+                    resultado_archivos.append({
+                        'nombre': f'{nombre_base}_desbloqueado.pdf',
+                        'contenido_base64': base64.b64encode(contenido).decode('utf-8')
+                    })
+                    os.unlink(output_path)
+                except Exception:
+                    return Response({'error': 'No se pudo desbloquear el PDF. Verifica la contraseña.'}, status=400)
+        
+            else:
+                return Response({'error': f'Herramienta no reconocida: {herramienta}'}, status=400)
         
         logger.info(f"[GESTOR PDF] Éxito: {herramienta}, {len(resultado_archivos)} archivos generados")
         
