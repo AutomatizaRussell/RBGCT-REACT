@@ -2592,8 +2592,8 @@ def notificar_admin_password_restablecida(empleado):
 @permission_classes([IsAdminOrSuperAdmin])
 def gemini_chat(request):
     import os, requests as req
-    api_key = os.environ.get('GEMINI_API_KEY', '')
-    if not api_key:
+    api_key = os.environ.get('GEMINI_API_KEY', '').strip()
+    if api_key in {'', 'TU_CLAVE_GEMINI_AQUI', 'CAMBIAR_POR_API_KEY_REAL'}:
         return Response({'error': 'GEMINI_API_KEY no configurada.'}, status=500)
 
     message = request.data.get('message', '').strip()
