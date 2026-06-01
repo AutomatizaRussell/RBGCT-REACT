@@ -554,18 +554,6 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
         </div>
       </div>
 
-      {/* ── Pie de página ─────────────────────────────────────────── */}
-      <div style={{
-        borderTop: '1pt solid #e5e7eb', padding: '4mm 35mm 25.4mm 25.4mm',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <p style={sn({ margin: 0, fontSize: '7.5pt', color: '#9ca3af' })}>
-          {empresa}{form.nit_empresa ? ` · NIT ${form.nit_empresa}` : ''} · Medellín, Colombia
-        </p>
-        <p style={sn({ margin: 0, fontSize: '7.5pt', color: '#9ca3af' })}>
-          www.russellbedford.com.co
-        </p>
-      </div>
 
     </div>
   );
