@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAllEmpleados, enviarCertificadoEmpleo } from '../../lib/api';
 import { Printer, User, RefreshCw, Send, CheckCircle, AlertCircle, FileText } from 'lucide-react';
-import logoRB from '../../../img/image.png';
+import plantilla from '../../../img/PLANTILLA.png';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -467,54 +467,29 @@ const toTitleCase = (str) =>
   (str || '').toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
 const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, area }) => {
-  const empresa      = form.nombre_empresa || 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S';
-  const salarioText  = parseSalario(form.salario);
-  const sans         = 'Arial, Helvetica, sans-serif';
-  const serif        = '"Times New Roman", Times, serif';
-  const script       = '"Dancing Script", cursive';
-
+  const empresa     = form.nombre_empresa || 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S';
+  const salarioText = parseSalario(form.salario);
+  const sans        = 'Arial, Helvetica, sans-serif';
+  const serif       = '"Times New Roman", Times, serif';
+  const script      = '"Dancing Script", cursive';
   const sn = (s) => ({ fontFamily: sans, ...s });
   const sr = (s) => ({ fontFamily: serif, ...s });
 
   return (
     <div className="certificado-preview" style={{
-      width: '215.9mm', minHeight: '279.4mm', backgroundColor: '#fff',
+      width: '215.9mm', minHeight: '279.4mm',
+      backgroundImage: `url(${plantilla})`,
+      backgroundSize: '100% 100%',
+      backgroundRepeat: 'no-repeat',
       color: '#111', fontFamily: serif, fontSize: '8pt', lineHeight: '1.55',
       boxShadow: '0 0 0 1px #e5e7eb, 0 8px 32px rgba(0,0,0,0.10)',
-      position: 'relative',
     }}>
 
-      {/* ── Franja vertical derecha ───────────────────────────────── */}
-      <div style={{
-        position: 'absolute', top: 'calc(14mm - 2px)', right: 0,
-        width: '10mm', height: 'calc(279.4mm - 14mm + 2px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-start',
-        overflow: 'hidden',
-      }}>
-        <p style={{
-          fontFamily: sans, fontSize: '3.3pt', color: '#9ca3af',
-          margin: 0, whiteSpace: 'nowrap', letterSpacing: '1.2pt',
-          writingMode: 'vertical-rl',
-        }}>
-          CRA. 48 NO. 20 - 114 OFICINA 932 TORRE 2&nbsp;&nbsp;CENTRO EMPRESARIAL CIUDAD DEL RÍO&nbsp;&nbsp;PBX (574) 444 8883&nbsp;&nbsp;
-          <span style={{ color: '#374151', fontWeight: '700' }}>MEDELLÍN, COLOMBIA</span>
-          &nbsp;&nbsp;@RUSSELLBEDFORD.COM.CO&nbsp;&nbsp;WWW.RUSSELLBEDFORD.COM.CO
-        </p>
-      </div>
+      {/* Todo el contenido en un solo bloque con márgenes ajustados a la plantilla */}
+      <div style={{ padding: '42mm 18mm 15mm 20mm' }}>
 
-      {/* ── Logo absoluto esquina superior derecha ───────────────── */}
-      <img
-        src={logoRB}
-        alt="Russell Bedford"
-        style={{
-          position: 'absolute', top: 'calc(14mm - 2px)', right: 'calc(12mm + 2px)',
-          height: '27pt', width: 'auto', objectFit: 'contain',
-        }}
-      />
-
-      {/* ── Membrete (solo fecha y consecutivo) ──────────────────── */}
-      <div style={{ padding: '25.4mm 35mm 0 25.4mm', marginBottom: '10mm' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        {/* Fecha + Consecutivo */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10mm' }}>
           <p style={sn({ margin: 0, fontSize: '8pt', color: '#374151' })}>
             Medellín, {form.fecha}
           </p>
@@ -524,19 +499,15 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
             </p>
           )}
         </div>
-      </div>
-
-      {/* ── Cuerpo del documento ─────────────────────────────────── */}
-      <div style={{ padding: '8mm 35mm 10mm 25.4mm' }}>
 
         {/* Destinatario */}
-        <div style={{ marginBottom: '18pt' }}>
+        <div style={{ marginBottom: '14pt' }}>
           <p style={sr({ margin: 0, color: '#111' })}>Señores</p>
           <p style={sr({ margin: '1pt 0 0', fontWeight: '700', textTransform: 'uppercase' })}>
             {form.destinatario || 'A QUIEN CORRESPONDA'}
           </p>
           {form.tipo_entidad && (
-            <p style={sr({ margin: 0, fontSize: '10pt', color: '#374151' })}>
+            <p style={sr({ margin: 0, color: '#374151' })}>
               {form.tipo_entidad}
             </p>
           )}
@@ -556,56 +527,36 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
 
         {/* Párrafo salario / auxilio / comisiones */}
         {(form.incluir_salario === 'Sí' || form.auxilio_transporte === 'Sí' || form.ingresos_adicionales) && (() => {
-          const tieneSalario   = form.incluir_salario === 'Sí';
-          const tieneAuxilio   = form.auxilio_transporte === 'Sí';
-          const tieneComision  = !!form.ingresos_adicionales;
           const partes = [];
-          if (tieneSalario)  partes.push(<>Devenga un salario mensual de <strong>{form.salario && form.salario.trim() ? salarioText : '[SALARIO]'}</strong></>);
-          if (tieneAuxilio)  partes.push(<>un auxilio para medio de transporte no constitutivo de salario de conformidad con la normativa laboral vigente</>);
-          if (tieneComision) partes.push(<>Y unas comisiones mensuales promedio de <strong>{form.ingresos_adicionales}</strong></>);
+          if (form.incluir_salario === 'Sí')  partes.push(<>Devenga un salario mensual de <strong>{form.salario && form.salario.trim() ? salarioText : '[SALARIO]'}</strong></>);
+          if (form.auxilio_transporte === 'Sí') partes.push(<>un auxilio para medio de transporte no constitutivo de salario de conformidad con la normativa laboral vigente</>);
+          if (form.ingresos_adicionales) partes.push(<>Y unas comisiones mensuales promedio de <strong>{form.ingresos_adicionales}</strong></>);
           return (
-            <p style={sr({ textAlign: 'justify', margin: '0 0 28pt' })}>
-              {partes.map((parte, i) => (
-                <span key={i}>{i > 0 && i < partes.length - 1 ? ', ' : i > 0 ? ' ' : ''}{parte}</span>
-              ))}.
+            <p style={sr({ textAlign: 'justify', margin: '0 0 24pt' })}>
+              {partes.map((p, i) => <span key={i}>{i > 0 ? ' ' : ''}{p}</span>)}.
             </p>
           );
         })()}
 
         <p style={sr({ margin: '0 0 4pt' })}>Cordialmente,</p>
 
-        {/* ── Bloque de firma ── */}
+        {/* Firma */}
         <div style={{ marginTop: '6pt', width: '95mm' }}>
-          {/* Nombre en cursiva = firma */}
           <div style={{ minHeight: '22pt', display: 'flex', alignItems: 'flex-end' }}>
-            <p style={{
-              fontFamily: script, fontSize: '12pt', color: '#111',
-              margin: 0, lineHeight: 1.1, fontWeight: 400,
-            }}>
+            <p style={{ fontFamily: script, fontSize: '12pt', color: '#111', margin: 0, lineHeight: 1.1, fontWeight: 400 }}>
               {toTitleCase(form.firmante_nombre)}
             </p>
           </div>
-          {/* Línea */}
           <div style={{ borderTop: '1pt solid #9ca3af', marginTop: '3pt', marginBottom: '4pt' }} />
-          {/* Datos */}
-          <p style={sn({ margin: '0 0 1pt', fontSize: '7pt', fontWeight: '700', textTransform: 'uppercase', color: '#111' })}>
-            {form.firmante_nombre}
-          </p>
-          <p style={sn({ margin: '0 0 1pt', fontSize: '7pt', color: '#374151' })}>
-            {form.firmante_cargo}
-          </p>
-          <p style={sn({ margin: '0 0 1pt', fontSize: '7pt', fontWeight: '700', color: '#111', textTransform: 'uppercase' })}>
-            {empresa}
-          </p>
+          <p style={sn({ margin: '0 0 1pt', fontSize: '7pt', fontWeight: '700', textTransform: 'uppercase', color: '#111' })}>{form.firmante_nombre}</p>
+          <p style={sn({ margin: '0 0 1pt', fontSize: '7pt', color: '#374151' })}>{form.firmante_cargo}</p>
+          <p style={sn({ margin: '0 0 1pt', fontSize: '7pt', fontWeight: '700', color: '#111', textTransform: 'uppercase' })}>{empresa}</p>
           {form.firmante_cc && (
-            <p style={sn({ margin: 0, fontSize: '7pt', color: '#374151' })}>
-              C.C. {form.firmante_cc}
-            </p>
+            <p style={sn({ margin: 0, fontSize: '7pt', color: '#374151' })}>C.C. {form.firmante_cc}</p>
           )}
         </div>
+
       </div>
-
-
     </div>
   );
 };
