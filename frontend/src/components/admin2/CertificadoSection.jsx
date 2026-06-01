@@ -486,7 +486,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
     }}>
 
       {/* Todo el contenido en un solo bloque con márgenes ajustados a la plantilla */}
-      <div style={{ padding: '42mm calc(18mm + 3px) 15mm 20mm' }}>
+      <div style={{ padding: '42mm calc(29mm + 3px) 15mm 20mm' }}>
 
         {/* Fecha + Consecutivo */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10mm' }}>
