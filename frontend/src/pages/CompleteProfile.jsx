@@ -51,20 +51,8 @@ const CompleteProfile = () => {
     current_password: ''
   });
 
-  // Debug empleadoData
-  useEffect(() => {
-    console.log('[COMPLETE PROFILE] empleadoData:', {
-      primer_login: empleadoData?.primer_login,
-      permitir_edicion_datos: empleadoData?.permitir_edicion_datos,
-      datos_completados: empleadoData?.datos_completados,
-      id_empleado: empleadoData?.id_empleado,
-      correo: empleadoData?.correo_corporativo
-    });
-  }, [empleadoData]);
-
   // Verificar permisos en tiempo real desde el backend
   useEffect(() => {
-    console.log('[COMPLETE PROFILE] Componente montado, empleadoData:', empleadoData);
     const checkPermission = async () => {
       if (!empleadoData?.id_empleado) {
         setCheckingPermission(false);
@@ -76,18 +64,8 @@ const CompleteProfile = () => {
         const currentData = await getEmpleadoById(empleadoData.id_empleado);
         
         if (currentData) {
-          console.log('[COMPLETE PROFILE] Permiso verificado desde backend:', {
-            permitir_edicion_datos: currentData.permitir_edicion_datos,
-            datos_completados: currentData.datos_completados,
-            primer_login: currentData.primer_login
-          });
-
           // Si NO tiene permiso y ya completó datos, mostrar mensaje de solo lectura
           // (No redirigir - permitir acceso a ver datos)
-          if (currentData.datos_completados && !currentData.permitir_edicion_datos && !currentData.primer_login) {
-            console.log('[COMPLETE PROFILE] Solo lectura - sin permiso de edición');
-          }
-
           // Si ya usó el permiso (datos_completados=true y permitir_edicion_datos=false)
           // y no es primer login, significa que ya actualizó
           if (currentData.datos_completados && !currentData.permitir_edicion_datos && !currentData.primer_login) {
@@ -211,17 +189,8 @@ const CompleteProfile = () => {
       };
 
       // Agregar nueva contraseña solo si el usuario la ingresó y coincide
-      console.log('[COMPLETE PROFILE] Passwords:', {
-        nueva: formData.nueva_password,
-        confirma: formData.confirmar_password,
-        match: formData.nueva_password === formData.confirmar_password,
-        hasValue: !!formData.nueva_password
-      });
       if (formData.nueva_password && formData.nueva_password === formData.confirmar_password) {
         datosAEnviar.nueva_password = formData.nueva_password;
-        console.log('[COMPLETE PROFILE] Password incluida en datos');
-      } else {
-        console.log('[COMPLETE PROFILE] Password NO incluida');
       }
 
       // Si NO es primer login y tiene permiso de edición, agregar contraseña actual
@@ -234,10 +203,7 @@ const CompleteProfile = () => {
         }
         // El backend espera 'password', no 'current_password'
         datosAEnviar.password = formData.current_password;
-        console.log('[COMPLETE PROFILE] Agregando password para validación');
       }
-
-      console.log('[COMPLETE PROFILE] Datos a enviar:', datosAEnviar);
       const result = await completarDatos(datosAEnviar);
       
       // Si se revocó el permiso, mostrar mensaje

@@ -5,8 +5,9 @@ from datetime import datetime
 
 from django.db import models as django_models
 from rest_framework import viewsets, status
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.throttling import UserRateThrottle
 from rest_framework.response import Response
 from django.db.models import Q
 import bcrypt
@@ -24,6 +25,7 @@ from .models import (
     Contrato, AfiliacionSeguridadSocial, ContratoRenovacion,
 )
 from .jwt_utils import generate_tokens, decode_token, build_superadmin_payload, build_empleado_payload, jwt_required
+from .permissions import IsSuperAdminUser, IsAdminOrSuperAdmin
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +118,16 @@ def _es_superadmin(user):
 
 def _es_empleado(user):
     return isinstance(user, DatosEmpleado) or getattr(user, '_is_empleado', False)
+
+
+def _es_admin_empleado(user):
+    if not _es_empleado(user):
+        return False
+    return getattr(user, 'estado', None) == 'ACTIVA' and int(getattr(user, 'id_permisos', 0) or 0) == 1
+
+
+def _es_admin_operativo(user):
+    return _es_superadmin(user) or _es_admin_empleado(user)
 
 
 def _empleado_activo_con_permiso_cert(user):
@@ -344,7 +356,8 @@ def crear_usuario_superadmin(request):
     Solo SuperAdmin puede crear usuarios.
     Puede crear con datos completos o solo correo+contraseña.
     """
-    logger.info(f"[CREAR USUARIO] Datos recibidos: {request.data}")
+    request_keys = sorted(list(request.data.keys()))
+    logger.info(f"[CREAR USUARIO] Request recibido con campos: {request_keys}")
     
     # Verificar que sea SuperAdmin (enviar credenciales en el request)
     admin_email = request.data.get('admin_email', '').strip()
@@ -686,6 +699,7 @@ class SuperAdminViewSet(viewsets.ModelViewSet):
 class DatosEmpleadoViewSet(viewsets.ModelViewSet):
     queryset = DatosEmpleado.objects.select_related('persona', 'persona__contacto', 'area', 'cargo').order_by('-estado', 'persona__primer_apellido', 'persona__primer_nombre')
     serializer_class = DatosEmpleadoSerializer
+    permission_classes = [IsAuthenticated]
 
     def update(self, request, *args, **kwargs):
         """Actualizar empleado con validación de permisos de un solo uso"""
@@ -700,11 +714,6 @@ class DatosEmpleadoViewSet(viewsets.ModelViewSet):
         elif hasattr(request.user, 'id'):
             # Para SuperAdmin, comparar de otra forma o siempre permitir
             is_own_profile = False  # SuperAdmin nunca edita su propio perfil por este endpoint
-        
-        print(f"[DEBUG UPDATE] id_empleado: {instance.id_empleado}, request.user.id_empleado: {getattr(request.user, 'id_empleado', None)}")
-        print(f"[DEBUG UPDATE] is_own_profile: {is_own_profile}")
-        print(f"[DEBUG UPDATE] primer_login: {instance.primer_login}, permitir_edicion_datos: {instance.permitir_edicion_datos}")
-        print(f"[DEBUG UPDATE] password en request: {request.data.get('password')}")
         
         # Si NO es primer login y tiene permitir_edicion_datos, y es el propio usuario
         if not instance.primer_login and instance.permitir_edicion_datos and is_own_profile:
@@ -728,14 +737,12 @@ class DatosEmpleadoViewSet(viewsets.ModelViewSet):
         
         # Si está usando permiso de edición y es el propio usuario, revocar después de actualizar (UN SOLO USO)
         if not instance.primer_login and instance.permitir_edicion_datos and is_own_profile:
-            print(f"[DEBUG UPDATE] REVOCANDO PERMISO - Un solo uso")
             data['permitir_edicion_datos'] = False
             data['datos_completados'] = True
         
         serializer = self.get_serializer(instance, data=data, partial=partial)
         
         if not serializer.is_valid():
-            print(f"[ERROR VALIDACIÓN] Empleado {instance.id_empleado}: {serializer.errors}")
             return Response(
                 {'error': 'Datos inválidos', 'detalles': serializer.errors},
                 status=status.HTTP_400_BAD_REQUEST
@@ -753,16 +760,20 @@ class DatosEmpleadoViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def cambiar_estado(self, request, pk=None):
         """
-        Cambiar estado del empleado (ACTIVA/INACTIVA)
-        Espera: {estado: 'ACTIVA' o 'INACTIVA'}
+        Cambiar estado del empleado (ACTIVA/INACTIVO)
+        Espera: {estado: 'ACTIVA' o 'INACTIVO'}
         """
         try:
             empleado = self.get_object()
             nuevo_estado = request.data.get('estado')
-            
-            if nuevo_estado not in ['ACTIVA', 'INACTIVA']:
+
+            # Compatibilidad: aceptar INACTIVA enviado por clientes antiguos.
+            if nuevo_estado == 'INACTIVA':
+                nuevo_estado = 'INACTIVO'
+
+            if nuevo_estado not in ['ACTIVA', 'INACTIVO']:
                 return Response(
-                    {'error': 'Estado inválido. Use ACTIVA o INACTIVA'},
+                    {'error': 'Estado inválido. Use ACTIVA o INACTIVO'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
@@ -820,90 +831,122 @@ class TareasCalendarioViewSet(viewsets.ModelViewSet):
         'area', 'empleado__persona'
     ).order_by('fecha_vencimiento')
     serializer_class = TareasCalendarioSerializer
+    permission_classes = [IsAuthenticated]
+
+    def _resolver_contexto_actor(self):
+        user = self.request.user
+        if _es_superadmin(user):
+            return {
+                'rol': 'superadmin',
+                'puede_gestionar_todo': True,
+                'empleado_id': None,
+                'area_id': None,
+            }
+
+        if _es_empleado(user):
+            permisos = int(getattr(user, 'id_permisos', 0) or 0)
+            if permisos == 1:
+                rol = 'admin'
+            elif permisos == 2:
+                rol = 'editor'
+            else:
+                rol = 'usuario'
+            return {
+                'rol': rol,
+                'puede_gestionar_todo': permisos == 1,
+                'empleado_id': getattr(user, 'id_empleado', None),
+                'area_id': getattr(user, 'area_id', None),
+            }
+
+        return {
+            'rol': 'desconocido',
+            'puede_gestionar_todo': False,
+            'empleado_id': None,
+            'area_id': None,
+        }
 
     def get_queryset(self):
         queryset = TareasCalendario.objects.select_related(
             'area', 'empleado__persona'
         ).order_by('fecha_vencimiento')
-
-        # Parámetros de filtrado por rol (enviados desde frontend)
-        user_role = self.request.query_params.get('user_role')
-        user_id = self.request.query_params.get('user_id')
-        user_area_id = self.request.query_params.get('user_area_id')
+        contexto = self._resolver_contexto_actor()
         empleado_id = self.request.query_params.get('empleado_id')
 
-        # Filtros según el rol del usuario
-        if user_role == 'usuario' and user_id:
-            # Usuario: solo ve tareas personales asignadas a él
-            queryset = queryset.filter(empleado_id=user_id)
-        elif user_role == 'editor' and user_area_id:
-            # Editor: ve tareas de su área + tareas personales asignadas a él
-            if user_id:
-                queryset = queryset.filter(
-                    Q(area_id=user_area_id) | Q(empleado_id=user_id)
-                )
+        if not contexto['puede_gestionar_todo']:
+            if contexto['rol'] == 'editor':
+                if contexto['area_id']:
+                    queryset = queryset.filter(
+                        Q(area_id=contexto['area_id']) | Q(empleado_id=contexto['empleado_id'])
+                    )
+                else:
+                    queryset = queryset.filter(empleado_id=contexto['empleado_id'])
             else:
-                queryset = queryset.filter(area_id=user_area_id)
-        # SuperAdmin y Admin ven todas las tareas (sin filtro adicional)
+                queryset = queryset.filter(empleado_id=contexto['empleado_id'])
 
-        # Filtro adicional por empleado específico si se solicita
         if empleado_id:
-            queryset = queryset.filter(empleado_id=empleado_id)
+            try:
+                queryset = queryset.filter(empleado_id=int(empleado_id))
+            except (TypeError, ValueError):
+                queryset = queryset.none()
 
         return queryset
 
     def create(self, request, *args, **kwargs):
-        # Validar permisos según el rol para crear tareas
-        user_role = request.data.get('user_role')
-        user_area_id = request.data.get('user_area_id')
+        contexto = self._resolver_contexto_actor()
         area_id = request.data.get('area_id')
         empleado_id = request.data.get('empleado_id')
 
-        # DEBUG: Log de lo que recibe el backend
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"[CREATE DEBUG] area_id={area_id} (type={type(area_id)}), empleado_id={empleado_id} (type={type(empleado_id)})")
-        logger.info(f"[CREATE DEBUG] Full request data: {request.data}")
-
-        # Determinar tipo de asignación
         if not area_id and not empleado_id:
-            tipo = 'general'  # Sin área ni empleado = tarea general
+            tipo = 'general'
         elif area_id and not empleado_id:
-            tipo = 'area'     # Solo área = tarea para área
+            tipo = 'area'
         else:
-            tipo = 'personal' # Con empleado = tarea personal
+            tipo = 'personal'
 
-        # Validar permisos
-        if user_role == 'editor':
-            # Editor solo puede crear tareas para su área o personal de su área
-            if tipo == 'general':
-                return Response(
-                    {'error': 'No tienes permisos para crear tareas generales'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            if area_id and str(area_id) != str(user_area_id):
-                return Response(
-                    {'error': 'Solo puedes crear tareas para tu área asignada'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-        elif user_role == 'usuario':
-            # Usuario no puede crear tareas
+        if contexto['rol'] == 'usuario':
             return Response(
                 {'error': 'No tienes permisos para crear tareas'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Permitir la creación
-        response = super().create(request, *args, **kwargs)
-        
-        # DEBUG: Log de lo que se guardó
-        if response.status_code == 201:
-            tarea_id = response.data.get('id')
-            if tarea_id:
-                tarea_guardada = TareasCalendario.objects.get(id=tarea_id)
-                logger.info(f"[CREATE DEBUG] TAREA GUARDADA: id={tarea_id}, area_id={tarea_guardada.area_id}, empleado_id={tarea_guardada.empleado_id}")
-        
-        return response
+        if contexto['rol'] == 'editor':
+            if tipo == 'general':
+                return Response(
+                    {'error': 'No tienes permisos para crear tareas generales'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            if area_id:
+                try:
+                    area_id_int = int(area_id)
+                except (TypeError, ValueError):
+                    return Response({'error': 'area_id inválida'}, status=status.HTTP_400_BAD_REQUEST)
+                if contexto['area_id'] and area_id_int != contexto['area_id']:
+                    return Response(
+                        {'error': 'Solo puedes crear tareas para tu área asignada'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+            if empleado_id:
+                try:
+                    empleado_id_int = int(empleado_id)
+                except (TypeError, ValueError):
+                    return Response({'error': 'empleado_id inválido'}, status=status.HTTP_400_BAD_REQUEST)
+                empleado_destino = DatosEmpleado.objects.filter(id_empleado=empleado_id_int).first()
+                if not empleado_destino:
+                    return Response({'error': 'Empleado de destino no encontrado'}, status=status.HTTP_400_BAD_REQUEST)
+                if contexto['area_id'] and empleado_destino.area_id != contexto['area_id']:
+                    return Response(
+                        {'error': 'Solo puedes asignar tareas a empleados de tu área'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
+        data = request.data.copy()
+        data.pop('user_role', None)
+        data.pop('user_id', None)
+        data.pop('user_area_id', None)
+        request._full_data = data
+
+        return super().create(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'])
     def por_empleado(self, request):
@@ -911,49 +954,26 @@ class TareasCalendarioViewSet(viewsets.ModelViewSet):
         if not empleado_id:
             return Response({'error': 'empleado_id requerido'}, status=status.HTTP_400_BAD_REQUEST)
 
-        tareas = TareasCalendario.objects.select_related(
-            'area', 'empleado__persona'
-        ).filter(empleado_id=empleado_id).order_by('fecha_vencimiento')
+        try:
+            empleado_id_int = int(empleado_id)
+        except (TypeError, ValueError):
+            return Response({'error': 'empleado_id inválido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        tareas = self.get_queryset().filter(empleado_id=empleado_id_int)
         serializer = self.get_serializer(tareas, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def por_rol(self, request):
         """
-        Endpoint específico para obtener tareas según el rol del usuario.
-        Espera: user_role, user_id, user_area_id (opcional)
+        Endpoint de compatibilidad. El filtro se aplica según el usuario autenticado.
         """
-        user_role = request.query_params.get('user_role')
-        user_id = request.query_params.get('user_id')
-        user_area_id = request.query_params.get('user_area_id')
-
-        if not user_role or not user_id:
-            return Response(
-                {'error': 'user_role y user_id son requeridos'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        queryset = TareasCalendario.objects.select_related(
-            'area', 'empleado__persona'
-        ).order_by('fecha_vencimiento')
-
-        if user_role == 'usuario':
-            # Usuario: solo sus tareas personales
-            queryset = queryset.filter(empleado_id=user_id)
-        elif user_role == 'editor':
-            # Editor: tareas de su área + sus tareas personales
-            if user_area_id:
-                queryset = queryset.filter(
-                    Q(area_id=user_area_id) | Q(empleado_id=user_id)
-                )
-            else:
-                queryset = queryset.filter(empleado_id=user_id)
-        # SuperAdmin/Admin: todas las tareas
-
+        contexto = self._resolver_contexto_actor()
+        queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response({
             'tareas': serializer.data,
-            'filtro_aplicado': user_role,
+            'filtro_aplicado': contexto['rol'],
             'total': queryset.count()
         })
 
@@ -1106,6 +1126,7 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
     """
     queryset = ApiKey.objects.all().order_by('-created_at')
     serializer_class = ApiKeySerializer
+    permission_classes = [IsSuperAdminUser]
 
     def get_queryset(self):
         """Filtrar por estado si se pasa parámetro"""
@@ -1525,7 +1546,8 @@ def verificar_codigo_login(request):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAdminOrSuperAdmin])
+@throttle_classes([UserRateThrottle])
 def actividad_reciente(request):
     """
     Obtiene usuarios activos recientemente.
@@ -1695,47 +1717,23 @@ def registrar_intento_recuperacion(request):
     
     logger.warning(f"[ALERTA] Intento de recuperación de contraseña: {email} - {'EXISTE' if existe_en_sistema else 'NO EXISTE'}")
     
-    # Preparar respuesta con información completa
+    # Respuesta acotada: no exponer PII ni existencia detallada del usuario.
     response_data = {
         'message': 'Intento registrado',
         'alerta': {
             'id': alerta.id,
-            'email': email,
-            'nombre': nombre_solicitante,
-            'rol': rol_solicitante,
-            'existe_en_sistema': existe_en_sistema,
             'timestamp': alerta.fecha_creacion.isoformat(),
             'estado': alerta.estado_alerta
         }
     }
-    
-    # Si existe, agregar información completa del empleado
-    if empleado:
-        response_data['alerta']['empleado_info'] = {
-            'id': empleado.id_empleado,
-            'nombre_completo': f"{empleado.primer_nombre} {empleado.segundo_nombre or ''} {empleado.primer_apellido} {empleado.segundo_apellido or ''}".strip(),
-            'correo': empleado.correo_corporativo,
-            'telefono': empleado.telefono,
-            'area': empleado.area.nombre_area if empleado.area else None,
-            'cargo': empleado.cargo.nombre_cargo if empleado.cargo else None,
-            'fecha_ingreso': empleado.fecha_ingreso.isoformat() if empleado.fecha_ingreso else None,
-            'estado': empleado.estado,
-            'direccion': empleado.direccion
-        }
-    elif admin:
-        response_data['alerta']['admin_info'] = {
-            'id': admin.id,
-            'nombre': f"{admin.nombre} {admin.apellido}",
-            'email': admin.email,
-            'rol': 'SuperAdmin'
-        }
-    
+
     return Response(response_data)
 
 
 # Endpoint para obtener alertas de recuperación - PÚBLICO
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAdminOrSuperAdmin])
+@throttle_classes([UserRateThrottle])
 def get_alertas_recuperacion(request):
     """
     Obtiene las alertas de recuperación de contraseña (últimas 24 horas)
@@ -1782,12 +1780,10 @@ def get_alertas_recuperacion(request):
                 'id': emp.id_empleado,
                 'nombre_completo': f"{emp.primer_nombre} {emp.segundo_nombre or ''} {emp.primer_apellido} {emp.segundo_apellido or ''}".strip(),
                 'correo': emp.correo_corporativo,
-                'telefono': emp.telefono,
                 'area': emp.area.nombre_area if emp.area else None,
                 'cargo': emp.cargo.nombre_cargo if emp.cargo else None,
                 'fecha_ingreso': emp.fecha_ingreso.isoformat() if emp.fecha_ingreso else None,
                 'estado': emp.estado,
-                'direccion': emp.direccion
             }
         
         alertas_list.append(alerta_data)
@@ -1801,45 +1797,51 @@ def get_alertas_recuperacion(request):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
+@throttle_classes([UserRateThrottle])
 def ping_actividad(request):
     """
-    Actualiza la última actividad del usuario (heartbeat).
-    Espera: email del usuario logueado
+    Actualiza la última actividad del usuario autenticado.
+    Se aplica cooldown para evitar escrituras innecesarias en DB.
     """
-    email = request.data.get('email')
-    if not email:
-        return Response({'error': 'Email requerido'}, status=status.HTTP_400_BAD_REQUEST)
-    
     from django.utils import timezone
-    
-    # Buscar empleado o admin
-    empleado = DatosEmpleado.objects.filter(correo_corporativo=email).first()
-    admin = SuperAdmin.objects.filter(email=email).first() if not empleado else None
-    
-    if empleado:
-        empleado.ultima_actividad = timezone.now()
-        empleado.save(update_fields=['ultima_actividad'])
+    user = request.user
+    now = timezone.now()
+
+    if _es_empleado(user):
+        if getattr(user, 'estado', None) != 'ACTIVA':
+            return Response({'error': 'Usuario inactivo'}, status=status.HTTP_403_FORBIDDEN)
+        cache_key = f'api:ping:last-write:empleado:{user.id_empleado}'
+        if not cache.get(cache_key):
+            user.ultima_actividad = now
+            user.save(update_fields=['ultima_actividad'])
+            cache.set(cache_key, True, timeout=60)
         return Response({
             'message': 'Actividad actualizada',
-            'user': f"{empleado.primer_nombre} {empleado.primer_apellido}",
-            'timestamp': timezone.now().isoformat()
+            'user': f"{user.primer_nombre} {user.primer_apellido}",
+            'timestamp': now.isoformat()
         })
-    elif admin:
-        # Para SuperAdmin usamos last_login
-        admin.last_login = timezone.now()
-        admin.save(update_fields=['last_login'])
+
+    if _es_superadmin(user):
+        if getattr(user, 'estado', None) != 'ACTIVA':
+            return Response({'error': 'Usuario inactivo'}, status=status.HTTP_403_FORBIDDEN)
+        cache_key = f'api:ping:last-write:superadmin:{user.id}'
+        if not cache.get(cache_key):
+            user.last_login = now
+            user.save(update_fields=['last_login'])
+            cache.set(cache_key, True, timeout=60)
         return Response({
             'message': 'Actividad actualizada',
-            'user': f"{admin.nombre} {admin.apellido}",
-            'timestamp': timezone.now().isoformat()
+            'user': f"{user.nombre} {user.apellido}",
+            'timestamp': now.isoformat()
         })
-    
-    return Response({'error': 'Usuario no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response({'error': 'Usuario no autorizado'}, status=status.HTTP_403_FORBIDDEN)
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAdminOrSuperAdmin])
+@throttle_classes([UserRateThrottle])
 def atender_alerta(request, alerta_id):
     """
     Marca una alerta como atendida
@@ -1874,7 +1876,8 @@ def atender_alerta(request, alerta_id):
 
 
 @api_view(['DELETE'])
-@permission_classes([AllowAny])
+@permission_classes([IsAdminOrSuperAdmin])
+@throttle_classes([UserRateThrottle])
 def eliminar_alerta(request, alerta_id):
     """
     Elimina una alerta permanentemente
@@ -1905,69 +1908,77 @@ def eliminar_alerta(request, alerta_id):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAdminOrSuperAdmin])
+@throttle_classes([UserRateThrottle])
 def actualizar_password_empleado(request, empleado_id):
     """
-    Actualiza la contraseña de un empleado (solo para SuperAdmin)
+    Actualiza la contraseña de un empleado.
+    Requiere usuario autenticado con rol administrador y verificación de su contraseña actual.
     """
-    import bcrypt
-    
     try:
         empleado = DatosEmpleado.objects.get(id_empleado=empleado_id)
-        
-        # Obtener la nueva contraseña del body
         nueva_password = request.data.get('nueva_password')
-        admin_email = request.data.get('admin_email')
         admin_password = request.data.get('admin_password')
-        
+        admin_email = (request.data.get('admin_email') or '').strip().lower()
+
         if not nueva_password:
             return Response({
                 'success': False,
                 'error': 'La nueva contraseña es requerida'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         if len(nueva_password) < 6:
             return Response({
                 'success': False,
                 'error': 'La contraseña debe tener al menos 6 caracteres'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Validación de SuperAdmin (acepta tanto superadmin como admin)
-        # Si se proporciona admin_email y admin_password, verificar que sea un administrador válido
-        admin = None
-        admin_tipo = None
-        if admin_email:
-            try:
-                admin = SuperAdmin.objects.get(email=admin_email)
-                admin_tipo = admin.role  # 'superadmin' o 'admin'
-                print(f"[DEBUG] Administrador encontrado: {admin_email} (rol: {admin_tipo})")
-            except SuperAdmin.DoesNotExist:
+
+        if not admin_password:
+            return Response({
+                'success': False,
+                'error': 'La contraseña del administrador es requerida'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        actor = request.user
+        if _es_superadmin(actor):
+            if admin_email and admin_email != actor.email.lower():
                 return Response({
                     'success': False,
-                    'error': 'Administrador no encontrado'
+                    'error': 'El correo administrador no coincide con la sesión activa'
+                }, status=status.HTTP_403_FORBIDDEN)
+            if not actor.check_password(admin_password):
+                return Response({
+                    'success': False,
+                    'error': 'Credenciales de administrador inválidas'
                 }, status=status.HTTP_401_UNAUTHORIZED)
-            
-            # Validar contraseña del admin
-            if admin_password:
-                if not admin.check_password(admin_password):
-                    print(f"[DEBUG] Contraseña de {admin_tipo} no coincide, pero permitiendo en modo desarrollo")
-                else:
-                    print(f"[DEBUG] Contraseña de {admin_tipo} validada correctamente")
-            else:
-                print(f"[DEBUG] Sin admin_password, permitiendo en modo desarrollo ({admin_tipo})")
-        
-        # Generar hash de la nueva contraseña
+        elif _es_admin_empleado(actor):
+            actor_email = (actor.correo_corporativo or '').lower()
+            if admin_email and admin_email != actor_email:
+                return Response({
+                    'success': False,
+                    'error': 'El correo administrador no coincide con la sesión activa'
+                }, status=status.HTTP_403_FORBIDDEN)
+            if not actor.password_hash or not bcrypt.checkpw(admin_password.encode('utf-8'), actor.password_hash.encode('utf-8')):
+                return Response({
+                    'success': False,
+                    'error': 'Credenciales de administrador inválidas'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+        else:
+            return Response({
+                'success': False,
+                'error': 'No autorizado'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         hashed = bcrypt.hashpw(nueva_password.encode('utf-8'), bcrypt.gensalt())
         empleado.password_hash = hashed.decode('utf-8')
         empleado.save(update_fields=['password_hash'])
-        
+
         return Response({
             'success': True,
             'message': 'Contraseña actualizada exitosamente',
             'empleado_id': empleado_id,
             'empleado_nombre': f"{empleado.primer_nombre} {empleado.primer_apellido}"
         })
-        
     except DatosEmpleado.DoesNotExist:
         return Response({
             'success': False,
@@ -2287,6 +2298,8 @@ def notificar_admin_password_restablecida(empleado):
 # ============================================================================
 
 @api_view(['GET'])
+@permission_classes([IsAdminOrSuperAdmin])
+@throttle_classes([UserRateThrottle])
 def n8n_proxy(request):
     """
     Proxy server-side hacia n8n.
@@ -2297,7 +2310,7 @@ def n8n_proxy(request):
     from django.conf import settings as django_settings
 
 
-    action   = request.query_params.get('action', 'executions')
+    action = request.query_params.get('action', 'executions')
     sync_logs = request.query_params.get('sync', 'false').lower() == 'true'
     base_url = getattr(django_settings, 'N8N_BASE_URL', '')
     api_key  = getattr(django_settings, 'N8N_WEBHOOK_API_KEY', '')
@@ -2321,7 +2334,18 @@ def n8n_proxy(request):
                 return Response({'error': 'N8N_WEBHOOK_API_KEY no configurado'}, status=503)
 
             status_filter = request.query_params.get('status')
-            limit         = request.query_params.get('limit', 50)
+            limit = request.query_params.get('limit', 50)
+            try:
+                limit = int(limit)
+            except (TypeError, ValueError):
+                limit = 50
+            limit = max(1, min(limit, 100))
+
+            if sync_logs and not _es_superadmin(request.user):
+                return Response(
+                    {'error': 'Solo SuperAdmin puede sincronizar logs de n8n'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
             params = {'limit': limit}
             if status_filter and status_filter.upper() != 'ALL':
@@ -2341,7 +2365,8 @@ def n8n_proxy(request):
                 # Persistencia opcional: evita carga extra en DB en cada refresco del dashboard.
                 saved = 0
                 if sync_logs:
-                    for ex in (execs if isinstance(execs, list) else []):
+                    # Limitar escrituras por request para evitar sobrecarga.
+                    for ex in (execs if isinstance(execs, list) else [])[:100]:
                         exec_id = str(ex.get('id', ''))
                         if exec_id and not N8nLog.objects.filter(response_data__contains=f'"exec_id":"{exec_id}"').exists():
                             try:

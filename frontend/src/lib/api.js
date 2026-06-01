@@ -95,10 +95,6 @@ async function refreshAccessToken() {
 // ── Core fetch helper ─────────────────────────────────────────────────────────
 
 export const fetchApi = async (endpoint, options = {}, retry = true) => {
-  if (options.body && endpoint.includes('completar-datos') && !(options.body instanceof FormData)) {
-    console.log('[API] Enviando a backend:', JSON.parse(options.body));
-  }
-
   const accessToken = tokenStorage.getAccess();
   const isFormData = options.body instanceof FormData;
   const { timeoutMs = DEFAULT_TIMEOUT_MS, noAuth = false, ...requestOptions } = options;
@@ -190,19 +186,15 @@ export const logout = () => {
 
 export const getAllTareas = () => fetchApi('/tareas/');
 
-export const getTareasByRol = (userRole, userId, userAreaId) => {
-  let params = `user_role=${userRole}&user_id=${userId}`;
-  if (userAreaId) params += `&user_area_id=${userAreaId}`;
-  return fetchApi(`/tareas/?${params}`);
-};
+export const getTareasByRol = () => fetchApi('/tareas/');
 
 export const getTareaById = (id) => fetchApi(`/tareas/${id}/`);
 
 export const getTareasByEmpleado = (empleadoId) => fetchApi(`/tareas/?empleado_id=${empleadoId}`);
 
-export const createTarea = (data, userRole, userAreaId) => fetchApi('/tareas/', {
+export const createTarea = (data) => fetchApi('/tareas/', {
   method: 'POST',
-  body: JSON.stringify({ ...data, user_role: userRole, user_area_id: userAreaId }),
+  body: JSON.stringify(data),
 });
 
 export const updateTareaEstado = (id, estado) => fetchApi(`/tareas/${id}/`, {
@@ -421,11 +413,9 @@ export const healthCheck = () => fetchApi('/health/');
 
 export const getActividadReciente = () => fetchApi('/actividad-reciente/');
 
-export const pingActividad = (email) =>
+export const pingActividad = () =>
   fetchApi('/ping/', {
     method: 'POST',
-    body: JSON.stringify({ email }),
-    noAuth: true,
   });
 
 // ── CONTRASEÑA ────────────────────────────────────────────────────────────────

@@ -90,7 +90,7 @@ const UserTable = () => {
 
   const toggleUserStatus = async (user) => {
     // Verificar permisos
-    const isActivating = user.estado === 'INACTIVA';
+    const isActivating = user.estado === 'INACTIVO';
     
     // Solo superadmin puede reactivar usuarios inactivos
     if (isActivating && !isSuperAdmin) {
@@ -105,7 +105,7 @@ const UserTable = () => {
     }
     
     setUpdating(true);
-    const nuevoEstado = user.estado === 'ACTIVA' ? 'INACTIVA' : 'ACTIVA';
+    const nuevoEstado = user.estado === 'ACTIVA' ? 'INACTIVO' : 'ACTIVA';
     try {
       await cambiarEstadoEmpleado(user.id_empleado, nuevoEstado);
       invalidate('empleados');
@@ -176,8 +176,6 @@ const UserTable = () => {
   const handleSaveEdit = async () => {
     try {
       setUpdating(true);
-      console.log('[SAVE EDIT] Datos a enviar:', editFormData);
-      console.log('[SAVE EDIT] permitir_edicion_datos:', editFormData.permitir_edicion_datos);
       await updateEmpleado(editingUser.id_empleado, editFormData);
       invalidate('empleados');
 
@@ -423,7 +421,7 @@ const UserTable = () => {
                 <td className="px-4 sm:px-8 py-4 sm:py-6 text-right" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1 sm:gap-2">
                     {/* ACCIÓN: REACTIVAR - Solo Super Admin para usuarios inactivos */}
-                    {user.estado === 'INACTIVA' && canReactivateUsers && (
+                    {user.estado === 'INACTIVO' && canReactivateUsers && (
                       <button 
                         onClick={() => setManagingUser(user)} 
                         className="p-2 hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all" 

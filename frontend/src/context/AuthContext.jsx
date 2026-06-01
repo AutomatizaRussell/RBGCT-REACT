@@ -79,11 +79,7 @@ export const AuthProvider = ({ children }) => {
 
     const sendPing = async () => {
       try {
-        const email = user.email || empleadoData?.correo_corporativo;
-        if (email) {
-          await pingActividad(email);
-          console.log('[HEARTBEAT] Actividad actualizada:', email);
-        }
+        await pingActividad();
       } catch (error) {
         console.error('[HEARTBEAT] Error:', error);
       }
@@ -96,7 +92,7 @@ export const AuthProvider = ({ children }) => {
     const interval = setInterval(sendPing, 300000);
 
     return () => clearInterval(interval);
-  }, [user, empleadoData]);
+  }, [user]);
 
   const login = async (email, password) => {
     try {

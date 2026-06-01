@@ -144,30 +144,17 @@ const TaskManager = ({
         fecha_creacion: new Date().toISOString()
       };
 
-      // DEBUG: Ver qué se está enviando
-      console.log('=== DEBUG TASK DATA ===');
-      console.log('formData.id_area:', formData.id_area, 'type:', typeof formData.id_area);
-      console.log('formData.id_empleado:', formData.id_empleado, 'type:', typeof formData.id_empleado);
-      console.log('taskData.area_id:', taskData.area_id);
-      console.log('taskData.empleado_id:', taskData.empleado_id);
-      console.log('=======================');
-
-      // Obtener datos del usuario para permisos
-      const userAreaId = user?.user?.area_id;
-
       if (editingTask) {
         // Actualizar tarea completa existente
         await updateTarea(editingTask.id, taskData);
       } else {
         // Crear nueva tarea con rol para validación backend
-        await createTarea(taskData, userRole, userAreaId);
+        await createTarea(taskData);
       }
 
       await fetchTasks();
       resetForm();
-      console.log('[DEBUG] onTaskSaved called:', onTaskSaved);
       if (onTaskSaved) {
-        console.log('[DEBUG] Calling onTaskSaved...');
         onTaskSaved();
       }
     } catch (err) {
@@ -221,9 +208,6 @@ const TaskManager = ({
       return emp.area_id === (userArea || 1);
     }
   });
-
-  console.log('[DEBUG] Empleados filtrados:', empleadosFiltrados.length, 'for area:', formData.id_area);
-  console.log('[DEBUG] Total empleados:', empleados.length);
 
   const getAreaById = (id) => AREAS.find(a => a.id === id) || AREAS[0];
   const getPrioridadById = (id) => PRIORIDADES.find(p => p.id === id) || PRIORIDADES[1];
