@@ -424,17 +424,14 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
       boxShadow: '0 0 0 1px #e5e7eb, 0 8px 32px rgba(0,0,0,0.10)',
     }}>
 
-      {/* ── Acento superior ─────────────────────────────────────── */}
-      <div style={{ height: '5px', background: 'linear-gradient(90deg,#001871 70%,#0a4a7c)' }} />
-
       {/* ── Membrete ─────────────────────────────────────────────── */}
-      <div style={{ padding: '25.4mm 25.4mm 7mm', borderBottom: '1pt solid #001871' }}>
-        {/* Logo arriba a la derecha */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8mm' }}>
-          <img src={logoRB} alt="Russell Bedford" style={{ height: '45pt', width: 'auto', objectFit: 'contain' }} />
+      <div style={{ padding: '25.4mm 25.4mm 0' }}>
+        {/* Logo pequeño arriba a la derecha */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10mm' }}>
+          <img src={logoRB} alt="Russell Bedford" style={{ height: '28pt', width: 'auto', objectFit: 'contain' }} />
         </div>
         {/* Fecha izquierda — Consecutivo derecha */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <p style={sn({ margin: 0, fontSize: '8.5pt', color: '#374151' })}>
             Medellín, {form.fecha}
           </p>
@@ -447,7 +444,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
       </div>
 
       {/* ── Cuerpo del documento ─────────────────────────────────── */}
-      <div style={{ padding: '10mm 25.4mm 10mm' }}>
+      <div style={{ padding: '8mm 25.4mm 10mm' }}>
 
         {/* Título */}
         <p style={sn({
