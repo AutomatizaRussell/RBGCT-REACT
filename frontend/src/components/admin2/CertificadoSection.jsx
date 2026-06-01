@@ -435,7 +435,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
       <div style={{
         position: 'absolute', top: 'calc(14mm - 2px)', right: 0,
         width: '10mm', height: 'calc(279.4mm - 14mm + 2px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-start',
         overflow: 'hidden',
       }}>
         <p style={{
@@ -522,30 +522,30 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
         <p style={sr({ margin: '0 0 4pt' })}>Cordialmente,</p>
 
         {/* ── Bloque de firma ── */}
-        <div style={{ marginTop: '10pt', width: '95mm' }}>
+        <div style={{ marginTop: '6pt', width: '95mm' }}>
           {/* Nombre en cursiva = firma */}
-          <div style={{ minHeight: '34pt', display: 'flex', alignItems: 'flex-end' }}>
+          <div style={{ minHeight: '22pt', display: 'flex', alignItems: 'flex-end' }}>
             <p style={{
-              fontFamily: script, fontSize: '17pt', color: '#111',
+              fontFamily: script, fontSize: '12pt', color: '#111',
               margin: 0, lineHeight: 1.1, fontWeight: 400,
             }}>
               {toTitleCase(form.firmante_nombre)}
             </p>
           </div>
           {/* Línea */}
-          <div style={{ borderTop: '1pt solid #9ca3af', marginTop: '5pt', marginBottom: '7pt' }} />
+          <div style={{ borderTop: '1pt solid #9ca3af', marginTop: '3pt', marginBottom: '4pt' }} />
           {/* Datos */}
-          <p style={sn({ margin: '0 0 2pt', fontSize: '8pt', fontWeight: '700', textTransform: 'uppercase', color: '#111' })}>
+          <p style={sn({ margin: '0 0 1pt', fontSize: '7pt', fontWeight: '700', textTransform: 'uppercase', color: '#111' })}>
             {form.firmante_nombre}
           </p>
-          <p style={sn({ margin: '0 0 2pt', fontSize: '8pt', color: '#374151' })}>
+          <p style={sn({ margin: '0 0 1pt', fontSize: '7pt', color: '#374151' })}>
             {form.firmante_cargo}
           </p>
-          <p style={sn({ margin: '0 0 2pt', fontSize: '8pt', fontWeight: '700', color: '#111', textTransform: 'uppercase' })}>
+          <p style={sn({ margin: '0 0 1pt', fontSize: '7pt', fontWeight: '700', color: '#111', textTransform: 'uppercase' })}>
             {empresa}
           </p>
           {form.firmante_cc && (
-            <p style={sn({ margin: 0, fontSize: '8pt', color: '#374151' })}>
+            <p style={sn({ margin: 0, fontSize: '7pt', color: '#374151' })}>
               C.C. {form.firmante_cc}
             </p>
           )}
