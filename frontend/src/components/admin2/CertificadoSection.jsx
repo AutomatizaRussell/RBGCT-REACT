@@ -163,24 +163,37 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         windowHeight: elemento.scrollHeight,
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      const MARGIN = 25.4; // mm — margen estándar (1 pulgada)
+
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter', compress: true });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const renderW = pageW;
-      const renderH = (canvas.height * renderW) / canvas.width;
+      const pxPerMm = canvas.width / pageW;
 
-      let heightLeft = renderH;
-      let positionY = 0;
+      const cropAndPlace = (srcY, srcH, destYmm) => {
+        const c = document.createElement('canvas');
+        c.width  = canvas.width;
+        c.height = srcH;
+        c.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+        const renderH = (srcH / canvas.width) * pageW;
+        pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, destYmm, pageW, renderH, undefined, 'MEDIUM');
+      };
 
-      pdf.addImage(imgData, 'JPEG', 0, positionY, renderW, renderH, undefined, 'MEDIUM');
-      heightLeft -= pageH;
+      // Página 1: ocupa toda la hoja (el certificado ya lleva su propio margen interno)
+      const p1H = Math.min(Math.round(pageH * pxPerMm), canvas.height);
+      cropAndPlace(0, p1H, 0);
 
-      while (heightLeft > 0) {
-        positionY = heightLeft - renderH;
+      // Páginas siguientes: margen superior e inferior de 25.4 mm
+      const contPx = Math.round((pageH - 2 * MARGIN) * pxPerMm);
+      let srcY = p1H;
+      let left = canvas.height - p1H;
+
+      while (left > 0) {
         pdf.addPage('letter', 'portrait');
-        pdf.addImage(imgData, 'JPEG', 0, positionY, renderW, renderH, undefined, 'MEDIUM');
-        heightLeft -= pageH;
+        const chunk = Math.min(contPx, left);
+        cropAndPlace(srcY, chunk, MARGIN);
+        srcY += chunk;
+        left -= chunk;
       }
 
       const pdfBase64 = pdf.output('datauristring').split(',')[1];
@@ -415,26 +428,19 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
       <div style={{ height: '5px', background: 'linear-gradient(90deg,#001871 70%,#0a4a7c)' }} />
 
       {/* ── Membrete ─────────────────────────────────────────────── */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-        padding: '25.4mm 25.4mm 7mm', borderBottom: '1pt solid #001871',
-      }}>
-        <div>
-          <p style={sn({ margin: 0, fontSize: '20pt', fontWeight: '900', color: '#001871', letterSpacing: '-0.5pt', lineHeight: 1 })}>
-            RUSSELL BEDFORD
-          </p>
-          <p style={sn({ margin: '3pt 0 0', fontSize: '7.5pt', color: '#6b7280', letterSpacing: '2.5pt', textTransform: 'uppercase' })}>
-            {empresa}
-          </p>
+      <div style={{ padding: '25.4mm 25.4mm 7mm', borderBottom: '1pt solid #001871' }}>
+        {/* Logo arriba a la derecha */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8mm' }}>
+          <img src={logoRB} alt="Russell Bedford" style={{ height: '45pt', width: 'auto', objectFit: 'contain' }} />
         </div>
-        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6pt' }}>
-          <img src={logoRB} alt="Russell Bedford" style={{ height: '38pt', width: 'auto', objectFit: 'contain' }} />
+        {/* Fecha izquierda — Consecutivo derecha */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <p style={sn({ margin: 0, fontSize: '8.5pt', color: '#374151' })}>
             Medellín, {form.fecha}
           </p>
           {form.consecutivo && (
-            <p style={sn({ margin: 0, fontSize: '8pt', fontWeight: '700', color: '#001871', letterSpacing: '1pt' })}>
-              Ref. {form.consecutivo}
+            <p style={sn({ margin: 0, fontSize: '9pt', fontWeight: '700', color: '#001871', letterSpacing: '1pt' })}>
+              {form.consecutivo}
             </p>
           )}
         </div>
@@ -488,7 +494,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
         {/* Párrafo salario */}
         {form.incluir_salario === 'Sí' && (
           <p style={sr({ textAlign: 'justify', margin: '0 0 14pt' })}>
-            Su remuneración mensual corresponde a <strong>{form.salario && form.salario.trim() ? salarioText : '($2.000.000 COP)'}</strong> millones de pesos
+            Su remuneración mensual corresponde a <strong>{form.salario && form.salario.trim() ? salarioText : '($2.000.000 COP)'}</strong>
             {form.auxilio_transporte === 'Sí'
               ? ', más auxilio de transporte de conformidad con la normativa laboral vigente'
               : ''}
