@@ -247,8 +247,8 @@ from .serializers import (
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
-    email = request.data.get('email')
-    password = request.data.get('password')
+    email = (request.data.get('email') or '').strip().lower()
+    password = request.data.get('password') or ''
     
     if not email or not password:
         return Response({'error': 'Email y password requeridos'}, status=status.HTTP_400_BAD_REQUEST)
@@ -274,7 +274,13 @@ def login_view(request):
 
     # 2. Verificar si es Empleado
     try:
-        empleado = DatosEmpleado.objects.get(correo_corporativo=email, estado='ACTIVA')
+        empleado = DatosEmpleado.objects.select_related('persona').only(
+            'id_empleado', 'correo_corporativo', 'id_permisos', 'estado',
+            'area_id', 'cargo_id', 'primer_login', 'datos_completados',
+            'permitir_edicion_datos', 'password_hash', 'persona',
+            'persona__primer_nombre', 'persona__segundo_nombre',
+            'persona__primer_apellido', 'persona__segundo_apellido',
+        ).get(correo_corporativo=email, estado='ACTIVA')
         if empleado.password_hash and bcrypt.checkpw(password.encode('utf-8'), empleado.password_hash.encode('utf-8')):
 
             from django.utils import timezone
@@ -283,6 +289,14 @@ def login_view(request):
 
             # Primer login: requiere verificación por código
             if empleado.primer_login:
+                # Marcar en cache que la contraseña ya fue validada en este paso.
+                # Así evitamos recalcular bcrypt en la verificación del código.
+                cache_key = f"verificacion_{email}"
+                datos_cache = cache.get(cache_key)
+                if isinstance(datos_cache, dict) and str(datos_cache.get('empleado_id')) == str(empleado.id_empleado):
+                    datos_cache['password_verificada'] = True
+                    cache.set(cache_key, datos_cache, timeout=900)
+
                 return Response({
                     'type': 'empleado',
                     'user': {
@@ -1428,7 +1442,7 @@ def verificar_codigo_login(request):
     """
     email = request.data.get('email', '').strip().lower()
     codigo_ingresado = request.data.get('codigo', '').strip()
-    password = request.data.get('password', '')  # Opcional, para primer login
+    password = request.data.get('password', '')  # Compatibilidad con clientes antiguos
     
     if not email or not codigo_ingresado:
         return Response({'error': 'Email y código requeridos'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1463,15 +1477,21 @@ def verificar_codigo_login(request):
         empleado = DatosEmpleado.objects.get(id_empleado=datos_cache['empleado_id'])
     except DatosEmpleado.DoesNotExist:
         return Response({'error': 'Usuario no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-    
-    # Verificar password si es necesario (primer login)
-    if empleado.primer_login and not password:
-        return Response({
-            'error': 'Contraseña requerida para primer login',
-            'primer_login': True
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    if empleado.primer_login and password:
+
+    # Optimización: si el login inicial ya validó contraseña, evitar recalcular bcrypt aquí.
+    password_ya_verificada = (
+        bool(datos_cache.get('password_verificada'))
+        and str(datos_cache.get('empleado_id')) == str(empleado.id_empleado)
+    )
+
+    # Fallback para clientes antiguos que llegan directo a este endpoint.
+    if empleado.primer_login and not password_ya_verificada:
+        if not password:
+            return Response({
+                'error': 'Contraseña requerida para primer login',
+                'primer_login': True
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         if not bcrypt.checkpw(password.encode('utf-8'), empleado.password_hash.encode('utf-8')):
             return Response({'error': 'Contraseña incorrecta'}, status=status.HTTP_401_UNAUTHORIZED)
     

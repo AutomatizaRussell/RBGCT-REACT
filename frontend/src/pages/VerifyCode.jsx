@@ -30,7 +30,7 @@ const VerifyCode = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { setEmpleadoDataVerify } = useAuth();
-  const { email, password, userId, id_permisos } = location.state || {};
+  const { email } = location.state || {};
 
   const [codigo, setCodigo] = useState('');
   const [loading, setLoading] = useState(false);
@@ -56,7 +56,6 @@ const VerifyCode = () => {
         body: JSON.stringify({
           email,
           codigo: codigo.trim(),
-          password
         })
       }, REQUEST_TIMEOUT_MS);
 
@@ -64,7 +63,10 @@ const VerifyCode = () => {
 
       if (response.ok) {
         // Código correcto - actualizar AuthContext y redirigir
-        setEmpleadoDataVerify(data.user);
+        setEmpleadoDataVerify(data.user, {
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+        });
         
         // Redirigir a completar perfil
         navigate('/completar-perfil');

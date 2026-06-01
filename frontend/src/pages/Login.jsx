@@ -227,9 +227,6 @@ const Login = () => {
           replace: true,
           state: {
             email,
-            password,
-            userId: result.empleadoData.id_empleado,
-            id_permisos: result.empleadoData.id_permisos
           }
         });
         return;
