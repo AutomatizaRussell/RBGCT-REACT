@@ -433,8 +433,8 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
 
       {/* ── Franja vertical derecha ───────────────────────────────── */}
       <div style={{
-        position: 'absolute', top: '25.4mm', right: 0,
-        width: '10mm', height: 'calc(100% - 25.4mm)',
+        position: 'absolute', top: '14mm', right: 0,
+        width: '10mm', height: 'calc(100% - 14mm)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <p style={{
