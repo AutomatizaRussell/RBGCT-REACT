@@ -105,8 +105,14 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     if (onPrefillUsed) onPrefillUsed();
   }, [prefill, empleados, onPrefillUsed]);
 
+  const SELECT_FIELDS = ['incluir_salario', 'auxilio_transporte', 'tipo_contrato'];
   const handleChange = (e) =>
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value.toUpperCase() }));
+    setForm(prev => ({
+      ...prev,
+      [e.target.name]: SELECT_FIELDS.includes(e.target.name)
+        ? e.target.value
+        : e.target.value.toUpperCase(),
+    }));
 
   const handleSalarioBlur = (e) => {
     const raw = e.target.value.trim().replace(/[.\s]/g, '').replace(/,/g, '');
@@ -487,23 +493,26 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
           {form.nit_empresa ? <> con Nit. <strong>{form.nit_empresa}</strong></> : ''},
           desde el <strong>{fechaIngreso}</strong>, con contrato a{' '}
           <strong>{form.tipo_contrato || '[TIPO DE CONTRATO]'}</strong>, desempeñando
-          el cargo de <strong>{cargo}</strong>.
+          el cargo de <strong>{cargo}{area ? ` DE ${area.toUpperCase()}` : ''}</strong>.
         </p>
 
         {/* Párrafo salario / auxilio / comisiones */}
-        {(form.incluir_salario === 'Sí' || form.auxilio_transporte === 'Sí' || form.ingresos_adicionales) && (
-          <p style={sr({ textAlign: 'justify', margin: '0 0 28pt' })}>
-            {form.incluir_salario === 'Sí' && (
-              <>Devenga un salario mensual de <strong>{form.salario && form.salario.trim() ? salarioText : '[SALARIO]'}</strong></>
-            )}
-            {form.auxilio_transporte === 'Sí' && (
-              <>, un auxilio para medio de transporte no constitutivo de salario de conformidad con la normativa laboral vigente</>
-            )}
-            {form.ingresos_adicionales && (
-              <> Y unas comisiones mensuales promedio de <strong>{form.ingresos_adicionales}</strong></>
-            )}.
-          </p>
-        )}
+        {(form.incluir_salario === 'Sí' || form.auxilio_transporte === 'Sí' || form.ingresos_adicionales) && (() => {
+          const tieneSalario   = form.incluir_salario === 'Sí';
+          const tieneAuxilio   = form.auxilio_transporte === 'Sí';
+          const tieneComision  = !!form.ingresos_adicionales;
+          const partes = [];
+          if (tieneSalario)  partes.push(<>Devenga un salario mensual de <strong>{form.salario && form.salario.trim() ? salarioText : '[SALARIO]'}</strong></>);
+          if (tieneAuxilio)  partes.push(<>un auxilio para medio de transporte no constitutivo de salario de conformidad con la normativa laboral vigente</>);
+          if (tieneComision) partes.push(<>Y unas comisiones mensuales promedio de <strong>{form.ingresos_adicionales}</strong></>);
+          return (
+            <p style={sr({ textAlign: 'justify', margin: '0 0 28pt' })}>
+              {partes.map((parte, i) => (
+                <span key={i}>{i > 0 && i < partes.length - 1 ? ', ' : i > 0 ? ' ' : ''}{parte}</span>
+              ))}.
+            </p>
+          );
+        })()}
 
         <p style={sr({ margin: '0 0 4pt' })}>Cordialmente,</p>
 
