@@ -438,7 +438,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <p style={{
-          fontFamily: sans, fontSize: '5.5pt', color: '#9ca3af',
+          fontFamily: sans, fontSize: '3.3pt', color: '#9ca3af',
           margin: 0, whiteSpace: 'nowrap', letterSpacing: '1.2pt',
           transform: 'rotate(90deg)',
           transformOrigin: 'center center',
