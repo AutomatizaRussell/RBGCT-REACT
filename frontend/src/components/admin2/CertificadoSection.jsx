@@ -447,7 +447,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
       <div style={{ padding: '25.4mm 35mm 0 25.4mm' }}>
         {/* Logo pequeño arriba a la derecha */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10mm' }}>
-          <img src={logoRB} alt="Russell Bedford" style={{ height: '28pt', width: 'auto', objectFit: 'contain' }} />
+          <img src={logoRB} alt="Russell Bedford" style={{ height: '42pt', width: 'auto', objectFit: 'contain' }} />
         </div>
         {/* Fecha izquierda — Consecutivo derecha */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -467,61 +467,45 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
 
         {/* Destinatario */}
         <div style={{ marginBottom: '18pt' }}>
-          <p style={sr({ margin: 0, color: '#374151' })}>Señores</p>
+          <p style={sr({ margin: 0, color: '#111' })}>Señores</p>
           <p style={sr({ margin: '1pt 0 0', fontWeight: '700', textTransform: 'uppercase' })}>
             {form.destinatario || 'A QUIEN CORRESPONDA'}
           </p>
           {form.tipo_entidad && (
-            <p style={sr({ margin: 0, fontSize: '10pt', color: '#6b7280', fontStyle: 'italic' })}>
+            <p style={sr({ margin: 0, fontSize: '10pt', color: '#374151' })}>
               {form.tipo_entidad}
             </p>
           )}
-          <p style={sr({ margin: '1pt 0 0', color: '#374151' })}>Ciudad</p>
+          <p style={sr({ margin: '1pt 0 0', color: '#111' })}>Ciudad</p>
         </div>
-
-        {/* Asunto */}
-        <p style={sr({ margin: '0 0 18pt', color: '#111' })}>
-          <strong>Asunto:</strong> Certificación laboral
-        </p>
 
         {/* Párrafo principal */}
         <p style={sr({ textAlign: 'justify', margin: '0 0 14pt' })}>
-          La suscrita empresa, <strong>{empresa}</strong>
-          {form.nit_empresa ? <>, con NIT <strong>{form.nit_empresa}</strong>,</> : ','} hace
-          constar que el/la señor(a) <strong>{(nombreEmp || '').toUpperCase()}</strong>,
-          identificado(a) con {tipoDoc} N.° <strong>{numDoc}</strong>, se encuentra
-          vinculado(a) laboralmente con nuestra organización desde
-          el <strong>{fechaIngreso}</strong>, mediante contrato de{' '}
+          Certificamos que el/la señor(a) <strong>{(nombreEmp || '').toUpperCase()}</strong>,
+          identificado(a) con {tipoDoc === 'C.C.' ? 'cédula de ciudadanía' : tipoDoc === 'C.E.' ? 'cédula de extranjería' : tipoDoc} No <strong>{numDoc}</strong>,
+          labora en <strong>{empresa}</strong>
+          {form.nit_empresa ? <> con Nit. <strong>{form.nit_empresa}</strong></> : ''},
+          desde el <strong>{fechaIngreso}</strong>, con contrato a{' '}
           <strong>{form.tipo_contrato || '[TIPO DE CONTRATO]'}</strong>, desempeñando
-          el cargo de <strong>{cargo}</strong>
-          {area ? <> en el área de <strong>{area.toUpperCase()}</strong></> : ''}.
+          el cargo de <strong>{cargo}</strong>.
         </p>
 
-        {/* Párrafo salario */}
-        {form.incluir_salario === 'Sí' && (
-          <p style={sr({ textAlign: 'justify', margin: '0 0 14pt' })}>
-            Su remuneración mensual corresponde a <strong>{form.salario && form.salario.trim() ? salarioText : '($2.000.000 COP)'}</strong>
-            {form.auxilio_transporte === 'Sí'
-              ? ', más auxilio de transporte de conformidad con la normativa laboral vigente'
-              : ''}
-            {form.ingresos_adicionales ? `; ${form.ingresos_adicionales}` : ''}.
+        {/* Párrafo salario / auxilio / comisiones */}
+        {(form.incluir_salario === 'Sí' || form.auxilio_transporte === 'Sí' || form.ingresos_adicionales) && (
+          <p style={sr({ textAlign: 'justify', margin: '0 0 28pt' })}>
+            {form.incluir_salario === 'Sí' && (
+              <>Devenga un salario mensual de <strong>{form.salario && form.salario.trim() ? salarioText : '[SALARIO]'}</strong></>
+            )}
+            {form.auxilio_transporte === 'Sí' && (
+              <>, un auxilio para medio de transporte no constitutivo de salario de conformidad con la normativa laboral vigente</>
+            )}
+            {form.ingresos_adicionales && (
+              <> Y unas comisiones mensuales promedio de <strong>{form.ingresos_adicionales}</strong></>
+            )}.
           </p>
         )}
 
-        {form.incluir_salario !== 'Sí' && form.auxilio_transporte === 'Sí' && (
-          <p style={sr({ textAlign: 'justify', margin: '0 0 14pt' })}>
-            Recibe auxilio de transporte de conformidad con la normativa laboral vigente
-            {form.ingresos_adicionales ? `; ${form.ingresos_adicionales}` : ''}.
-          </p>
-        )}
-
-        {/* Cierre */}
-        <p style={sr({ textAlign: 'justify', margin: '0 0 28pt' })}>
-          La presente certificación se expide a solicitud del interesado(a) para los
-          fines que estime pertinentes.
-        </p>
-
-        <p style={sr({ margin: '0 0 4pt' })}>Atentamente,</p>
+        <p style={sr({ margin: '0 0 4pt' })}>Cordialmente,</p>
 
         {/* ── Bloque de firma ── */}
         <div style={{ marginTop: '10pt', width: '95mm' }}>
