@@ -183,11 +183,16 @@ const UserTable = () => {
       console.log('[SAVE EDIT] permitir_edicion_datos:', editFormData.permitir_edicion_datos);
       await updateEmpleado(editingUser.id_empleado, editFormData);
       invalidate('empleados');
-      await setCertPermisoBackend(editingUser.id_empleado, certPermEdit);
-      setCertPermisosBackend(prev => certPermEdit
-        ? [...new Set([...prev, String(editingUser.id_empleado)])]
-        : prev.filter(x => x !== String(editingUser.id_empleado))
-      );
+
+      // Seguridad: solo SuperAdmin puede modificar permisos de certificados.
+      if (isSuperAdmin) {
+        await setCertPermisoBackend(editingUser.id_empleado, certPermEdit);
+        setCertPermisosBackend(prev => certPermEdit
+          ? [...new Set([...prev, String(editingUser.id_empleado)])]
+          : prev.filter(x => x !== String(editingUser.id_empleado))
+        );
+      }
+
       await fetchUsers();
       setEditingUser(null);
       alert('Perfil actualizado correctamente');
@@ -823,19 +828,21 @@ const UserTable = () => {
                   </label>
                 </div>
 
-                {/* Toggle para expedir certificados */}
-                <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                  <input
-                    type="checkbox"
-                    id="expedir_cert"
-                    checked={certPermEdit}
-                    onChange={(e) => setCertPermEdit(e.target.checked)}
-                    className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
-                  />
-                  <label htmlFor="expedir_cert" className="text-sm font-medium text-emerald-900 cursor-pointer">
-                    Puede expedir certificados de empleo
-                  </label>
-                </div>
+                {/* Toggle para expedir certificados: solo SuperAdmin */}
+                {isSuperAdmin && (
+                  <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <input
+                      type="checkbox"
+                      id="expedir_cert"
+                      checked={certPermEdit}
+                      onChange={(e) => setCertPermEdit(e.target.checked)}
+                      className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
+                    />
+                    <label htmlFor="expedir_cert" className="text-sm font-medium text-emerald-900 cursor-pointer">
+                      Puede expedir certificados de empleo
+                    </label>
+                  </div>
+                )}
               </div>
 
               {/* SECCIÓN: SEGURIDAD - Solo visible para SuperAdmin */}

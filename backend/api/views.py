@@ -110,6 +110,27 @@ def _post_n8n_async(destinatario, payload, workflow_name):
     t.start()
 
 
+def _es_superadmin(user):
+    return isinstance(user, SuperAdmin) or getattr(user, '_is_superadmin', False)
+
+
+def _es_empleado(user):
+    return isinstance(user, DatosEmpleado) or getattr(user, '_is_empleado', False)
+
+
+def _empleado_activo_con_permiso_cert(user):
+    if not _es_empleado(user):
+        return False
+    if getattr(user, 'estado', None) != 'ACTIVA':
+        return False
+    permisos = {str(x) for x in _leer_cert_permisos()}
+    return str(user.id_empleado) in permisos
+
+
+def _puede_gestionar_certificados(user):
+    return _es_superadmin(user) or _empleado_activo_con_permiso_cert(user)
+
+
 def enviar_email_verificacion(email, codigo, password=None, nombre=None):
     """Envía credenciales de bienvenida vía n8n; fallback SMTP si falla."""
     if not settings.N8N_WEBHOOK_URL:
@@ -3364,13 +3385,16 @@ def gestor_pdf(request):
 # =============================================================================
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def enviar_certificado_empleo(request):
     """
     Recibe los datos del certificado desde el frontend,
     genera el HTML y lo envía por correo usando el flujo n8n existente.
     NO modifica ningún flujo existente — usa workflow_name propio.
     """
+    if not _puede_gestionar_certificados(request.user):
+        return Response({'error': 'No tienes permisos para expedir certificados.'}, status=403)
+
     data            = request.data
     email_destino   = data.get('email_destino', '').strip()
     nombre_empleado = data.get('nombre_empleado', '')
@@ -3551,10 +3575,18 @@ def _guardar_solicitudes(data):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def crear_solicitud_cert(request):
     try:
+        if not _es_empleado(request.user) or getattr(request.user, 'estado', None) != 'ACTIVA':
+            return Response({'error': 'Solo empleados activos pueden crear solicitudes.'}, status=403)
+
         d = request.data
+        id_solicitante = str(request.user.id_empleado)
+        id_payload = str(d.get('id_empleado', '')).strip()
+        if id_payload and id_payload != id_solicitante:
+            return Response({'error': 'No puedes crear solicitudes para otro empleado.'}, status=403)
+
         solicitud = {
             'id':         str(uuid.uuid4())[:8],
             'estado':     'pendiente',
@@ -3571,8 +3603,8 @@ def crear_solicitud_cert(request):
                 'numero_documento':   d.get('numero_documento', ''),
                 'nombre_cargo':       d.get('nombre_cargo', ''),
                 'fecha_ingreso':      d.get('fecha_ingreso', ''),
-                'correo_corporativo': d.get('correo_corporativo', ''),
-                'id_empleado':        d.get('id_empleado', ''),
+                'correo_corporativo': d.get('correo_corporativo') or request.user.correo_corporativo,
+                'id_empleado':        id_solicitante,
             },
         }
         lista = _leer_solicitudes()
@@ -3585,17 +3617,23 @@ def crear_solicitud_cert(request):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def listar_solicitudes_cert(request):
+    if not _puede_gestionar_certificados(request.user):
+        return Response({'error': 'No tienes permisos para ver solicitudes de certificado.'}, status=403)
+
     lista = _leer_solicitudes()
     pendientes = [s for s in lista if s.get('estado') == 'pendiente']
     return Response({'solicitudes': pendientes, 'total': len(pendientes)})
 
 
 @api_view(['PATCH'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def atender_solicitud_cert(request, solicitud_id):
     try:
+        if not _puede_gestionar_certificados(request.user):
+            return Response({'error': 'No tienes permisos para gestionar solicitudes de certificado.'}, status=403)
+
         accion = request.data.get('accion', 'rechazar')
         lista  = _leer_solicitudes()
         for s in lista:
@@ -3639,28 +3677,55 @@ def _guardar_cert_permisos(data):
 
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def get_cert_permisos(request):
-    return Response({'permisos': _leer_cert_permisos()})
+    lista = [str(x) for x in _leer_cert_permisos()]
+
+    # SuperAdmin puede administrar toda la lista.
+    if _es_superadmin(request.user):
+        return Response({'permisos': lista})
+
+    # Empleados solo conocen su propio permiso.
+    if _es_empleado(request.user):
+        mi_id = str(request.user.id_empleado)
+        return Response({'permisos': [mi_id] if mi_id in lista else []})
+
+    return Response({'permisos': []})
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def set_cert_permiso(request):
     try:
+        if not _es_superadmin(request.user):
+            return Response({'error': 'Solo SuperAdmin puede modificar permisos de certificado.'}, status=403)
+
         id_empleado = request.data.get('id_empleado')
         value = request.data.get('value', False)
         if id_empleado is None:
             return Response({'error': 'id_empleado requerido'}, status=400)
-        lista = _leer_cert_permisos()
-        id_str = str(id_empleado)
-        if value:
-            if id_str not in [str(x) for x in lista]:
+
+        try:
+            emp = DatosEmpleado.objects.only('id_empleado').get(id_empleado=id_empleado)
+        except DatosEmpleado.DoesNotExist:
+            return Response({'error': 'Empleado no encontrado'}, status=404)
+
+        lista = [str(x) for x in _leer_cert_permisos()]
+        id_str = str(emp.id_empleado)
+
+        if isinstance(value, str):
+            habilitar = value.strip().lower() in {'1', 'true', 't', 'si', 'sí', 'yes', 'on'}
+        else:
+            habilitar = bool(value)
+
+        if habilitar:
+            if id_str not in lista:
                 lista.append(id_str)
         else:
-            lista = [x for x in lista if str(x) != id_str]
+            lista = [x for x in lista if x != id_str]
+
         _guardar_cert_permisos(lista)
-        return Response({'ok': True})
+        return Response({'ok': True, 'permisos': lista})
     except Exception as e:
         logger.error(f'[cert_permisos] Error: {e}')
         return Response({'error': str(e)}, status=500)
