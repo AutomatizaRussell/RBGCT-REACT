@@ -426,7 +426,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
   return (
     <div className="certificado-preview" style={{
       width: '215.9mm', minHeight: '279.4mm', backgroundColor: '#fff',
-      color: '#111', fontFamily: serif, fontSize: '9.5pt', lineHeight: '1.6',
+      color: '#111', fontFamily: serif, fontSize: '8pt', lineHeight: '1.55',
       boxShadow: '0 0 0 1px #e5e7eb, 0 8px 32px rgba(0,0,0,0.10)',
       position: 'relative',
     }}>
@@ -449,19 +449,24 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
         </p>
       </div>
 
-      {/* ── Membrete ─────────────────────────────────────────────── */}
-      <div style={{ padding: '25.4mm 35mm 0 25.4mm' }}>
-        {/* Logo pequeño arriba a la derecha */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10mm' }}>
-          <img src={logoRB} alt="Russell Bedford" style={{ height: '42pt', width: 'auto', objectFit: 'contain' }} />
-        </div>
-        {/* Fecha izquierda — Consecutivo derecha */}
+      {/* ── Logo absoluto esquina superior derecha ───────────────── */}
+      <img
+        src={logoRB}
+        alt="Russell Bedford"
+        style={{
+          position: 'absolute', top: '14mm', right: '12mm',
+          height: '38pt', width: 'auto', objectFit: 'contain',
+        }}
+      />
+
+      {/* ── Membrete (solo fecha y consecutivo) ──────────────────── */}
+      <div style={{ padding: '25.4mm 35mm 0 25.4mm', marginBottom: '10mm' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <p style={sn({ margin: 0, fontSize: '8.5pt', color: '#374151' })}>
+          <p style={sn({ margin: 0, fontSize: '8pt', color: '#374151' })}>
             Medellín, {form.fecha}
           </p>
           {form.consecutivo && (
-            <p style={sn({ margin: 0, fontSize: '9pt', fontWeight: '700', color: '#111', letterSpacing: '1pt' })}>
+            <p style={sn({ margin: 0, fontSize: '8pt', fontWeight: '700', color: '#111', letterSpacing: '1pt' })}>
               {form.consecutivo}
             </p>
           )}
