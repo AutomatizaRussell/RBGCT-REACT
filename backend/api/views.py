@@ -186,6 +186,136 @@ def _persistir_ejecuciones_n8n_async(executions):
     t.start()
 
 
+def _convertir_tabla_a_markdown(headers, rows):
+    """Convierte una tabla simple a markdown sin dependencias externas."""
+    headers = [str(h) if h is not None else '' for h in headers]
+    md = [
+        '| ' + ' | '.join(headers) + ' |',
+        '| ' + ' | '.join(['---'] * len(headers)) + ' |',
+    ]
+    for row in rows:
+        vals = [str(v) if v is not None else '' for v in row]
+        md.append('| ' + ' | '.join(vals) + ' |')
+    return '\n'.join(md)
+
+
+def _extraer_html_texto_simple(html_content):
+    from html.parser import HTMLParser
+
+    class _HTMLTextExtractor(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.parts = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag in ('p', 'div', 'h1', 'h2', 'h3', 'h4', 'li', 'br'):
+                self.parts.append('\n')
+
+        def handle_data(self, data):
+            text = (data or '').strip()
+            if text:
+                self.parts.append(text)
+
+    parser = _HTMLTextExtractor()
+    parser.feed(html_content)
+    txt = ' '.join(parser.parts)
+    txt = '\n'.join([line.strip() for line in txt.split('\n') if line.strip()])
+    return txt
+
+
+def _convertir_markdown_fallback(tmp_input_path, ext):
+    """
+    Fallback sin MarkItDown para tipos comunes.
+    Retorna texto markdown.
+    """
+    ext = (ext or '').lower()
+
+    if ext == '.txt':
+        with open(tmp_input_path, 'r', encoding='utf-8', errors='ignore') as f:
+            return f.read()
+
+    if ext == '.json':
+        with open(tmp_input_path, 'r', encoding='utf-8', errors='ignore') as f:
+            data = json.load(f)
+        return '```json\n' + json.dumps(data, ensure_ascii=False, indent=2) + '\n```'
+
+    if ext == '.xml':
+        import xml.dom.minidom as minidom
+        with open(tmp_input_path, 'r', encoding='utf-8', errors='ignore') as f:
+            raw = f.read()
+        try:
+            pretty = minidom.parseString(raw).toprettyxml(indent='  ')
+            return '```xml\n' + pretty + '\n```'
+        except Exception:
+            return '```xml\n' + raw + '\n```'
+
+    if ext == '.html':
+        with open(tmp_input_path, 'r', encoding='utf-8', errors='ignore') as f:
+            html = f.read()
+        return _extraer_html_texto_simple(html)
+
+    if ext == '.pdf':
+        try:
+            from pypdf import PdfReader
+        except ImportError as e:
+            raise RuntimeError('pypdf no instalado para fallback PDF') from e
+
+        reader = PdfReader(tmp_input_path)
+        chunks = []
+        for i, page in enumerate(reader.pages, start=1):
+            text = (page.extract_text() or '').strip()
+            if not text:
+                continue
+            chunks.append(f'## Página {i}\n\n{text}')
+        return '\n\n'.join(chunks).strip() or 'No se pudo extraer texto del PDF.'
+
+    if ext in ('.docx', '.doc'):
+        try:
+            from docx import Document
+        except ImportError as e:
+            raise RuntimeError('python-docx no instalado para fallback DOCX') from e
+
+        doc = Document(tmp_input_path)
+        parts = []
+        for para in doc.paragraphs:
+            txt = (para.text or '').strip()
+            if txt:
+                parts.append(txt)
+        return '\n\n'.join(parts).strip() or 'No se encontró texto en el documento.'
+
+    if ext in ('.xlsx', '.xls'):
+        try:
+            import pandas as pd
+        except ImportError as e:
+            raise RuntimeError('pandas/openpyxl no instalado para fallback XLSX') from e
+
+        xls = pd.ExcelFile(tmp_input_path)
+        secciones = []
+        for sheet_name in xls.sheet_names:
+            df = pd.read_excel(tmp_input_path, sheet_name=sheet_name)
+            if df.empty:
+                continue
+            headers = list(df.columns)
+            rows = df.fillna('').astype(str).values.tolist()
+            secciones.append(f'## Hoja: {sheet_name}\n\n' + _convertir_tabla_a_markdown(headers, rows[:500]))
+        return '\n\n'.join(secciones).strip() or 'No se encontró contenido en el archivo Excel.'
+
+    if ext == '.csv':
+        try:
+            import pandas as pd
+        except ImportError as e:
+            raise RuntimeError('pandas no instalado para fallback CSV') from e
+
+        df = pd.read_csv(tmp_input_path)
+        if df.empty:
+            return 'CSV vacío.'
+        headers = list(df.columns)
+        rows = df.fillna('').astype(str).values.tolist()
+        return _convertir_tabla_a_markdown(headers, rows[:1000])
+
+    raise RuntimeError(f'Fallback no soporta extensión {ext}')
+
+
 def _es_superadmin(user):
     return isinstance(user, SuperAdmin) or getattr(user, '_is_superadmin', False)
 
@@ -2661,31 +2791,47 @@ def convertir_markdown(request):
         logger.info(f"[MARKITDOWN] Archivo guardado: {tmp_input_path}")
         
         try:
-            # Intentar usar markitdown como módulo Python
+            markdown = None
+            engine = None
+
+            # Intentar usar markitdown como módulo Python.
             try:
                 from markitdown import MarkItDown
                 md = MarkItDown()
                 result = md.convert(tmp_input_path)
                 markdown = result.text_content
+                engine = 'markitdown'
                 logger.info("[MARKITDOWN] Usando módulo Python markitdown")
             except ImportError:
-                # Fallback: usar subprocess con python -m
+                logger.warning("[MARKITDOWN] Módulo no disponible, usando fallback nativo")
+            except Exception as e:
+                logger.warning(f"[MARKITDOWN] Conversión con módulo falló: {e}")
+
+            # Fallback: ejecutar CLI.
+            if not markdown:
                 import subprocess
                 import sys
-                
-                logger.info("[MARKITDOWN] Intentando usar python -m markitdown")
-                
-                resultado = subprocess.run(
-                    [sys.executable, '-m', 'markitdown', tmp_input_path],
-                    capture_output=True,
-                    text=True,
-                    timeout=60
-                )
-                
-                if resultado.returncode != 0:
-                    raise Exception(f"markitdown error: {resultado.stderr}")
-                
-                markdown = resultado.stdout
+                try:
+                    logger.info("[MARKITDOWN] Intentando usar python -m markitdown")
+                    resultado = subprocess.run(
+                        [sys.executable, '-m', 'markitdown', tmp_input_path],
+                        capture_output=True,
+                        text=True,
+                        timeout=60
+                    )
+                    if resultado.returncode == 0:
+                        markdown = resultado.stdout
+                        engine = 'markitdown-cli'
+                    else:
+                        logger.warning(f"[MARKITDOWN] CLI falló: {resultado.stderr}")
+                except Exception as e:
+                    logger.warning(f"[MARKITDOWN] CLI no disponible: {e}")
+
+            # Fallback nativo de backend para formatos comunes.
+            if not markdown:
+                markdown = _convertir_markdown_fallback(tmp_input_path, ext)
+                engine = 'fallback'
+                logger.info(f"[MARKITDOWN] Conversión fallback usada para {ext}")
             
             # Limpiar archivo temporal
             try:
@@ -2699,7 +2845,8 @@ def convertir_markdown(request):
                 'extension': ext,
                 'tamaño_bytes': archivo.size,
                 'lineas_markdown': len(markdown.split('\n')),
-                'caracteres': len(markdown)
+                'caracteres': len(markdown),
+                'engine': engine,
             }
             
             logger.info(f"[MARKITDOWN] Conversión exitosa: {archivo.name}")
@@ -2721,10 +2868,17 @@ def convertir_markdown(request):
             
             if 'markitdown' in error_msg.lower() or 'module' in error_msg.lower():
                 return Response({
-                    'error': 'MarkItDown no está instalado correctamente',
+                    'error': 'No se pudo convertir el archivo con MarkItDown ni con fallback',
                     'detalle': error_msg,
-                    'instrucciones': 'Ejecutar: pip install markitdown'
+                    'instrucciones': 'Instala dependencias y reinicia backend: pip install -r backend/requirements.txt'
                 }, status=503)
+
+            if 'Fallback no soporta extensión' in error_msg:
+                return Response({
+                    'error': 'Tipo de archivo no soportado sin MarkItDown',
+                    'detalle': error_msg,
+                    'instrucciones': 'Instala MarkItDown para convertir este tipo de archivo'
+                }, status=422)
             
             return Response({
                 'error': 'Error al convertir archivo',
