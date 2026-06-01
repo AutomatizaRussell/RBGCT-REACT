@@ -433,18 +433,19 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
 
       {/* ── Franja vertical derecha ───────────────────────────────── */}
       <div style={{
-        position: 'absolute', top: '14mm', right: 0,
-        width: '10mm', height: 'calc(100% - 14mm)',
+        position: 'absolute', top: '25.4mm', right: 0,
+        width: '10mm', height: '254mm',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
       }}>
         <p style={{
           fontFamily: sans, fontSize: '3.3pt', color: '#9ca3af',
           margin: 0, whiteSpace: 'nowrap', letterSpacing: '1.2pt',
-          transform: 'rotate(90deg)',
-          transformOrigin: 'center center',
+          writingMode: 'vertical-rl',
+          transform: 'rotate(180deg)',
         }}>
           CRA. 48 NO. 20 - 114 OFICINA 932 TORRE 2&nbsp;&nbsp;CENTRO EMPRESARIAL CIUDAD DEL RÍO&nbsp;&nbsp;PBX (574) 444 8883&nbsp;&nbsp;
-          <span style={{ color: '#001871', fontWeight: '700' }}>MEDELLÍN, COLOMBIA</span>
+          <span style={{ color: '#374151', fontWeight: '700' }}>MEDELLÍN, COLOMBIA</span>
           &nbsp;&nbsp;@RUSSELLBEDFORD.COM.CO&nbsp;&nbsp;WWW.RUSSELLBEDFORD.COM.CO
         </p>
       </div>
