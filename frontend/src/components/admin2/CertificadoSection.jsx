@@ -433,8 +433,8 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
 
       {/* ── Franja vertical derecha ───────────────────────────────── */}
       <div style={{
-        position: 'absolute', top: '25.4mm', right: 0,
-        width: '10mm', height: '254mm',
+        position: 'absolute', top: '17.8mm', right: 0,
+        width: '10mm', height: '261.6mm',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
@@ -442,7 +442,6 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
           fontFamily: sans, fontSize: '3.3pt', color: '#9ca3af',
           margin: 0, whiteSpace: 'nowrap', letterSpacing: '1.2pt',
           writingMode: 'vertical-rl',
-          transform: 'rotate(180deg)',
         }}>
           CRA. 48 NO. 20 - 114 OFICINA 932 TORRE 2&nbsp;&nbsp;CENTRO EMPRESARIAL CIUDAD DEL RÍO&nbsp;&nbsp;PBX (574) 444 8883&nbsp;&nbsp;
           <span style={{ color: '#374151', fontWeight: '700' }}>MEDELLÍN, COLOMBIA</span>
@@ -536,17 +535,17 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
           {/* Línea */}
           <div style={{ borderTop: '1pt solid #9ca3af', marginTop: '5pt', marginBottom: '7pt' }} />
           {/* Datos */}
-          <p style={sn({ margin: '0 0 2pt', fontSize: '9.5pt', fontWeight: '700', textTransform: 'uppercase', color: '#111' })}>
+          <p style={sn({ margin: '0 0 2pt', fontSize: '8pt', fontWeight: '700', textTransform: 'uppercase', color: '#111' })}>
             {form.firmante_nombre}
           </p>
-          <p style={sn({ margin: '0 0 2pt', fontSize: '9pt', color: '#374151' })}>
+          <p style={sn({ margin: '0 0 2pt', fontSize: '8pt', color: '#374151' })}>
             {form.firmante_cargo}
           </p>
-          <p style={sn({ margin: '0 0 2pt', fontSize: '9pt', fontWeight: '700', color: '#111', textTransform: 'uppercase' })}>
+          <p style={sn({ margin: '0 0 2pt', fontSize: '8pt', fontWeight: '700', color: '#111', textTransform: 'uppercase' })}>
             {empresa}
           </p>
           {form.firmante_cc && (
-            <p style={sn({ margin: 0, fontSize: '8.5pt', color: '#6b7280' })}>
+            <p style={sn({ margin: 0, fontSize: '8pt', color: '#374151' })}>
               C.C. {form.firmante_cc}
             </p>
           )}
