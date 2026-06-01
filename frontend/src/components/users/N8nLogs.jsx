@@ -86,13 +86,14 @@ const N8nLogs = () => {
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
-  // Auto-refresh 60s (solo cuando la pestaña está visible)
+  // Auto-refresh 120s (solo cuando la pestaña está visible)
   useEffect(() => {
+    const AUTO_REFRESH_MS = 120000;
     const tick = () => {
       if (document.visibilityState === 'visible') fetchLogs();
     };
 
-    const t = setInterval(tick, 60000);
+    const t = setInterval(tick, AUTO_REFRESH_MS);
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') fetchLogs();
     };

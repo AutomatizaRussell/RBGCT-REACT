@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import {
-  getAllTareas,
+  getResumenTareas,
   getActividadReciente,
   getAlertasRecuperacion,
   atenderAlerta,
@@ -80,15 +80,17 @@ const Admin2Dashboard = () => {
 
   const fetchStats = useCallback(async () => {
     try {
-      const [empleados, tareas] = await Promise.all([fetchEmpleados(), getAllTareas()]);
+      const [empleados, tareasResumen] = await Promise.all([fetchEmpleados(), getResumenTareas()]);
       const activos = empleados.filter(e => e.estado === 'ACTIVA');
       setEmployeeStats({ totalCount: empleados.length, activeCount: activos.length, loading: false });
 
       // Tareas
-      const pending    = tareas.filter(t => t.estado === 'pendiente').length;
-      const inProgress = tareas.filter(t => t.estado === 'en_proceso').length;
-      const completed  = tareas.filter(t => t.estado === 'completada').length;
-      setTaskStats({ pending, inProgress, completed, total: tareas.length });
+      setTaskStats({
+        pending: tareasResumen?.pendiente || 0,
+        inProgress: tareasResumen?.en_proceso || 0,
+        completed: tareasResumen?.completada || 0,
+        total: tareasResumen?.total || 0,
+      });
 
       // Distribución por área
       const areaMap = {};

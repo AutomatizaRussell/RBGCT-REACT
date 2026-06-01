@@ -1,6 +1,7 @@
 import jwt as pyjwt
 import uuid
 import os
+import hashlib
 from datetime import datetime
 
 from django.db import models as django_models
@@ -9,7 +10,7 @@ from rest_framework.decorators import action, api_view, permission_classes, thro
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.response import Response
-from django.db.models import Q
+from django.db.models import Q, Count
 import bcrypt
 import json
 import logging
@@ -32,6 +33,22 @@ logger = logging.getLogger(__name__)
 # Cache keys para endpoints consultados frecuentemente por dashboards
 CACHE_KEY_ACTIVIDAD_RECIENTE = 'api:actividad_reciente:v1'
 CACHE_KEY_ALERTAS_RECUPERACION = 'api:alertas_recuperacion:v1'
+
+
+def _safe_env_int(name, default, min_value=1, max_value=3600):
+    """Lee entero de entorno con límites seguros."""
+    try:
+        value = int(os.getenv(name, default))
+    except (TypeError, ValueError):
+        value = default
+    return max(min_value, min(max_value, value))
+
+
+ACTIVIDAD_RECIENTE_MAX_ITEMS = _safe_env_int('ACTIVIDAD_RECIENTE_MAX_ITEMS', 150, 20, 500)
+ALERTAS_RECIENTES_MAX_ITEMS = _safe_env_int('ALERTAS_RECIENTES_MAX_ITEMS', 200, 20, 1000)
+N8N_STATUS_CACHE_TTL = _safe_env_int('N8N_STATUS_CACHE_TTL', 20, 5, 300)
+N8N_EXECUTIONS_CACHE_TTL = _safe_env_int('N8N_EXECUTIONS_CACHE_TTL', 15, 5, 180)
+N8N_FAILURE_COOLDOWN = _safe_env_int('N8N_FAILURE_COOLDOWN', 20, 5, 300)
 
 def get_usuario_nombre(user):
     """Obtiene el nombre del usuario (Django User o DatosEmpleado)"""
@@ -107,6 +124,63 @@ def _post_n8n_async(destinatario, payload, workflow_name):
     t = threading.Thread(
         target=_post_n8n,
         args=(destinatario, payload, workflow_name),
+        daemon=True,
+    )
+    t.start()
+
+
+def _duracion_ejecucion_segundos(execution):
+    """Calcula duración de ejecución n8n de forma segura."""
+    started_at = execution.get('startedAt')
+    stopped_at = execution.get('stoppedAt')
+    if not started_at or not stopped_at:
+        return None
+    try:
+        started_dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+        stopped_dt = datetime.fromisoformat(stopped_at.replace('Z', '+00:00'))
+        return max(0, round((stopped_dt - started_dt).total_seconds()))
+    except Exception:
+        return None
+
+
+def _persistir_ejecuciones_n8n(executions):
+    """
+    Persiste ejecuciones de n8n sin bloquear el request principal.
+    Usa cache para deduplicar por execution id y evitar consultas SQL costosas.
+    """
+    for ex in executions:
+        try:
+            exec_id = str(ex.get('id') or '')
+            if not exec_id:
+                continue
+
+            dedupe_key = f'api:n8n:exec-sync:{exec_id}'
+            if cache.get(dedupe_key):
+                continue
+
+            wf_name = ex.get('workflowData', {}).get('name') or f"Workflow #{ex.get('workflowId', '?')}"
+            ok = ex.get('status') in ('success',)
+            duracion = _duracion_ejecucion_segundos(ex)
+            msg = f"Duración: {duracion}s" if duracion is not None else ex.get('status', '')
+
+            N8nLog.objects.create(
+                workflow_name=wf_name,
+                status='SUCCESS' if ok else 'ERROR',
+                message=msg,
+                tipo_evento=ex.get('mode', 'webhook'),
+                response_data=json.dumps({'exec_id': exec_id})[:200],
+            )
+            # Dedupe temporal en cache compartido.
+            cache.set(dedupe_key, True, timeout=86400)
+        except Exception as log_err:
+            logger.warning(f"[N8N SYNC] No se pudo persistir ejecución: {log_err}")
+
+
+def _persistir_ejecuciones_n8n_async(executions):
+    import threading
+    t = threading.Thread(
+        target=_persistir_ejecuciones_n8n,
+        args=(executions,),
         daemon=True,
     )
     t.start()
@@ -697,7 +771,9 @@ class SuperAdminViewSet(viewsets.ModelViewSet):
 
 
 class DatosEmpleadoViewSet(viewsets.ModelViewSet):
-    queryset = DatosEmpleado.objects.select_related('persona', 'persona__contacto', 'area', 'cargo').order_by('-estado', 'persona__primer_apellido', 'persona__primer_nombre')
+    queryset = DatosEmpleado.objects.select_related(
+        'persona', 'persona__contacto', 'area', 'cargo'
+    ).defer('password_hash').order_by('-estado', 'persona__primer_apellido', 'persona__primer_nombre')
     serializer_class = DatosEmpleadoSerializer
     permission_classes = [IsAuthenticated]
 
@@ -865,13 +941,12 @@ class TareasCalendarioViewSet(viewsets.ModelViewSet):
             'area_id': None,
         }
 
-    def get_queryset(self):
-        queryset = TareasCalendario.objects.select_related(
+    def _queryset_base(self):
+        return TareasCalendario.objects.select_related(
             'area', 'empleado__persona'
         ).order_by('fecha_vencimiento')
-        contexto = self._resolver_contexto_actor()
-        empleado_id = self.request.query_params.get('empleado_id')
 
+    def _filtrar_por_contexto(self, queryset, contexto):
         if not contexto['puede_gestionar_todo']:
             if contexto['rol'] == 'editor':
                 if contexto['area_id']:
@@ -882,6 +957,12 @@ class TareasCalendarioViewSet(viewsets.ModelViewSet):
                     queryset = queryset.filter(empleado_id=contexto['empleado_id'])
             else:
                 queryset = queryset.filter(empleado_id=contexto['empleado_id'])
+        return queryset
+
+    def get_queryset(self):
+        contexto = self._resolver_contexto_actor()
+        queryset = self._filtrar_por_contexto(self._queryset_base(), contexto)
+        empleado_id = self.request.query_params.get('empleado_id')
 
         if empleado_id:
             try:
@@ -890,6 +971,37 @@ class TareasCalendarioViewSet(viewsets.ModelViewSet):
                 queryset = queryset.none()
 
         return queryset
+
+    @action(detail=False, methods=['get'])
+    def resumen(self, request):
+        """
+        Resumen de tareas por estado.
+        Diseñado para dashboards sin traer todas las tareas.
+        """
+        contexto = self._resolver_contexto_actor()
+        agregados = (
+            self._filtrar_por_contexto(TareasCalendario.objects.all(), contexto)
+            .values('estado')
+            .annotate(total=Count('id'))
+        )
+
+        resumen = {
+            'pendiente': 0,
+            'en_proceso': 0,
+            'completada': 0,
+            'cancelada': 0,
+            'total': 0,
+            'filtro_aplicado': contexto['rol'],
+        }
+
+        for row in agregados:
+            estado_nombre = row.get('estado')
+            total = int(row.get('total') or 0)
+            if estado_nombre in resumen:
+                resumen[estado_nombre] = total
+            resumen['total'] += total
+
+        return Response(resumen)
 
     def create(self, request, *args, **kwargs):
         contexto = self._resolver_contexto_actor()
@@ -1568,33 +1680,53 @@ def actividad_reciente(request):
     
     from django.db.models import Q
     
-    # Empleados activos (últimos 10 min) - usando ultima_actividad
-    # Solo usuarios con actividad real reciente se consideran "en línea"
-    activos = list(DatosEmpleado.objects.filter(
-        ultima_actividad__gte=limite_activo,
-        estado='ACTIVA'
-    ).select_related('persona').order_by('-ultima_actividad'))
-    
+    # Empleados activos (últimos 10 min) - limitados para evitar respuestas gigantes.
+    activos = list(
+        DatosEmpleado.objects.filter(
+            ultima_actividad__gte=limite_activo,
+            estado='ACTIVA'
+        )
+        .select_related('persona')
+        .only(
+            'id_empleado', 'correo_corporativo', 'id_permisos', 'ultima_actividad',
+            'persona__primer_nombre', 'persona__primer_apellido'
+        )
+        .order_by('-ultima_actividad')[:ACTIVIDAD_RECIENTE_MAX_ITEMS]
+    )
+
     # Superadmins activos
-    admins_activos = list(SuperAdmin.objects.filter(
-        last_login__gte=limite_activo
-    ).order_by('-last_login'))
+    admins_activos = list(
+        SuperAdmin.objects.filter(last_login__gte=limite_activo)
+        .only('id', 'nombre', 'apellido', 'email', 'last_login')
+        .order_by('-last_login')[:ACTIVIDAD_RECIENTE_MAX_ITEMS]
+    )
     
     # Empleados recientes (últimas 24 horas, pero no en línea actualmente)
     # Incluye: actividad entre 10min y 24h, o sin actividad pero con fecha_ingreso reciente
-    recientes = list(DatosEmpleado.objects.filter(
-        Q(ultima_actividad__gte=limite_reciente, ultima_actividad__lt=limite_activo) |
-        Q(ultima_actividad__isnull=True, fecha_ingreso__gte=limite_reciente),
-        estado='ACTIVA'
-    ).exclude(
-        id_empleado__in=[emp.id_empleado for emp in activos]
-    ).select_related('persona').order_by('-ultima_actividad'))
+    recientes = list(
+        DatosEmpleado.objects.filter(
+            Q(ultima_actividad__gte=limite_reciente, ultima_actividad__lt=limite_activo) |
+            Q(ultima_actividad__isnull=True, fecha_ingreso__gte=limite_reciente),
+            estado='ACTIVA'
+        )
+        .exclude(id_empleado__in=[emp.id_empleado for emp in activos])
+        .select_related('persona')
+        .only(
+            'id_empleado', 'correo_corporativo', 'id_permisos', 'ultima_actividad',
+            'persona__primer_nombre', 'persona__primer_apellido'
+        )
+        .order_by('-ultima_actividad')[:ACTIVIDAD_RECIENTE_MAX_ITEMS]
+    )
     
     # Superadmins recientes
-    admins_recientes = list(SuperAdmin.objects.filter(
-        last_login__gte=limite_reciente,
-        last_login__lt=limite_activo
-    ).order_by('-last_login'))
+    admins_recientes = list(
+        SuperAdmin.objects.filter(
+            last_login__gte=limite_reciente,
+            last_login__lt=limite_activo
+        )
+        .only('id', 'nombre', 'apellido', 'email', 'last_login')
+        .order_by('-last_login')[:ACTIVIDAD_RECIENTE_MAX_ITEMS]
+    )
     
     def minutos_transcurridos(timestamp):
         if not timestamp:
@@ -1736,7 +1868,8 @@ def registrar_intento_recuperacion(request):
 @throttle_classes([UserRateThrottle])
 def get_alertas_recuperacion(request):
     """
-    Obtiene las alertas de recuperación de contraseña (últimas 24 horas)
+    Obtiene alertas de recuperación de contraseña pendientes (últimas 24 horas).
+    Se limita el volumen para evitar respuestas muy pesadas en dashboards.
     desde la base de datos PostgreSQL
     """
     cached = cache.get(CACHE_KEY_ALERTAS_RECUPERACION)
@@ -1749,16 +1882,24 @@ def get_alertas_recuperacion(request):
     
     limite = timezone.now() - timedelta(hours=24)
     
-    # Obtener alertas de las últimas 24 horas
+    # Solo pendientes para tablero operativo.
     alertas_query = Alerta.objects.filter(
         tipo='recuperacion_password',
-        fecha_creacion__gte=limite
+        fecha_creacion__gte=limite,
+        estado_alerta='pendiente',
     ).select_related(
         'empleado__persona',
-        'empleado__persona__contacto',
         'empleado__area',
         'empleado__cargo',
-    ).order_by('-fecha_creacion')
+    ).only(
+        'id', 'email_solicitante', 'nombre_solicitante', 'rol_solicitante',
+        'estado_alerta', 'usuario_existe', 'fecha_creacion',
+        'empleado__id_empleado', 'empleado__correo_corporativo', 'empleado__fecha_ingreso',
+        'empleado__estado',
+        'empleado__persona__primer_nombre', 'empleado__persona__segundo_nombre',
+        'empleado__persona__primer_apellido', 'empleado__persona__segundo_apellido',
+        'empleado__area__nombre_area', 'empleado__cargo__nombre_cargo',
+    ).order_by('-fecha_creacion')[:ALERTAS_RECIENTES_MAX_ITEMS]
     
     alertas_list = []
     for alerta in alertas_query:
@@ -2308,93 +2449,157 @@ def n8n_proxy(request):
       ?action=executions  → retorna historial de ejecuciones (requiere API key)
     """
     from django.conf import settings as django_settings
-
+    import time
 
     action = request.query_params.get('action', 'executions')
     sync_logs = request.query_params.get('sync', 'false').lower() == 'true'
     base_url = getattr(django_settings, 'N8N_BASE_URL', '')
-    api_key  = getattr(django_settings, 'N8N_WEBHOOK_API_KEY', '')
+    api_key = getattr(django_settings, 'N8N_WEBHOOK_API_KEY', '')
 
     if not base_url:
         return Response({'error': 'N8N_BASE_URL no configurado en el backend'}, status=503)
 
-    try:
-        if action == 'status':
-            start = __import__('time').time()
-            resp  = requests.get(f'{base_url}/healthz', timeout=3)
-            ms    = round((__import__('time').time() - start) * 1000)
-            return Response({
+    base_hash = hashlib.sha1(base_url.encode('utf-8')).hexdigest()[:10]
+
+    if action == 'status':
+        cache_key = f'api:n8n:status:v2:{base_hash}'
+        fail_key = f'{cache_key}:fail'
+        cached_payload = cache.get(cache_key)
+
+        # Si sabemos que n8n está fallando, devolvemos datos recientes sin golpear n8n.
+        if cached_payload and cache.get(fail_key):
+            return Response({**cached_payload, 'cached': True, 'stale': True})
+
+        try:
+            start = time.time()
+            resp = requests.get(f'{base_url}/healthz', timeout=(2, 3))
+            ms = round((time.time() - start) * 1000)
+            payload = {
                 'connected': resp.status_code in (200, 204),
                 'ping': ms,
                 'base_url': base_url,
-            })
+            }
+            cache.set(cache_key, payload, timeout=N8N_STATUS_CACHE_TTL)
+            cache.delete(fail_key)
+            return Response(payload)
+        except requests.exceptions.ConnectionError:
+            cache.set(fail_key, True, timeout=N8N_FAILURE_COOLDOWN)
+            if cached_payload:
+                return Response({
+                    **cached_payload,
+                    'cached': True,
+                    'stale': True,
+                    'warning': 'n8n no disponible; mostrando último estado exitoso',
+                })
+            return Response({'error': f'No se pudo conectar con n8n en {base_url}'}, status=503)
+        except requests.exceptions.Timeout:
+            cache.set(fail_key, True, timeout=N8N_FAILURE_COOLDOWN)
+            if cached_payload:
+                return Response({
+                    **cached_payload,
+                    'cached': True,
+                    'stale': True,
+                    'warning': 'n8n tardó en responder; mostrando último estado exitoso',
+                })
+            return Response({'error': 'n8n tardó demasiado en responder'}, status=504)
+        except Exception as e:
+            logger.error(f"[N8N PROXY] Error en status: {e}")
+            if cached_payload:
+                return Response({**cached_payload, 'cached': True, 'stale': True})
+            return Response({'error': 'Error interno consultando estado de n8n'}, status=500)
 
-        elif action == 'executions':
-            if not api_key:
-                return Response({'error': 'N8N_WEBHOOK_API_KEY no configurado'}, status=503)
+    if action == 'executions':
+        if not api_key:
+            return Response({'error': 'N8N_WEBHOOK_API_KEY no configurado'}, status=503)
 
-            status_filter = request.query_params.get('status')
-            limit = request.query_params.get('limit', 50)
-            try:
-                limit = int(limit)
-            except (TypeError, ValueError):
-                limit = 50
-            limit = max(1, min(limit, 100))
+        status_filter = request.query_params.get('status')
+        limit = request.query_params.get('limit', 50)
+        try:
+            limit = int(limit)
+        except (TypeError, ValueError):
+            limit = 50
+        limit = max(1, min(limit, 100))
 
-            if sync_logs and not _es_superadmin(request.user):
-                return Response(
-                    {'error': 'Solo SuperAdmin puede sincronizar logs de n8n'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+        if sync_logs and not _es_superadmin(request.user):
+            return Response(
+                {'error': 'Solo SuperAdmin puede sincronizar logs de n8n'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-            params = {'limit': limit}
-            if status_filter and status_filter.upper() != 'ALL':
-                params['status'] = status_filter.lower()
+        status_key = (status_filter or 'ALL').upper()
+        cache_key = f'api:n8n:executions:v2:{base_hash}:{status_key}:{limit}'
+        fail_key = f'{cache_key}:fail'
+        cached_payload = cache.get(cache_key)
 
+        # Durante cooldown de fallas, responder stale sin bloquear workers.
+        if cached_payload and cache.get(fail_key) and not sync_logs:
+            return Response({**cached_payload, 'cached': True, 'stale': True})
+
+        # Respuesta inmediata desde cache para evitar presión por polling.
+        if cached_payload and not sync_logs:
+            return Response({**cached_payload, 'cached': True})
+
+        params = {'limit': limit}
+        if status_filter and status_filter.upper() != 'ALL':
+            params['status'] = status_filter.lower()
+
+        try:
             resp = requests.get(
                 f'{base_url}/api/v1/executions',
                 headers={'X-N8N-API-KEY': api_key},
                 params=params,
-                timeout=6,
+                timeout=(3, 5),
             )
+        except requests.exceptions.ConnectionError:
+            cache.set(fail_key, True, timeout=N8N_FAILURE_COOLDOWN)
+            if cached_payload and not sync_logs:
+                return Response({
+                    **cached_payload,
+                    'cached': True,
+                    'stale': True,
+                    'warning': 'n8n no disponible; mostrando último resultado exitoso',
+                })
+            return Response({'error': f'No se pudo conectar con n8n en {base_url}'}, status=503)
+        except requests.exceptions.Timeout:
+            cache.set(fail_key, True, timeout=N8N_FAILURE_COOLDOWN)
+            if cached_payload and not sync_logs:
+                return Response({
+                    **cached_payload,
+                    'cached': True,
+                    'stale': True,
+                    'warning': 'n8n tardó en responder; mostrando último resultado exitoso',
+                })
+            return Response({'error': 'n8n tardó demasiado en responder'}, status=504)
 
-            if resp.status_code == 200:
-                raw  = resp.json()
-                execs = raw.get('data', raw) if isinstance(raw, dict) else raw
+        if resp.status_code != 200:
+            if cached_payload and not sync_logs:
+                return Response({
+                    **cached_payload,
+                    'cached': True,
+                    'stale': True,
+                    'warning': f'n8n devolvió HTTP {resp.status_code}; mostrando último resultado exitoso',
+                })
+            return Response({'error': f'n8n respondió con HTTP {resp.status_code}'}, status=resp.status_code)
 
-                # Persistencia opcional: evita carga extra en DB en cada refresco del dashboard.
-                saved = 0
-                if sync_logs:
-                    # Limitar escrituras por request para evitar sobrecarga.
-                    for ex in (execs if isinstance(execs, list) else [])[:100]:
-                        exec_id = str(ex.get('id', ''))
-                        if exec_id and not N8nLog.objects.filter(response_data__contains=f'"exec_id":"{exec_id}"').exists():
-                            try:
-                
-                                wf_name = ex.get('workflowData', {}).get('name') or f"Workflow #{ex.get('workflowId','?')}"
-                                ok = ex.get('status') in ('success',)
-                                N8nLog.objects.create(
-                                    workflow_name=wf_name,
-                                    status='SUCCESS' if ok else 'ERROR',
-                                    message=f"Duración: {round(((__import__('datetime').datetime.fromisoformat(ex['stoppedAt'].replace('Z','+00:00')) - __import__('datetime').datetime.fromisoformat(ex['startedAt'].replace('Z','+00:00'))).total_seconds()))}s" if ex.get('startedAt') and ex.get('stoppedAt') else ex.get('status', ''),
-                                    tipo_evento=ex.get('mode', 'webhook'),
-                                    response_data=json.dumps({'exec_id': exec_id})[:200],
-                                )
-                                saved += 1
-                            except Exception as le:
-                                logger.warning(f"[N8N PROXY] No se pudo persistir log: {le}")
+        try:
+            raw = resp.json()
+        except ValueError:
+            return Response({'error': 'Respuesta inválida de n8n'}, status=502)
+        execs = raw.get('data', raw) if isinstance(raw, dict) else raw
+        execs = execs if isinstance(execs, list) else []
 
-                return Response({'data': execs, 'synced': saved})
+        synced = 0
+        if sync_logs and execs:
+            _persistir_ejecuciones_n8n_async(execs[:100])
+            synced = 'enqueued'
 
-        return Response({'error': 'Acción no válida. Usa action=status o action=executions'}, status=400)
+        payload = {'data': execs, 'synced': synced}
+        if not sync_logs:
+            cache.set(cache_key, payload, timeout=N8N_EXECUTIONS_CACHE_TTL)
+            cache.delete(fail_key)
+        return Response(payload)
 
-    except requests.exceptions.ConnectionError:
-        return Response({'error': f'No se pudo conectar con n8n en {base_url}'}, status=503)
-    except requests.exceptions.Timeout:
-        return Response({'error': 'n8n tardó demasiado en responder'}, status=504)
-    except Exception as e:
-        logger.error(f"[N8N PROXY] Error: {e}")
-        return Response({'error': str(e)}, status=500)
+    return Response({'error': 'Acción no válida. Usa action=status o action=executions'}, status=400)
 
 
 # ============================================================================

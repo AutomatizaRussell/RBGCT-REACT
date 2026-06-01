@@ -254,11 +254,17 @@ const AdminDashboard = () => {
       if (document.visibilityState === 'visible') checkN8nStatus();
     }, 3000);
 
-    // Auto-refresh cada 60 segundos solo en tab dashboard visible
-    const interval = setInterval(() => {
+    // Auto-refresh de actividad cada 60s.
+    const dashboardInterval = setInterval(() => {
       refreshDashboard();
-      checkN8nStatus();
     }, 60000);
+
+    // El estado de n8n cambia menos; consultar cada 3 minutos reduce presión al backend.
+    const n8nInterval = setInterval(() => {
+      if (document.visibilityState === 'visible' && activeTabRef.current === 'dashboard') {
+        checkN8nStatus();
+      }
+    }, 180000);
 
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -269,7 +275,8 @@ const AdminDashboard = () => {
 
     return () => {
       clearTimeout(n8nInitTimer);
-      clearInterval(interval);
+      clearInterval(dashboardInterval);
+      clearInterval(n8nInterval);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []); // Solo al montar

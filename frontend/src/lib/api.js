@@ -185,6 +185,7 @@ export const logout = () => {
 // ── TAREAS ────────────────────────────────────────────────────────────────────
 
 export const getAllTareas = () => fetchApi('/tareas/');
+export const getResumenTareas = () => fetchApi('/tareas/resumen/');
 
 export const getTareasByRol = () => fetchApi('/tareas/');
 
@@ -436,12 +437,12 @@ export const getN8nLogs = (statusFilter, limit = 50) => {
 
 // Proxy server-side: Django consulta n8n directamente (sin CORS)
 export const n8nProxyStatus = () =>
-  fetchApi('/n8n-proxy/?action=status');
+  fetchApi('/n8n-proxy/?action=status', { timeoutMs: 8000 });
 
 export const n8nProxyExecutions = (statusFilter, limit = 50) => {
   const params = new URLSearchParams({ action: 'executions', limit });
   if (statusFilter && statusFilter !== 'ALL') params.set('status', statusFilter);
-  return fetchApi(`/n8n-proxy/?${params}`);
+  return fetchApi(`/n8n-proxy/?${params}`, { timeoutMs: 10000 });
 };
 
 // ── MARKITDOWN ──────────────────────────────────────────────────────────────
