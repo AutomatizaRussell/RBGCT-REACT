@@ -155,54 +155,107 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     try {
       const { default: html2canvas } = await import('html2canvas');
       const { jsPDF } = await import('jspdf');
-      const elemento = document.querySelector('.no-print .certificado-preview') || document.querySelector('.certificado-preview');
-      if (!elemento) throw new Error('No se encontró la vista previa del certificado');
-      if (document.fonts?.ready) await document.fonts.ready;
+      const soloPrintRoot = document.querySelector('.solo-print');
+      if (!soloPrintRoot) throw new Error('No se encontró el contenedor de impresión del certificado');
 
-      const canvas = await html2canvas(elemento, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        width: elemento.scrollWidth,
-        height: elemento.scrollHeight,
-        windowWidth: elemento.scrollWidth,
-        windowHeight: elemento.scrollHeight,
-      });
-
-      const MARGIN = 25.4; // mm — margen estándar (1 pulgada)
-
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter', compress: true });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const pxPerMm = canvas.width / pageW;
-
-      const cropAndPlace = (srcY, srcH, destYmm) => {
-        const c = document.createElement('canvas');
-        c.width  = canvas.width;
-        c.height = srcH;
-        c.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-        const renderH = (srcH / canvas.width) * pageW;
-        pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, destYmm, pageW, renderH, undefined, 'MEDIUM');
+      // Capturamos desde la versión de impresión para respetar el estándar visual
+      // del documento enviado, sin depender del panel de previsualización.
+      const originalSoloPrintStyles = {
+        display: soloPrintRoot.style.display,
+        position: soloPrintRoot.style.position,
+        left: soloPrintRoot.style.left,
+        top: soloPrintRoot.style.top,
+        width: soloPrintRoot.style.width,
+        height: soloPrintRoot.style.height,
+        opacity: soloPrintRoot.style.opacity,
+        pointerEvents: soloPrintRoot.style.pointerEvents,
+        zIndex: soloPrintRoot.style.zIndex,
       };
+      let pdfBase64 = '';
+      let elemento = null;
+      let originalCertStyles = null;
+      try {
+        soloPrintRoot.style.display = 'block';
+        soloPrintRoot.style.position = 'fixed';
+        soloPrintRoot.style.left = '0';
+        soloPrintRoot.style.top = '0';
+        soloPrintRoot.style.width = '100%';
+        soloPrintRoot.style.height = '100%';
+        soloPrintRoot.style.opacity = '0';
+        soloPrintRoot.style.pointerEvents = 'none';
+        soloPrintRoot.style.zIndex = '-1';
 
-      // Página 1: ocupa toda la hoja (el certificado ya lleva su propio margen interno)
-      const p1H = Math.min(Math.round(pageH * pxPerMm), canvas.height);
-      cropAndPlace(0, p1H, 0);
+        elemento = soloPrintRoot.querySelector('.certificado-preview');
+        if (!elemento) throw new Error('No se encontró el contenido del certificado para envío');
 
-      // Páginas siguientes: margen superior e inferior de 25.4 mm
-      const contPx = Math.round((pageH - 2 * MARGIN) * pxPerMm);
-      let srcY = p1H;
-      let left = canvas.height - p1H;
+        originalCertStyles = {
+          boxShadow: elemento.style.boxShadow,
+        };
+        elemento.style.boxShadow = 'none';
 
-      while (left > 0) {
-        pdf.addPage('letter', 'portrait');
-        const chunk = Math.min(contPx, left);
-        cropAndPlace(srcY, chunk, MARGIN);
-        srcY += chunk;
-        left -= chunk;
+        if (document.fonts?.ready) await document.fonts.ready;
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        const rect = elemento.getBoundingClientRect();
+
+        const canvas = await html2canvas(elemento, {
+          scale: 3,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          width: Math.ceil(rect.width),
+          height: Math.ceil(rect.height),
+          windowWidth: Math.ceil(rect.width),
+          windowHeight: Math.ceil(rect.height),
+        });
+
+        const MARGIN = 25.4; // mm — margen estándar (1 pulgada)
+
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter', compress: true });
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const pxPerMm = canvas.width / pageW;
+
+        const cropAndPlace = (srcY, srcH, destYmm) => {
+          const c = document.createElement('canvas');
+          c.width  = canvas.width;
+          c.height = srcH;
+          c.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+          const renderH = (srcH / canvas.width) * pageW;
+          pdf.addImage(c.toDataURL('image/png'), 'PNG', 0, destYmm, pageW, renderH, undefined, 'FAST');
+        };
+
+        // Página 1: ocupa toda la hoja (el certificado ya lleva su propio margen interno)
+        const p1H = Math.min(Math.round(pageH * pxPerMm), canvas.height);
+        cropAndPlace(0, p1H, 0);
+
+        // Páginas siguientes: margen superior e inferior de 25.4 mm
+        const contPx = Math.round((pageH - 2 * MARGIN) * pxPerMm);
+        let srcY = p1H;
+        let left = canvas.height - p1H;
+
+        while (left > 0) {
+          pdf.addPage('letter', 'portrait');
+          const chunk = Math.min(contPx, left);
+          cropAndPlace(srcY, chunk, MARGIN);
+          srcY += chunk;
+          left -= chunk;
+        }
+
+        pdfBase64 = pdf.output('datauristring').split(',')[1];
+      } finally {
+        if (elemento && originalCertStyles) {
+          elemento.style.boxShadow = originalCertStyles.boxShadow;
+        }
+        soloPrintRoot.style.display = originalSoloPrintStyles.display;
+        soloPrintRoot.style.position = originalSoloPrintStyles.position;
+        soloPrintRoot.style.left = originalSoloPrintStyles.left;
+        soloPrintRoot.style.top = originalSoloPrintStyles.top;
+        soloPrintRoot.style.width = originalSoloPrintStyles.width;
+        soloPrintRoot.style.height = originalSoloPrintStyles.height;
+        soloPrintRoot.style.opacity = originalSoloPrintStyles.opacity;
+        soloPrintRoot.style.pointerEvents = originalSoloPrintStyles.pointerEvents;
+        soloPrintRoot.style.zIndex = originalSoloPrintStyles.zIndex;
       }
-
-      const pdfBase64 = pdf.output('datauristring').split(',')[1];
 
       await enviarCertificadoEmpleo({
         email_destino:        emailDestino.trim(),
