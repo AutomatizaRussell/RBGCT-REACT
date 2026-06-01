@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAllEmpleados, enviarCertificadoEmpleo } from '../../lib/api';
 import { Printer, User, RefreshCw, Send, CheckCircle, AlertCircle, FileText } from 'lucide-react';
+import logoRB from '../../../img/image.png';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     tipo_entidad: '',
     tipo_contrato: '',
     incluir_salario: 'Sí',
-    salario: 'DOS MILLONES DE PESOS ($2.000.000)',
+    salario: '',
     auxilio_transporte: 'No',
     ingresos_adicionales: '',
     nombre_empresa: 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S',
@@ -89,7 +90,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
       tipo_entidad: prefill.tipo_entidad || '',
       tipo_contrato: prefill.tipo_contrato || '',
       incluir_salario: prefill.incluir_salario || 'Sí',
-      salario: prefill.salario || 'DOS MILLONES DE PESOS ($2.000.000)',
+      salario: prefill.salario || '',
       auxilio_transporte: prefill.auxilio_transporte || 'No',
       ingresos_adicionales: prefill.ingresos_adicionales || '',
     }));
@@ -416,7 +417,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
       {/* ── Membrete ─────────────────────────────────────────────── */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-        padding: '12mm 20mm 7mm', borderBottom: '1pt solid #001871',
+        padding: '25.4mm 25.4mm 7mm', borderBottom: '1pt solid #001871',
       }}>
         <div>
           <p style={sn({ margin: 0, fontSize: '20pt', fontWeight: '900', color: '#001871', letterSpacing: '-0.5pt', lineHeight: 1 })}>
@@ -426,12 +427,13 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
             {empresa}
           </p>
         </div>
-        <div style={{ textAlign: 'right' }}>
+        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6pt' }}>
+          <img src={logoRB} alt="Russell Bedford" style={{ height: '38pt', width: 'auto', objectFit: 'contain' }} />
           <p style={sn({ margin: 0, fontSize: '8.5pt', color: '#374151' })}>
             Medellín, {form.fecha}
           </p>
           {form.consecutivo && (
-            <p style={sn({ margin: '3pt 0 0', fontSize: '8pt', fontWeight: '700', color: '#001871', letterSpacing: '1pt' })}>
+            <p style={sn({ margin: 0, fontSize: '8pt', fontWeight: '700', color: '#001871', letterSpacing: '1pt' })}>
               Ref. {form.consecutivo}
             </p>
           )}
@@ -439,7 +441,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
       </div>
 
       {/* ── Cuerpo del documento ─────────────────────────────────── */}
-      <div style={{ padding: '12mm 20mm 14mm' }}>
+      <div style={{ padding: '10mm 25.4mm 10mm' }}>
 
         {/* Título */}
         <p style={sn({
@@ -486,7 +488,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
         {/* Párrafo salario */}
         {form.incluir_salario === 'Sí' && (
           <p style={sr({ textAlign: 'justify', margin: '0 0 14pt' })}>
-            Su remuneración mensual corresponde a <strong>{salarioText}</strong>
+            Su remuneración mensual corresponde a <strong>{form.salario && form.salario.trim() ? salarioText : '($2.000.000 COP)'}</strong> millones de pesos
             {form.auxilio_transporte === 'Sí'
               ? ', más auxilio de transporte de conformidad con la normativa laboral vigente'
               : ''}
@@ -542,7 +544,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
 
       {/* ── Pie de página ─────────────────────────────────────────── */}
       <div style={{
-        borderTop: '1pt solid #e5e7eb', padding: '4mm 20mm',
+        borderTop: '1pt solid #e5e7eb', padding: '4mm 25.4mm 25.4mm',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <p style={sn({ margin: 0, fontSize: '7.5pt', color: '#9ca3af' })}>
