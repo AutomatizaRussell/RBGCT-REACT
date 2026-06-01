@@ -69,4 +69,6 @@ urlpatterns = [
     # Permisos de certificado (JSON temporal, sin modelo)
     path('cert-permisos/',      views.get_cert_permisos, name='get_cert_permisos'),
     path('cert-permisos/set/',  views.set_cert_permiso,  name='set_cert_permiso'),
+    # Asistente IA — proxy seguro a Gemini
+    path('gemini-chat/', views.gemini_chat, name='gemini_chat'),
 ]

@@ -43,6 +43,7 @@ import UtilidadesSection from '../components/admin2/UtilidadesSection';
 import ContratosSection from '../components/admin2/ContratosSection';
 import ClientesSection from '../components/admin2/ClientesSection';
 import CertificadoSection from '../components/admin2/CertificadoSection';
+import GeminiChat from '../components/admin2/GeminiChat';
 import StatCard from '../components/ui/StatCard';
 import RecentUserRow from '../components/ui/RecentUserRow';
 import ActionButton from '../components/ui/ActionButton';
@@ -663,6 +664,7 @@ const Admin2Dashboard = () => {
         onRechazarCert={handleRechazarSolicitudCert}
         showCertTab={puedeExpedirCert}
       />
+      <GeminiChat />
     </div>
   );
 };

@@ -2585,6 +2585,53 @@ def notificar_admin_password_restablecida(empleado):
 
 
 # ============================================================================
+# ASISTENTE IA — Proxy seguro a Gemini (la key nunca sale al frontend)
+# ============================================================================
+
+@api_view(['POST'])
+@permission_classes([IsAdminOrSuperAdmin])
+def gemini_chat(request):
+    import os, requests as req
+    api_key = os.environ.get('GEMINI_API_KEY', '')
+    if not api_key:
+        return Response({'error': 'GEMINI_API_KEY no configurada.'}, status=500)
+
+    message = request.data.get('message', '').strip()
+    history = request.data.get('history', [])
+    if not message:
+        return Response({'error': 'Mensaje vacío.'}, status=400)
+
+    system_prompt = (
+        "Eres un asistente virtual de RBG CT (Russell Bedford Colombia), especializado en apoyar "
+        "a los administradores con dudas sobre empleados, usuarios del sistema, gestión de recursos "
+        "humanos, contratos, certificados laborales y funcionalidades del panel de administración. "
+        "Responde siempre en español, de forma clara, concisa y profesional."
+    )
+
+    contents = [
+        {'role': h['role'], 'parts': [{'text': h['text']}]}
+        for h in history
+        if h.get('role') in ('user', 'model') and h.get('text')
+    ]
+    contents.append({'role': 'user', 'parts': [{'text': message}]})
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    payload = {
+        'system_instruction': {'parts': [{'text': system_prompt}]},
+        'contents': contents,
+        'generationConfig': {'maxOutputTokens': 1024, 'temperature': 0.7},
+    }
+
+    try:
+        resp = req.post(url, json=payload, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        reply = data['candidates'][0]['content']['parts'][0]['text']
+        return Response({'reply': reply})
+    except Exception as e:
+        return Response({'error': str(e)}, status=502)
+
+
 # PROXY N8N — Sin CORS, el backend consulta n8n directamente
 # ============================================================================
 
