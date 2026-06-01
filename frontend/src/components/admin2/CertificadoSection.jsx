@@ -455,7 +455,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
             Medellín, {form.fecha}
           </p>
           {form.consecutivo && (
-            <p style={sn({ margin: 0, fontSize: '9pt', fontWeight: '700', color: '#001871', letterSpacing: '1pt' })}>
+            <p style={sn({ margin: 0, fontSize: '9pt', fontWeight: '700', color: '#111', letterSpacing: '1pt' })}>
               {form.consecutivo}
             </p>
           )}
@@ -528,7 +528,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
           {/* Nombre en cursiva = firma */}
           <div style={{ minHeight: '34pt', display: 'flex', alignItems: 'flex-end' }}>
             <p style={{
-              fontFamily: script, fontSize: '17pt', color: '#001871',
+              fontFamily: script, fontSize: '17pt', color: '#111',
               margin: 0, lineHeight: 1.1, fontWeight: 400,
             }}>
               {toTitleCase(form.firmante_nombre)}
@@ -543,7 +543,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
           <p style={sn({ margin: '0 0 2pt', fontSize: '9pt', color: '#374151' })}>
             {form.firmante_cargo}
           </p>
-          <p style={sn({ margin: '0 0 2pt', fontSize: '9pt', fontWeight: '700', color: '#001871', textTransform: 'uppercase' })}>
+          <p style={sn({ margin: '0 0 2pt', fontSize: '9pt', fontWeight: '700', color: '#111', textTransform: 'uppercase' })}>
             {empresa}
           </p>
           {form.firmante_cc && (
