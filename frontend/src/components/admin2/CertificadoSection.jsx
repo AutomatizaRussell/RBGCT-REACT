@@ -511,7 +511,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
               {form.tipo_entidad}
             </p>
           )}
-          <p style={sr({ margin: '1pt 0 0', color: '#111' })}>Ciudad</p>
+          <p style={sr({ margin: '1pt 0 0', color: '#111' })}>Medellín</p>
         </div>
 
         {/* Párrafo principal */}
