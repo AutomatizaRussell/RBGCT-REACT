@@ -455,7 +455,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
         alt="Russell Bedford"
         style={{
           position: 'absolute', top: '14mm', right: '12mm',
-          height: '38pt', width: 'auto', objectFit: 'contain',
+          height: '27pt', width: 'auto', objectFit: 'contain',
         }}
       />
 
