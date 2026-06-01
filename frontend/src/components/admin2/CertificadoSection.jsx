@@ -422,10 +422,29 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
       width: '215.9mm', minHeight: '279.4mm', backgroundColor: '#fff',
       color: '#111', fontFamily: serif, fontSize: '11pt', lineHeight: '1.7',
       boxShadow: '0 0 0 1px #e5e7eb, 0 8px 32px rgba(0,0,0,0.10)',
+      position: 'relative',
     }}>
 
+      {/* ── Franja vertical derecha ───────────────────────────────── */}
+      <div style={{
+        position: 'absolute', top: 0, right: 0,
+        width: '10mm', height: '100%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <p style={{
+          fontFamily: sans, fontSize: '5.5pt', color: '#9ca3af',
+          margin: 0, whiteSpace: 'nowrap', letterSpacing: '1.2pt',
+          transform: 'rotate(90deg)',
+          transformOrigin: 'center center',
+        }}>
+          CRA. 48 NO. 20 - 114 OFICINA 932 TORRE 2&nbsp;&nbsp;CENTRO EMPRESARIAL CIUDAD DEL RÍO&nbsp;&nbsp;PBX (574) 444 8883&nbsp;&nbsp;
+          <span style={{ color: '#001871', fontWeight: '700' }}>MEDELLÍN, COLOMBIA</span>
+          &nbsp;&nbsp;@RUSSELLBEDFORD.COM.CO&nbsp;&nbsp;WWW.RUSSELLBEDFORD.COM.CO
+        </p>
+      </div>
+
       {/* ── Membrete ─────────────────────────────────────────────── */}
-      <div style={{ padding: '25.4mm 25.4mm 0' }}>
+      <div style={{ padding: '25.4mm 35mm 0 25.4mm' }}>
         {/* Logo pequeño arriba a la derecha */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10mm' }}>
           <img src={logoRB} alt="Russell Bedford" style={{ height: '28pt', width: 'auto', objectFit: 'contain' }} />
@@ -444,17 +463,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
       </div>
 
       {/* ── Cuerpo del documento ─────────────────────────────────── */}
-      <div style={{ padding: '8mm 25.4mm 10mm' }}>
-
-        {/* Título */}
-        <p style={sn({
-          textAlign: 'center', margin: '0 0 20pt',
-          fontSize: '11pt', fontWeight: '700', letterSpacing: '3pt',
-          textTransform: 'uppercase', color: '#001871',
-          borderBottom: '1pt solid #d1d5db', paddingBottom: '10pt',
-        })}>
-          Certificado de Empleo
-        </p>
+      <div style={{ padding: '8mm 35mm 10mm 25.4mm' }}>
 
         {/* Destinatario */}
         <div style={{ marginBottom: '18pt' }}>
@@ -547,7 +556,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
 
       {/* ── Pie de página ─────────────────────────────────────────── */}
       <div style={{
-        borderTop: '1pt solid #e5e7eb', padding: '4mm 25.4mm 25.4mm',
+        borderTop: '1pt solid #e5e7eb', padding: '4mm 35mm 25.4mm 25.4mm',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <p style={sn({ margin: 0, fontSize: '7.5pt', color: '#9ca3af' })}>
