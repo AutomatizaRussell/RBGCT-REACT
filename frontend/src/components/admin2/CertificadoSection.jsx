@@ -426,7 +426,7 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
   return (
     <div className="certificado-preview" style={{
       width: '215.9mm', minHeight: '279.4mm', backgroundColor: '#fff',
-      color: '#111', fontFamily: serif, fontSize: '11pt', lineHeight: '1.7',
+      color: '#111', fontFamily: serif, fontSize: '9.5pt', lineHeight: '1.6',
       boxShadow: '0 0 0 1px #e5e7eb, 0 8px 32px rgba(0,0,0,0.10)',
       position: 'relative',
     }}>
