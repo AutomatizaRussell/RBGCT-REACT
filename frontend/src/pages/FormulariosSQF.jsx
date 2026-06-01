@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FormulariosSQF.css';
 
@@ -12,6 +12,18 @@ const generateId = (prefix) => {
     const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
     const timestamp = Date.now().toString().slice(-4);
     return `${prefix}-${randomChars}-${timestamp}`;
+};
+
+const extractDataSafe = (rawData) => {
+    try {
+        if (!rawData) return [];
+        if (Array.isArray(rawData)) return rawData;
+        if (rawData.data && Array.isArray(rawData.data)) return rawData.data;
+        if (rawData[0] && Array.isArray(rawData[0].body)) return rawData[0].body;
+        return [];
+    } catch {
+        return [];
+    }
 };
 
 export default function FormulariosSQF() {
@@ -78,21 +90,7 @@ export default function FormulariosSQF() {
     // ==========================================
     // CARGA DE DATOS (PETICIONES SIMPLES ANTI-CORS)
     // ==========================================
-    useEffect(() => {
-        loadDataFromWebhooks();
-    }, []);
-
-    const extractDataSafe = (rawData) => {
-        try {
-            if (!rawData) return [];
-            if (Array.isArray(rawData)) return rawData;
-            if (rawData.data && Array.isArray(rawData.data)) return rawData.data;
-            if (rawData[0] && Array.isArray(rawData[0].body)) return rawData[0].body;
-            return [];
-        } catch (e) { return []; }
-    };
-
-    const loadDataFromWebhooks = async () => {
+    const loadDataFromWebhooks = useCallback(async () => {
         setIsLoading(true);
         
         try {
@@ -151,7 +149,11 @@ export default function FormulariosSQF() {
         } catch (e) { console.error('Bloqueo CORS o Red en Contratos:', e); setContracts([]); }
         
         setIsLoading(false);
-    };
+    }, []);
+
+    useEffect(() => {
+        loadDataFromWebhooks();
+    }, [loadDataFromWebhooks]);
 
     const validClients = Array.isArray(clients) ? clients : [];
     const validContracts = Array.isArray(contracts) ? contracts : [];
@@ -168,6 +170,10 @@ export default function FormulariosSQF() {
         const numStr = String(val || '').replace(/\D/g, '');
         if (!numStr) return '';
         return new Intl.NumberFormat('es-CO').format(parseInt(numStr, 10));
+    };
+
+    const formatCurrencyInput = (e) => {
+        e.target.value = formatCurrency(e.target.value);
     };
 
     const handleCurrencyChange = (e, setter) => { setter(formatCurrency(e.target.value)); };
@@ -227,7 +233,7 @@ export default function FormulariosSQF() {
             form.reset();
             resetClientForm();
             setTimeout(loadDataFromWebhooks, 1000);
-        } catch (error) {
+        } catch {
             showToastMsg('error', 'Error de Conexión', 'Ocurrió un error al conectar con n8n.');
         } finally {
             setIsSubmittingClient(false);
@@ -313,7 +319,7 @@ export default function FormulariosSQF() {
             form.reset();
             resetContractForm();
             setTimeout(loadDataFromWebhooks, 1000);
-        } catch (error) {
+        } catch {
             showToastMsg('error', 'Error de Conexión', 'Ocurrió un error al conectar con n8n.');
         } finally {
             setIsSubmittingContract(false);
@@ -415,7 +421,7 @@ export default function FormulariosSQF() {
             await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
             showToastMsg('success', 'Solicitud Enviada', 'La solicitud de facturación fue registrada en n8n.');
             resetBillingForm();
-        } catch (error) {
+        } catch {
             showToastMsg('error', 'Error de Conexión', 'Error al enviar a n8n.');
         } finally {
             setIsSubmittingBilling(false);
@@ -446,7 +452,7 @@ export default function FormulariosSQF() {
             showToastMsg('success', 'Solicitud Enviada', 'La Nota Crédito fue enviada a n8n.');
             form.reset();
             resetBillingForm();
-        } catch (error) {
+        } catch {
             showToastMsg('error', 'Error de Conexión', 'Error al enviar a n8n.');
         } finally {
             setIsSubmittingBilling(false);

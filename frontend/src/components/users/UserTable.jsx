@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import { Trash2, Shield, ShieldCheck, UserX, UserCheck, X, Check, Loader2, Search, Mail, Calendar, Hash, Briefcase, Info, AlertTriangle, Activity, Edit3, Save, UserPlus, Lock, KeyRound, FileSpreadsheet, Download } from 'lucide-react';
 import { updateEmpleado, cambiarEstadoEmpleado, deleteEmpleado, actualizarPasswordEmpleado, getCertPermisosBackend, setCertPermisoBackend } from '../../lib/api';
 import { exportEmpleadosCSV, exportEmpleadosXLSX } from '../../lib/exportEmpleados';
@@ -11,12 +11,10 @@ const UserTable = () => {
   const {
     isSuperAdmin,
     isAdmin,
-    isEditor,
     canViewInactiveUsers,
     canReactivateUsers,
     canDeleteUsers,
     canEditUsers,
-    canChangeRoles,
     canDeactivateUsers,
     user
   } = useContext(AuthContext);
@@ -25,7 +23,6 @@ const UserTable = () => {
     empleados: cachedEmpleados,
     areas:     cachedAreas,
     cargos:    cachedCargos,
-    loadingEmpleados,
     fetchEmpleados,
     fetchAreas,
     fetchCargos,
@@ -64,7 +61,7 @@ const UserTable = () => {
   const [changingPassword, setChangingPassword] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const fetchUsers = async (force = false) => {
+  const fetchUsers = useCallback(async (force = false) => {
     setLoading(true);
     try {
       const data = await fetchEmpleados(force);
@@ -74,7 +71,7 @@ const UserTable = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchEmpleados]);
 
   useEffect(() => {
     // Usar datos del caché si ya están disponibles (carga instantánea)
@@ -89,7 +86,7 @@ const UserTable = () => {
     else fetchAreas().then(d => setAreas(d));
     if (cachedCargos.length > 0) setCargos(cachedCargos);
     else fetchCargos().then(d => setCargos(d));
-  }, []);
+  }, [cachedAreas, cachedCargos, cachedEmpleados, fetchAreas, fetchCargos, fetchUsers]);
 
   const toggleUserStatus = async (user) => {
     // Verificar permisos

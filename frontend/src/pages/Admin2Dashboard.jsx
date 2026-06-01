@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDataCache } from '../context/DataCacheContext';
 import { Admin2Sidebar } from '../components/layout/Admin2Sidebar';
-import { useLocation, Outlet } from 'react-router-dom';
 import {
   Users, Activity, ShieldAlert, UserCheck,
   KeyRound, Check, X, Eye, Trash2, CheckCircle,
@@ -13,17 +12,14 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import {
-  getAllEmpleados,
   getAllTareas,
   getActividadReciente,
   getAlertasRecuperacion,
   atenderAlerta,
   eliminarAlerta,
-  getAllAreas,
   createArea,
   updateArea,
   deleteArea,
-  getAllCargos,
   createCargo,
   updateCargo,
   deleteCargo,
@@ -80,9 +76,9 @@ const Admin2Dashboard = () => {
   const certPermRef = useRef(false);
   const activeTabRef = useRef('dashboard');
   const hasMountedTabEffect = useRef(false);
-  const { fetchEmpleados, fetchAreas, fetchCargos, invalidate: invalidateCache } = useDataCache();
+  const { fetchEmpleados } = useDataCache();
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const [empleados, tareas] = await Promise.all([fetchEmpleados(), getAllTareas()]);
       const activos = empleados.filter(e => e.estado === 'ACTIVA');
@@ -110,9 +106,9 @@ const Admin2Dashboard = () => {
       console.error('Error stats:', err);
       setEmployeeStats({ totalCount: 0, activeCount: 0, loading: false });
     }
-  };
+  }, [fetchEmpleados]);
 
-  const fetchSolicitudesCert = async () => {
+  const fetchSolicitudesCert = useCallback(async () => {
     try {
       const res = await getSolicitudesCert();
       setSolicitudesCert(res?.solicitudes || []);
@@ -120,9 +116,9 @@ const Admin2Dashboard = () => {
     } catch (err) {
       console.error('Error solicitudes cert:', err);
     }
-  };
+  }, []);
 
-  const checkCertPermisos = async () => {
+  const checkCertPermisos = useCallback(async () => {
     if (!empleadoData?.id_empleado) return;
     try {
       const res = await getCertPermisosBackend();
@@ -134,9 +130,9 @@ const Admin2Dashboard = () => {
       // Si acaba de ganar el permiso, cargar las solicitudes pendientes
       if (tiene && antesNo) fetchSolicitudesCert();
     } catch { /* silencioso */ }
-  };
+  }, [empleadoData?.id_empleado, fetchSolicitudesCert]);
 
-  const fetchAllActivity = async () => {
+  const fetchAllActivity = useCallback(async () => {
     try {
       setLoading(true);
       const [actividad, alertasResponse] = await Promise.all([
@@ -175,7 +171,7 @@ const Admin2Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleMarkAsRead = async (id) => {
     try {
@@ -229,7 +225,7 @@ const Admin2Dashboard = () => {
   useEffect(() => {
     if (!empleadoData?.id_empleado) return;
     checkCertPermisos();
-  }, [empleadoData?.id_empleado]);
+  }, [empleadoData?.id_empleado, checkCertPermisos]);
 
   useEffect(() => {
     const refreshDashboard = () => {
@@ -257,7 +253,7 @@ const Admin2Dashboard = () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, []);
+  }, [checkCertPermisos, fetchAllActivity, fetchStats]);
 
   useEffect(() => {
     activeTabRef.current = activeTab;
@@ -270,7 +266,7 @@ const Admin2Dashboard = () => {
       fetchAllActivity();
       checkCertPermisos();
     }
-  }, [activeTab]);
+  }, [activeTab, checkCertPermisos, fetchAllActivity, fetchStats]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -675,7 +671,7 @@ const KpiCard = ({ label, value, sub, icon, iconBg, iconColor, accent, highlight
   <div
     onClick={onClick}
     className={`bg-white rounded-xl border border-slate-100 p-5 shadow-sm transition-all duration-300
-      ${clickable ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : 'hover:shadow-md'}`}
+      ${accent || ''} ${clickable ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : 'hover:shadow-md'}`}
   >
     <div className="flex items-start justify-between mb-3">
       <div className={`p-2 rounded-lg ${iconBg}`}>
@@ -850,6 +846,7 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
 // ── HerramientasTab ────────────────────────────────────────────────────────────
 
 const HerramientasTab = () => {
+  const { fetchAreas, fetchCargos, fetchEmpleados, invalidate: invalidateCache } = useDataCache();
   const [seccion, setSeccion] = useState('estructura');
   const [areas, setAreas] = useState([]);
   const [cargos, setCargos] = useState([]);
@@ -863,7 +860,7 @@ const HerramientasTab = () => {
   const [editCargoName, setEditCargoName] = useState('');
   const [empleadosPorArea, setEmpleadosPorArea] = useState({});
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [areasRes, cargosRes, empsRes] = await Promise.allSettled([
         fetchAreas(),
@@ -899,9 +896,9 @@ const HerramientasTab = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchAreas, fetchCargos, fetchEmpleados]);
 
-  useEffect(() => { if (seccion === 'estructura') fetchData(); }, [seccion]);
+  useEffect(() => { if (seccion === 'estructura') fetchData(); }, [seccion, fetchData]);
 
   const handleAddArea = async () => {
     if (!newArea.trim()) return;
@@ -1350,6 +1347,7 @@ const ReglamentoTab = () => {
 // ── ConfiguracionesTab ─────────────────────────────────────────────────────────
 
 const ConfiguracionesTab = ({ user }) => {
+  const { fetchEmpleados } = useDataCache();
   const [seccion, setSeccion] = useState('cuenta');
   const [empleados, setEmpleados] = useState([]);
   const [miPerfil, setMiPerfil] = useState(null);
@@ -1378,7 +1376,7 @@ const ConfiguracionesTab = ({ user }) => {
       );
       if (perfil) setMiPerfil(perfil);
     }).catch(() => {});
-  }, [user]);
+  }, [user, fetchEmpleados]);
 
   const adminEmail = user?.correo_corporativo || user?.email || '—';
   // Usar datos del perfil de empleado si existe, sino los del user

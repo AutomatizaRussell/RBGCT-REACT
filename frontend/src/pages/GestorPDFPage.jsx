@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { 
   FileText, Upload, Download, X, Loader2, 
   Merge, Scissors, RotateCw, Lock, Unlock, Droplet, 
@@ -45,7 +45,7 @@ export default function GestorPDFPage() {
   const [elementoSeleccionado, setElementoSeleccionado] = useState(null);
   const [nuevoElemento, setNuevoElemento] = useState({ tipo: 'texto', contenido: '', x: 50, y: 50, fontSize: 12, color: '#000000' });
   const fileInputRef = useRef(null);
-  const marcaImagenRef = useRef(null);
+  const _marcaImagenRef = useRef(null);
   const imagenInputRef = useRef(null);
   const [pestañaActiva, setPestañaActiva] = useState('inicio');
 
@@ -67,8 +67,8 @@ export default function GestorPDFPage() {
     align: 'left',
   });
   const editorCanvasRef = useRef(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [_isDragging, _setIsDragging] = useState(false);
+  const [_dragOffset, _setDragOffset] = useState({ x: 0, y: 0 });
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
@@ -122,7 +122,7 @@ export default function GestorPDFPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const agregarPagina = () => {
+  const _agregarPagina = () => {
     setEditorPDF(prev => ({
       ...prev,
       paginas: [...prev.paginas, { contenido: '', elementos: [] }],
@@ -130,7 +130,7 @@ export default function GestorPDFPage() {
     }));
   };
 
-  const eliminarPagina = (index) => {
+  const _eliminarPagina = (index) => {
     if (editorPDF.paginas.length <= 1) return;
     setEditorPDF(prev => ({
       ...prev,
@@ -139,7 +139,7 @@ export default function GestorPDFPage() {
     }));
   };
 
-  const agregarElemento = () => {
+  const _agregarElemento = () => {
     if (!nuevoElemento.contenido) return;
     setEditorPDF(prev => {
       const nuevasPaginas = [...prev.paginas];
@@ -152,7 +152,7 @@ export default function GestorPDFPage() {
     setNuevoElemento({ tipo: 'texto', contenido: '', x: 50, y: 50, fontSize: 12, color: '#000000' });
   };
 
-  const eliminarElemento = (id) => {
+  const _eliminarElemento = (id) => {
     setEditorPDF(prev => {
       const nuevasPaginas = [...prev.paginas];
       nuevasPaginas[prev.paginaActual] = {
@@ -164,7 +164,7 @@ export default function GestorPDFPage() {
     setElementoSeleccionado(null);
   };
 
-  const handleImagenSelect = (e) => {
+  const _handleImagenSelect = (e) => {
     const file = e.target.files[0];
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
@@ -203,7 +203,7 @@ export default function GestorPDFPage() {
     }
   };
 
-  const editarPDF = async () => {
+  const _editarPDF = async () => {
     if (archivos.length === 0) return;
     
     setProcesando(true);

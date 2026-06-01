@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Settings, 
   ShieldCheck, 
@@ -15,59 +15,77 @@ import {
   WifiOff
 } from 'lucide-react';
 
+const DEFAULT_GENERAL_SETTINGS = {
+  platformName: 'Intranet GCT',
+  allowedDomain: '@rbcol.co',
+  emailNotifications: true,
+  maintenanceMode: false
+};
+
+const DEFAULT_SECURITY_SETTINGS = {
+  sessionExpiration: 60,
+  require2FA: false,
+  passwordMinLength: 8,
+  maxLoginAttempts: 5
+};
+
+const DEFAULT_N8N_SETTINGS = {
+  webhookLogs: '',
+  webhookAlerts: '',
+  apiKey: '',
+  autoSync: true
+};
+
+const DEFAULT_DB_SETTINGS = {
+  mainSchema: 'rbgct',
+  auditSchema: 'audit_logs',
+  backupEnabled: true,
+  lastBackup: '2024-04-27 08:00:00'
+};
+
+const loadSavedConfig = () => {
+  if (typeof window === 'undefined') return {};
+  const savedConfig = window.localStorage.getItem('rbgct_system_config');
+  if (!savedConfig) return {};
+  try {
+    const parsed = JSON.parse(savedConfig);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (e) {
+    console.error('Error loading config:', e);
+    return {};
+  }
+};
+
 const SystemSettings = () => {
+  const [savedConfig] = useState(() => loadSavedConfig());
   const [activeSection, setActiveSection] = useState('general');
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);
   const [n8nStatus, setN8nStatus] = useState('online');
 
   // Configuración General
-  const [generalSettings, setGeneralSettings] = useState({
-    platformName: 'Intranet GCT',
-    allowedDomain: '@rbcol.co',
-    emailNotifications: true,
-    maintenanceMode: false
-  });
+  const [generalSettings, setGeneralSettings] = useState(() => ({
+    ...DEFAULT_GENERAL_SETTINGS,
+    ...(savedConfig.general || {})
+  }));
 
   // Configuración de Seguridad
-  const [securitySettings, setSecuritySettings] = useState({
-    sessionExpiration: 60,
-    require2FA: false,
-    passwordMinLength: 8,
-    maxLoginAttempts: 5
-  });
+  const [securitySettings, setSecuritySettings] = useState(() => ({
+    ...DEFAULT_SECURITY_SETTINGS,
+    ...(savedConfig.security || {})
+  }));
 
   // Configuración n8n
-  const [n8nSettings, setN8nSettings] = useState({
-    webhookLogs: '',
-    webhookAlerts: '',
-    apiKey: '',
-    autoSync: true
-  });
+  const [n8nSettings, setN8nSettings] = useState(() => ({
+    ...DEFAULT_N8N_SETTINGS,
+    ...(savedConfig.n8n || {})
+  }));
 
   // Configuración Base de Datos
-  const [dbSettings, setDbSettings] = useState({
-    mainSchema: 'rbgct',
-    auditSchema: 'audit_logs',
-    backupEnabled: true,
-    lastBackup: '2024-04-27 08:00:00'
-  });
-
-  // Cargar configuración guardada al iniciar
-  useEffect(() => {
-    const savedConfig = localStorage.getItem('rbgct_system_config');
-    if (savedConfig) {
-      try {
-        const parsed = JSON.parse(savedConfig);
-        if (parsed.general) setGeneralSettings(parsed.general);
-        if (parsed.security) setSecuritySettings(parsed.security);
-        if (parsed.n8n) setN8nSettings(parsed.n8n);
-        if (parsed.db) setDbSettings(parsed.db);
-      } catch (e) {
-        console.error('Error loading config:', e);
-      }
-    }
-  }, []);
+  const [dbSettings, setDbSettings] = useState(() => ({
+    ...DEFAULT_DB_SETTINGS,
+    ...(savedConfig.db || {})
+  }));
 
   const handleSave = async () => {
     setSaving(true);

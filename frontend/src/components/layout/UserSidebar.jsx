@@ -5,6 +5,18 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
+const NavBtn = ({ tab, icon, label, activeTab, onNavigate }) => (
+  <button
+    type="button"
+    onClick={() => onNavigate(tab)}
+    className={`flex w-full items-center gap-4 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+      activeTab === tab ? 'bg-white/10 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+    }`}
+  >
+    {icon} {label}
+  </button>
+);
+
 export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
   const navigate = useNavigate();
   const { logout, empleadoData } = useAuth();
@@ -35,16 +47,6 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
       default:            navigate('/app');
     }
   };
-
-  const NavBtn = ({ tab, icon, label }) => (
-    <button type="button" onClick={() => handleNavigation(tab)}
-      className={`flex w-full items-center gap-4 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
-        activeTab === tab ? 'bg-white/10 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'
-      }`}
-    >
-      {icon} {label}
-    </button>
-  );
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col bg-[#001871] text-white shadow-2xl transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:translate-x-0 lg:z-20 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -77,15 +79,15 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-4 pb-4">
         <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Mi espacio</p>
-        <NavBtn tab="dashboard"  icon={<LayoutDashboard size={18} />} label="Mi resumen" />
-        <NavBtn tab="tasks"      icon={<ClipboardList size={18} />}   label="Auto gestión" />
-        <NavBtn tab="clientes"   icon={<Building2 size={18} />}       label="Mis clientes" />
-        <NavBtn tab="profile"    icon={<UserCircle size={18} />}      label="Mi perfil" />
+        <NavBtn tab="dashboard"  icon={<LayoutDashboard size={18} />} label="Mi resumen" activeTab={activeTab} onNavigate={handleNavigation} />
+        <NavBtn tab="tasks"      icon={<ClipboardList size={18} />}   label="Auto gestión" activeTab={activeTab} onNavigate={handleNavigation} />
+        <NavBtn tab="clientes"   icon={<Building2 size={18} />}       label="Mis clientes" activeTab={activeTab} onNavigate={handleNavigation} />
+        <NavBtn tab="profile"    icon={<UserCircle size={18} />}      label="Mi perfil" activeTab={activeTab} onNavigate={handleNavigation} />
 
         <p className="px-4 pb-2 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Recursos</p>
-        <NavBtn tab="cursos"     icon={<PlayCircle size={18} />}  label="Cursos" />
-        <NavBtn tab="reglamento" icon={<BookOpen size={18} />}    label="Reglamento" />
-        <NavBtn tab="utilidades" icon={<Wrench size={18} />}      label="Herramientas" />
+        <NavBtn tab="cursos"     icon={<PlayCircle size={18} />}  label="Cursos" activeTab={activeTab} onNavigate={handleNavigation} />
+        <NavBtn tab="reglamento" icon={<BookOpen size={18} />}    label="Reglamento" activeTab={activeTab} onNavigate={handleNavigation} />
+        <NavBtn tab="utilidades" icon={<Wrench size={18} />}      label="Herramientas" activeTab={activeTab} onNavigate={handleNavigation} />
       </nav>
 
       <div className="border-t border-white/5 p-5">

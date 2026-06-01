@@ -33,8 +33,6 @@ const TaskCalendar = ({
     const fetchTasks = async () => {
       try {
         setLoading(true);
-        const startOfMonth = new Date(year, month, 1).toISOString().split('T')[0];
-        const endOfMonth = new Date(year, month + 1, 0).toISOString().split('T')[0];
 
         let allTasks = [];
 

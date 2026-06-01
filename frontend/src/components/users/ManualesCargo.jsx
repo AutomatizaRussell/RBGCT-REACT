@@ -128,7 +128,7 @@ const ManualesCargo = () => {
       setError(null);
       const data = await getAllCursos();
       setCursos(Array.isArray(data) ? data.filter(c => c.activo !== false) : (data?.results || []));
-    } catch (err) {
+    } catch {
       setError('Error al cargar los cursos');
     } finally {
       setLoading(false);

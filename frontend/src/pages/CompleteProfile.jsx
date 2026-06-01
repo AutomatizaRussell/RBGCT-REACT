@@ -86,7 +86,6 @@ const CompleteProfile = () => {
           // (No redirigir - permitir acceso a ver datos)
           if (currentData.datos_completados && !currentData.permitir_edicion_datos && !currentData.primer_login) {
             console.log('[COMPLETE PROFILE] Solo lectura - sin permiso de edición');
-            setSoloLectura(true);
           }
 
           // Si ya usó el permiso (datos_completados=true y permitir_edicion_datos=false)

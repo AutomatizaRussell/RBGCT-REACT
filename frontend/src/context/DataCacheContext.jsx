@@ -1,12 +1,9 @@
-import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { getAllEmpleados, getAllAreas, getAllCargos } from '../lib/api';
 
 const DataCacheContext = createContext(null);
 
 const TTL_MS = 5 * 60 * 1000; // 5 minutos
-
-const makeEntry = (data) => ({ data, ts: Date.now() });
-const isStale  = (entry) => !entry || (Date.now() - entry.ts) > TTL_MS;
 
 export const DataCacheProvider = ({ children }) => {
   const [empleados, setEmpleados] = useState(null);
@@ -90,6 +87,7 @@ export const DataCacheProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useDataCache = () => {
   const ctx = useContext(DataCacheContext);
   if (!ctx) throw new Error('useDataCache debe usarse dentro de DataCacheProvider');

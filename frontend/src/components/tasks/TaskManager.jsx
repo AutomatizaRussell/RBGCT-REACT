@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAllTareas, createTarea, updateTarea, updateTareaEstado, deleteTarea, getAllEmpleados } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
 import { 
@@ -54,9 +54,35 @@ const TaskManager = ({
   const canManageAll = userRole === 'superadmin' || userRole === 'admin';
   const canManageArea = userRole === 'editor' || canManageAll;
 
+  const fetchTasks = useCallback(async () => {
+    try {
+      setLoading(true);
+      let data = await getAllTareas();
+
+      if (selectedDate) {
+        const dateStr = selectedDate.toISOString().split('T')[0];
+        data = data.filter(t => t.fecha_vencimiento === dateStr);
+      }
+
+      if (!canManageAll && userArea) {
+        data = data.filter(t => t.id_area === userArea);
+      }
+
+      if (filterArea !== 'all') {
+        data = data.filter(t => t.id_area === parseInt(filterArea, 10));
+      }
+
+      setTasks(data || []);
+    } catch (err) {
+      console.error('Error cargando tareas:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedDate, canManageAll, userArea, filterArea]);
+
   useEffect(() => {
     fetchTasks();
-  }, [selectedDate, filterArea]);
+  }, [fetchTasks]);
 
   useEffect(() => {
     if (selectedDate) {
@@ -100,32 +126,6 @@ const TaskManager = ({
     fetchEmpleados();
   }, []);
 
-  const fetchTasks = async () => {
-    try {
-      setLoading(true);
-      let data = await getAllTareas();
-
-      if (selectedDate) {
-        const dateStr = selectedDate.toISOString().split('T')[0];
-        data = data.filter(t => t.fecha_vencimiento === dateStr);
-      }
-
-      if (!canManageAll && userArea) {
-        data = data.filter(t => t.id_area === userArea);
-      }
-
-      if (filterArea !== 'all') {
-        data = data.filter(t => t.id_area === parseInt(filterArea));
-      }
-
-      setTasks(data || []);
-    } catch (err) {
-      console.error('Error cargando tareas:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -153,7 +153,6 @@ const TaskManager = ({
       console.log('=======================');
 
       // Obtener datos del usuario para permisos
-      const userId = user?.user?.id_empleado;
       const userAreaId = user?.user?.area_id;
 
       if (editingTask) {
