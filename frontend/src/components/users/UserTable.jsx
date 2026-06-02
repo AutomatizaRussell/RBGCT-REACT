@@ -168,7 +168,8 @@ const UserTable = () => {
       // Permisos y estado
       id_permisos: user.id_permisos || 3,
       estado: user.estado || 'ACTIVA',
-      permitir_edicion_datos: user.permitir_edicion_datos || false
+      permitir_edicion_datos: user.permitir_edicion_datos || false,
+      acceso_formularios_sqf: user.acceso_formularios_sqf || false
     });
     setCertPermEdit(certPermisosBackend.includes(String(user.id_empleado)));
   };
@@ -820,6 +821,21 @@ const UserTable = () => {
                   />
                   <label htmlFor="permitir_edicion" className="text-sm font-medium text-indigo-900 cursor-pointer">
                     Permitir que el usuario edite su propio perfil
+                  </label>
+                </div>
+
+                {/* Toggle para acceso a Formularios SQF */}
+                <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
+                  <input
+                    type="checkbox"
+                    id="acceso_sqf"
+                    name="acceso_formularios_sqf"
+                    checked={editFormData.acceso_formularios_sqf}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, acceso_formularios_sqf: e.target.checked }))}
+                    className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500"
+                  />
+                  <label htmlFor="acceso_sqf" className="text-sm font-medium text-amber-900 cursor-pointer">
+                    Acceso a Formularios SQF (Clientes y Contratos)
                   </label>
                 </div>
 

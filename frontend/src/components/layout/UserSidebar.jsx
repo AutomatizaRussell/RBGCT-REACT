@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ClipboardList, UserCircle, LogOut,
-  BookOpen, PlayCircle, Wrench, Building2, X,
+  BookOpen, PlayCircle, Wrench, Building2, X, FileText,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -44,9 +44,12 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
       case 'reglamento':  navigate('/app/comunicados');  break;
       case 'utilidades':  navigate('/app/utilidades');   break;
       case 'clientes':    navigate('/app/mis-clientes'); break;
+      case 'sqf':         /* sin navigate — tab renderizado inline */ break;
       default:            navigate('/app');
     }
   };
+
+  const tieneSQF = Boolean(empleadoData?.acceso_formularios_sqf);
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col bg-[#001871] text-white shadow-2xl transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:translate-x-0 lg:z-20 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -88,6 +91,9 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
         <NavBtn tab="cursos"     icon={<PlayCircle size={18} />}  label="Cursos" activeTab={activeTab} onNavigate={handleNavigation} />
         <NavBtn tab="reglamento" icon={<BookOpen size={18} />}    label="Reglamento" activeTab={activeTab} onNavigate={handleNavigation} />
         <NavBtn tab="utilidades" icon={<Wrench size={18} />}      label="Herramientas" activeTab={activeTab} onNavigate={handleNavigation} />
+        {tieneSQF && (
+          <NavBtn tab="sqf" icon={<FileText size={18} />} label="Formularios SQF" activeTab={activeTab} onNavigate={handleNavigation} />
+        )}
       </nav>
 
       <div className="border-t border-white/5 p-5">

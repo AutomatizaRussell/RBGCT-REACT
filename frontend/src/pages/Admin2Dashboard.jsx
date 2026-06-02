@@ -42,6 +42,7 @@ import CursosSection from '../components/admin2/CursosSection';
 import UtilidadesSection from '../components/admin2/UtilidadesSection';
 import ContratosSection from '../components/admin2/ContratosSection';
 import ClientesSection from '../components/admin2/ClientesSection';
+import FormulariosSQF from '../pages/FormulariosSQF';
 import CertificadoSection from '../components/admin2/CertificadoSection';
 import GeminiChat from '../components/admin2/GeminiChat';
 import StatCard from '../components/ui/StatCard';
@@ -294,7 +295,13 @@ const Admin2Dashboard = () => {
       case 'clientes':
         return (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-full -m-8">
-            <ClientesSection />
+            <ClientesSection onGoToSQF={() => setActiveTab('formularios-sqf')} />
+          </div>
+        );
+      case 'formularios-sqf':
+        return (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <FormulariosSQF onBack={() => setActiveTab('clientes')} />
           </div>
         );
       case 'profile':
@@ -589,6 +596,7 @@ const Admin2Dashboard = () => {
       case 'profile':         return 'Mi Perfil';
       case 'contratos':       return 'Contratos Laborales';
       case 'clientes':        return 'Clientes';
+      case 'formularios-sqf': return 'Formularios SQF';
       case 'herramientas':    return 'Herramientas';
       case 'reglamento':      return 'Reglamento Interno';
       case 'certificado':     return 'Certificado de Empleo';

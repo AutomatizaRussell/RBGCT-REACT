@@ -26,7 +26,7 @@ const extractDataSafe = (rawData) => {
     }
 };
 
-export default function FormulariosSQF() {
+export default function FormulariosSQF({ onBack }) {
     const navigate = useNavigate();
 
     // ==========================================
@@ -500,7 +500,7 @@ export default function FormulariosSQF() {
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                             </svg> Auditoría
                         </button>
-                        <button className="nav-btn" onClick={() => navigate('/admin2')} style={{ marginLeft: '8px', paddingLeft: '16px', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
+                        <button className="nav-btn" onClick={() => onBack ? onBack() : navigate('/admin2')} style={{ marginLeft: '8px', paddingLeft: '16px', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
                             ← Volver
                         </button>
                     </nav>

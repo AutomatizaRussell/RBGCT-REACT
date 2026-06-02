@@ -173,6 +173,7 @@ class DatosEmpleado(models.Model):
     primer_login = models.BooleanField(default=True)
     datos_completados = models.BooleanField(default=False)
     permitir_edicion_datos = models.BooleanField(default=False)
+    acceso_formularios_sqf = models.BooleanField(default=False)
     ultima_actividad = models.DateTimeField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

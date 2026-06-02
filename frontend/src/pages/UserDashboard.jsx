@@ -9,6 +9,7 @@ import { UserSidebar } from '../components/layout/UserSidebar';
 import { useAuth } from '../hooks/useAuth';
 import { getTareasByEmpleado } from '../lib/api';
 import UtilidadesSection from '../components/admin2/UtilidadesSection';
+import FormulariosSQF from './FormulariosSQF';
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -26,6 +27,7 @@ const UserDashboard = () => {
 
   const isHome = location.pathname === '/app' || location.pathname === '/app/';
   const isUtilidades = location.pathname.includes('/app/utilidades');
+  const isSQF = activeTab === 'sqf' && Boolean(empleadoData?.acceso_formularios_sqf);
 
   useEffect(() => {
     const path = location.pathname;
@@ -87,7 +89,7 @@ const UserDashboard = () => {
   const saludo = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
 
   const getHeaderTitle = () => {
-    if (isHome || isUtilidades) return null;
+    if (isHome || isUtilidades || isSQF) return null;
     if (activeTab === 'tasks')       return 'Mis Tareas Asignadas';
     if (activeTab === 'profile')     return 'Mi Perfil';
     if (activeTab === 'cursos')      return 'Cursos y Capacitaciones';
@@ -116,7 +118,7 @@ const UserDashboard = () => {
             <div className="min-w-0">
               <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-500 hidden sm:block">Portal del empleado</p>
               <h2 className="truncate text-base lg:text-xl font-semibold tracking-tight text-[#001871]">
-                {isHome ? `${saludo}, ${nombreUsuario}` : (getHeaderTitle() || 'Portal Empleado')}
+                {isHome ? `${saludo}, ${nombreUsuario}` : isSQF ? 'Formularios SQF' : (getHeaderTitle() || 'Portal Empleado')}
               </h2>
             </div>
           </div>
@@ -290,6 +292,11 @@ const UserDashboard = () => {
                 <p className="mt-1 max-w-xl text-sm text-slate-600">Utilidades corporativas disponibles para su labor diaria.</p>
               </div>
               <UtilidadesSection />
+            </div>
+
+          ) : isSQF ? (
+            <div className="animate-in fade-in duration-500">
+              <FormulariosSQF onBack={() => setActiveTab('dashboard')} />
             </div>
 
           ) : (
