@@ -248,6 +248,9 @@ export default function FormulariosSQF({ onBack }) {
         if (!isValid) { setClientErrors(errors); return; }
 
         setIsSubmittingClient(true);
+        ['document', 'name', 'contactName', 'contactRole', 'economicGroup', 'address', 'info'].forEach(f => {
+            const v = formData.get(f); if (v) formData.set(f, v.toUpperCase());
+        });
         formData.append('id', generateId('CLI'));
         formData.append('createdAt', new Date().toISOString());
         formData.append('status', 'Pendiente de revisión');
@@ -329,9 +332,12 @@ export default function FormulariosSQF({ onBack }) {
         if (!isValid) { setContractErrors(errors); return; }
 
         setIsSubmittingContract(true);
+        ['economicGroup', 'name', 'manager', 'service', 'roles', 'notes'].forEach(f => {
+            const v = formData.get(f); if (v) formData.set(f, v.toUpperCase());
+        });
         formData.append('id', generateId('CTR'));
         formData.append('clientId', selectedClientForContract.id);
-        formData.append('clientName', selectedClientForContract.name);
+        formData.append('clientName', selectedClientForContract.name.toUpperCase());
         formData.append('createdAt', new Date().toISOString());
         formData.append('status', 'Pendiente de revisión');
         appendLoggedUserMeta(formData);
@@ -432,13 +438,13 @@ export default function FormulariosSQF({ onBack }) {
         setIsSubmittingBilling(true);
         const payload = {
             id: generateId('BIL'), tipoSolicitud: 'Facturación', billingType, billingClientType,
-            clientName: billingClientName, company: billingCompany, saleType, crossSalePerson: saleType === 'Venta cruzada' ? crossSalePerson : '',
+            clientName: billingClientName.toUpperCase(), company: billingCompany, saleType, crossSalePerson: saleType === 'Venta cruzada' ? crossSalePerson.toUpperCase() : '',
             serviceType,
             valorMes: parseInt(String(billingValorMes).replace(/\D/g, '') || '0', 10),
             valorProyecto: parseInt(String(billingValorProyecto).replace(/\D/g, '') || '0', 10),
-            origin, originRef: ['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) ? originRef : '',
-            closer: billingCloser,
-            areas: JSON.stringify(billingAreas.map(a => ({ ...a, valor: parseInt(String(a.valor).replace(/\D/g, ''), 10) }))),
+            origin, originRef: ['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) ? originRef.toUpperCase() : '',
+            closer: billingCloser.toUpperCase(),
+            areas: JSON.stringify(billingAreas.map(a => ({ ...a, centro: a.centro.toUpperCase(), concepto: a.concepto.toUpperCase(), valor: parseInt(String(a.valor).replace(/\D/g, ''), 10) }))),
             createdAt: new Date().toISOString(),
             ...getLoggedUserMeta(),
         };
@@ -470,6 +476,9 @@ export default function FormulariosSQF({ onBack }) {
         if (!isValid) { setNcErrors(errors); return; }
 
         setIsSubmittingBilling(true);
+        ['ncClient', 'ncInvoice', 'ncReason'].forEach(f => {
+            const v = formData.get(f); if (v) formData.set(f, v.toUpperCase());
+        });
         formData.append('id', generateId('NC'));
         formData.append('tipoSolicitud', 'Nota Crédito');
         formData.append('createdAt', new Date().toISOString());

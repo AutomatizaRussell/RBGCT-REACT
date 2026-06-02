@@ -14,6 +14,13 @@ class DatosArea(models.Model):
         db_table = 'datos_area'
         managed = True
 
+    def save(self, *args, **kwargs):
+        if self.nombre_area:
+            self.nombre_area = self.nombre_area.upper()
+        if self.descripcion:
+            self.descripcion = self.descripcion.upper()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.nombre_area
 
@@ -27,6 +34,13 @@ class DatosCargo(models.Model):
     class Meta:
         db_table = 'datos_cargo'
         managed = True
+
+    def save(self, *args, **kwargs):
+        if self.nombre_cargo:
+            self.nombre_cargo = self.nombre_cargo.upper()
+        if self.nivel:
+            self.nivel = self.nivel.upper()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nombre_cargo
@@ -119,6 +133,17 @@ class Persona(models.Model):
         db_table = 'persona'
         managed = True
 
+    def save(self, *args, **kwargs):
+        for field in ('primer_nombre', 'primer_apellido'):
+            v = getattr(self, field, None)
+            if v:
+                setattr(self, field, v.upper())
+        for field in ('segundo_nombre', 'segundo_apellido', 'apodo'):
+            v = getattr(self, field, None)
+            if v:
+                setattr(self, field, v.upper())
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.primer_nombre} {self.primer_apellido}"
 
@@ -144,6 +169,13 @@ class DatosContacto(models.Model):
     class Meta:
         db_table = 'datos_contacto'
         managed = True
+
+    def save(self, *args, **kwargs):
+        for field in ('nombre_contacto_emergencia', 'parentesco_emergencia', 'direccion'):
+            v = getattr(self, field, None)
+            if v:
+                setattr(self, field, v.upper())
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Contacto de {self.persona}"
@@ -357,6 +389,13 @@ class TareasCalendario(models.Model):
     class Meta:
         db_table = 'tareas_calendario'
         managed = True
+
+    def save(self, *args, **kwargs):
+        for field in ('titulo', 'descripcion', 'asignado_a'):
+            v = getattr(self, field, None)
+            if v:
+                setattr(self, field, v.upper())
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.titulo
@@ -672,6 +711,13 @@ class Contrato(models.Model):
                 name='unique_contrato_activo_por_empleado',
             )
         ]
+
+    def save(self, *args, **kwargs):
+        for field in ('lugar_trabajo', 'observaciones'):
+            v = getattr(self, field, None)
+            if v:
+                setattr(self, field, v.upper())
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.empleado} — {self.tipo_contrato} ({self.estado})"

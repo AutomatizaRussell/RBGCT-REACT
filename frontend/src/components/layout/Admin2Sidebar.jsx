@@ -70,7 +70,7 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
 
 
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-4 space-y-1 overflow-y-auto no-scrollbar">
 
         <p className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gestión Operativa</p>
 
