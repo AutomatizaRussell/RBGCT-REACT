@@ -2647,6 +2647,7 @@ def n8n_proxy(request):
     actions:
       ?action=status      → verifica si n8n está online
       ?action=executions  → retorna historial de ejecuciones (requiere API key)
+      ?action=pendientes  → retorna solicitudes pendientes (webhook Pendientes)
     """
     from django.conf import settings as django_settings
     import time
@@ -2707,6 +2708,26 @@ def n8n_proxy(request):
             if cached_payload:
                 return Response({**cached_payload, 'cached': True, 'stale': True})
             return Response({'error': 'Error interno consultando estado de n8n'}, status=500)
+
+    if action == 'pendientes':
+        # Webhook público que retorna solicitudes pendientes (clientes/contratos).
+        webhook_url = f'{base_url}/webhook/Pendientes' if base_url else 'https://n8n.rbgct.cloud/webhook/Pendientes'
+        try:
+            resp = requests.get(webhook_url, timeout=(3, 12))
+            if resp.status_code >= 400:
+                return Response({'error': f'n8n devolvió HTTP {resp.status_code} en Pendientes'}, status=502)
+            try:
+                payload = resp.json()
+            except Exception:
+                return Response({'error': 'Respuesta inválida (no JSON) desde Pendientes'}, status=502)
+            return Response(payload)
+        except requests.exceptions.Timeout:
+            return Response({'error': 'n8n tardó demasiado en responder (Pendientes)'}, status=504)
+        except requests.exceptions.ConnectionError:
+            return Response({'error': 'No se pudo conectar con n8n (Pendientes)'}, status=503)
+        except Exception as e:
+            logger.error(f"[N8N PROXY] Error en pendientes: {e}")
+            return Response({'error': 'Error interno consultando Pendientes'}, status=500)
 
     if action == 'executions':
         if not api_key:

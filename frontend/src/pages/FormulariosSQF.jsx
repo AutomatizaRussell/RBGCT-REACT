@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FormulariosSQF.css';
 import { useAuth } from '../hooks/useAuth';
+import { fetchApi } from '../lib/api';
 
 const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',
@@ -100,9 +101,16 @@ export default function FormulariosSQF({ onBack }) {
         
         // 1) Pendientes (auditoría): solo lo que n8n marca como pendiente de crear/validar.
         try {
-            const pendingRes = await fetch(N8N_WEBHOOKS.pending);
-            if (pendingRes.ok) {
-                const data = await pendingRes.json();
+            // Preferimos el proxy del backend para evitar CORS en el navegador.
+            let data = null;
+            try {
+                data = await fetchApi('/n8n-proxy/?action=pendientes', { method: 'GET' });
+            } catch {
+                const pendingRes = await fetch(N8N_WEBHOOKS.pending);
+                if (pendingRes.ok) data = await pendingRes.json();
+            }
+
+            if (data) {
                 const rawPending = extractDataSafe(data);
                 const pendingFlat = (Array.isArray(rawPending) ? rawPending : []).reduce((acc, item) => {
                     if (Array.isArray(item)) return acc.concat(item);
