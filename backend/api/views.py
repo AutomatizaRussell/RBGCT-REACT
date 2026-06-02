@@ -2638,7 +2638,7 @@ def gemini_chat(request):
 # PROXY N8N — Sin CORS, el backend consulta n8n directamente
 # ============================================================================
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAdminOrSuperAdmin])
 @throttle_classes([UserRateThrottle])
 def n8n_proxy(request):
@@ -2713,7 +2713,10 @@ def n8n_proxy(request):
         # Webhook público que retorna solicitudes pendientes (clientes/contratos).
         webhook_url = f'{base_url}/webhook/Pendientes' if base_url else 'https://n8n.rbgct.cloud/webhook/Pendientes'
         try:
-            resp = requests.get(webhook_url, timeout=(3, 12))
+            if request.method == 'POST':
+                resp = requests.post(webhook_url, json=request.data, timeout=(3, 12))
+            else:
+                resp = requests.get(webhook_url, timeout=(3, 12))
             if resp.status_code >= 400:
                 return Response({'error': f'n8n devolvió HTTP {resp.status_code} en Pendientes'}, status=502)
             try:
