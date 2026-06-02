@@ -200,6 +200,34 @@
 .nit-modal-close { background: transparent; border: none; font-size: 1.5rem; line-height: 1; color: var(--color-text-light); cursor: pointer; transition: color 0.15s; }
 .nit-modal-desc { margin-bottom: 16px; color: var(--color-text-light); font-size: 14px; }
 
+/* Modal "Verificar Cliente" (NIT) */
+.nit-modal-reload {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1.5px solid var(--color-border);
+    background: var(--color-surface-2);
+    color: var(--color-blue-dark);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition);
+    margin-bottom: 14px;
+}
+.nit-modal-reload:hover {
+    border-color: var(--color-blue-light);
+    box-shadow: 0 0 0 3px rgba(0,169,206,.10);
+    background: #fff;
+}
+.nit-modal-reload:active { transform: translateY(1px); }
+.nit-modal-reload .reload-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+}
+
 .radio-group-col { flex-direction: column; gap: 10px; }
 .radio-group-col .radio-option { width: 100%; }
 .form-select { -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238892b0' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 16px; padding-right: 42px !important; cursor: pointer; }
