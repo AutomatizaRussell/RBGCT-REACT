@@ -7,7 +7,6 @@ import { fetchApi } from '../lib/api';
 const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',
     contract: 'https://n8n.rbgct.cloud/webhook/contratos-crud',
-    contractPending: 'https://n8n.rbgct.cloud/webhook-test/Contratos-pendientes',
     billing: 'https://n8n.rbgct.cloud/webhook/flujo_Facturacion_SQF',
     pending: 'https://n8n.rbgct.cloud/webhook/Pendientes',
 };
@@ -43,7 +42,6 @@ export default function FormulariosSQF({ onBack }) {
     const [pendingClients, setPendingClients] = useState([]);
     const [pendingContracts, setPendingContracts] = useState([]);
     const [pendingValidationNit, setPendingValidationNit] = useState(null);
-    const [pendingValidationContractId, setPendingValidationContractId] = useState(null);
     const [selectedClientForContract, setSelectedClientForContract] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -108,14 +106,7 @@ export default function FormulariosSQF({ onBack }) {
                 data = await fetchApi('/n8n-proxy/?action=pendientes', { method: 'GET' });
             } catch {
                 const pendingRes = await fetch(N8N_WEBHOOKS.pending);
-                if (pendingRes.ok) {
-                    const text = await pendingRes.text();
-                    try {
-                        data = text ? JSON.parse(text) : [];
-                    } catch {
-                        data = [];
-                    }
-                }
+                if (pendingRes.ok) data = await pendingRes.json();
             }
 
             if (!data) {
@@ -164,34 +155,67 @@ export default function FormulariosSQF({ onBack }) {
                 const entityType = String(p?.entityType || p?.tipoEntidad || p?.TipoEntidad || '').toLowerCase();
 
                 if (!looksLikeClient && (entityType.includes('contract') || entityType.includes('contrato') || looksLikeContract)) {
-                    // Ignorar contratos en este endpoint; usamos el webhook específico de contratos.
-                    return;
-                }
+                    const rawValueContract =
+                        p?.value ?? p?.Valor ?? p?.valor ??
+                        (p?.PrecioMensual ?? p?.precioMensual) ??
+                        '';
+                    const parsedValueContract = (() => {
+                        const numStr = String(rawValueContract || '').replace(/\D/g, '');
+                        if (!numStr) return 0;
+                        const num = parseInt(numStr, 10);
+                        return Number.isFinite(num) ? num : 0;
+                    })();
 
-                mappedPendingClients.push({
-                    id: p?.id || generateId('CLI-P'),
-                    clientType: p?.clientType || (p?.Tipodocumento === 'NIT' ? 'juridica' : 'natural'),
-                    document: p?.document || p?.Documento || '',
-                    name: p?.name || p?.Nombre || '',
-                    contactName: p?.contactName || p?.NombreContacto || '',
-                    contactRole: p?.contactRole || p?.CargoContacto || '',
-                    economicGroup: p?.economicGroup || p?.GrupoEconomico || '',
-                    email: p?.email || p?.CorreoElectronico || '',
-                    phone: p?.phone || p?.Telefono || '',
-                    page: p?.page || p?.Pagina || '',
-                    address: p?.address || '',
-                    info: p?.info || '',
-                    solicitante_nombre: p?.solicitante_nombre || p?.Solicitante || p?.solicitante || '',
-                    solicitante_correo: p?.solicitante_correo || '',
-                    solicitante_id: p?.solicitante_id || '',
-                    createdAt,
-                    updatedAt,
-                    status,
-                    source: p?.source || 'pendientes'
-                });
+                    mappedPendingContracts.push({
+                        id: p?.id || generateId('CTR-P'),
+                        contractType: p?.contractType || p?.TipoContrato || p?.tipoContrato || '',
+                        clientId: p?.clientId || '',
+                        clientName: p?.clientName || p?.Cliente || p?.NombreCliente || '',
+                        clientDocument: p?.clientDocument || p?.DocumentoCliente || p?.NIT || p?.Nit || '',
+                        economicGroup: p?.economicGroup || p?.GrupoEconomico || p?.grupoEconomico || '',
+                        name: p?.name || p?.Nombre || p?.NombreContrato || p?.Contrato || p?.NombreProyecto || p?.Proyecto || '',
+                        value: parsedValueContract,
+                        valueFormatted: p?.valueFormatted || p?.ValorFormateado || p?.PrecioMensual || p?.precioMensual || '',
+                        startDate: p?.startDate ? String(p?.startDate).split('T')[0] : (p?.FechaInicio ? String(p?.FechaInicio).split('T')[0] : ''),
+                        endDate: p?.endDate ? String(p?.endDate).split('T')[0] : (p?.FechaFin ? String(p?.FechaFin).split('T')[0] : ''),
+                        manager: p?.manager || p?.Gerente || p?.Coordinador || '',
+                        service: p?.service || p?.Servicio || '',
+                        roles: p?.roles || p?.Posiciones || p?.Cargos || '',
+                        notes: p?.notes || p?.Notas || p?.Observaciones || '',
+                        solicitante_nombre: p?.solicitante_nombre || p?.Solicitante || p?.solicitante || '',
+                        solicitante_correo: p?.solicitante_correo || '',
+                        solicitante_id: p?.solicitante_id || '',
+                        createdAt,
+                        updatedAt,
+                        status
+                    });
+                } else {
+                    mappedPendingClients.push({
+                        id: p?.id || generateId('CLI-P'),
+                        clientType: p?.clientType || (p?.Tipodocumento === 'NIT' ? 'juridica' : 'natural'),
+                        document: p?.document || p?.Documento || '',
+                        name: p?.name || p?.Nombre || '',
+                        contactName: p?.contactName || p?.NombreContacto || '',
+                        contactRole: p?.contactRole || p?.CargoContacto || '',
+                        economicGroup: p?.economicGroup || p?.GrupoEconomico || '',
+                        email: p?.email || p?.CorreoElectronico || '',
+                        phone: p?.phone || p?.Telefono || '',
+                        page: p?.page || p?.Pagina || '',
+                        address: p?.address || '',
+                        info: p?.info || '',
+                        solicitante_nombre: p?.solicitante_nombre || p?.Solicitante || p?.solicitante || '',
+                        solicitante_correo: p?.solicitante_correo || '',
+                        solicitante_id: p?.solicitante_id || '',
+                        createdAt,
+                        updatedAt,
+                        status,
+                        source: p?.source || 'pendientes'
+                    });
+                }
             });
 
             setPendingClients(mappedPendingClients);
+            setPendingContracts(mappedPendingContracts);
         } catch (e) {
             console.error('Bloqueo CORS o Red en Pendientes (Auditoría):', e);
             setPendingClients([]);
@@ -199,92 +223,10 @@ export default function FormulariosSQF({ onBack }) {
         }
     }, []);
 
-    const refreshContractPendings = useCallback(async () => {
-        try {
-            let data = null;
-            try {
-                const pendingRes = await fetch(N8N_WEBHOOKS.contractPending);
-                if (pendingRes.ok) {
-                    const text = await pendingRes.text();
-                    data = text ? JSON.parse(text) : [];
-                } else {
-                    throw new Error(`HTTP ${pendingRes.status}`);
-                }
-            } catch (fetchError) {
-                console.error('Error fetching contract pendings directly:', fetchError);
-                setPendingContracts([]);
-                return;
-            }
-
-            if (!data) {
-                setPendingContracts([]);
-                return;
-            }
-
-            const rawPending = extractDataSafe(data);
-            const pendingFlat = (Array.isArray(rawPending) ? rawPending : []).reduce((acc, item) => {
-                if (Array.isArray(item)) return acc.concat(item);
-                acc.push(item);
-                return acc;
-            }, []);
-
-            const mappedPendingContracts = [];
-            pendingFlat.forEach((p) => {
-                if (typeof p?.creado === 'boolean' && p.creado !== false) return;
-
-                const statusRaw = p?.status || p?.Estado || p?.estado || p?.Status || 'Pendiente';
-                const status = String(statusRaw || 'Pendiente');
-                const createdAt = p?.createdAt || p?.FechaCreacion || p?.fechaCreacion || p?.Fecha || '';
-                const updatedAt = p?.updatedAt || p?.FechaActualizacion || p?.fechaActualizacion || '';
-
-                const rawValueContract =
-                    p?.value ?? p?.Valor ?? p?.valor ??
-                    (p?.PrecioMensual ?? p?.precioMensual) ??
-                    '';
-                const parsedValueContract = (() => {
-                    const numStr = String(rawValueContract || '').replace(/\D/g, '');
-                    if (!numStr) return 0;
-                    const num = parseInt(numStr, 10);
-                    return Number.isFinite(num) ? num : 0;
-                })();
-
-                mappedPendingContracts.push({
-                    id: p?.id || p?.contractId || p?.contratoId || p?.id_contrato || generateId('CTR-P'),
-                    contractType: p?.contractType || p?.TipoContrato || p?.tipoContrato || p?.tipo_contrato || '',
-                    clientId: p?.clientId || p?.clienteId || p?.cliente_id || '',
-                    clientName: p?.clientName || p?.Cliente || p?.NombreCliente || p?.cliente || '',
-                    clientDocument: p?.clientDocument || p?.DocumentoCliente || p?.NIT || p?.Nit || p?.documentoCliente || p?.documento || '',
-                    economicGroup: p?.economicGroup || p?.GrupoEconomico || p?.grupoEconomico || '',
-                    name: p?.name || p?.Nombre || p?.NombreContrato || p?.Contrato || p?.NombreProyecto || p?.Proyecto || '',
-                    value: parsedValueContract,
-                    valueFormatted: p?.valueFormatted || p?.ValorFormateado || p?.PrecioMensual || p?.precioMensual || '',
-                    startDate: p?.startDate ? String(p?.startDate).split('T')[0] : (p?.FechaInicio ? String(p?.FechaInicio).split('T')[0] : ''),
-                    endDate: p?.endDate ? String(p?.endDate).split('T')[0] : (p?.FechaFin ? String(p?.FechaFin).split('T')[0] : ''),
-                    manager: p?.manager || p?.Gerente || p?.Coordinador || '',
-                    service: p?.service || p?.Servicio || '',
-                    roles: p?.roles || p?.Posiciones || p?.Cargos || '',
-                    notes: p?.notes || p?.Notas || p?.Observaciones || '',
-                    solicitante_nombre: p?.solicitante_nombre || p?.Solicitante || p?.solicitante || '',
-                    solicitante_correo: p?.solicitante_correo || '',
-                    solicitante_id: p?.solicitante_id || '',
-                    createdAt,
-                    updatedAt,
-                    status,
-                    source: p?.source || 'contratos-pendientes'
-                });
-            });
-
-            setPendingContracts(mappedPendingContracts);
-        } catch (e) {
-            console.error('Bloqueo CORS o Red en Contratos Pendientes:', e);
-            setPendingContracts([]);
-        }
-    }, []);
-
     const loadDataFromWebhooks = useCallback(async () => {
         setIsLoading(true);
         
-        await Promise.all([refreshPendings(), refreshContractPendings()]);
+        await refreshPendings();
 
         try {
             // Petición GET completamente limpia, sin headers extraños que disparen bloqueos.
@@ -691,65 +633,6 @@ export default function FormulariosSQF({ onBack }) {
     };
 
     const markAsValidated = () => { showToastMsg('success', 'Validación Exitosa', 'El proceso ha sido marcado como validado.'); };
-
-    const validateContractPending = async (contractItem) => {
-        const contractId = String(contractItem?.id || contractItem?.contractId || contractItem?.contratoId || contractItem?.clientDocument || contractItem?.document || contractItem?.NIT || '').trim();
-        const clientName = String(contractItem?.clientName || contractItem?.name || contractItem?.Cliente || contractItem?.NombreCliente || '').trim();
-        const clientDocument = String(contractItem?.clientDocument || contractItem?.document || contractItem?.NIT || contractItem?.DocumentoCliente || contractItem?.documento || '').trim();
-
-        if (!contractId || !clientName) {
-            showToastMsg('error', 'Datos incompletos', 'No se encontró la información necesaria para validar el contrato.');
-            return;
-        }
-
-        const loggedUserMeta = getLoggedUserMeta();
-        setPendingValidationContractId(contractId);
-
-        try {
-            const payload = {
-                id: contractId,
-                status: 'Validado',
-                clientName,
-                clientDocument,
-                contractName: contractItem?.name || contractItem?.Nombre || '',
-                clientId: contractItem?.clientId || contractItem?.clienteId || contractItem?.cliente_id || '',
-                updatedAt: new Date().toISOString(),
-                solicitante_nombre: loggedUserMeta.solicitante_nombre,
-                solicitante_correo: loggedUserMeta.solicitante_correo,
-                solicitante_id: loggedUserMeta.solicitante_id,
-            };
-
-            let sent = false;
-            try {
-                const formData = new FormData();
-                Object.entries(payload).forEach(([key, value]) => {
-                    formData.append(key, String(value ?? ''));
-                });
-                const response = await fetch(N8N_WEBHOOKS.contractPending, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: formData,
-                });
-                if (response && (response.ok || response.type === 'opaque')) {
-                    sent = true;
-                }
-            } catch (fetchError) {
-                console.error('Error posting contract validation to webhook:', fetchError);
-            }
-
-            if (!sent) {
-                throw new Error('No se pudo enviar la validación del contrato al webhook de contratos pendientes.');
-            }
-
-            showToastMsg('success', 'Validación enviada', 'Se envió la validación del contrato a n8n.');
-            setPendingContracts((prev) => prev.filter((p) => String(p?.id || p?.contractId || p?.contratoId || p?.clientDocument || p?.document || p?.NIT || '').trim() !== contractId));
-            await refreshContractPendings();
-        } catch (e) {
-            showToastMsg('error', 'Error de Conexión', e?.message || 'No se pudo validar el contrato.');
-        } finally {
-            setPendingValidationContractId(null);
-        }
-    };
 
     const validateClientCreation = async (clientItem) => {
         const nombre = String(clientItem?.name || clientItem?.Nombre || '').trim();
@@ -1529,14 +1412,7 @@ export default function FormulariosSQF({ onBack }) {
                                                     <div className="auditor-card-footer">
                                                         <span className="auditor-date">Creado: {formatDateSafe(c?.createdAt)}</span>
                                                         {isPending ? (
-                                                            <button
-                                                                type="button"
-                                                                className="btn-validate"
-                                                                disabled={pendingValidationContractId === String(c?.id || c?.contractId || c?.contratoId || c?.clientDocument || c?.document || c?.NIT || '')}
-                                                                onClick={(e) => { e.stopPropagation(); validateContractPending(c); }}
-                                                            >
-                                                                {pendingValidationContractId === String(c?.id || c?.contractId || c?.contratoId || c?.clientDocument || c?.document || c?.NIT || '') ? 'Validando...' : 'Validar'}
-                                                            </button>
+                                                            <button className="btn-validate" onClick={(e) => { e.stopPropagation(); markAsValidated(); }}>Validar</button>
                                                         ) : (
                                                             <span className="validated-info">Validado</span>
                                                         )}
