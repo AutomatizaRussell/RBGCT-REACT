@@ -27,7 +27,7 @@ const UserDashboard = () => {
 
   const isHome = location.pathname === '/app' || location.pathname === '/app/';
   const isUtilidades = location.pathname.includes('/app/utilidades');
-  const isSQF = activeTab === 'sqf' && Boolean(empleadoData?.acceso_formularios_sqf);
+  const isSQF = location.pathname.includes('/app/sqf') && Boolean(empleadoData?.acceso_formularios_sqf);
 
   useEffect(() => {
     if (location.state?.tab && empleadoData?.acceso_formularios_sqf) {
@@ -40,6 +40,7 @@ const UserDashboard = () => {
     else if (path.includes('manuales'))  setActiveTab('cursos');
     else if (path.includes('comunicados')) setActiveTab('reglamento');
     else if (path.includes('utilidades')) setActiveTab('utilidades');
+    else if (path.includes('sqf'))        setActiveTab('sqf');
     else if (path.includes('mis-clientes') || path.includes('/app/cliente/')) setActiveTab('clientes');
     else setActiveTab('dashboard');
   }, [location.pathname, location.state, empleadoData?.acceso_formularios_sqf]);
@@ -300,7 +301,7 @@ const UserDashboard = () => {
 
           ) : isSQF ? (
             <div className="animate-in fade-in duration-500">
-              <FormulariosSQF onBack={() => setActiveTab('dashboard')} />
+              <FormulariosSQF onBack={() => { setActiveTab('dashboard'); navigate('/app'); }} />
             </div>
 
           ) : (

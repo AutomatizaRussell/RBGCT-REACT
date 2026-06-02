@@ -115,6 +115,7 @@ function App() {
             <Route path="manuales" element={<ManualesCargo />} />
             <Route path="comunicados" element={<ComunicadosInternos />} />
             <Route path="utilidades" element={<WelcomeUser />} />
+            <Route path="sqf" element={<WelcomeUser />} />
             <Route path="gestor-pdf" element={<GestorPDFPage />} />
             <Route path="mis-clientes" element={<MisClientes />} />
             <Route path="cliente/:id" element={<MisClienteDetalle />} />

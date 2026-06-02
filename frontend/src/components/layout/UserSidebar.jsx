@@ -44,7 +44,7 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
       case 'reglamento':  navigate('/app/comunicados');  break;
       case 'utilidades':  navigate('/app/utilidades');   break;
       case 'clientes':    navigate('/app/mis-clientes'); break;
-      case 'sqf':         /* sin navigate — tab renderizado inline */ break;
+      case 'sqf':         navigate('/app/sqf');             break;
       default:            navigate('/app');
     }
   };
