@@ -1582,7 +1582,7 @@ const ConfiguracionesTab = ({ user }) => {
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-slate-400 transition-colors">
                   <Lock size={14} className="text-slate-400 flex-shrink-0"/>
                   <input type={showPass ? 'text' : 'password'} value={newPass} onChange={e => setNewPass(e.target.value)}
-                    placeholder="Mínimo 8 caracteres" className="flex-1 bg-transparent text-sm focus:outline-none"/>
+                    placeholder="Mínimo 8 caracteres" className="no-upper flex-1 bg-transparent text-sm focus:outline-none"/>
                 </div>
               </div>
               <div>
@@ -1590,7 +1590,7 @@ const ConfiguracionesTab = ({ user }) => {
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-slate-400 transition-colors">
                   <Lock size={14} className="text-slate-400 flex-shrink-0"/>
                   <input type={showPass ? 'text' : 'password'} value={confirmPass} onChange={e => setConfirmPass(e.target.value)}
-                    placeholder="Repetir contraseña" className="flex-1 bg-transparent text-sm focus:outline-none"/>
+                    placeholder="Repetir contraseña" className="no-upper flex-1 bg-transparent text-sm focus:outline-none"/>
                   <button onClick={() => setShowPass(p => !p)} title={showPass ? 'Ocultar' : 'Mostrar'}
                     className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0">
                     <Eye size={14}/>

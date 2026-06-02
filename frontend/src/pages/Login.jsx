@@ -305,7 +305,7 @@ const Login = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium pr-12"
+                  className="no-upper w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium pr-12"
                   placeholder="••••••••"
                 />
                 <button

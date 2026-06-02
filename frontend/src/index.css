@@ -19,7 +19,8 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-input:not([type="email"]):not([type="password"]):not([type="date"]):not([type="number"]):not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([type="search"]):not([type="tel"]),
-textarea {
+input:not([type="email"]):not([type="password"]):not([type="date"]):not([type="number"]):not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([type="search"]):not([type="tel"]):not(.no-upper),
+textarea:not(.no-upper) {
   text-transform: uppercase;
 }
+.no-upper { text-transform: none !important; }
