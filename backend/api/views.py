@@ -493,7 +493,7 @@ def login_view(request):
         empleado = DatosEmpleado.objects.select_related('persona').only(
             'id_empleado', 'correo_corporativo', 'id_permisos', 'estado',
             'area_id', 'cargo_id', 'primer_login', 'datos_completados',
-            'permitir_edicion_datos', 'password_hash', 'persona',
+            'permitir_edicion_datos', 'acceso_formularios_sqf', 'password_hash', 'persona',
             'persona__primer_nombre', 'persona__segundo_nombre',
             'persona__primer_apellido', 'persona__segundo_apellido',
         ).get(correo_corporativo=email, estado='ACTIVA')
@@ -521,6 +521,7 @@ def login_view(request):
                         'id_permisos': empleado.id_permisos,
                         'primer_login': True,
                         'datos_completados': empleado.datos_completados,
+                        'acceso_formularios_sqf': empleado.acceso_formularios_sqf,
                     },
                     'requiere_verificacion': True,
                     'mensaje': 'Por favor ingresa el código de verificación enviado a tu correo',
@@ -543,6 +544,7 @@ def login_view(request):
                     'primer_login': False,
                     'datos_completados': empleado.datos_completados,
                     'permitir_edicion_datos': empleado.permitir_edicion_datos,
+                    'acceso_formularios_sqf': empleado.acceso_formularios_sqf,
                 },
                 **tokens,
             })
@@ -1801,6 +1803,7 @@ def verificar_codigo_login(request):
             'id_permisos': empleado.id_permisos,
             'primer_login': empleado.primer_login,
             'datos_completados': empleado.datos_completados,
+            'acceso_formularios_sqf': empleado.acceso_formularios_sqf,
         },
         'necesita_completar_datos': necesita_completar,
         **tokens,

@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
-import { login as apiLogin, logout as apiLogout, completarDatosEmpleado, pingActividad, tokenStorage } from '../lib/api';
+import { login as apiLogin, logout as apiLogout, completarDatosEmpleado, pingActividad, tokenStorage, getEmpleadoById } from '../lib/api';
 
 const AuthContext = createContext(null);
 
@@ -72,6 +72,23 @@ export const AuthProvider = ({ children }) => {
     window.addEventListener('gct:session-expired', onExpired);
     return () => window.removeEventListener('gct:session-expired', onExpired);
   }, []);
+
+  // Refrescar datos del empleado al cargar sesión para evitar permisos desactualizados en localStorage.
+  useEffect(() => {
+    const syncEmpleado = async () => {
+      if (!user || userRole === 'superadmin' || !empleadoData?.id_empleado) return;
+      try {
+        const freshEmpleado = await getEmpleadoById(empleadoData.id_empleado);
+        if (!freshEmpleado || typeof freshEmpleado !== 'object') return;
+        setEmpleadoData(freshEmpleado);
+        localStorage.setItem('gct_empleado', JSON.stringify(freshEmpleado));
+      } catch (error) {
+        console.warn('[AUTH] No se pudo refrescar perfil del empleado:', error);
+      }
+    };
+
+    syncEmpleado();
+  }, [user, userRole, empleadoData?.id_empleado]);
 
   // Heartbeat: mantener sesión activa enviando ping cada 5 minutos
   useEffect(() => {
