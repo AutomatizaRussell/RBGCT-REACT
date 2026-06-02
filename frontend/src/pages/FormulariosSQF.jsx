@@ -626,9 +626,11 @@ export default function FormulariosSQF({ onBack }) {
         }
     };
 
-    const validateCreation = async (item, type) => {
-        const nombre = String(item?.name || item?.clientName || item?.Nombre || '').trim();
-        const nit = String(item?.document || item?.clientDocument || item?.Documento || '').trim();
+    const markAsValidated = () => { showToastMsg('success', 'Validación Exitosa', 'El proceso ha sido marcado como validado.'); };
+
+    const validateClientCreation = async (clientItem) => {
+        const nombre = String(clientItem?.name || clientItem?.Nombre || '').trim();
+        const nit = String(clientItem?.document || clientItem?.Documento || '').trim();
 
         if (!nombre || !nit) {
             showToastMsg('error', 'Datos incompletos', 'No se encontró el NIT y/o el nombre para validar la creación.');
@@ -638,15 +640,17 @@ export default function FormulariosSQF({ onBack }) {
         try {
             await fetchApi('/n8n-proxy/?action=pendientes', {
                 method: 'POST',
-                body: JSON.stringify({ nit, nombre, tipo: type }),
+                body: JSON.stringify({
+                    // Compatibilidad: algunos flujos esperan llaves en español/mayúsculas.
+                    nit,
+                    nombre,
+                    Documento: nit,
+                    Nombre: nombre,
+                }),
             });
             showToastMsg('success', 'Validación enviada', 'Se envió la validación de creación a n8n.');
 
-            if (type === 'client') {
-                setPendingClients((prev) => prev.filter((p) => String(p?.document || p?.Documento || '') !== nit));
-            } else {
-                setPendingContracts((prev) => prev.filter((p) => String(p?.clientDocument || p?.document || '') !== nit));
-            }
+            setPendingClients((prev) => prev.filter((p) => String(p?.document || p?.Documento || '') !== nit));
         } catch (e) {
             showToastMsg('error', 'Error de Conexión', e?.message || 'No se pudo validar la creación.');
         }
@@ -1348,7 +1352,7 @@ export default function FormulariosSQF({ onBack }) {
                                                     <div className="auditor-card-footer">
                                                         <span className="auditor-date">Creado: {formatDateSafe(c?.createdAt)}</span>
                                                         {isPending ? (
-                                                            <button className="btn-validate" onClick={(e) => { e.stopPropagation(); validateCreation(c, 'client'); }}>Validar creación</button>
+                                                            <button className="btn-validate" onClick={(e) => { e.stopPropagation(); validateClientCreation(c); }}>Validar creación</button>
                                                         ) : (
                                                             <span className="validated-info">Validado</span>
                                                         )}
@@ -1387,7 +1391,7 @@ export default function FormulariosSQF({ onBack }) {
                                                     <div className="auditor-card-footer">
                                                         <span className="auditor-date">Creado: {formatDateSafe(c?.createdAt)}</span>
                                                         {isPending ? (
-                                                            <button className="btn-validate" onClick={(e) => { e.stopPropagation(); validateCreation(c, 'contract'); }}>Validar creación</button>
+                                                            <button className="btn-validate" onClick={(e) => { e.stopPropagation(); markAsValidated(); }}>Validar</button>
                                                         ) : (
                                                             <span className="validated-info">Validado</span>
                                                         )}

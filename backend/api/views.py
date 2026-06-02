@@ -2718,7 +2718,15 @@ def n8n_proxy(request):
             else:
                 resp = requests.get(webhook_url, timeout=(3, 12))
             if resp.status_code >= 400:
-                return Response({'error': f'n8n devolvió HTTP {resp.status_code} en Pendientes'}, status=502)
+                detail = ''
+                try:
+                    detail = resp.text[:2000]
+                except Exception:
+                    detail = ''
+                payload = {'error': f'n8n devolvió HTTP {resp.status_code} en Pendientes'}
+                if detail:
+                    payload['detail'] = detail
+                return Response(payload, status=502)
             try:
                 payload = resp.json()
             except Exception:
