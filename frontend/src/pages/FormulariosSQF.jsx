@@ -43,6 +43,7 @@ export default function FormulariosSQF({ onBack }) {
     const [pendingClients, setPendingClients] = useState([]);
     const [pendingContracts, setPendingContracts] = useState([]);
     const [pendingValidationNit, setPendingValidationNit] = useState(null);
+    const [pendingValidationContractId, setPendingValidationContractId] = useState(null);
     const [selectedClientForContract, setSelectedClientForContract] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -107,7 +108,14 @@ export default function FormulariosSQF({ onBack }) {
                 data = await fetchApi('/n8n-proxy/?action=pendientes', { method: 'GET' });
             } catch {
                 const pendingRes = await fetch(N8N_WEBHOOKS.pending);
-                if (pendingRes.ok) data = await pendingRes.json();
+                if (pendingRes.ok) {
+                    const text = await pendingRes.text();
+                    try {
+                        data = text ? JSON.parse(text) : [];
+                    } catch {
+                        data = [];
+                    }
+                }
             }
 
             if (!data) {
@@ -197,10 +205,15 @@ export default function FormulariosSQF({ onBack }) {
             try {
                 const pendingRes = await fetch(N8N_WEBHOOKS.contractPending);
                 if (pendingRes.ok) {
-                    data = await pendingRes.json();
+                    const text = await pendingRes.text();
+                    data = text ? JSON.parse(text) : [];
+                } else {
+                    throw new Error(`HTTP ${pendingRes.status}`);
                 }
-            } catch {
-                data = await fetchApi('/n8n-proxy/?action=contratos-pendientes', { method: 'GET' });
+            } catch (fetchError) {
+                console.error('Error fetching contract pendings directly:', fetchError);
+                setPendingContracts([]);
+                return;
             }
 
             if (!data) {
@@ -708,24 +721,24 @@ export default function FormulariosSQF({ onBack }) {
 
             let sent = false;
             try {
+                const formData = new FormData();
+                Object.entries(payload).forEach(([key, value]) => {
+                    formData.append(key, String(value ?? ''));
+                });
                 const response = await fetch(N8N_WEBHOOKS.contractPending, {
                     method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
+                    mode: 'no-cors',
+                    body: formData,
                 });
-                if (response.ok || response.type === 'opaque') {
+                if (response && (response.ok || response.type === 'opaque')) {
                     sent = true;
                 }
-            } catch {
-                // Intentaremos proxy si el acceso directo falla por CORS o red.
+            } catch (fetchError) {
+                console.error('Error posting contract validation to webhook:', fetchError);
             }
 
             if (!sent) {
-                await fetchApi('/n8n-proxy/?action=contratos-pendientes', {
-                    method: 'POST',
-                    body: JSON.stringify(payload),
-                });
+                throw new Error('No se pudo enviar la validación del contrato al webhook de contratos pendientes.');
             }
 
             showToastMsg('success', 'Validación enviada', 'Se envió la validación del contrato a n8n.');
