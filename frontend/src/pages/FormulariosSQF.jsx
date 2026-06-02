@@ -131,6 +131,10 @@ export default function FormulariosSQF({ onBack }) {
                     const createdAt = p?.createdAt || p?.FechaCreacion || p?.fechaCreacion || p?.Fecha || '';
                     const updatedAt = p?.updatedAt || p?.FechaActualizacion || p?.fechaActualizacion || '';
 
+                    const looksLikeClient =
+                        (p?.Documento || p?.document) &&
+                        (p?.Tipodocumento || p?.tipodocumento || p?.NombreContacto || p?.CorreoElectronico);
+
                     const looksLikeContract =
                         p?.contractType || p?.TipoContrato || p?.tipoContrato ||
                         p?.economicGroup || p?.GrupoEconomico ||
@@ -146,7 +150,7 @@ export default function FormulariosSQF({ onBack }) {
                         p?.NombreContrato || p?.Contrato || p?.NombreProyecto || p?.Proyecto;
                     const entityType = String(p?.entityType || p?.tipoEntidad || p?.TipoEntidad || '').toLowerCase();
 
-                    if (entityType.includes('contract') || entityType.includes('contrato') || looksLikeContract) {
+                    if (!looksLikeClient && (entityType.includes('contract') || entityType.includes('contrato') || looksLikeContract)) {
                         const rawValueContract =
                             p?.value ?? p?.Valor ?? p?.valor ??
                             (p?.PrecioMensual ?? p?.precioMensual) ??
@@ -163,6 +167,7 @@ export default function FormulariosSQF({ onBack }) {
                             contractType: p?.contractType || p?.TipoContrato || p?.tipoContrato || '',
                             clientId: p?.clientId || '',
                             clientName: p?.clientName || p?.Cliente || p?.NombreCliente || '',
+                            clientDocument: p?.clientDocument || p?.DocumentoCliente || p?.NIT || p?.Nit || '',
                             economicGroup: p?.economicGroup || p?.GrupoEconomico || p?.grupoEconomico || '',
                             name: p?.name || p?.Nombre || p?.NombreContrato || p?.Contrato || p?.NombreProyecto || p?.Proyecto || '',
                             value: parsedValueContract,
@@ -173,6 +178,9 @@ export default function FormulariosSQF({ onBack }) {
                             service: p?.service || p?.Servicio || '',
                             roles: p?.roles || p?.Posiciones || p?.Cargos || '',
                             notes: p?.notes || p?.Notas || p?.Observaciones || '',
+                            solicitante_nombre: p?.solicitante_nombre || p?.Solicitante || p?.solicitante || '',
+                            solicitante_correo: p?.solicitante_correo || '',
+                            solicitante_id: p?.solicitante_id || '',
                             createdAt,
                             updatedAt,
                             status
@@ -191,6 +199,9 @@ export default function FormulariosSQF({ onBack }) {
                             page: p?.page || p?.Pagina || '',
                             address: p?.address || '',
                             info: p?.info || '',
+                            solicitante_nombre: p?.solicitante_nombre || p?.Solicitante || p?.solicitante || '',
+                            solicitante_correo: p?.solicitante_correo || '',
+                            solicitante_id: p?.solicitante_id || '',
                             createdAt,
                             updatedAt,
                             status,
@@ -616,6 +627,41 @@ export default function FormulariosSQF({ onBack }) {
     };
 
     const markAsValidated = () => { showToastMsg('success', 'Validación Exitosa', 'El proceso ha sido marcado como validado.'); };
+
+    const getSpanishFieldLabel = (key) => {
+        const map = {
+            id: 'ID',
+            clientType: 'Tipo de cliente',
+            document: 'Documento / NIT',
+            clientDocument: 'Documento / NIT',
+            name: 'Nombre',
+            clientName: 'Cliente',
+            contractType: 'Tipo de contrato',
+            contactName: 'Nombre de contacto',
+            contactRole: 'Cargo de contacto',
+            economicGroup: 'Grupo económico',
+            email: 'Correo electrónico',
+            phone: 'Teléfono',
+            address: 'Dirección',
+            page: 'Página web',
+            manager: 'Gerente a cargo',
+            service: 'Servicio',
+            roles: 'Cargos / roles',
+            value: 'Valor',
+            valueFormatted: 'Valor (formato)',
+            startDate: 'Fecha inicio',
+            endDate: 'Fecha fin',
+            notes: 'Notas / observaciones',
+            status: 'Estado',
+            source: 'Fuente',
+            solicitante_nombre: 'Solicitante',
+            solicitante_correo: 'Correo solicitante',
+            solicitante_id: 'ID solicitante',
+            createdAt: 'Creado',
+            updatedAt: 'Actualizado',
+        };
+        return map[key] || String(key);
+    };
 
     // ==========================================
     // RENDERIZADO PRINCIPAL
@@ -1300,10 +1346,18 @@ export default function FormulariosSQF({ onBack }) {
                                     <div className="auditor-list">
                                         {auditContracts.map((c, i) => {
                                             const isPending = c?.status !== 'Validado';
+                                            const clientDoc = c?.clientDocument || c?.document || '';
+                                            const requester = c?.solicitante_nombre || c?.requestedBy || '';
                                             return (
                                                 <div key={i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('contract'); }}>
                                                     <div className="auditor-card-header">
-                                                        <div><h4 className="auditor-item-title">{c?.name || ''}</h4><p className="auditor-item-subtitle">Cliente: {c?.clientName || ''}</p></div>
+                                                        <div>
+                                                            <h4 className="auditor-item-title">{c?.clientName || c?.name || ''}</h4>
+                                                            <p className="auditor-item-subtitle">
+                                                                {clientDoc ? `NIT: ${clientDoc}` : 'NIT: —'}
+                                                                {requester ? ` · Solicitó: ${requester}` : ''}
+                                                            </p>
+                                                        </div>
                                                         <span className={`status-badge ${isPending ? 'pending' : 'validated'}`}>{c?.status || 'Pendiente'}</span>
                                                     </div>
                                                     <div className="auditor-card-footer">
@@ -1338,7 +1392,7 @@ export default function FormulariosSQF({ onBack }) {
                                 if (value === undefined || value === null || value === '' || typeof value === 'object') return null;
                                 return (
                                     <div className="detail-row" key={key}>
-                                        <span className="detail-label">{key}</span>
+                                        <span className="detail-label">{getSpanishFieldLabel(key)}</span>
                                         <span className="detail-value">{key.includes('Date') || key.includes('At') ? formatDateSafe(value) : String(value)}</span>
                                     </div>
                                 );
