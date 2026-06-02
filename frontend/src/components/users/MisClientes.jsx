@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, AlertTriangle, Loader2, Briefcase, Building2 } from 'lucide-react';
+import { ChevronRight, AlertTriangle, Loader2, Briefcase, Building2, FileText } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { getMisClientes } from '../../lib/api';
 
@@ -112,9 +112,21 @@ export default function MisClientes() {
               {clientes.length === 1 ? ' cliente' : ' clientes'} bajo su responsabilidad
             </p>
           </div>
-          <div className="hidden sm:flex items-center gap-2 rounded-lg border border-slate-200/90 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
-            <Building2 size={14} className="text-slate-400" strokeWidth={2} />
-            Vista de solo lectura
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 rounded-lg border border-slate-200/90 bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
+              <Building2 size={14} className="text-slate-400" strokeWidth={2} />
+              Vista de solo lectura
+            </div>
+            {empleadoData?.acceso_formularios_sqf && (
+              <button
+                type="button"
+                onClick={() => navigate('/app', { state: { tab: 'sqf' } })}
+                className="flex items-center gap-2 rounded-lg border border-[#001871]/20 bg-[#001871] px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#002a9e] transition-colors"
+              >
+                <FileText size={14} />
+                Formularios SQF
+              </button>
+            )}
           </div>
         </div>
       </div>

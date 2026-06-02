@@ -30,6 +30,10 @@ const UserDashboard = () => {
   const isSQF = activeTab === 'sqf' && Boolean(empleadoData?.acceso_formularios_sqf);
 
   useEffect(() => {
+    if (location.state?.tab && empleadoData?.acceso_formularios_sqf) {
+      setActiveTab(location.state.tab);
+      return;
+    }
     const path = location.pathname;
     if (path.includes('auto-gestion'))   setActiveTab('tasks');
     else if (path.includes('perfil'))    setActiveTab('profile');
@@ -38,7 +42,7 @@ const UserDashboard = () => {
     else if (path.includes('utilidades')) setActiveTab('utilidades');
     else if (path.includes('mis-clientes') || path.includes('/app/cliente/')) setActiveTab('clientes');
     else setActiveTab('dashboard');
-  }, [location.pathname]);
+  }, [location.pathname, location.state, empleadoData?.acceso_formularios_sqf]);
 
   useEffect(() => {
     if (!empleadoData?.id_empleado) return;
