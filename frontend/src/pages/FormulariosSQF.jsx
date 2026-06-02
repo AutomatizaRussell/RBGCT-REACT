@@ -41,6 +41,7 @@ export default function FormulariosSQF({ onBack }) {
     const [contracts, setContracts] = useState([]);
     const [pendingClients, setPendingClients] = useState([]);
     const [pendingContracts, setPendingContracts] = useState([]);
+    const [pendingValidationNit, setPendingValidationNit] = useState(null);
     const [selectedClientForContract, setSelectedClientForContract] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -642,6 +643,7 @@ export default function FormulariosSQF({ onBack }) {
             return;
         }
 
+        setPendingValidationNit(nit);
         try {
             await fetchApi('/n8n-proxy/?action=pendientes', {
                 method: 'POST',
@@ -656,10 +658,11 @@ export default function FormulariosSQF({ onBack }) {
             showToastMsg('success', 'Validación enviada', 'Se envió la validación de creación a n8n.');
 
             setPendingClients((prev) => prev.filter((p) => String(p?.document || p?.Documento || '') !== nit));
-            // Refresca silenciosamente la lista para que el cambio sea consistente sin "parpadeos".
-            setTimeout(() => { refreshPendings(); }, 500);
+            await refreshPendings();
         } catch (e) {
             showToastMsg('error', 'Error de Conexión', e?.message || 'No se pudo validar la creación.');
+        } finally {
+            setPendingValidationNit(null);
         }
     };
 
@@ -1359,7 +1362,14 @@ export default function FormulariosSQF({ onBack }) {
                                                     <div className="auditor-card-footer">
                                                         <span className="auditor-date">Creado: {formatDateSafe(c?.createdAt)}</span>
                                                         {isPending ? (
-                                                            <button className="btn-validate" onClick={(e) => { e.stopPropagation(); validateClientCreation(c); }}>Validar creación</button>
+                                                            <button
+                                                                className="btn-validate"
+                                                                type="button"
+                                                                disabled={pendingValidationNit === String(c?.document || c?.Documento || '')}
+                                                                onClick={(e) => { e.stopPropagation(); validateClientCreation(c); }}
+                                                            >
+                                                                {pendingValidationNit === String(c?.document || c?.Documento || '') ? 'Validando...' : 'Validar creación'}
+                                                            </button>
                                                         ) : (
                                                             <span className="validated-info">Validado</span>
                                                         )}
