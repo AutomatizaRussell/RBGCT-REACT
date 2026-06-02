@@ -643,6 +643,7 @@ export default function FormulariosSQF({ onBack }) {
             return;
         }
 
+        const loggedUserMeta = getLoggedUserMeta();
         setPendingValidationNit(nit);
         try {
             await fetchApi('/n8n-proxy/?action=pendientes', {
@@ -653,6 +654,9 @@ export default function FormulariosSQF({ onBack }) {
                     nombre,
                     Documento: nit,
                     Nombre: nombre,
+                    solicitante_nombre: loggedUserMeta.solicitante_nombre,
+                    solicitante_correo: loggedUserMeta.solicitante_correo,
+                    solicitante_id: loggedUserMeta.solicitante_id,
                 }),
             });
             showToastMsg('success', 'Validación enviada', 'Se envió la validación de creación a n8n.');
