@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FormulariosSQF.css';
+import { useAuth } from '../hooks/useAuth';
 
 const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',
@@ -28,6 +29,7 @@ const extractDataSafe = (rawData) => {
 
 export default function FormulariosSQF({ onBack }) {
     const navigate = useNavigate();
+    const { user, empleadoData } = useAuth();
 
     // ==========================================
     // ESTADOS GLOBALES
@@ -191,6 +193,29 @@ export default function FormulariosSQF({ onBack }) {
         return isNaN(d) ? String(isoStr) : d.toLocaleString('es-CO');
     };
 
+    const getLoggedUserMeta = () => {
+        const fullNameEmpleado = [
+            empleadoData?.primer_nombre,
+            empleadoData?.segundo_nombre,
+            empleadoData?.primer_apellido,
+            empleadoData?.segundo_apellido,
+        ].filter(Boolean).join(' ').trim();
+
+        const fullNameAdmin = [empleadoData?.nombre, empleadoData?.apellido].filter(Boolean).join(' ').trim()
+            || [user?.nombre, user?.apellido].filter(Boolean).join(' ').trim();
+
+        return {
+            solicitante_nombre: fullNameEmpleado || fullNameAdmin || 'Usuario sin nombre',
+            solicitante_correo: empleadoData?.correo_corporativo || empleadoData?.email || user?.email || '',
+            solicitante_id: empleadoData?.id_empleado || user?.id || '',
+        };
+    };
+
+    const appendLoggedUserMeta = (formData) => {
+        const meta = getLoggedUserMeta();
+        Object.entries(meta).forEach(([key, value]) => formData.append(key, String(value ?? '')));
+    };
+
     // ==========================================
     // LÓGICA DE CLIENTES
     // ==========================================
@@ -226,6 +251,7 @@ export default function FormulariosSQF({ onBack }) {
         formData.append('id', generateId('CLI'));
         formData.append('createdAt', new Date().toISOString());
         formData.append('status', 'Pendiente de revisión');
+        appendLoggedUserMeta(formData);
 
         try {
             await fetch(N8N_WEBHOOKS.client, { method: 'POST', mode: 'no-cors', body: formData });
@@ -308,6 +334,7 @@ export default function FormulariosSQF({ onBack }) {
         formData.append('clientName', selectedClientForContract.name);
         formData.append('createdAt', new Date().toISOString());
         formData.append('status', 'Pendiente de revisión');
+        appendLoggedUserMeta(formData);
         
         const rawValue = String(formData.get('value') || '').replace(/\D/g, '');
         formData.set('value', parseInt(rawValue || '0', 10));
@@ -412,7 +439,8 @@ export default function FormulariosSQF({ onBack }) {
             origin, originRef: ['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) ? originRef : '',
             closer: billingCloser,
             areas: JSON.stringify(billingAreas.map(a => ({ ...a, valor: parseInt(String(a.valor).replace(/\D/g, ''), 10) }))),
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            ...getLoggedUserMeta(),
         };
 
         try {
@@ -446,6 +474,7 @@ export default function FormulariosSQF({ onBack }) {
         formData.append('tipoSolicitud', 'Nota Crédito');
         formData.append('createdAt', new Date().toISOString());
         formData.set('ncValue', parseInt(String(formData.get('ncValue')).replace(/\D/g, '') || '0', 10));
+        appendLoggedUserMeta(formData);
 
         try {
             await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
