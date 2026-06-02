@@ -2717,6 +2717,13 @@ def n8n_proxy(request):
                 resp = requests.post(webhook_url, json=request.data, timeout=(3, 12))
             else:
                 resp = requests.get(webhook_url, timeout=(3, 12))
+            # n8n puede ejecutar el workflow pero responder 500 si falta "Respond to Webhook".
+            if resp.status_code == 500 and 'No Respond to Webhook node found' in (resp.text or ''):
+                return Response({
+                    'ok': True,
+                    'warning': 'n8n ejecutó el webhook sin nodo de respuesta (Respond to Webhook).',
+                }, status=200)
+
             if resp.status_code >= 400:
                 detail = ''
                 try:
