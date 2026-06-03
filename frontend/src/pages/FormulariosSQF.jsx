@@ -107,7 +107,7 @@ export default function FormulariosSQF({ onBack }) {
             } catch {
                 try {
                     const pendingRes = await fetch(N8N_WEBHOOKS.pending);
-                    if (pendingRes.ok && pendingRes.headers.get('content-type')?.includes('application/json')) {
+                    if (pendingRes.ok) {
                         data = await pendingRes.json();
                     }
                 } catch (e) {
