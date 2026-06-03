@@ -283,7 +283,7 @@ export default function FormulariosSQF({ onBack }) {
     const validClients = Array.isArray(clients) ? clients : [];
     const validContracts = Array.isArray(contracts) ? contracts : [];
     const auditClients = pendingClients.length > 0 ? pendingClients : validClients.filter(c => c?.status !== 'Validado');
-    const auditContracts = pendingContracts.length > 0 ? pendingContracts : validContracts.filter(c => c?.status !== 'Validado');
+    const auditContracts = pendingContracts;
 
     // ==========================================
     // FUNCIONES GLOBALES / UTILS
