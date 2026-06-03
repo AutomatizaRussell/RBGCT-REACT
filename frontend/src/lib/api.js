@@ -111,7 +111,12 @@ export const fetchApi = async (endpoint, options = {}, retry = true) => {
   if (response.status === 401 && retry) {
     const body = await parseResponseBody(response);
     const bodyObj = typeof body === 'object' && body !== null ? body : {};
-    if (body.code === 'TOKEN_EXPIRED' || body.error === 'Token expirado' || body.detail === 'Token expirado') {
+    if (
+      body.code === 'TOKEN_EXPIRED' ||
+      body.error === 'Token expirado' ||
+      body.detail === 'Token expirado' ||
+      body.detail?.code === 'TOKEN_EXPIRED'
+    ) {
       try {
         const newToken = await refreshAccessToken();
         return fetchApi(endpoint, {

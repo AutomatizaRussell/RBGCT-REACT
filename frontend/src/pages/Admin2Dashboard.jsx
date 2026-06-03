@@ -244,7 +244,7 @@ const Admin2Dashboard = () => {
 
     const interval = setInterval(() => {
       refreshDashboard();
-    }, 60000);
+    }, 120000);
 
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {

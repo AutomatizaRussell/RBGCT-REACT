@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }) => {
       try {
         await pingActividad();
       } catch (error) {
-        console.error('[HEARTBEAT] Error:', error);
+        console.warn('[HEARTBEAT]', error.message);
       }
     };
 

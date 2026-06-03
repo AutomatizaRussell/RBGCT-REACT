@@ -1945,7 +1945,7 @@ def actividad_reciente(request):
         'recientes': recientes_data,
         'timestamp': ahora.isoformat()
     }
-    cache.set(CACHE_KEY_ACTIVIDAD_RECIENTE, payload, timeout=10)
+    cache.set(CACHE_KEY_ACTIVIDAD_RECIENTE, payload, timeout=60)
     return Response(payload)
 
 
@@ -2086,7 +2086,7 @@ def get_alertas_recuperacion(request):
         'total': len(alertas_list),
         'alertas': alertas_list
     }
-    cache.set(CACHE_KEY_ALERTAS_RECUPERACION, payload, timeout=10)
+    cache.set(CACHE_KEY_ALERTAS_RECUPERACION, payload, timeout=60)
     return Response(payload)
 
 
