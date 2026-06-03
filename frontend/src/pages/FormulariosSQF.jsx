@@ -68,7 +68,7 @@ export default function FormulariosSQF({ onBack }) {
     const [billingClientDocument, setBillingClientDocument] = useState('');
     const [billingDueDate, setBillingDueDate] = useState('');
     const [billingObservations, setBillingObservations] = useState('');
-    const [billingItemsRaw, setBillingItemsRaw] = useState('');
+    const [billingItems, setBillingItems] = useState([{ code: '', quantity: '', unitPrice: '', description: '' }]);
     const [saleType, setSaleType] = useState('');
     const [crossSalePerson, setCrossSalePerson] = useState('');
     const [serviceType, setServiceType] = useState('');
@@ -513,7 +513,7 @@ export default function FormulariosSQF({ onBack }) {
     const resetBillingForm = () => {
         setBillingReqType('facturacion'); setBillingType('Servicio nuevo'); setBillingClientType('Cliente nuevo');
         setBillingClientName(''); setBillingCompany(''); setSaleType(''); setCrossSalePerson('');
-        setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations(''); setBillingItemsRaw('');
+        setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations(''); setBillingItems([{ code: '', quantity: '', unitPrice: '', description: '' }]);
         setServiceType(''); setBillingValorMes(''); setBillingValorProyecto('');
         setOrigin(''); setOriginRef(''); setBillingCloser('');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '' }]);
@@ -568,16 +568,14 @@ export default function FormulariosSQF({ onBack }) {
         if (!isValid) { setBillingErrors(errors); return; }
 
         setIsSubmittingBilling(true);
-        // Parse itemsRaw into structured items if provided
-        const parsedItems = (String(billingItemsRaw || '')).split(/\r?\n/).map(line => {
-            const parts = line.split(/[,;\t]+/).map(p => p.trim()).filter(Boolean);
-            if (parts.length < 4) return null;
-            const code = parts[0];
-            const quantity = parseInt(parts[1].replace(/\D/g, '') || '0', 10) || 0;
-            const unitPrice = parseInt(String(parts[2]).replace(/\D/g, '') || '0', 10) || 0;
-            const description = parts.slice(3).join(', ');
+        // Build items array from billingItems state
+        const parsedItems = (Array.isArray(billingItems) ? billingItems : []).map(it => {
+            const code = String(it.code || '').trim();
+            const quantity = parseInt(String(it.quantity || '').replace(/\D/g, '') || '0', 10) || 0;
+            const unitPrice = parseInt(String(it.unitPrice || '').replace(/\D/g, '') || '0', 10) || 0;
+            const description = String(it.description || '').trim();
             return { code, quantity, unitPrice, description, total: quantity * unitPrice };
-        }).filter(Boolean);
+        }).filter(it => it.code || it.quantity || it.unitPrice || it.description);
 
         const payload = {
             id: generateId('BIL'), tipoSolicitud: 'Facturación', billingType, billingClientType,
@@ -590,7 +588,6 @@ export default function FormulariosSQF({ onBack }) {
             dueDate: billingDueDate || '',
             observations: billingObservations || '',
             items: JSON.stringify(parsedItems),
-            itemsRaw: billingItemsRaw || '',
             origin, originRef: ['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) ? originRef.toUpperCase() : '',
             closer: billingCloser.toUpperCase(),
             areas: JSON.stringify(billingAreas.map(a => ({ ...a, centro: a.centro.toUpperCase(), concepto: a.concepto.toUpperCase(), valor: parseInt(String(a.valor).replace(/\D/g, ''), 10) }))),
@@ -1313,8 +1310,29 @@ export default function FormulariosSQF({ onBack }) {
                                                 <textarea className="form-input form-textarea" rows={2} value={billingObservations} onChange={(e) => setBillingObservations(e.target.value)} />
                                             </div>
                                             <div className="form-group full-width">
-                                                <label className="form-label">Items (opcional: una línea por item — Código, Cantidad, Precio, Descripción)</label>
-                                                <textarea className="form-input form-textarea" rows={3} placeholder={`Ej: CODE1,2,100000,Honorarios\nCODE2,1,500000,Consultoría`} value={billingItemsRaw} onChange={(e) => setBillingItemsRaw(e.target.value)} />
+                                                <label className="form-label">Items</label>
+                                                <div className="items-table">
+                                                    {billingItems.map((it, idx) => (
+                                                        <div key={idx} className="item-row" style={{display: 'grid', gridTemplateColumns: '1fr 80px 120px 2fr 40px', gap: '8px', alignItems: 'center', marginBottom: '8px'}}>
+                                                            <input type="text" className="form-input" placeholder="Código" value={it.code} onChange={(e) => {
+                                                                const arr = [...billingItems]; arr[idx] = { ...arr[idx], code: e.target.value }; setBillingItems(arr);
+                                                            }} />
+                                                            <input type="number" className="form-input" placeholder="Cant." value={it.quantity} onChange={(e) => {
+                                                                const arr = [...billingItems]; arr[idx] = { ...arr[idx], quantity: e.target.value }; setBillingItems(arr);
+                                                            }} />
+                                                            <input type="text" className="form-input" placeholder="Precio" value={it.unitPrice} onChange={(e) => {
+                                                                const arr = [...billingItems]; arr[idx] = { ...arr[idx], unitPrice: e.target.value }; setBillingItems(arr);
+                                                            }} />
+                                                            <input type="text" className="form-input" placeholder="Descripción" value={it.description} onChange={(e) => {
+                                                                const arr = [...billingItems]; arr[idx] = { ...arr[idx], description: e.target.value }; setBillingItems(arr);
+                                                            }} />
+                                                            <button type="button" className="btn-ghost" onClick={() => { setBillingItems(billingItems.filter((_,i) => i !== idx)); }} aria-label="Eliminar">✕</button>
+                                                        </div>
+                                                    ))}
+                                                    <div style={{marginTop:8}}>
+                                                        <button type="button" className="btn-secondary" onClick={() => setBillingItems([...billingItems, { code: '', quantity: '', unitPrice: '', description: '' }])}>Agregar ítem</button>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div className="form-group">
                                                 <label className="form-label required">Empresa Facturadora</label>
