@@ -8,7 +8,8 @@ const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',
     contract: 'https://n8n.rbgct.cloud/webhook/contratos-crud',
     billing: 'https://n8n.rbgct.cloud/webhook/flujo_Facturacion_SQF',
-    pending: 'https://n8n.rbgct.cloud/webhook/Contratos-pendientes',
+    pending: 'https://n8n.rbgct.cloud/webhook/Pendientes',
+    contractsPending: 'https://n8n.rbgct.cloud/webhook/Contratos-pendientes',
 };
 
 const generateId = (prefix) => {
@@ -98,73 +99,69 @@ export default function FormulariosSQF({ onBack }) {
     // CARGA DE DATOS (PETICIONES SIMPLES ANTI-CORS)
     // ==========================================
     const refreshPendings = useCallback(async () => {
-        // Pendientes (auditoría): solo lo que n8n marca como pendiente de crear/validar.
         try {
-            // Preferimos el proxy del backend para evitar CORS en el navegador.
-            let data = null;
+            let clientsData = null, contractsData = null;
+
             try {
-                data = await fetchApi('/n8n-proxy/?action=pendientes', { method: 'GET' });
-            } catch {
-                try {
-                    const pendingRes = await fetch(N8N_WEBHOOKS.pending);
-                    if (pendingRes.ok) {
-                        data = await pendingRes.json();
-                    }
-                } catch (e) {
-                    console.warn('No se pudo obtener pendientes:', e);
-                }
+                clientsData = await fetch(N8N_WEBHOOKS.pending);
+                if (clientsData.ok) clientsData = await clientsData.json();
+            } catch (e) {
+                console.warn('Error obteniendo clientes pendientes:', e);
             }
 
-            if (!data) {
-                setPendingClients([]);
-                setPendingContracts([]);
-                return;
+            try {
+                contractsData = await fetch(N8N_WEBHOOKS.contractsPending);
+                if (contractsData.ok) contractsData = await contractsData.json();
+            } catch (e) {
+                console.warn('Error obteniendo contratos pendientes:', e);
             }
-
-            const rawPending = extractDataSafe(data);
-            const pendingFlat = (Array.isArray(rawPending) ? rawPending : []).reduce((acc, item) => {
-                if (Array.isArray(item)) return acc.concat(item);
-                acc.push(item);
-                return acc;
-            }, []);
 
             const mappedPendingClients = [];
             const mappedPendingContracts = [];
 
-            pendingFlat.forEach((p) => {
-                // Pendientes viene con `creado: false` cuando aún NO se ha creado.
-                // Si llega `creado: true`, no lo mostramos en auditoría.
-                if (typeof p?.creado === 'boolean' && p.creado !== false) return;
+            if (clientsData) {
+                const rawClients = extractDataSafe(clientsData);
+                (Array.isArray(rawClients) ? rawClients : []).forEach((p) => {
+                    if (typeof p?.creado === 'boolean' && p.creado !== false) return;
+                    const statusRaw = p?.status || p?.Estado || p?.estado || p?.Status || 'Pendiente';
+                    const status = String(statusRaw || 'Pendiente');
+                    const createdAt = p?.createdAt || p?.FechaCreacion || p?.fechaCreacion || p?.Fecha || '';
+                    const updatedAt = p?.updatedAt || p?.FechaActualizacion || p?.fechaActualizacion || '';
 
-                const statusRaw = p?.status || p?.Estado || p?.estado || p?.Status || 'Pendiente';
-                const status = String(statusRaw || 'Pendiente');
-                const createdAt = p?.createdAt || p?.FechaCreacion || p?.fechaCreacion || p?.Fecha || '';
-                const updatedAt = p?.updatedAt || p?.FechaActualizacion || p?.fechaActualizacion || '';
+                    mappedPendingClients.push({
+                        id: p?.id || generateId('CLI-P'),
+                        clientType: p?.clientType || (p?.Tipodocumento === 'NIT' ? 'juridica' : 'natural'),
+                        document: p?.document || p?.Documento || '',
+                        name: p?.name || p?.Nombre || '',
+                        contactName: p?.contactName || p?.NombreContacto || '',
+                        contactRole: p?.contactRole || p?.CargoContacto || '',
+                        economicGroup: p?.economicGroup || p?.GrupoEconomico || '',
+                        email: p?.email || p?.CorreoElectronico || '',
+                        phone: p?.phone || p?.Telefono || '',
+                        page: p?.page || p?.Pagina || '',
+                        address: p?.address || '',
+                        info: p?.info || '',
+                        solicitante_nombre: p?.solicitante_nombre || p?.Solicitante || p?.solicitante || '',
+                        solicitante_correo: p?.solicitante_correo || '',
+                        solicitante_id: p?.solicitante_id || '',
+                        createdAt,
+                        updatedAt,
+                        status,
+                        source: p?.source || 'pendientes'
+                    });
+                });
+            }
 
-                const looksLikeClient =
-                    (p?.Documento || p?.document) &&
-                    (p?.Tipodocumento || p?.tipodocumento || p?.NombreContacto || p?.CorreoElectronico);
+            if (contractsData) {
+                const rawContracts = extractDataSafe(contractsData);
+                (Array.isArray(rawContracts) ? rawContracts : []).forEach((p) => {
+                    if (typeof p?.creado === 'boolean' && p.creado !== false) return;
+                    const statusRaw = p?.status || p?.Estado || p?.estado || p?.Status || 'Pendiente';
+                    const status = String(statusRaw || 'Pendiente');
+                    const createdAt = p?.createdAt || p?.FechaCreacion || p?.fechaCreacion || p?.Fecha || '';
+                    const updatedAt = p?.updatedAt || p?.FechaActualizacion || p?.fechaActualizacion || '';
 
-                const looksLikeContract =
-                    p?.contractType || p?.TipoContrato || p?.tipoContrato ||
-                    p?.economicGroup || p?.GrupoEconomico ||
-                    p?.startDate || p?.FechaInicio || p?.fechaInicio ||
-                    p?.endDate || p?.FechaFin || p?.fechaFin ||
-                    p?.manager || p?.Gerente || p?.Coordinador ||
-                    p?.service || p?.Servicio ||
-                    p?.roles || p?.Posiciones || p?.Cargos ||
-                    p?.value || p?.Valor || p?.valor ||
-                    p?.valueFormatted || p?.ValorFormateado ||
-                    p?.PrecioMensual || p?.precioMensual ||
-                    p?.Cliente || p?.clientName ||
-                    p?.NombreContrato || p?.Contrato || p?.NombreProyecto || p?.Proyecto;
-                const entityType = String(p?.entityType || p?.tipoEntidad || p?.TipoEntidad || '').toLowerCase();
-
-                if (!looksLikeClient && (entityType.includes('contract') || entityType.includes('contrato') || looksLikeContract)) {
-                    const rawValueContract =
-                        p?.value ?? p?.Valor ?? p?.valor ??
-                        (p?.PrecioMensual ?? p?.precioMensual) ??
-                        '';
+                    const rawValueContract = p?.value ?? p?.Valor ?? p?.valor ?? (p?.PrecioMensual ?? p?.precioMensual) ?? '';
                     const parsedValueContract = (() => {
                         const numStr = String(rawValueContract || '').replace(/\D/g, '');
                         if (!numStr) return 0;
@@ -195,35 +192,13 @@ export default function FormulariosSQF({ onBack }) {
                         updatedAt,
                         status
                     });
-                } else {
-                    mappedPendingClients.push({
-                        id: p?.id || generateId('CLI-P'),
-                        clientType: p?.clientType || (p?.Tipodocumento === 'NIT' ? 'juridica' : 'natural'),
-                        document: p?.document || p?.Documento || '',
-                        name: p?.name || p?.Nombre || '',
-                        contactName: p?.contactName || p?.NombreContacto || '',
-                        contactRole: p?.contactRole || p?.CargoContacto || '',
-                        economicGroup: p?.economicGroup || p?.GrupoEconomico || '',
-                        email: p?.email || p?.CorreoElectronico || '',
-                        phone: p?.phone || p?.Telefono || '',
-                        page: p?.page || p?.Pagina || '',
-                        address: p?.address || '',
-                        info: p?.info || '',
-                        solicitante_nombre: p?.solicitante_nombre || p?.Solicitante || p?.solicitante || '',
-                        solicitante_correo: p?.solicitante_correo || '',
-                        solicitante_id: p?.solicitante_id || '',
-                        createdAt,
-                        updatedAt,
-                        status,
-                        source: p?.source || 'pendientes'
-                    });
-                }
-            });
+                });
+            }
 
             setPendingClients(mappedPendingClients);
             setPendingContracts(mappedPendingContracts);
         } catch (e) {
-            console.error('Bloqueo CORS o Red en Pendientes (Auditoría):', e);
+            console.error('Error en refreshPendings:', e);
             setPendingClients([]);
             setPendingContracts([]);
         }

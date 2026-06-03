@@ -2711,7 +2711,7 @@ def n8n_proxy(request):
 
     if action == 'pendientes':
         # Webhook público que retorna solicitudes pendientes (clientes/contratos).
-        webhook_url = f'{base_url}/webhook/Contratos-pendientes' if base_url else 'https://n8n.rbgct.cloud/webhook/Contratos-pendientes'
+        webhook_url = f'{base_url}/webhook/Pendientes' if base_url else 'https://n8n.rbgct.cloud/webhook/Pendientes'
         try:
             if request.method == 'POST':
                 resp = requests.post(webhook_url, json=request.data, timeout=(3, 12))
