@@ -8,7 +8,7 @@ const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',
     contract: 'https://n8n.rbgct.cloud/webhook/contratos-crud',
     billing: 'https://n8n.rbgct.cloud/webhook/flujo_Facturacion_SQF',
-    pending: 'https://n8n.rbgct.cloud/webhook/Pendientes',
+    pending: 'https://n8n.rbgct.cloud/webhook/Contratos-pendientes',
 };
 
 const generateId = (prefix) => {
