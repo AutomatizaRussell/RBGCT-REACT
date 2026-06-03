@@ -605,6 +605,18 @@ export default function FormulariosSQF({ onBack }) {
         try {
             const formData = new FormData();
             Object.keys(payload).forEach(k => formData.append(k, payload[k]));
+            parsedItems.forEach((item, index) => {
+                formData.append(`items[${index}][code]`, item.code);
+                formData.append(`items[${index}][quantity]`, String(item.quantity));
+                formData.append(`items[${index}][unitPrice]`, String(item.unitPrice));
+                formData.append(`items[${index}][description]`, item.description);
+                formData.append(`items[${index}][total]`, String(item.total));
+                formData.append(`items[${index}][codigo]`, item.code);
+                formData.append(`items[${index}][cantidad]`, String(item.quantity));
+                formData.append(`items[${index}][precio]`, String(item.unitPrice));
+                formData.append(`items[${index}][descripcion]`, item.description);
+                formData.append(`items[${index}][observaciones]`, billingObservations || '');
+            });
             await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
 
             const datatableForm = new FormData();
@@ -637,8 +649,21 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('fecha_vencimiento', payload.fecha_vencimiento);
             datatableForm.append('observations', payload.observations);
             datatableForm.append('observaciones', payload.observaciones);
+            datatableForm.append('fechaVencimiento', payload.fechaVencimiento);
             datatableForm.append('items', payload.items);
             datatableForm.append('items_json', payload.items_json);
+            parsedItems.forEach((item, index) => {
+                datatableForm.append(`items[${index}][code]`, item.code);
+                datatableForm.append(`items[${index}][quantity]`, String(item.quantity));
+                datatableForm.append(`items[${index}][unitPrice]`, String(item.unitPrice));
+                datatableForm.append(`items[${index}][description]`, item.description);
+                datatableForm.append(`items[${index}][total]`, String(item.total));
+                datatableForm.append(`items[${index}][codigo]`, item.code);
+                datatableForm.append(`items[${index}][cantidad]`, String(item.quantity));
+                datatableForm.append(`items[${index}][precio]`, String(item.unitPrice));
+                datatableForm.append(`items[${index}][descripcion]`, item.description);
+                datatableForm.append(`items[${index}][observaciones]`, billingObservations || '');
+            });
             datatableForm.append('nc_invoice', '');
             datatableForm.append('nc_value', 0);
             datatableForm.append('nc_reason', '');
