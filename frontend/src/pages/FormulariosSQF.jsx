@@ -105,8 +105,14 @@ export default function FormulariosSQF({ onBack }) {
             try {
                 data = await fetchApi('/n8n-proxy/?action=pendientes', { method: 'GET' });
             } catch {
-                const pendingRes = await fetch(N8N_WEBHOOKS.pending);
-                if (pendingRes.ok) data = await pendingRes.json();
+                try {
+                    const pendingRes = await fetch(N8N_WEBHOOKS.pending);
+                    if (pendingRes.ok && pendingRes.headers.get('content-type')?.includes('application/json')) {
+                        data = await pendingRes.json();
+                    }
+                } catch (e) {
+                    console.warn('No se pudo obtener pendientes:', e);
+                }
             }
 
             if (!data) {

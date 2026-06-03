@@ -2734,10 +2734,12 @@ def n8n_proxy(request):
                 if detail:
                     payload['detail'] = detail
                 return Response(payload, status=502)
+            if not resp.text:
+                return Response({}, status=200)
             try:
                 payload = resp.json()
             except Exception:
-                return Response({'error': 'Respuesta inválida (no JSON) desde Pendientes'}, status=502)
+                return Response({'error': 'Respuesta inválida desde Pendientes'}, status=502)
             return Response(payload)
         except requests.exceptions.Timeout:
             return Response({'error': 'n8n tardó demasiado en responder (Pendientes)'}, status=504)
