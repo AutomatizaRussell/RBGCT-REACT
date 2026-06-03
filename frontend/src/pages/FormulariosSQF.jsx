@@ -169,12 +169,15 @@ export default function FormulariosSQF({ onBack }) {
                         return Number.isFinite(num) ? num : 0;
                     })();
 
+                    const clientDoc = (p?.clientDocument || p?.DocumentoCliente || p?.NIT || p?.Nit || '').toString().trim();
+                    const cleanedClientDoc = (clientDoc === '—' || clientDoc === '--') ? '' : clientDoc;
+
                     mappedPendingContracts.push({
                         id: p?.id || generateId('CTR-P'),
                         contractType: p?.contractType || p?.TipoContrato || p?.tipoContrato || '',
                         clientId: p?.clientId || '',
                         clientName: p?.clientName || p?.Cliente || p?.NombreCliente || '',
-                        clientDocument: p?.clientDocument || p?.DocumentoCliente || p?.NIT || p?.Nit || '',
+                        clientDocument: cleanedClientDoc,
                         economicGroup: p?.economicGroup || p?.GrupoEconomico || p?.grupoEconomico || '',
                         name: p?.name || p?.Nombre || p?.NombreContrato || p?.Contrato || p?.NombreProyecto || p?.Proyecto || '',
                         value: parsedValueContract,
@@ -242,24 +245,30 @@ export default function FormulariosSQF({ onBack }) {
                 const data = await contractsRes.json();
                 const rawContracts = extractDataSafe(data);
                 
-                const mappedContracts = rawContracts.map(c => ({
-                    id: c.id || generateId('CTR'),
-                    contractType: c.contractType || c.TipoContrato || '',
-                    clientId: c.clientId || '',
-                    clientName: c.clientName || c.Cliente || '',
-                    economicGroup: c.economicGroup || '',
-                    name: c.name || c.Nombre || '',
-                    value: c.value || (c.PrecioMensual ? parseInt(String(c.PrecioMensual).replace(/\D/g, '') || '0') : 0),
-                    valueFormatted: c.valueFormatted || c.PrecioMensual || '',
-                    startDate: c.startDate ? String(c.startDate).split('T')[0] : (c.FechaInicio ? String(c.FechaInicio).split('T')[0] : ''),
-                    endDate: c.endDate ? String(c.endDate).split('T')[0] : (c.FechaFin ? String(c.FechaFin).split('T')[0] : ''),
-                    manager: c.manager || c.Coordinador || '',
-                    service: c.service || c.Servicio || '',
-                    roles: c.roles || c.Posiciones || '',
-                    notes: c.notes || '',
-                    createdAt: c.createdAt || '',
-                    status: c.status || c.Estado || 'Validado'
-                }));
+                const mappedContracts = rawContracts.map(c => {
+                    const clientDoc = (c.clientDocument || c.DocumentoCliente || c.NIT || c.Nit || '').toString().trim();
+                    const cleanedClientDoc = (clientDoc === '—' || clientDoc === '--') ? '' : clientDoc;
+
+                    return {
+                        id: c.id || generateId('CTR'),
+                        contractType: c.contractType || c.TipoContrato || '',
+                        clientId: c.clientId || '',
+                        clientName: c.clientName || c.Cliente || '',
+                        clientDocument: cleanedClientDoc,
+                        economicGroup: c.economicGroup || '',
+                        name: c.name || c.Nombre || '',
+                        value: c.value || (c.PrecioMensual ? parseInt(String(c.PrecioMensual).replace(/\D/g, '') || '0') : 0),
+                        valueFormatted: c.valueFormatted || c.PrecioMensual || '',
+                        startDate: c.startDate ? String(c.startDate).split('T')[0] : (c.FechaInicio ? String(c.FechaInicio).split('T')[0] : ''),
+                        endDate: c.endDate ? String(c.endDate).split('T')[0] : (c.FechaFin ? String(c.FechaFin).split('T')[0] : ''),
+                        manager: c.manager || c.Coordinador || '',
+                        service: c.service || c.Servicio || '',
+                        roles: c.roles || c.Posiciones || '',
+                        notes: c.notes || '',
+                        createdAt: c.createdAt || '',
+                        status: c.status || c.Estado || 'Validado'
+                    };
+                });
                 setContracts(mappedContracts);
             }
         } catch (e) { console.error('Bloqueo CORS o Red en Contratos:', e); setContracts([]); }
@@ -655,8 +664,8 @@ export default function FormulariosSQF({ onBack }) {
         const nombre = String(contractItem?.clientName || contractItem?.name || contractItem?.Nombre || '').trim();
         const nit = String(contractItem?.clientDocument || contractItem?.document || contractItem?.Documento || '').trim();
 
-        if (!nombre || !nit) {
-            showToastMsg('error', 'Datos incompletos', 'No se encontró el NIT y/o el nombre para validar el contrato.');
+        if (!nombre) {
+            showToastMsg('error', 'Datos incompletos', 'No se encontró el nombre del cliente para validar el contrato.');
             return;
         }
 
