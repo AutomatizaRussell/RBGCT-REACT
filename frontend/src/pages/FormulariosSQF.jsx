@@ -580,36 +580,31 @@ export default function FormulariosSQF({ onBack }) {
             Object.keys(payload).forEach(k => formData.append(k, payload[k]));
             await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
 
-            await fetch(N8N_WEBHOOKS.datatable, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: payload.id,
-                    tipo_solicitud: payload.tipoSolicitud,
-                    created_at: payload.createdAt,
-                    status: 'Pendiente',
-                    solicitante_nombre: payload.solicitante_nombre,
-                    solicitante_correo: payload.solicitante_correo,
-                    solicitante_id: payload.solicitante_id,
-                    client_name: payload.clientName,
-                    billing_type: payload.billingType,
-                    billing_client_type: payload.billingClientType,
-                    company: payload.company,
-                    sale_type: payload.saleType,
-                    cross_sale_person: payload.crossSalePerson,
-                    service_type: payload.serviceType,
-                    valor_mes: payload.valorMes,
-                    valor_proyecto: payload.valorProyecto,
-                    origin: payload.origin,
-                    origin_ref: payload.originRef,
-                    closer: payload.closer,
-                    areas: JSON.parse(payload.areas),
-                    nc_invoice: '',
-                    nc_value: 0,
-                    nc_reason: '',
-                }),
-            });
+            const datatableForm = new FormData();
+            datatableForm.append('id', payload.id);
+            datatableForm.append('tipo_solicitud', payload.tipoSolicitud);
+            datatableForm.append('created_at', payload.createdAt);
+            datatableForm.append('status', 'Pendiente');
+            datatableForm.append('solicitante_nombre', payload.solicitante_nombre);
+            datatableForm.append('solicitante_correo', payload.solicitante_correo);
+            datatableForm.append('solicitante_id', payload.solicitante_id);
+            datatableForm.append('client_name', payload.clientName);
+            datatableForm.append('billing_type', payload.billingType);
+            datatableForm.append('billing_client_type', payload.billingClientType);
+            datatableForm.append('company', payload.company);
+            datatableForm.append('sale_type', payload.saleType);
+            datatableForm.append('cross_sale_person', payload.crossSalePerson);
+            datatableForm.append('service_type', payload.serviceType);
+            datatableForm.append('valor_mes', payload.valorMes);
+            datatableForm.append('valor_proyecto', payload.valorProyecto);
+            datatableForm.append('origin', payload.origin);
+            datatableForm.append('origin_ref', payload.originRef);
+            datatableForm.append('closer', payload.closer);
+            datatableForm.append('areas', payload.areas);
+            datatableForm.append('nc_invoice', '');
+            datatableForm.append('nc_value', 0);
+            datatableForm.append('nc_reason', '');
+            await fetch(N8N_WEBHOOKS.datatable, { method: 'POST', mode: 'no-cors', body: datatableForm });
 
             showToastMsg('success', 'Solicitud Enviada', 'La solicitud de facturación fue registrada en n8n.');
             resetBillingForm();
@@ -647,36 +642,31 @@ export default function FormulariosSQF({ onBack }) {
             await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
 
             const meta = getLoggedUserMeta();
-            await fetch(N8N_WEBHOOKS.datatable, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: formData.get('id'),
-                    tipo_solicitud: 'Nota Crédito',
-                    created_at: formData.get('createdAt'),
-                    status: 'Pendiente',
-                    solicitante_nombre: meta.solicitante_nombre,
-                    solicitante_correo: meta.solicitante_correo,
-                    solicitante_id: meta.solicitante_id,
-                    client_name: formData.get('ncClient'),
-                    nc_invoice: formData.get('ncInvoice'),
-                    nc_value: Number(formData.get('ncValue')),
-                    nc_reason: formData.get('ncReason'),
-                    billing_type: '',
-                    billing_client_type: '',
-                    company: '',
-                    sale_type: '',
-                    cross_sale_person: '',
-                    service_type: '',
-                    valor_mes: 0,
-                    valor_proyecto: 0,
-                    origin: '',
-                    origin_ref: '',
-                    closer: '',
-                    areas: [],
-                }),
-            });
+            const datatableForm = new FormData();
+            datatableForm.append('id', formData.get('id'));
+            datatableForm.append('tipo_solicitud', 'Nota Crédito');
+            datatableForm.append('created_at', formData.get('createdAt'));
+            datatableForm.append('status', 'Pendiente');
+            datatableForm.append('solicitante_nombre', meta.solicitante_nombre);
+            datatableForm.append('solicitante_correo', meta.solicitante_correo);
+            datatableForm.append('solicitante_id', meta.solicitante_id);
+            datatableForm.append('client_name', formData.get('ncClient'));
+            datatableForm.append('nc_invoice', formData.get('ncInvoice'));
+            datatableForm.append('nc_value', formData.get('ncValue'));
+            datatableForm.append('nc_reason', formData.get('ncReason'));
+            datatableForm.append('billing_type', '');
+            datatableForm.append('billing_client_type', '');
+            datatableForm.append('company', '');
+            datatableForm.append('sale_type', '');
+            datatableForm.append('cross_sale_person', '');
+            datatableForm.append('service_type', '');
+            datatableForm.append('valor_mes', 0);
+            datatableForm.append('valor_proyecto', 0);
+            datatableForm.append('origin', '');
+            datatableForm.append('origin_ref', '');
+            datatableForm.append('closer', '');
+            datatableForm.append('areas', '');
+            await fetch(N8N_WEBHOOKS.datatable, { method: 'POST', mode: 'no-cors', body: datatableForm });
 
             showToastMsg('success', 'Solicitud Enviada', 'La Nota Crédito fue enviada a n8n.');
             form.reset();
