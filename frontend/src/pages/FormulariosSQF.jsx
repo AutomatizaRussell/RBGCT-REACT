@@ -1416,17 +1416,26 @@ export default function FormulariosSQF({ onBack }) {
                                             const isPending = c?.status !== 'Validado';
                                             const clientDoc = c?.clientDocument || c?.document || '';
                                             const requester = c?.solicitante_nombre || c?.requestedBy || '';
+                                            const contractName = c?.name || c?.Nombre || '';
+                                            const contractType = c?.contractType || c?.TipoContrato || '';
+                                            const service = c?.service || c?.Servicio || '';
+                                            const clientName = c?.clientName || c?.Cliente || '';
+
                                             return (
                                                 <div key={i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('contract'); }}>
                                                     <div className="auditor-card-header">
                                                         <div>
-                                                            <h4 className="auditor-item-title">{c?.clientName || c?.name || ''}</h4>
+                                                            <h4 className="auditor-item-title">{contractName}</h4>
                                                             <p className="auditor-item-subtitle">
-                                                                {clientDoc ? `NIT: ${clientDoc}` : 'NIT: —'}
-                                                                {requester ? ` · Solicitó: ${requester}` : ''}
+                                                                <strong>{clientName}</strong>
+                                                                {clientDoc ? ` · NIT: ${clientDoc}` : ''}
                                                             </p>
                                                         </div>
                                                         <span className={`status-badge ${isPending ? 'pending' : 'validated'}`}>{c?.status || 'Pendiente'}</span>
+                                                    </div>
+                                                    <div style={{ padding: '8px 12px', borderTop: '1px solid #e5e7eb', fontSize: '13px', color: '#666' }}>
+                                                        {contractType && <div><strong>Tipo:</strong> {contractType}</div>}
+                                                        {service && <div><strong>Servicio:</strong> {service}</div>}
                                                     </div>
                                                     <div className="auditor-card-footer">
                                                         <span className="auditor-date">Creado: {formatDateSafe(c?.createdAt)}</span>
