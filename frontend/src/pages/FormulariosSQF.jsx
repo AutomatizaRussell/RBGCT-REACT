@@ -651,6 +651,44 @@ export default function FormulariosSQF({ onBack }) {
         }
     };
 
+    const validateContractCreation = async (contractItem) => {
+        const nombre = String(contractItem?.clientName || contractItem?.name || contractItem?.Nombre || '').trim();
+        const nit = String(contractItem?.clientDocument || contractItem?.document || contractItem?.Documento || '').trim();
+
+        if (!nombre || !nit) {
+            showToastMsg('error', 'Datos incompletos', 'No se encontró el NIT y/o el nombre para validar el contrato.');
+            return;
+        }
+
+        const loggedUserMeta = getLoggedUserMeta();
+        setPendingValidationNit(nit);
+        try {
+            const payload = new FormData();
+            payload.append('nit', nit);
+            payload.append('nombre', nombre);
+            payload.append('documento', nit);
+            payload.append('Documento', nit);
+            payload.append('Nombre', nombre);
+            payload.append('solicitante_nombre', loggedUserMeta.solicitante_nombre);
+            payload.append('solicitante_correo', loggedUserMeta.solicitante_correo);
+            payload.append('solicitante_id', loggedUserMeta.solicitante_id);
+
+            await fetch(N8N_WEBHOOKS.contractsPending, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: payload,
+            });
+
+            showToastMsg('success', 'Validación enviada', 'Se envió la validación de contrato a n8n.');
+            setPendingContracts((prev) => prev.filter((p) => String(p?.clientDocument || p?.document || p?.Documento || '') !== nit));
+            await refreshPendings();
+        } catch (e) {
+            showToastMsg('error', 'Error de Conexión', e?.message || 'No se pudo validar el contrato.');
+        } finally {
+            setPendingValidationNit(null);
+        }
+    };
+
     const getSpanishFieldLabel = (key) => {
         const map = {
             id: 'ID',
@@ -1393,7 +1431,14 @@ export default function FormulariosSQF({ onBack }) {
                                                     <div className="auditor-card-footer">
                                                         <span className="auditor-date">Creado: {formatDateSafe(c?.createdAt)}</span>
                                                         {isPending ? (
-                                                            <button className="btn-validate" onClick={(e) => { e.stopPropagation(); markAsValidated(); }}>Validar</button>
+                                                            <button
+                                                                className="btn-validate"
+                                                                type="button"
+                                                                disabled={pendingValidationNit === String(clientDoc)}
+                                                                onClick={(e) => { e.stopPropagation(); validateContractCreation(c); }}
+                                                            >
+                                                                {pendingValidationNit === String(clientDoc) ? 'Validando...' : 'Validar'}
+                                                            </button>
                                                         ) : (
                                                             <span className="validated-info">Validado</span>
                                                         )}
