@@ -8,6 +8,7 @@ const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',
     contract: 'https://n8n.rbgct.cloud/webhook/contratos-crud',
     billing: 'https://n8n.rbgct.cloud/webhook/flujo_Facturacion_SQF',
+    datatable: 'https://n8n.rbgct.cloud/webhook/facturacion',
     pending: 'https://n8n.rbgct.cloud/webhook/Pendientes',
     contractsPending: 'https://n8n.rbgct.cloud/webhook/Contratos-pendientes',
 };
@@ -578,6 +579,38 @@ export default function FormulariosSQF({ onBack }) {
             const formData = new FormData();
             Object.keys(payload).forEach(k => formData.append(k, payload[k]));
             await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
+
+            await fetch(N8N_WEBHOOKS.datatable, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: payload.id,
+                    tipo_solicitud: payload.tipoSolicitud,
+                    created_at: payload.createdAt,
+                    status: 'Pendiente',
+                    solicitante_nombre: payload.solicitante_nombre,
+                    solicitante_correo: payload.solicitante_correo,
+                    solicitante_id: payload.solicitante_id,
+                    client_name: payload.clientName,
+                    billing_type: payload.billingType,
+                    billing_client_type: payload.billingClientType,
+                    company: payload.company,
+                    sale_type: payload.saleType,
+                    cross_sale_person: payload.crossSalePerson,
+                    service_type: payload.serviceType,
+                    valor_mes: payload.valorMes,
+                    valor_proyecto: payload.valorProyecto,
+                    origin: payload.origin,
+                    origin_ref: payload.originRef,
+                    closer: payload.closer,
+                    areas: JSON.parse(payload.areas),
+                    nc_invoice: '',
+                    nc_value: 0,
+                    nc_reason: '',
+                }),
+            });
+
             showToastMsg('success', 'Solicitud Enviada', 'La solicitud de facturación fue registrada en n8n.');
             resetBillingForm();
         } catch {
@@ -612,6 +645,39 @@ export default function FormulariosSQF({ onBack }) {
 
         try {
             await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
+
+            const meta = getLoggedUserMeta();
+            await fetch(N8N_WEBHOOKS.datatable, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: formData.get('id'),
+                    tipo_solicitud: 'Nota Crédito',
+                    created_at: formData.get('createdAt'),
+                    status: 'Pendiente',
+                    solicitante_nombre: meta.solicitante_nombre,
+                    solicitante_correo: meta.solicitante_correo,
+                    solicitante_id: meta.solicitante_id,
+                    client_name: formData.get('ncClient'),
+                    nc_invoice: formData.get('ncInvoice'),
+                    nc_value: Number(formData.get('ncValue')),
+                    nc_reason: formData.get('ncReason'),
+                    billing_type: '',
+                    billing_client_type: '',
+                    company: '',
+                    sale_type: '',
+                    cross_sale_person: '',
+                    service_type: '',
+                    valor_mes: 0,
+                    valor_proyecto: 0,
+                    origin: '',
+                    origin_ref: '',
+                    closer: '',
+                    areas: [],
+                }),
+            });
+
             showToastMsg('success', 'Solicitud Enviada', 'La Nota Crédito fue enviada a n8n.');
             form.reset();
             resetBillingForm();
