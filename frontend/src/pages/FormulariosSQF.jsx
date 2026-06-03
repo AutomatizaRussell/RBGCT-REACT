@@ -584,10 +584,17 @@ export default function FormulariosSQF({ onBack }) {
             valorMes: parseInt(String(billingValorMes).replace(/\D/g, '') || '0', 10),
             valorProyecto: parseInt(String(billingValorProyecto).replace(/\D/g, '') || '0', 10),
             reference: billingReference || '',
+            referencia: billingReference || '',
             clientDocument: billingClientDocument || '',
+            nit: billingClientDocument || '',
+            documento: billingClientDocument || '',
             dueDate: billingDueDate || '',
+            fecha_vencimiento: billingDueDate || '',
+            fechaVencimiento: billingDueDate || '',
             observations: billingObservations || '',
+            observaciones: billingObservations || '',
             items: JSON.stringify(parsedItems),
+            items_json: JSON.stringify(parsedItems),
             origin, originRef: ['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) ? originRef.toUpperCase() : '',
             closer: billingCloser.toUpperCase(),
             areas: JSON.stringify(billingAreas.map(a => ({ ...a, centro: a.centro.toUpperCase(), concepto: a.concepto.toUpperCase(), valor: parseInt(String(a.valor).replace(/\D/g, ''), 10) }))),
@@ -621,6 +628,17 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('origin_ref', payload.originRef);
             datatableForm.append('closer', payload.closer);
             datatableForm.append('areas', payload.areas);
+            datatableForm.append('reference', payload.reference);
+            datatableForm.append('referencia', payload.referencia);
+            datatableForm.append('nit', payload.nit);
+            datatableForm.append('documento', payload.documento);
+            datatableForm.append('client_document', payload.clientDocument);
+            datatableForm.append('due_date', payload.dueDate);
+            datatableForm.append('fecha_vencimiento', payload.fecha_vencimiento);
+            datatableForm.append('observations', payload.observations);
+            datatableForm.append('observaciones', payload.observaciones);
+            datatableForm.append('items', payload.items);
+            datatableForm.append('items_json', payload.items_json);
             datatableForm.append('nc_invoice', '');
             datatableForm.append('nc_value', 0);
             datatableForm.append('nc_reason', '');
