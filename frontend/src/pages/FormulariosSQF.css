@@ -261,12 +261,102 @@
 .btn-validate { background: #fff; border: 1.5px solid var(--color-blue-dark); color: var(--color-blue-dark); padding: 6px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;}
 .btn-validate:hover { background: var(--color-blue-dark); color: #fff; }
 
-.auditor-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 10000; display: flex; align-items: center; justify-content: center; }
-.auditor-detail-modal { background: #fff; border-radius: var(--radius-lg); width: 90%; max-width: 540px; max-height: 80vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
-.auditor-detail-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px 16px; border-bottom: 1px solid var(--color-border); }
-.auditor-detail-header h3 { font-size: 18px; font-weight: 700; color: var(--color-blue-dark); margin: 0; }
-.auditor-detail-close { background: none; border: none; font-size: 26px; color: var(--color-text-muted); cursor: pointer; line-height: 1; padding: 4px 8px; }
-.auditor-detail-body { padding: 20px 24px 24px; }
+.auditor-overlay { position: fixed; inset: 0; background: rgba(0,24,113,.55); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); animation: fadeIn 0.22s ease-out; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.auditor-detail-modal { background: #fff; border-radius: var(--radius-lg); width: 90%; max-width: 640px; max-height: 85vh; overflow: hidden; box-shadow: 0 20px 60px rgba(0,24,113,.25); display: flex; flex-direction: column; animation: slideUp 0.3s ease-out; }
+
+.auditor-detail-header {
+  background: linear-gradient(135deg, var(--color-blue-dark) 0%, #002fa7 100%);
+  padding: 28px 28px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.auditor-detail-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.auditor-detail-close {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 6px;
+  font-size: 20px;
+  color: #fff;
+  cursor: pointer;
+  line-height: 1;
+  padding: 8px 10px;
+  transition: all 0.22s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.auditor-detail-close:hover {
+  background: rgba(255,255,255,.25);
+  transform: scale(1.05);
+}
+
+.auditor-detail-body {
+  padding: 28px 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.auditor-detail-body::-webkit-scrollbar { width: 6px; }
+.auditor-detail-body::-webkit-scrollbar-track { background: transparent; }
+.auditor-detail-body::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+.auditor-detail-body::-webkit-scrollbar-thumb:hover { background: var(--color-text-light); }
+
+.detail-row {
+  display: flex;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+  gap: 16px;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  min-width: 160px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+  flex: 1;
+}
+
+.auditor-detail-footer {
+  padding: 20px 28px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  background: var(--color-surface-2);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
 .detail-row { display: flex; padding: 10px 0; border-bottom: 1px solid #f0f2f5; gap: 12px; }
 .detail-label { flex: 0 0 140px; font-size: 13px; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; }
 .detail-value { flex: 1; font-size: 14px; color: var(--color-text); word-break: break-word; }

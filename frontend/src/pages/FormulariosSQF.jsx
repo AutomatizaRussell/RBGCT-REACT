@@ -1491,6 +1491,26 @@ export default function FormulariosSQF({ onBack }) {
                                 );
                             })}
                         </div>
+                        <div className="auditor-detail-footer">
+                            <button type="button" className="btn-secondary" onClick={() => setAuditorModalItem(null)}>Cerrar</button>
+                            {auditorModalItem?.status !== 'Validado' && (
+                                <button
+                                    type="button"
+                                    className="btn-primary"
+                                    disabled={pendingValidationNit === String(auditorModalItem?.clientDocument || auditorModalItem?.document || '')}
+                                    onClick={() => {
+                                        if (auditorModalType === 'client') {
+                                            validateClientCreation(auditorModalItem);
+                                        } else {
+                                            validateContractCreation(auditorModalItem);
+                                        }
+                                        setAuditorModalItem(null);
+                                    }}
+                                >
+                                    {pendingValidationNit === String(auditorModalItem?.clientDocument || auditorModalItem?.document || '') ? 'Validando...' : 'Validar'}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
