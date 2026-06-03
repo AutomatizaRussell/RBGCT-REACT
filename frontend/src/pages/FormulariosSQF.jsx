@@ -64,6 +64,11 @@ export default function FormulariosSQF({ onBack }) {
     const [billingClientType, setBillingClientType] = useState('Cliente nuevo');
     const [billingClientName, setBillingClientName] = useState('');
     const [billingCompany, setBillingCompany] = useState('');
+    const [billingReference, setBillingReference] = useState('');
+    const [billingClientDocument, setBillingClientDocument] = useState('');
+    const [billingDueDate, setBillingDueDate] = useState('');
+    const [billingObservations, setBillingObservations] = useState('');
+    const [billingItemsRaw, setBillingItemsRaw] = useState('');
     const [saleType, setSaleType] = useState('');
     const [crossSalePerson, setCrossSalePerson] = useState('');
     const [serviceType, setServiceType] = useState('');
@@ -508,6 +513,7 @@ export default function FormulariosSQF({ onBack }) {
     const resetBillingForm = () => {
         setBillingReqType('facturacion'); setBillingType('Servicio nuevo'); setBillingClientType('Cliente nuevo');
         setBillingClientName(''); setBillingCompany(''); setSaleType(''); setCrossSalePerson('');
+        setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations(''); setBillingItemsRaw('');
         setServiceType(''); setBillingValorMes(''); setBillingValorProyecto('');
         setOrigin(''); setOriginRef(''); setBillingCloser('');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '' }]);
@@ -562,12 +568,29 @@ export default function FormulariosSQF({ onBack }) {
         if (!isValid) { setBillingErrors(errors); return; }
 
         setIsSubmittingBilling(true);
+        // Parse itemsRaw into structured items if provided
+        const parsedItems = (String(billingItemsRaw || '')).split(/\r?\n/).map(line => {
+            const parts = line.split(/[,;\t]+/).map(p => p.trim()).filter(Boolean);
+            if (parts.length < 4) return null;
+            const code = parts[0];
+            const quantity = parseInt(parts[1].replace(/\D/g, '') || '0', 10) || 0;
+            const unitPrice = parseInt(String(parts[2]).replace(/\D/g, '') || '0', 10) || 0;
+            const description = parts.slice(3).join(', ');
+            return { code, quantity, unitPrice, description, total: quantity * unitPrice };
+        }).filter(Boolean);
+
         const payload = {
             id: generateId('BIL'), tipoSolicitud: 'Facturación', billingType, billingClientType,
             clientName: billingClientName.toUpperCase(), company: billingCompany, saleType, crossSalePerson: saleType === 'Venta cruzada' ? crossSalePerson.toUpperCase() : '',
             serviceType,
             valorMes: parseInt(String(billingValorMes).replace(/\D/g, '') || '0', 10),
             valorProyecto: parseInt(String(billingValorProyecto).replace(/\D/g, '') || '0', 10),
+            reference: billingReference || '',
+            clientDocument: billingClientDocument || '',
+            dueDate: billingDueDate || '',
+            observations: billingObservations || '',
+            items: JSON.stringify(parsedItems),
+            itemsRaw: billingItemsRaw || '',
             origin, originRef: ['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) ? originRef.toUpperCase() : '',
             closer: billingCloser.toUpperCase(),
             areas: JSON.stringify(billingAreas.map(a => ({ ...a, centro: a.centro.toUpperCase(), concepto: a.concepto.toUpperCase(), valor: parseInt(String(a.valor).replace(/\D/g, ''), 10) }))),
@@ -1272,6 +1295,26 @@ export default function FormulariosSQF({ onBack }) {
                                                 <label className="form-label required">Nombre del Cliente / Razón Social</label>
                                                 <input type="text" className="form-input" value={billingClientName} onChange={(e) => setBillingClientName(e.target.value)} />
                                                 <span className="field-error">{billingErrors.billingClientName}</span>
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">NIT / Documento</label>
+                                                <input type="text" className="form-input" value={billingClientDocument} onChange={(e) => setBillingClientDocument(e.target.value)} />
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">Referencia</label>
+                                                <input type="text" className="form-input" value={billingReference} onChange={(e) => setBillingReference(e.target.value)} />
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">Fecha Vencimiento</label>
+                                                <input type="date" className="form-input" value={billingDueDate} onChange={(e) => setBillingDueDate(e.target.value)} />
+                                            </div>
+                                            <div className="form-group full-width">
+                                                <label className="form-label">Observaciones</label>
+                                                <textarea className="form-input form-textarea" rows={2} value={billingObservations} onChange={(e) => setBillingObservations(e.target.value)} />
+                                            </div>
+                                            <div className="form-group full-width">
+                                                <label className="form-label">Items (opcional: una línea por item — Código, Cantidad, Precio, Descripción)</label>
+                                                <textarea className="form-input form-textarea" rows={3} placeholder={`Ej: CODE1,2,100000,Honorarios\nCODE2,1,500000,Consultoría`} value={billingItemsRaw} onChange={(e) => setBillingItemsRaw(e.target.value)} />
                                             </div>
                                             <div className="form-group">
                                                 <label className="form-label required">Empresa Facturadora</label>
