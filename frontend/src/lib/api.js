@@ -30,15 +30,22 @@ const parseResponseBody = async (response) => {
 // ── Token management ──────────────────────────────────────────────────────────
 
 export const tokenStorage = {
-  getAccess: () => localStorage.getItem('gct_access_token'),
-  getRefresh: () => localStorage.getItem('gct_refresh_token'),
-  set: (accessToken, refreshToken) => {
-    localStorage.setItem('gct_access_token', accessToken);
-    if (refreshToken) localStorage.setItem('gct_refresh_token', refreshToken);
+  _store: () => localStorage.getItem('gct_remember') === 'false' ? sessionStorage : localStorage,
+  getAccess: () => tokenStorage._store().getItem('gct_access_token'),
+  getRefresh: () => tokenStorage._store().getItem('gct_refresh_token'),
+  set: (accessToken, refreshToken, remember) => {
+    if (remember !== undefined) {
+      localStorage.setItem('gct_remember', remember ? 'true' : 'false');
+    }
+    const store = tokenStorage._store();
+    store.setItem('gct_access_token', accessToken);
+    if (refreshToken) store.setItem('gct_refresh_token', refreshToken);
   },
   clear: () => {
     localStorage.removeItem('gct_access_token');
     localStorage.removeItem('gct_refresh_token');
+    sessionStorage.removeItem('gct_access_token');
+    sessionStorage.removeItem('gct_refresh_token');
   },
 };
 
@@ -152,7 +159,7 @@ export const fetchApi = async (endpoint, options = {}, retry = true) => {
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 
-export const login = async (email, password) => {
+export const login = async (email, password, rememberMe = true) => {
   const response = await fetchWithTimeout(`${API_URL}/login/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -177,7 +184,7 @@ export const login = async (email, password) => {
 
   // Guardar tokens si el login fue exitoso y no requiere verificación
   if (data.accessToken && !data.requiere_verificacion) {
-    tokenStorage.set(data.accessToken, data.refreshToken);
+    tokenStorage.set(data.accessToken, data.refreshToken, rememberMe);
   }
 
   return data;

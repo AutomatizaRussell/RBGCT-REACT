@@ -17,22 +17,24 @@ export const AuthProvider = ({ children }) => {
   const [empleadoData, setEmpleadoData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Cargar sesión desde localStorage al iniciar
+  // Cargar sesión desde el storage correcto al iniciar
   useEffect(() => {
     const checkSession = () => {
       try {
         const accessToken = tokenStorage.getAccess();
-        const savedUser = localStorage.getItem('gct_user');
-        const savedEmpleado = localStorage.getItem('gct_empleado');
-        const savedRole = localStorage.getItem('gct_role');
+        const store = tokenStorage._store();
+        const savedUser = store.getItem('gct_user');
+        const savedEmpleado = store.getItem('gct_empleado');
+        const savedRole = store.getItem('gct_role');
 
         if (!accessToken || !savedUser || !savedEmpleado) {
           // Sin token válido: limpiar todo
           tokenStorage.clear();
-          localStorage.removeItem('gct_user');
-          localStorage.removeItem('gct_empleado');
-          localStorage.removeItem('gct_role');
-          localStorage.removeItem('gct_primer_login');
+          const s = tokenStorage._store();
+          s.removeItem('gct_user');
+          s.removeItem('gct_empleado');
+          s.removeItem('gct_role');
+          s.removeItem('gct_primer_login');
           return;
         }
 
@@ -111,9 +113,10 @@ export const AuthProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [user]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, rememberMe = true) => {
     try {
-      const result = await apiLogin(email, password);
+      const result = await apiLogin(email, password, rememberMe);
+      const store = tokenStorage._store();
 
       if (result.type === 'superadmin') {
         const userData = {
@@ -127,14 +130,13 @@ export const AuthProvider = ({ children }) => {
         setUserRole('superadmin');
         setEmpleadoData({ ...result.user, id_permisos: 1 });
 
-        localStorage.setItem('gct_user', JSON.stringify(userData));
-        localStorage.setItem('gct_empleado', JSON.stringify({ ...result.user, id_permisos: 1 }));
-        localStorage.setItem('gct_role', 'superadmin');
+        store.setItem('gct_user', JSON.stringify(userData));
+        store.setItem('gct_empleado', JSON.stringify({ ...result.user, id_permisos: 1 }));
+        store.setItem('gct_role', 'superadmin');
 
         return { user: userData };
 
       } else if (result.type === 'empleado') {
-        // Primer login: requiere verificación de código (aún no hay token)
         if (result.requiere_verificacion) {
           return {
             user: null,
@@ -154,12 +156,12 @@ export const AuthProvider = ({ children }) => {
         setEmpleadoData(result.user);
         setUserRole(role);
 
-        localStorage.setItem('gct_user', JSON.stringify(userData));
-        localStorage.setItem('gct_empleado', JSON.stringify(result.user));
-        localStorage.setItem('gct_role', role);
+        store.setItem('gct_user', JSON.stringify(userData));
+        store.setItem('gct_empleado', JSON.stringify(result.user));
+        store.setItem('gct_role', role);
 
         const necesitaCompletarDatos = result.user.primer_login || !result.user.datos_completados;
-        localStorage.setItem('gct_primer_login', necesitaCompletarDatos ? 'true' : 'false');
+        store.setItem('gct_primer_login', necesitaCompletarDatos ? 'true' : 'false');
 
         return { user: userData, primerLogin: necesitaCompletarDatos, empleadoData: result.user };
       }

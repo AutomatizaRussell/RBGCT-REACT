@@ -11,6 +11,7 @@ import { Building2, Eye, EyeOff, Loader2, Mail, Lock, AlertTriangle, X } from 'l
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -218,7 +219,7 @@ const Login = () => {
     setError('');
 
     try {
-      const result = await login(email, password);
+      const result = await login(email, password, rememberMe);
       
       // Si requiere verificación de código (primer login)
       if (result?.requiereVerificacion) {
@@ -317,6 +318,26 @@ const Login = () => {
                 </button>
               </div>
             </div>
+
+            {/* Recuérdame */}
+            <label className="flex items-center gap-3 cursor-pointer select-none group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="sr-only"
+                />
+                <div className={`w-4 h-4 rounded border-2 transition-all flex items-center justify-center ${rememberMe ? 'bg-[#001871] border-[#001871]' : 'bg-white border-slate-300 group-hover:border-slate-400'}`}>
+                  {rememberMe && (
+                    <svg viewBox="0 0 10 8" fill="none" className="w-2.5 h-2.5">
+                      <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <span className="text-xs font-medium text-slate-500 group-hover:text-slate-700 transition-colors">Mantener sesión iniciada</span>
+            </label>
 
             {/* Botón */}
             <button
