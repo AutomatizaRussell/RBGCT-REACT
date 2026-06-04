@@ -9,6 +9,7 @@ import {
   CalendarDays,
   FileText,
   Building2,
+  ClipboardList,
   X,
 } from 'lucide-react';
 
@@ -147,6 +148,18 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
         </button>
 
 
+
+        {/* AUTO GESTIÓN */}
+        <button
+          onClick={() => handleNavigation('autogestion')}
+          className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
+            activeTab === 'autogestion'
+            ? 'bg-white/10 text-white shadow-lg'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <ClipboardList size={18}/> Auto Gestión
+        </button>
 
         {/* CONTRATOS */}
         <button

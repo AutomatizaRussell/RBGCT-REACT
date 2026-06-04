@@ -43,6 +43,7 @@ import UtilidadesSection from '../components/admin2/UtilidadesSection';
 import ContratosSection from '../components/admin2/ContratosSection';
 import ClientesSection from '../components/admin2/ClientesSection';
 import FormulariosSQF from '../pages/FormulariosSQF';
+import AutoGestion from '../components/users/AutoGestion';
 import CertificadoSection from '../components/admin2/CertificadoSection';
 import GeminiChat from '../components/admin2/GeminiChat';
 import StatCard from '../components/ui/StatCard';
@@ -284,6 +285,12 @@ const Admin2Dashboard = () => {
         return (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
             <TaskDashboard />
+          </div>
+        );
+      case 'autogestion':
+        return (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <AutoGestion />
           </div>
         );
       case 'contratos':
@@ -593,6 +600,7 @@ const Admin2Dashboard = () => {
       case 'dashboard':       return 'Resumen de Equipo';
       case 'users':           return 'Gestión de Personal';
       case 'tasks':           return 'Calendario de Tareas';
+      case 'autogestion':     return 'Auto Gestión';
       case 'profile':         return 'Mi Perfil';
       case 'contratos':       return 'Contratos Laborales';
       case 'clientes':        return 'Clientes';
