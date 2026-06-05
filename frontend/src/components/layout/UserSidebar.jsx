@@ -4,6 +4,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useEffect, useState } from 'react';
+import { getAllCursos } from '../../lib/api';
 
 const NavBtn = ({ tab, icon, label, activeTab, onNavigate }) => (
   <button
@@ -51,6 +53,13 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
   const tieneSQF = Boolean(empleadoData?.acceso_formularios_sqf);
 
+  const [tieneCursos, setTieneCursos] = useState(false);
+  useEffect(() => {
+    getAllCursos()
+      .then(data => setTieneCursos((Array.isArray(data) ? data : data?.results || []).some(c => c.activo !== false)))
+      .catch(() => {});
+  }, []);
+
   return (
     <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col bg-[#001871] text-white shadow-2xl transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:translate-x-0 lg:z-20 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="flex items-center justify-between p-8 pb-6">
@@ -88,7 +97,9 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
         <NavBtn tab="profile"    icon={<UserCircle size={18} />}      label="Mi perfil" activeTab={activeTab} onNavigate={handleNavigation} />
 
         <p className="px-4 pb-2 pt-5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Recursos</p>
-        <NavBtn tab="cursos"     icon={<PlayCircle size={18} />}  label="Cursos" activeTab={activeTab} onNavigate={handleNavigation} />
+        {tieneCursos && (
+          <NavBtn tab="cursos" icon={<PlayCircle size={18} />} label="Cursos" activeTab={activeTab} onNavigate={handleNavigation} />
+        )}
         <NavBtn tab="reglamento" icon={<BookOpen size={18} />}    label="Reglamento" activeTab={activeTab} onNavigate={handleNavigation} />
         <NavBtn tab="utilidades" icon={<Wrench size={18} />}      label="Herramientas" activeTab={activeTab} onNavigate={handleNavigation} />
         {tieneSQF && (
