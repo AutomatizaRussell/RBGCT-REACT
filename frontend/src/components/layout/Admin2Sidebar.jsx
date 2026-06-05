@@ -17,6 +17,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getCertPermisosBackend } from '../../lib/api';
+import rbLogo from '../../assets/russell-bedford-logo.png';
 
 
 
@@ -54,13 +55,14 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
     <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col bg-[#001871] text-white shadow-2xl transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:translate-x-0 lg:z-20 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
 
       {/* Branding */}
-      <div className="flex items-center justify-between p-8 pb-6">
-        <div>
-          <h1 className="text-xl font-bold tracking-tighter uppercase leading-none text-white">
-            RUSSELL<br/>
-            <span className="text-slate-400 font-light text-lg tracking-normal">BEDFORD</span>
-          </h1>
-          <div className="mt-2 inline-block px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-[9px] font-bold text-blue-400 uppercase tracking-widest">
+      <div className="flex items-center justify-between p-6 pb-4">
+        <div className="flex-1">
+          <img
+            src={rbLogo}
+            alt="Russell Bedford GCT"
+            className="h-10 w-auto drop-shadow-lg hover:drop-shadow-xl transition-all duration-300"
+          />
+          <div className="mt-3 inline-block px-2 py-0.5 bg-blue-500/15 border border-blue-500/30 rounded text-[8px] font-bold text-blue-300 uppercase tracking-widest">
             Administrative Mode
           </div>
         </div>

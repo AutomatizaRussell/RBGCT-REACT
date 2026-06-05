@@ -1,6 +1,7 @@
 import { LayoutDashboard, Users, Database, Settings, LogOut, CalendarDays, Key, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import rbLogo from '../../assets/russell-bedford-logo.png';
 
 export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
   const navigate = useNavigate();
@@ -24,11 +25,12 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col bg-[#001871] text-white shadow-2xl transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:translate-x-0 lg:z-20 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-      <div className="flex items-center justify-between p-8 pb-6">
-        <h1 className="text-xl font-bold tracking-tighter uppercase leading-none text-white">
-          RUSSELL<br/>
-          <span className="text-slate-400 font-light text-lg tracking-normal">BEDFORD</span>
-        </h1>
+      <div className="flex items-center justify-between p-6 pb-4">
+        <img
+          src={rbLogo}
+          alt="Russell Bedford GCT"
+          className="h-10 w-auto drop-shadow-lg hover:drop-shadow-xl transition-all duration-300"
+        />
         <button type="button" onClick={onClose} className="lg:hidden p-1 text-slate-400 hover:text-white transition-colors">
           <X size={20} />
         </button>
