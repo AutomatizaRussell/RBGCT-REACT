@@ -60,10 +60,10 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
       DEBUG: ${DEBUG:-False}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-rbgct.cloud,www.rbgct.cloud}
-      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://rbgct.cloud,https://www.rbgct.cloud}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://rbgct.cloud,https://www.rbgct.cloud}
-      FRONTEND_URL: ${FRONTEND_URL:-https://rbgct.cloud}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-conecta.rbgct.cloud,.rbgct.cloud}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://conecta.rbgct.cloud}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://conecta.rbgct.cloud}
+      FRONTEND_URL: ${FRONTEND_URL:-https://conecta.rbgct.cloud}
       EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
       EMAIL_HOST: ${EMAIL_HOST}
       EMAIL_PORT: ${EMAIL_PORT}

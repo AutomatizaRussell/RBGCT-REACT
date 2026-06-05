@@ -383,7 +383,7 @@ def enviar_email_verificacion(email, codigo, password=None, nombre=None):
     <div style="background-color: #001871; color: #ffffff; padding: 20px; text-align: center; font-size: 12px; line-height: 1.6;">
       <p style="margin: 0; font-size: 14px;"><strong>RBG CT - Sistema de Gestión</strong></p>
       <p style="margin: 5px 0 0 0; color: #e2e8f0;">Russell Bedford Colombia</p>
-      <p style="margin: 10px 0 0 0;"><a href="https://intranetrb.rbgct.cloud" style="color: #00a9ce; text-decoration: none; font-size: 13px; font-weight: bold;">🌐 intranetrb.rbgct.cloud</a></p>
+      <p style="margin: 10px 0 0 0;"><a href="https://conecta.rbgct.cloud" style="color: #00a9ce; text-decoration: none; font-size: 13px; font-weight: bold;">🌐 conecta.rbgct.cloud</a></p>
       <p style="margin: 10px 0 0 0; font-size: 11px; color: #a0aec0;">Si no solicitaste esta cuenta, por favor ignora este correo o contacta al equipo de TI y Proyectos.</p>
     </div>
 
@@ -2361,7 +2361,7 @@ def enviar_email_recuperacion_n8n(email, codigo, nombre=None):
     <div style="background-color: #001871; color: #ffffff; padding: 20px; text-align: center; font-size: 12px; line-height: 1.6;">
       <p style="margin: 0; font-size: 14px;"><strong>RBG CT - Sistema de Gestión</strong></p>
       <p style="margin: 5px 0 0 0; color: #e2e8f0;">Russell Bedford Colombia</p>
-      <p style="margin: 10px 0 0 0;"><a href="https://intranetrb.rbgct.cloud" style="color: #00a9ce; text-decoration: none; font-size: 13px; font-weight: bold;">🌐 intranetrb.rbgct.cloud</a></p>
+      <p style="margin: 10px 0 0 0;"><a href="https://conecta.rbgct.cloud" style="color: #00a9ce; text-decoration: none; font-size: 13px; font-weight: bold;">🌐 conecta.rbgct.cloud</a></p>
       <p style="margin: 10px 0 0 0; font-size: 11px; color: #a0aec0;">Este es un mensaje automático, por favor no respondas a este correo.</p>
     </div>
 
