@@ -216,10 +216,8 @@ const CertificadoModal = ({ empleadoData, onClose }) => {
               <label className={labelCls}>Tipo de entidad <span className="text-red-400">*</span></label>
               <select name="tipo_entidad" required className={inputCls}>
                 <option value="">— Seleccionar —</option>
-                <option value="Financiera">Financiera</option>
-                <option value="Universitaria">Universitaria</option>
-                <option value="Gobierno">Gobierno / Entidad Pública</option>
-                <option value="Empresa">Empresa Privada</option>
+                <option value="Financiera">Entidad financiera/crediticia</option>
+                <option value="Universitaria">Institución educativa</option>
                 <option value="Salud">Salud / EPS</option>
                 <option value="Otra">Otra</option>
               </select>
