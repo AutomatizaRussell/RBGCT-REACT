@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './FormulariosSQF.css';
 import { useAuth } from '../hooks/useAuth';
 import { fetchApi } from '../lib/api';
+import rbLogo from '../assets/russell-bedford-logo.png';
 
 const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',
@@ -861,14 +862,7 @@ export default function FormulariosSQF({ onBack }) {
             <header className="app-header">
                 <div className="header-inner">
                     <div className="brand">
-                        <div className="brand-logo">
-                            <span className="logo-rb">RB</span>
-                            <span className="logo-gct">GCT</span>
-                        </div>
-                        <div className="brand-text">
-                            <span className="brand-name">Russell Bedford</span>
-                            <span className="brand-tagline">taking you further</span>
-                        </div>
+                        <img src={rbLogo} alt="Russell Bedford GCT" className="brand-logo-img" />
                     </div>
                     <nav className="main-nav" role="navigation" aria-label="Navegación principal">
                         <button className={`nav-btn ${activeSection === 'clients' ? 'active' : ''}`} onClick={() => setActiveSection('clients')} role="tab">

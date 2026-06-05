@@ -119,7 +119,7 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
         >
 
-          <Users size={18}/> Mi Personal
+          <Users size={18}/> Colaboradores 
 
         </button>
 
@@ -143,7 +143,7 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
         >
 
-          <CalendarDays size={18}/> Calendario Tareas
+          <CalendarDays size={18}/> Calendario
 
         </button>
 
@@ -170,7 +170,7 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
             : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          <FileText size={18}/> Contratos
+          <FileText size={18}/> Gestión Personas
         </button>
 
         {/* CLIENTES CRM */}
