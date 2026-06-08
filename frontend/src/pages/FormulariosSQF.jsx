@@ -32,6 +32,35 @@ const extractDataSafe = (rawData) => {
     }
 };
 
+const calculateBusinessDaysDate = (startDate, businessDays) => {
+    const date = new Date(startDate);
+    let daysAdded = 0;
+
+    while (daysAdded < businessDays) {
+        date.setDate(date.getDate() + 1);
+        const dayOfWeek = date.getDay();
+
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            daysAdded++;
+        }
+    }
+
+    return date.toISOString().split('T')[0];
+};
+
+const BILLING_DESCRIPTIONS = [
+    { name: 'Auditoría Financiera', code: 'AUD-001' },
+    { name: 'Asesoría Fiscal', code: 'ASE-002' },
+    { name: 'Asesoría Laboral', code: 'ASE-003' },
+    { name: 'Asesoría Contable', code: 'ASE-004' },
+    { name: 'Consultoría Empresarial', code: 'CON-005' },
+    { name: 'Auditoría de Nómina', code: 'AUD-006' },
+    { name: 'Revisoría Fiscal', code: 'REV-007' },
+    { name: 'Asesoría Administrativa', code: 'ASE-008' },
+    { name: 'Servicios de Outsourcing', code: 'OUT-009' },
+    { name: 'Otros Servicios', code: 'OTR-010' }
+];
+
 export default function FormulariosSQF({ onBack }) {
     const navigate = useNavigate();
     const { user, empleadoData } = useAuth();
@@ -69,7 +98,7 @@ export default function FormulariosSQF({ onBack }) {
     const [billingClientDocument, setBillingClientDocument] = useState('');
     const [billingDueDate, setBillingDueDate] = useState('');
     const [billingObservations, setBillingObservations] = useState('');
-    const [billingItems, setBillingItems] = useState([{ code: '', quantity: '', unitPrice: '', description: '' }]);
+    const [billingItems, setBillingItems] = useState([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
     const [saleType, setSaleType] = useState('');
     const [crossSalePerson, setCrossSalePerson] = useState('');
     const [serviceType, setServiceType] = useState('');
@@ -456,10 +485,14 @@ export default function FormulariosSQF({ onBack }) {
         
         const form = e.target;
         const formData = new FormData(form);
-        const reqFields = ['economicGroup', 'name', 'value', 'startDate', 'endDate', 'manager', 'service', 'roles'];
+        const reqFields = ['economicGroup', 'name', 'value', 'manager', 'service', 'roles'];
         reqFields.forEach(f => {
             if (!formData.get(f)?.trim()) { errors[f] = 'Este campo es requerido'; isValid = false; }
         });
+
+        const today = new Date().toISOString().split('T')[0];
+        formData.append('startDate', today);
+        formData.append('endDate', calculateBusinessDaysDate(today, 5));
 
         if (!isValid) { setContractErrors(errors); return; }
 
@@ -514,7 +547,7 @@ export default function FormulariosSQF({ onBack }) {
     const resetBillingForm = () => {
         setBillingReqType('facturacion'); setBillingType('Servicio nuevo'); setBillingClientType('Cliente nuevo');
         setBillingClientName(''); setBillingCompany(''); setSaleType(''); setCrossSalePerson('');
-        setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations(''); setBillingItems([{ code: '', quantity: '', unitPrice: '', description: '' }]);
+        setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations(''); setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
         setServiceType(''); setBillingValorMes(''); setBillingValorProyecto('');
         setOrigin(''); setOriginRef(''); setBillingCloser('');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '' }]);
@@ -525,7 +558,12 @@ export default function FormulariosSQF({ onBack }) {
         setActiveSection('billing');
         setBillingReqType('facturacion'); setBillingType('Servicio actual'); setBillingClientType('Cliente antiguo');
         setBillingClientName(contract?.clientName || '');
-        
+        setBillingClientDocument(contract?.clientDocument || '');
+
+        const today = new Date().toISOString().split('T')[0];
+        const dueDate = calculateBusinessDaysDate(today, 5);
+        setBillingDueDate(dueDate);
+
         let sType = 'Otro';
         const cTypeStr = String(contract?.contractType || '');
         if (cTypeStr === 'Mensual' || cTypeStr.includes('Mensual')) sType = 'Fee mensual';
@@ -538,7 +576,7 @@ export default function FormulariosSQF({ onBack }) {
 
         setBillingCloser(contract?.manager || '');
         setBillingAreas([{ id: 1, centro: 'Administración', concepto: contract?.name || '', valor: val }]);
-        
+
         showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
     };
 
@@ -670,7 +708,7 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('nc_reason', '');
             await fetch(N8N_WEBHOOKS.datatable, { method: 'POST', mode: 'no-cors', body: datatableForm });
 
-            showToastMsg('success', 'Solicitud Enviada', 'La solicitud de facturación fue registrada en n8n.');
+            showToastMsg('success', 'Solicitud Enviada', 'La solicitud de facturación fue registrada.');
             resetBillingForm();
         } catch {
             showToastMsg('error', 'Error de Conexión', 'Error al enviar a n8n.');
@@ -732,11 +770,11 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('areas', '');
             await fetch(N8N_WEBHOOKS.datatable, { method: 'POST', mode: 'no-cors', body: datatableForm });
 
-            showToastMsg('success', 'Solicitud Enviada', 'La Nota Crédito fue enviada a n8n.');
+            showToastMsg('success', 'Solicitud Enviada', 'La Nota Crédito fue enviada.');
             form.reset();
             resetBillingForm();
         } catch {
-            showToastMsg('error', 'Error de Conexión', 'Error al enviar a n8n.');
+            showToastMsg('error', 'Error de Conexión', 'Error al enviar.');
         } finally {
             setIsSubmittingBilling(false);
         }
@@ -769,7 +807,7 @@ export default function FormulariosSQF({ onBack }) {
                     solicitante_id: loggedUserMeta.solicitante_id,
                 }),
             });
-            showToastMsg('success', 'Validación enviada', 'Se envió la validación de creación a n8n.');
+            showToastMsg('success', 'Validación enviada', 'Se envió la validación de creación.');
 
             setPendingClients((prev) => prev.filter((p) => String(p?.document || p?.Documento || '') !== nit));
             await refreshPendings();
@@ -808,7 +846,7 @@ export default function FormulariosSQF({ onBack }) {
                 body: payload,
             });
 
-            showToastMsg('success', 'Validación enviada', 'Se envió la validación de contrato a n8n.');
+            showToastMsg('success', 'Validación enviada', 'Se envió la validación de contrato.');
             setPendingContracts((prev) => prev.filter((p) => String(p?.clientDocument || p?.document || p?.Documento || '') !== nit));
             await refreshPendings();
         } catch (e) {
@@ -1188,16 +1226,6 @@ export default function FormulariosSQF({ onBack }) {
                                         </div>
                                         <span className="field-error">{contractErrors.value}</span>
                                     </div>
-                                    <div className="form-group">
-                                        <label className="form-label required">Fecha de Inicio</label>
-                                        <input type="date" name="startDate" className="form-input" />
-                                        <span className="field-error">{contractErrors.startDate}</span>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label required">Fecha de Finalización</label>
-                                        <input type="date" name="endDate" className="form-input" />
-                                        <span className="field-error">{contractErrors.endDate}</span>
-                                    </div>
                                     <div className="form-group full-width">
                                         <label className="form-label required">Gerente a Cargo (Administrador del Cliente)</label>
                                         <input type="text" name="manager" className="form-input" defaultValue={selectedClientForContract?.contactName || ''} />
@@ -1350,24 +1378,46 @@ export default function FormulariosSQF({ onBack }) {
                                                 <label className="form-label">Items</label>
                                                 <div className="items-table">
                                                     {billingItems.map((it, idx) => (
-                                                        <div key={idx} className="item-row" style={{display: 'grid', gridTemplateColumns: '1fr 80px 120px 2fr 40px', gap: '8px', alignItems: 'center', marginBottom: '8px'}}>
-                                                            <input type="text" className="form-input" placeholder="Código" value={it.code} onChange={(e) => {
-                                                                const arr = [...billingItems]; arr[idx] = { ...arr[idx], code: e.target.value }; setBillingItems(arr);
-                                                            }} />
-                                                            <input type="number" className="form-input" placeholder="Cant." value={it.quantity} onChange={(e) => {
-                                                                const arr = [...billingItems]; arr[idx] = { ...arr[idx], quantity: e.target.value }; setBillingItems(arr);
-                                                            }} />
-                                                            <input type="text" className="form-input" placeholder="Precio" value={it.unitPrice} onChange={(e) => {
-                                                                const arr = [...billingItems]; arr[idx] = { ...arr[idx], unitPrice: e.target.value }; setBillingItems(arr);
-                                                            }} />
-                                                            <input type="text" className="form-input" placeholder="Descripción" value={it.description} onChange={(e) => {
-                                                                const arr = [...billingItems]; arr[idx] = { ...arr[idx], description: e.target.value }; setBillingItems(arr);
-                                                            }} />
+                                                        <div key={idx} className="item-row" style={{display: 'grid', gridTemplateColumns: '2fr 120px 40px', gap: '8px', alignItems: 'center', marginBottom: '8px'}}>
+                                                            <select
+                                                                className="form-input form-select"
+                                                                value={it.description}
+                                                                onChange={(e) => {
+                                                                    const selectedDesc = e.target.value;
+                                                                    const selectedItem = BILLING_DESCRIPTIONS.find(d => d.name === selectedDesc);
+                                                                    const arr = [...billingItems];
+                                                                    arr[idx] = {
+                                                                        ...arr[idx],
+                                                                        description: selectedDesc,
+                                                                        code: selectedItem?.code || ''
+                                                                    };
+                                                                    setBillingItems(arr);
+                                                                }}
+                                                            >
+                                                                <option value="">Seleccione descripción...</option>
+                                                                {BILLING_DESCRIPTIONS.map((desc) => (
+                                                                    <option key={desc.code} value={desc.name}>{desc.name}</option>
+                                                                ))}
+                                                            </select>
+                                                            <div className="input-currency-wrapper" style={{margin: 0}}>
+                                                                <span className="currency-prefix">$</span>
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-input currency-input"
+                                                                    placeholder="Valor"
+                                                                    value={it.unitPrice}
+                                                                    onChange={(e) => {
+                                                                        const arr = [...billingItems];
+                                                                        arr[idx] = { ...arr[idx], unitPrice: formatCurrency(e.target.value), quantity: '1' };
+                                                                        setBillingItems(arr);
+                                                                    }}
+                                                                />
+                                                            </div>
                                                             <button type="button" className="btn-ghost" onClick={() => { setBillingItems(billingItems.filter((_,i) => i !== idx)); }} aria-label="Eliminar">✕</button>
                                                         </div>
                                                     ))}
                                                     <div style={{marginTop:8}}>
-                                                        <button type="button" className="btn-secondary" onClick={() => setBillingItems([...billingItems, { code: '', quantity: '', unitPrice: '', description: '' }])}>Agregar ítem</button>
+                                                        <button type="button" className="btn-secondary" onClick={() => setBillingItems([...billingItems, { code: '', quantity: '1', unitPrice: '', description: '' }])}>Agregar ítem</button>
                                                     </div>
                                                 </div>
                                             </div>

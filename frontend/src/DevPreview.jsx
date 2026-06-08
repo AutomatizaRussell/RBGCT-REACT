@@ -16,10 +16,11 @@ import ActionButton from './components/ui/ActionButton'
 import RecentUserRow from './components/ui/RecentUserRow'
 
 // Layouts
-import Sidebar from './components/layout/Sidebar'
-import Admin2Sidebar from './components/layout/Admin2Sidebar'
-import UserSidebar from './components/layout/UserSidebar'
-import EditorSidebar from './components/layout/EditorSidebar'
+import { Sidebar } from './components/layout/Sidebar'
+import { Admin2Sidebar } from './components/layout/Admin2Sidebar'
+import { UserSidebar } from './components/layout/UserSidebar'
+import { EditorSidebar } from './components/layout/EditorSidebar'
+
 
 // Admin / usuarios
 import UserTable from './components/users/UserTable'

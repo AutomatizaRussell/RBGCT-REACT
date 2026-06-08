@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDataCache } from '../context/DataCacheContext';
 import { Admin2Sidebar } from '../components/layout/Admin2Sidebar';
+import Topbar from '../components/layout/Topbar'
 import {
   Users, Activity, ShieldAlert, UserCheck,
   KeyRound, Check, X, Eye, Trash2, CheckCircle,
@@ -1457,183 +1458,90 @@ const ConfiguracionesTab = ({ user }) => {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Sub-nav */}
-      <div className="flex gap-1.5 bg-white rounded-2xl border border-slate-100 p-1.5 shadow-sm w-fit">
-        {SECCIONES_CFG.map(s => (
-          <button key={s.id} onClick={() => setSeccion(s.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-              seccion === s.id ? 'bg-[#001871] text-white shadow' : 'text-slate-400 hover:text-[#001871] hover:bg-slate-50'
-            }`}>
-            {s.icon} {s.label}
-          </button>
-        ))}
+  <div className="flex min-h-screen bg-slate-100 font-sans antialiased text-[#001871]">
+    {sidebarOpen && (
+      <div
+        className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+        onClick={() => setSidebarOpen(false)}
+      />
+    )}
+
+    <Admin2Sidebar
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      isOpen={sidebarOpen}
+      onClose={() => setSidebarOpen(false)}
+    />
+
+    <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-slate-100">
+      <Topbar
+        eyebrow="Gestión administrativa"
+        description="Clientes · Personas · Operación"
+        userName={
+          user?.primer_nombre
+            ? `${user.primer_nombre} ${user.primer_apellido || ''}`.trim()
+            : 'Administrador'
+        }
+        userRole="Administración"
+        onOpenSidebar={() => setSidebarOpen(true)}
+        actions={
+          <>
+            {activeTab === 'dashboard' && (
+              <button
+                type="button"
+                onClick={() => {
+                  fetchStats()
+                  fetchAllActivity()
+                }}
+                className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-[#001871]"
+                title="Actualizar datos"
+              >
+                <RefreshCw size={16} />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() =>
+                (alertasCount > 0 || (puedeExpedirCert && solicitudesCertCount > 0)) &&
+                setShowAlertasModal(true)
+              }
+              className="relative rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-[#001871]"
+              title="Notificaciones"
+            >
+              <Bell size={18} />
+
+              {(alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0)) > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white">
+                  {alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0)}
+                </span>
+              )}
+            </button>
+          </>
+        }
+      />
+
+      <div className="flex-1 overflow-auto px-4 py-6 lg:px-8 lg:py-8">
+        {renderContent()}
       </div>
+    </main>
 
-      {/* Mi Cuenta */}
-      {seccion === 'cuenta' && (
-        <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
-          <div className="flex items-center gap-6 mb-8 pb-6 border-b border-slate-50">
-            <div className="w-20 h-20 bg-[#001871] rounded-2xl flex items-center justify-center text-white text-3xl font-black flex-shrink-0">
-              {user?.primer_nombre?.charAt(0)?.toUpperCase() || 'A'}
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-[#001871]">{adminNombre}</h2>
-              <p className="text-sm text-slate-400 mt-0.5">{adminEmail}</p>
-              <span className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"/>Administrador
-              </span>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { label: 'Nombre Completo',    value: adminNombre },
-              { label: 'Correo Corporativo', value: adminEmail },
-              { label: 'Área',               value: miPerfil?.nombre_area || user?.nombre_area || '—' },
-              { label: 'Cargo',              value: miPerfil?.nombre_cargo || user?.nombre_cargo || '—' },
-              { label: 'Fecha de Ingreso',   value: formatDateOnly(miPerfil?.fecha_ingreso || user?.fecha_ingreso) || <span className="text-slate-400 italic">No registrada</span> },
-              { label: 'Estado',             value: miPerfil?.estado || 'Activo' },
-            ].map(({ label, value }) => (
-              <div key={label} className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-                <p className="text-sm font-semibold text-[#001871]">{value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+    <AlertasModal
+      isOpen={showAlertasModal}
+      onClose={() => setShowAlertasModal(false)}
+      alertas={alertasRecuperacion}
+      onViewDetail={showAlertDetail}
+      onAtender={handleMarkAsRead}
+      onEliminar={handleEliminarAlerta}
+      solicitudesCert={puedeExpedirCert ? solicitudesCert : []}
+      onAceptarCert={handleAceptarSolicitudCert}
+      onRechazarCert={handleRechazarSolicitudCert}
+      showCertTab={puedeExpedirCert}
+    />
 
-      {/* Permisos */}
-      {seccion === 'permisos' && (
-        <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-            <div className="p-3 bg-amber-50 rounded-xl"><ShieldCheck size={20} className="text-amber-600"/></div>
-            <div>
-              <h3 className="font-bold text-[#001871]">Permisos de Edición de Datos</h3>
-              <p className="text-xs text-slate-400">Permite que un empleado edite su propio perfil (uso único)</p>
-            </div>
-          </div>
-          <div className="space-y-5">
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Empleado</label>
-              <select value={selEmpPerm} onChange={e => setSelEmpPerm(e.target.value)}
-                className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400 transition-colors">
-                <option value="">— Seleccionar empleado —</option>
-                {empleados.map(e => (
-                  <option key={e.id_empleado} value={e.id_empleado}>
-                    {e.primer_nombre} {e.primer_apellido} — {e.correo_corporativo}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Acción</label>
-              <div className="flex rounded-xl overflow-hidden border border-slate-200 w-fit">
-                <button onClick={() => setHabilitar(true)}
-                  className={`px-5 py-2.5 text-xs font-bold transition-all flex items-center gap-1.5 ${habilitar ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
-                  <Check size={12}/> Habilitar
-                </button>
-                <button onClick={() => setHabilitar(false)}
-                  className={`px-5 py-2.5 text-xs font-bold transition-all flex items-center gap-1.5 ${!habilitar ? 'bg-red-500 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
-                  <X size={12}/> Deshabilitar
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Tu Contraseña (confirmación)</label>
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-amber-400 transition-colors">
-                <Lock size={14} className="text-slate-400 flex-shrink-0"/>
-                <input type="password" value={adminPassPerm} onChange={e => setAdminPassPerm(e.target.value)}
-                  placeholder="Ingresa tu contraseña" className="flex-1 bg-transparent text-sm focus:outline-none"/>
-              </div>
-            </div>
-            {resultPerm && (
-              <div className={`px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${resultPerm.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
-                {resultPerm.ok ? <CheckCircle size={14}/> : <AlertTriangle size={14}/>}
-                {resultPerm.msg}
-              </div>
-            )}
-            <button onClick={handleHabilitarEdicion} disabled={savingPerm}
-              className="w-full py-3 bg-[#001871] text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
-              {savingPerm ? 'Aplicando...' : 'Aplicar Cambio'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Contraseñas */}
-      {seccion === 'contrasenas' && (
-        <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-            <div className="p-3 bg-slate-100 rounded-xl"><KeyRound size={20} className="text-slate-600"/></div>
-            <div>
-              <h3 className="font-bold text-[#001871]">Resetear Contraseña de Empleado</h3>
-              <p className="text-xs text-slate-400">Establece una nueva contraseña para cualquier empleado</p>
-            </div>
-          </div>
-          <div className="space-y-5">
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Empleado</label>
-              <select value={selEmpPass} onChange={e => setSelEmpPass(e.target.value)}
-                className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-slate-400 transition-colors">
-                <option value="">— Seleccionar empleado —</option>
-                {empleados.map(e => (
-                  <option key={e.id_empleado} value={e.id_empleado}>
-                    {e.primer_nombre} {e.primer_apellido} — {e.nombre_area || e.correo_corporativo}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Nueva Contraseña</label>
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-slate-400 transition-colors">
-                  <Lock size={14} className="text-slate-400 flex-shrink-0"/>
-                  <input type={showPass ? 'text' : 'password'} value={newPass} onChange={e => setNewPass(e.target.value)}
-                    placeholder="Mínimo 8 caracteres" className="no-upper flex-1 bg-transparent text-sm focus:outline-none"/>
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Confirmar Contraseña</label>
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-slate-400 transition-colors">
-                  <Lock size={14} className="text-slate-400 flex-shrink-0"/>
-                  <input type={showPass ? 'text' : 'password'} value={confirmPass} onChange={e => setConfirmPass(e.target.value)}
-                    placeholder="Repetir contraseña" className="no-upper flex-1 bg-transparent text-sm focus:outline-none"/>
-                  <button onClick={() => setShowPass(p => !p)} title={showPass ? 'Ocultar' : 'Mostrar'}
-                    className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0">
-                    <Eye size={14}/>
-                  </button>
-                </div>
-              </div>
-            </div>
-            {newPass && confirmPass && (
-              <p className={`text-[11px] font-semibold flex items-center gap-1.5 ${newPass === confirmPass ? 'text-emerald-600' : 'text-red-500'}`}>
-                {newPass === confirmPass ? <><Check size={12}/> Las contraseñas coinciden</> : <><X size={12}/> Las contraseñas no coinciden</>}
-              </p>
-            )}
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Tu Contraseña de Admin (confirmación)</label>
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-slate-400 transition-colors">
-                <ShieldCheck size={14} className="text-slate-400 flex-shrink-0"/>
-                <input type="password" value={adminPassReset} onChange={e => setAdminPassReset(e.target.value)}
-                  placeholder="Confirma tu contraseña de administrador" className="flex-1 bg-transparent text-sm focus:outline-none"/>
-              </div>
-            </div>
-            {resultPass && (
-              <div className={`px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${resultPass.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
-                {resultPass.ok ? <CheckCircle size={14}/> : <AlertTriangle size={14}/>}
-                {resultPass.msg}
-              </div>
-            )}
-            <button onClick={handleResetPassword} disabled={savingPass}
-              className="w-full py-3 bg-[#001871] text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all">
-              {savingPass ? 'Actualizando...' : 'Resetear Contraseña'}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    <GeminiChat />
+  </div>
+);
 };
 
 export default Admin2Dashboard;

@@ -1,26 +1,120 @@
 @import "tailwindcss";
 
+:root {
+  --rb-blue: #001871;
+  --rb-magenta: #981d97;
+  --rb-turquoise: #00bfb3;
+  --rb-orange: #ed8b00;
+  --rb-card: #f8fafc;
+  --rb-text: #1e293b;
+  --rb-border: #dce3e8;
+  --background: #ffffff;
+  --foreground: #1e293b;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+select,
+input,
+textarea {
+  font: inherit;
+}
+
 .input-modern {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--rb-border);
   border-radius: 10px;
   font-size: 0.85rem;
-  color: #1e293b;
+  color: var(--rb-text);
   background: #fff;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
+
 .input-modern:focus {
-  border-color: #001871;
-  box-shadow: 0 0 0 3px rgba(0, 30, 51, 0.08);
+  border-color: var(--rb-blue);
+  box-shadow: 0 0 0 3px rgba(0, 24, 113, 0.08);
 }
 
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
 input:not([type="email"]):not([type="password"]):not([type="date"]):not([type="number"]):not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([type="search"]):not([type="tel"]):not(.no-upper),
 textarea:not(.no-upper) {
   text-transform: uppercase;
 }
-.no-upper { text-transform: none !important; }
+
+.no-upper {
+  text-transform: none !important;
+}
+
+.rb-card {
+  background-color: var(--rb-card);
+  border-radius: 12px;
+  box-shadow: 0 20px 30px -5px rgba(0, 24, 113, 0.15);
+  overflow: hidden;
+  animation: rb-slide-up 0.45s ease-out;
+}
+
+.rb-title-gradient {
+  background: linear-gradient(135deg, var(--rb-blue) 0%, #00a9ce 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.rb-panel-swap {
+  animation: rb-panel-swap 140ms ease-out both;
+  will-change: opacity, transform;
+}
+
+@keyframes rb-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rb-panel-swap {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-card,
+  .rb-panel-swap {
+    animation: none;
+  }
+}
