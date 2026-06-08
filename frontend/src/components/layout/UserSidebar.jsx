@@ -205,7 +205,7 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
         },
         {
           tab: 'sqf',
-          label: 'Formularios SQF',
+          label: 'Formulario Creacion clientes/contratos',
           icon: FileText,
           visible: tieneSQF,
         },
