@@ -1,21 +1,3 @@
-
-/**
- * SidebarShell
- *
- * Componente visual base para todas las barras laterales.
- *
- * Objetivo:
- * - Migrar el lenguaje visual desde Next.js hacia React/Vite.
- * - Unificar ancho, colores, bordes, navegación y footer.
- * - Mantener intacta la lógica funcional de cada rol.
- *
- * No hace:
- * - No autentica.
- * - No consulta APIs.
- * - No conoce permisos.
- * - No decide rutas.
- */
-
 import { X } from 'lucide-react'
 import { BRAND } from '../../lib/brand'
 import { cn } from '../../lib/cn'
@@ -35,11 +17,11 @@ function SidebarNavItem({ item, activeTab, onNavigate }) {
       type="button"
       onClick={() => onNavigate(item.tab)}
       className={cn(
-        'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-bold transition-all duration-200',
-        'focus:outline-none focus:ring-2 focus:ring-[#00a9ce]/40 focus:ring-offset-2',
+        'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-bold transition',
+        'focus:outline-none',
         isActive
-          ? 'bg-gradient-to-r from-[#981d97] to-[#001871] text-white shadow-md hover:shadow-lg'
-          : 'text-slate-700 hover:bg-slate-100/80 hover:text-[#001871] hover:shadow-sm'
+          ? 'bg-[#2d007f] text-white shadow-sm'
+          : 'text-slate-700 hover:bg-slate-100 hover:text-[#001871]'
       )}
     >
       {Icon ? <Icon size={18} /> : item.iconNode}
@@ -87,41 +69,37 @@ export function SidebarShell({
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 z-50 flex h-screen w-80 shrink-0 flex-col border-r transition-transform duration-300 ease-in-out shadow-xl lg:sticky lg:top-0 lg:z-20 lg:translate-x-0 lg:shadow-none',
-        'bg-white border-slate-200',
+        'fixed inset-y-0 left-0 z-50 flex h-screen w-80 shrink-0 flex-col border-r border-slate-200 bg-white shadow-xl transition-transform duration-300 ease-in-out',
+        'lg:sticky lg:top-0 lg:z-20 lg:translate-x-0 lg:shadow-none',
         isOpen ? 'translate-x-0' : '-translate-x-full'
       )}
     >
       <div className="flex h-full flex-col">
         <div
           className={cn(
-            'px-6 border-b',
-            hasHeaderContent ? 'py-6' : 'py-4',
-            'border-slate-200 bg-gradient-to-br from-[#001871] via-[#00a9ce] to-[#00bfb3] relative overflow-hidden'
+            'border-b border-slate-200 px-6',
+            hasHeaderContent ? 'py-6' : 'py-4'
           )}
         >
-          <div className="absolute inset-0 opacity-10" style={{
-            backgroundImage: 'radial-gradient(circle at 20% 50%, #981d97 0%, transparent 50%)',
-          }} />
-
-          <div className="flex items-start justify-between gap-4 relative z-10">
+          <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               {title ? (
                 <p
-                  className="text-base font-extrabold uppercase tracking-wide text-white"
+                  className="text-base font-extrabold uppercase tracking-wide"
+                  style={{ color: BRAND.navy }}
                 >
                   {title}
                 </p>
               ) : null}
 
               {subtitle ? (
-                <p className="mt-2 text-sm leading-5 text-slate-100">
+                <p className="mt-2 text-sm leading-5 text-slate-500">
                   {subtitle}
                 </p>
               ) : null}
 
               {badge ? (
-                <div className="mt-4 inline-flex rounded-full border-2 border-white bg-white/20 backdrop-blur-sm px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-white">
+                <div className="mt-4 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
                   {badge}
                 </div>
               ) : null}
@@ -130,7 +108,7 @@ export function SidebarShell({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-2 text-white/70 transition hover:bg-white/20 lg:hidden"
+              className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 lg:hidden"
               aria-label="Cerrar menú"
             >
               <X size={20} />
@@ -148,7 +126,7 @@ export function SidebarShell({
           {sections.map((section) => (
             <div key={section.label} className="space-y-2">
               {section.label ? (
-                <p className="px-4 text-[11px] font-extrabold uppercase tracking-widest text-[#001871]">
+                <p className="px-4 text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
                   {section.label}
                 </p>
               ) : null}
@@ -170,7 +148,7 @@ export function SidebarShell({
         </nav>
 
         {footer ? (
-          <div className="border-t border-slate-200 bg-gradient-to-b from-slate-50 to-white p-5">
+          <div className="border-t border-slate-200 p-5">
             {footer}
           </div>
         ) : null}
