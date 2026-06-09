@@ -85,7 +85,10 @@ export default function Topbar({
           </div>
 
           {avatarLabel ? (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2d007f] text-sm font-black text-white">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-black text-white"
+              style={{ backgroundColor: BRAND.navy }}
+            >
               {avatarLabel}
             </div>
           ) : null}

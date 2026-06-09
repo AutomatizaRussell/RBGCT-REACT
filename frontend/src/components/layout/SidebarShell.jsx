@@ -19,9 +19,7 @@ function SidebarNavItem({ item, activeTab, onNavigate }) {
       className={cn(
         'flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-bold transition',
         'focus:outline-none',
-        isActive
-          ? 'bg-[#2d007f] text-white shadow-sm'
-          : 'text-slate-700 hover:bg-slate-100 hover:text-[#001871]'
+        isActive ? 'rb-sidebar-item-active' : 'rb-sidebar-item'
       )}
     >
       {Icon ? <Icon size={18} /> : item.iconNode}
@@ -37,7 +35,7 @@ function SidebarNavItem({ item, activeTab, onNavigate }) {
  *
  * Decisiones:
  * - El logo corporativo vive arriba del sidebar.
- * - El item activo usa el morado del diseño origen: #2d007f.
+ * - El item activo usa el azul corporativo definido en las variables de marca.
  * - No se usa ring turquesa ni borde visible en el item activo.
  * - No maneja autenticación, permisos, rutas ni APIs.
  */
@@ -70,7 +68,7 @@ export function SidebarShell({
               <img
                 src={rbLogo}
                 alt="Russell Bedford GCT"
-                className="h-10 w-auto max-w-[220px] object-contain"
+                className="h-auto w-[240px] max-w-full object-contain"
               />
 
               {hasTextHeader ? (
@@ -91,7 +89,7 @@ export function SidebarShell({
                   ) : null}
 
                   {badge ? (
-                    <div className="mt-3 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
+                    <div className="rb-sidebar-badge mt-3 inline-flex rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest">
                       {badge}
                     </div>
                   ) : null}
@@ -120,7 +118,7 @@ export function SidebarShell({
           {sections.map((section) => (
             <div key={section.label} className="space-y-2">
               {section.label ? (
-                <p className="px-4 text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+                <p className="rb-sidebar-section-label px-4 text-[11px] font-extrabold uppercase tracking-widest">
                   {section.label}
                 </p>
               ) : null}

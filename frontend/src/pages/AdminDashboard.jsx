@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'; 
+import { useState, useEffect, useRef } from 'react';
 import { Sidebar } from '../components/layout/Sidebar';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Users, Activity, ShieldAlert, Zap, Database, Plus, X, AlertTriangle, Eye, Trash2, CheckCircle, Lock, Edit3, Clock, Building2, Phone, MapPin, Menu } from 'lucide-react';
@@ -17,19 +17,23 @@ import {
   n8nProxyStatus
 } from '../lib/api';
 
+// Componentes de la barra superior
+import Topbar from '../components/layout/Topbar'
+
 // Componentes comunes de Gestión de Usuarios
 import UserTable from '../components/users/UserTable';
 import CreateUserPage from '../components/users/CreateUserPage';
 
+
 // Componentes de Tareas/Calendario
-import TaskDashboard from '../components/tasks/TaskDashboard'; 
-import N8nLogs from '../components/users/N8nLogs'; 
+import TaskDashboard from '../components/tasks/TaskDashboard';
+import N8nLogs from '../components/users/N8nLogs';
 import SystemSettings from '../components/users/SystemSettings';
-import ApiKeyManager from '../components/admin/ApiKeyManager'; 
+import ApiKeyManager from '../components/admin/ApiKeyManager';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [recentActivity, setRecentActivity] = useState([]); 
+  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [employeeStats, setEmployeeStats] = useState({ activeCount: 0, loading: true });
   const [alertasCount, setAlertasCount] = useState(0);
@@ -110,7 +114,7 @@ const AdminDashboard = () => {
         estado: 'alerta',
         email: alerta.email,
       }));
-      
+
       const allActivity = [
         // Alertas de recuperación (primero, son importantes)
         ...alertasData,
@@ -189,12 +193,12 @@ const AdminDashboard = () => {
   const handleHabilitarEdicionMasiva = async () => {
     const adminEmail = prompt('Confirma tu email de SuperAdmin:');
     if (!adminEmail) return;
-    
+
     const adminPass = prompt('Confirma tu contraseña:');
     if (!adminPass) return;
-    
+
     const habilitar = confirm('¿Habilitar edición para TODOS? (Cancelar = Deshabilitar)');
-    
+
     try {
       const response = await habilitarEdicionMasivaSuperAdmin(adminEmail, adminPass, habilitar);
       alert(response.message);
@@ -303,35 +307,35 @@ const AdminDashboard = () => {
         return (
           <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              <StatCard 
-                label="Personal Registrado" 
-                value={employeeStats.loading ? "..." : employeeStats.totalCount.toString()} 
-                icon={<Users size={18}/>} 
-                subtext={`${employeeStats.activeCount} activos en sistema`} 
+              <StatCard
+                label="Personal Registrado"
+                value={employeeStats.loading ? "..." : employeeStats.totalCount.toString()}
+                icon={<Users size={18} />}
+                subtext={`${employeeStats.activeCount} activos en sistema`}
               />
-              <StatCard 
-                label="Integración n8n" 
-                value={n8nStatus.loading ? "..." : (n8nStatus.connected ? "Estable" : "Desconectado")} 
-                icon={<Zap size={18} className={n8nStatus.connected ? "text-emerald-600" : "text-red-500"}/>} 
-                subtext={n8nStatus.loading ? "Verificando..." : (n8nStatus.connected ? `Ping: ${n8nStatus.ping}ms | Webhooks OK` : "Servicio no disponible")} 
+              <StatCard
+                label="Integración n8n"
+                value={n8nStatus.loading ? "..." : (n8nStatus.connected ? "Estable" : "Desconectado")}
+                icon={<Zap size={18} className={n8nStatus.connected ? "text-emerald-600" : "text-red-500"} />}
+                subtext={n8nStatus.loading ? "Verificando..." : (n8nStatus.connected ? `Ping: ${n8nStatus.ping}ms | Webhooks OK` : "Servicio no disponible")}
                 color={n8nStatus.connected ? "text-emerald-600" : "text-red-600"}
               />
-              
+
               <div onClick={() => alertasCount > 0 && setShowAlertasModal(true)} className={alertasCount > 0 ? "cursor-pointer" : ""}>
-                <StatCard 
-                  label="Alertas del Sistema" 
-                  value={alertasCount.toString()} 
-                  icon={<ShieldAlert size={18} className={alertasCount > 0 ? "text-red-500" : ""}/>} 
-                  subtext={alertasCount > 0 ? `${alertasCount} solicitudes pendientes` : "Sin incidentes críticos"} 
+                <StatCard
+                  label="Alertas del Sistema"
+                  value={alertasCount.toString()}
+                  icon={<ShieldAlert size={18} className={alertasCount > 0 ? "text-red-500" : ""} />}
+                  subtext={alertasCount > 0 ? `${alertasCount} solicitudes pendientes` : "Sin incidentes críticos"}
                   color={alertasCount > 0 ? "text-red-600" : "text-[#001871]"}
                 />
               </div>
 
-              <StatCard 
-                label="Usuarios Concurrentes" 
-                value={concurrentUsers.toString()} 
-                icon={<Activity size={18}/>} 
-                subtext="Activos (últimos 10 min)" 
+              <StatCard
+                label="Usuarios Concurrentes"
+                value={concurrentUsers.toString()}
+                icon={<Activity size={18} />}
+                subtext="Activos (últimos 10 min)"
               />
             </div>
 
@@ -341,18 +345,18 @@ const AdminDashboard = () => {
                   <h3 className="font-bold text-lg text-[#001871]">Actividad Reciente</h3>
                   <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-tight">Logins y alertas en tiempo real</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   {loading ? (
                     <div className="py-10 text-center text-xs text-slate-400 animate-pulse">Sincronizando...</div>
                   ) : recentActivity.length > 0 ? (
                     recentActivity.map((item, idx) => (
-                      <RecentUserRow 
+                      <RecentUserRow
                         key={idx}
-                        name={item.name} 
-                        time={item.time ? new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'} 
-                        role={item.role} 
-                        action={item.action} 
+                        name={item.name}
+                        time={item.time ? new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                        role={item.role}
+                        action={item.action}
                         isAlert={item.type === 'alert'}
                         estado={item.estado}
                         onMarkRead={() => handleMarkAsRead(item.id)}
@@ -370,23 +374,23 @@ const AdminDashboard = () => {
 
               <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm flex flex-col gap-6">
                 <div className="flex items-center gap-4">
-                   <div className="p-3 bg-slate-100 rounded-xl"><Database size={20} /></div>
-                   <h3 className="font-bold text-[#001871]">Estado de Datos</h3>
+                  <div className="p-3 bg-slate-100 rounded-xl"><Database size={20} /></div>
+                  <h3 className="font-bold text-[#001871]">Estado de Datos</h3>
                 </div>
                 <div className="space-y-3">
-                  <ActionButton label="Exportar Base de Datos" icon={<Database size={14}/>} />
-                  <ActionButton 
-                    label="Sincronizar n8n" 
-                    icon={<Zap size={14}/>} 
-                    primary 
-                    onClick={() => setActiveTab('logs')} 
+                  <ActionButton label="Exportar Base de Datos" icon={<Database size={14} />} />
+                  <ActionButton
+                    label="Sincronizar n8n"
+                    icon={<Zap size={14} />}
+                    primary
+                    onClick={() => setActiveTab('logs')}
                   />
                   {/* Botón de Edición Masiva - Solo SuperAdmin */}
                   {isSuperAdmin && (
-                    <ActionButton 
-                      label="Habilitar Edición Masiva" 
-                      icon={<Edit3 size={14}/>} 
-                      primary 
+                    <ActionButton
+                      label="Habilitar Edición Masiva"
+                      icon={<Edit3 size={14} />}
+                      primary
                       onClick={handleHabilitarEdicionMasiva}
                     />
                   )}
@@ -399,9 +403,9 @@ const AdminDashboard = () => {
         return <div className="animate-in fade-in slide-in-from-bottom-2 duration-500"><UserTable /></div>;
       case 'tasks':
         return <TaskDashboard />;
-      case 'logs': 
+      case 'logs':
         return <N8nLogs />;
-      case 'settings': 
+      case 'settings':
         return <SystemSettings />;
       case 'apikeys':
         return <ApiKeyManager />;
@@ -430,34 +434,43 @@ const AdminDashboard = () => {
       )}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <header className="h-16 lg:h-20 bg-white border-b border-slate-100 flex items-center justify-between px-4 lg:px-10 shadow-sm relative z-10">
-          <div className="flex items-center gap-2 min-w-0">
-            <button type="button" onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-slate-500 hover:text-[#001871] hover:bg-slate-100 rounded-lg transition-colors shrink-0">
-              <Menu size={20} />
-            </button>
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-0.5 hidden sm:block">Control Global</p>
-              <h2 className="text-base lg:text-xl font-black text-[#001871] tracking-tight truncate">
-                {getHeaderTitle()}
-              </h2>
-            </div>
-          </div>
-          {isSuperAdmin && activeTab === 'users' && (
-            <button
-              onClick={() => navigate('/admin/usuarios/nuevo')}
-              className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-[#001871] text-white rounded-lg hover:bg-[#003366] transition-colors text-xs lg:text-sm font-medium shrink-0 ml-2"
-            >
-              <Plus size={16} />
-              <span className="hidden sm:inline">Crear Usuario</span>
-              <span className="sm:hidden">Crear</span>
-            </button>
-          )}
-        </header>
+        <Topbar
+          eyebrow="Control global"
+          title={getHeaderTitle()}
+          description="Administración · Sistema · Operación"
+          userName={
+            user?.primer_nombre
+              ? `${user.primer_nombre} ${user.primer_apellido || ''}`.trim()
+              : user?.email || 'SuperAdmin'
+          }
+          userRole={isSuperAdmin ? 'Superadmin' : 'Administrador'}
+          avatarLabel={
+            user?.primer_nombre
+              ? user.primer_nombre.charAt(0).toUpperCase()
+              : 'A'
+          }
+          onOpenSidebar={() => setSidebarOpen(true)}
+          actions={
+            <>
+              {isSuperAdmin && activeTab === 'users' && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/usuarios/nuevo')}
+                  className="flex items-center gap-2 rounded-xl bg-[#001871] px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800 lg:px-4 lg:text-sm"
+                >
+                  <Plus size={16} />
+                  <span className="hidden sm:inline">Crear Usuario</span>
+                  <span className="sm:hidden">Crear</span>
+                </button>
+              )}
+            </>
+          }
+        />
         <div className="p-4 lg:p-10 overflow-auto flex-1">{renderContent()}</div>
       </main>
-      
+
       {/* Modal de Alertas */}
-      <AlertasModal 
+      <AlertasModal
         isOpen={showAlertasModal}
         onClose={() => setShowAlertasModal(false)}
         alertas={alertasRecuperacion}
@@ -518,11 +531,11 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" 
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
@@ -536,7 +549,7 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
               <p className="text-xs text-slate-500">Solicitudes de recuperación de contraseña</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
           >
@@ -554,19 +567,17 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
           ) : (
             <div className="space-y-3">
               {alertas.map((alerta) => (
-                <div 
+                <div
                   key={alerta.id}
-                  className={`p-4 rounded-2xl border transition-all ${
-                    alerta.usuario_existe 
-                      ? 'bg-red-50/50 border-red-100 hover:bg-red-50' 
+                  className={`p-4 rounded-2xl border transition-all ${alerta.usuario_existe
+                      ? 'bg-red-50/50 border-red-100 hover:bg-red-50'
                       : 'bg-amber-50/50 border-amber-100 hover:bg-amber-50'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm ${
-                        alerta.usuario_existe ? 'bg-red-500' : 'bg-amber-500'
-                      }`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm ${alerta.usuario_existe ? 'bg-red-500' : 'bg-amber-500'
+                        }`}>
                         {alerta.nombre?.charAt(0).toUpperCase() || '?'}
                       </div>
                       <div>
@@ -581,11 +592,10 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${
-                        alerta.usuario_existe 
-                          ? 'bg-red-100 text-red-600' 
+                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${alerta.usuario_existe
+                          ? 'bg-red-100 text-red-600'
                           : 'bg-amber-100 text-amber-600'
-                      }`}>
+                        }`}>
                         {alerta.usuario_existe ? 'Usuario Existe' : 'No Registrado'}
                       </span>
                       <button
@@ -597,7 +607,7 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Info del empleado */}
                   {alerta.empleado_info && (
                     <div className="mt-3 pt-3 border-t border-red-100/50">
@@ -608,7 +618,7 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
                       </p>
                     </div>
                   )}
-                  
+
                   {/* Botones de acción */}
                   <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
                     {alerta.usuario_existe && alerta.empleado_info && (
@@ -643,7 +653,7 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
 
         {/* Footer */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">
-          <button 
+          <button
             onClick={onClose}
             className="w-full py-3 bg-[#001871] text-white rounded-xl font-semibold hover:bg-[#003366] transition-colors"
           >
@@ -657,27 +667,27 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
 
 // --- MODAL DE ACTUALIZAR CONTRASEÑA ---
 
-const PasswordModal = ({ 
-  isOpen, 
-  onClose, 
-  empleado, 
-  newPassword, 
-  setNewPassword, 
-  adminPassword, 
-  setAdminPassword, 
-  onSubmit, 
-  updating 
+const PasswordModal = ({
+  isOpen,
+  onClose,
+  empleado,
+  newPassword,
+  setNewPassword,
+  adminPassword,
+  setAdminPassword,
+  onSubmit,
+  updating
 }) => {
   if (!isOpen || !empleado) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" 
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
@@ -691,7 +701,7 @@ const PasswordModal = ({
               <p className="text-xs text-white/70">{empleado.nombre_completo || empleado.nombre}</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 hover:bg-white/10 rounded-xl transition-colors"
           >
@@ -806,12 +816,12 @@ const AlertDetailModal = ({ alerta, onClose, onMarcarTerminado, onEliminar, onCh
           {emp ? (
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: 'Área',       value: emp.area },
-                { label: 'Cargo',      value: emp.cargo },
-                { label: 'Teléfono',   value: emp.telefono },
-                { label: 'Estado',     value: emp.estado },
-                { label: 'Dirección',  value: emp.direccion },
-                { label: 'Municipio',  value: emp.municipio },
+                { label: 'Área', value: emp.area },
+                { label: 'Cargo', value: emp.cargo },
+                { label: 'Teléfono', value: emp.telefono },
+                { label: 'Estado', value: emp.estado },
+                { label: 'Dirección', value: emp.direccion },
+                { label: 'Municipio', value: emp.municipio },
               ].filter(f => f.value).map(f => (
                 <div key={f.label} className="px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{f.label}</p>
