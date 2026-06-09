@@ -1332,7 +1332,12 @@ const ReglamentoTab = () => {
                       <h3 className="font-bold text-[#001871] text-base mb-3">{item.titulo}</h3>
                       {item.archivo_url && (
                         <div className="mb-5">
-                          <iframe src={item.archivo_url} className="w-full border border-slate-200 rounded-lg" style={{ height: '400px' }} />
+                          <div className="mb-3">
+                            <a href={item.archivo_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors">
+                              Abrir PDF
+                            </a>
+                          </div>
+                          <iframe src={item.archivo_url} className="w-full border border-slate-200 rounded-lg" style={{ height: '400px' }} title="PDF Viewer" />
                         </div>
                       )}
                       {item.contenido && (

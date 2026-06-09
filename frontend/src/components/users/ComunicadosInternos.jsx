@@ -77,11 +77,16 @@ const ComunicadosInternos = () => {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-sm text-[#001871]">Documento PDF</h4>
-                        <a href={item.archivo_url} download className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors">
-                          <Download size={14} /> Descargar
-                        </a>
+                        <div className="flex gap-2">
+                          <a href={item.archivo_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors">
+                            Abrir PDF
+                          </a>
+                          <a href={item.archivo_url} download className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors">
+                            <Download size={14} /> Descargar
+                          </a>
+                        </div>
                       </div>
-                      <iframe src={item.archivo_url} className="w-full border border-slate-200 rounded-lg" style={{ height: '500px' }} />
+                      <iframe src={item.archivo_url} className="w-full border border-slate-200 rounded-lg" style={{ height: '500px' }} title="PDF Viewer" />
                     </div>
                   )}
                   {item.contenido && (
