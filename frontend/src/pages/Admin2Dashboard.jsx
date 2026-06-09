@@ -7,7 +7,7 @@ import {
   KeyRound, Check, X, Eye, Trash2, CheckCircle,
   AlertTriangle, ClipboardList, FileBarChart, FileText,
   Wrench, BookOpen, Settings, Plus, Building2, Briefcase,
-  ShieldCheck, Lock, Info, Pencil,
+  ShieldCheck, Lock, Info, Pencil, Download,
   TrendingUp, RefreshCw, Calendar, Bell, UserX,
   CheckCircle2, Clock, BarChart2, ArrowRight, Menu
 } from 'lucide-react';
@@ -1141,9 +1141,9 @@ const ReglamentoTab = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
-  const [editData, setEditData] = useState({ titulo: '', contenido: '' });
+  const [editData, setEditData] = useState({ titulo: '', contenido: '', archivo: null });
   const [adding, setAdding] = useState(false);
-  const [newData, setNewData] = useState({ titulo: '', contenido: '' });
+  const [newData, setNewData] = useState({ titulo: '', contenido: '', archivo: null });
   const [saving, setSaving] = useState(false);
 
   const fetchItems = async () => {
@@ -1201,8 +1201,12 @@ const ReglamentoTab = () => {
     if (!newData.titulo.trim()) return;
     setSaving(true);
     try {
-      await createReglamentoItem(newData);
-      setNewData({ titulo: '', contenido: '' });
+      const formData = new FormData();
+      formData.append('titulo', newData.titulo);
+      formData.append('contenido', newData.contenido);
+      if (newData.archivo) formData.append('archivo', newData.archivo);
+      await createReglamentoItem(formData);
+      setNewData({ titulo: '', contenido: '', archivo: null });
       setAdding(false);
       fetchItems();
     } catch (err) {
@@ -1251,6 +1255,16 @@ const ReglamentoTab = () => {
             rows={4}
             className="w-full px-4 py-2.5 text-sm bg-white border border-indigo-200 rounded-xl focus:outline-none focus:border-indigo-400 transition-colors resize-none"
           />
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-indigo-600">Archivo PDF (opcional)</label>
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={e => setNewData(p => ({ ...p, archivo: e.target.files?.[0] || null }))}
+              className="w-full px-4 py-2.5 text-sm bg-white border border-indigo-200 rounded-xl focus:outline-none focus:border-indigo-400 transition-colors"
+            />
+            {newData.archivo && <p className="text-xs text-indigo-600">✓ {newData.archivo.name}</p>}
+          </div>
           <div className="flex gap-3">
             <button
               onClick={handleAdd}
@@ -1260,7 +1274,7 @@ const ReglamentoTab = () => {
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
             <button
-              onClick={() => { setAdding(false); setNewData({ titulo: '', contenido: '' }); }}
+              onClick={() => { setAdding(false); setNewData({ titulo: '', contenido: '', archivo: null }); }}
               className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
             >
               Cancelar
@@ -1344,6 +1358,16 @@ const ReglamentoTab = () => {
                       >
                         ▼
                       </button>
+                      {item.archivo_url && (
+                        <a
+                          href={item.archivo_url}
+                          download
+                          title="Descargar PDF"
+                          className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all inline-flex"
+                        >
+                          <Download size={15} />
+                        </a>
+                      )}
                       <button
                         onClick={() => handleEdit(item)}
                         title="Editar"

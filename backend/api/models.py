@@ -502,6 +502,7 @@ class ReglamentoItem(models.Model):
     id = models.AutoField(primary_key=True)
     titulo = models.CharField(max_length=200)
     contenido = models.TextField(blank=True, default='')
+    archivo = models.FileField(upload_to='reglamento/', blank=True, null=True)
     orden = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

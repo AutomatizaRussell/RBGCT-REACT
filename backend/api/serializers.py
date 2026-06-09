@@ -235,9 +235,19 @@ class SolicitudesPasswordSerializer(serializers.ModelSerializer):
 
 
 class ReglamentoItemSerializer(serializers.ModelSerializer):
+    archivo_url = serializers.SerializerMethodField()
+
     class Meta:
         model = ReglamentoItem
-        fields = ['id', 'titulo', 'contenido', 'orden', 'created_at', 'updated_at']
+        fields = ['id', 'titulo', 'contenido', 'archivo', 'archivo_url', 'orden', 'created_at', 'updated_at']
+
+    def get_archivo_url(self, obj):
+        if obj.archivo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.archivo.url)
+            return obj.archivo.url
+        return None
 
 
 class CursoContenidoSerializer(serializers.ModelSerializer):
