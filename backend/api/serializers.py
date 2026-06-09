@@ -239,7 +239,7 @@ class ReglamentoItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReglamentoItem
-        fields = ['id', 'titulo', 'contenido', 'archivo_url', 'orden', 'created_at', 'updated_at']
+        fields = ['id', 'titulo', 'contenido', 'archivo', 'archivo_url', 'orden', 'created_at', 'updated_at']
 
     def get_archivo_url(self, obj):
         if obj.archivo:

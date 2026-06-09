@@ -1261,8 +1261,17 @@ class ReglamentoItemViewSet(viewsets.ModelViewSet):
         # Asignar orden al final si no se especifica
         if 'orden' not in request.data or request.data['orden'] is None:
             max_orden = ReglamentoItem.objects.aggregate(django_models.Max('orden'))['orden__max'] or 0
-            data = request.data.copy()
+            # En DRF, request.data ya debería tener todo (POST + FILES)
+            # Pero hacemos esto para asegurar que FILES se incluyan
+            from django.http import QueryDict
+            if isinstance(request.data, QueryDict):
+                data = request.data.copy()
+            else:
+                data = dict(request.data)
             data['orden'] = max_orden + 1
+            # Copiar archivos explícitamente
+            for key, file_obj in request.FILES.items():
+                data[key] = file_obj
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
