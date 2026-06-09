@@ -73,15 +73,15 @@ const ComunicadosInternos = () => {
 
               {expanded === item.id && (
                 <div className="border-t border-slate-50 bg-slate-50/30 p-6 space-y-4">
-                  {item.archivo_url && (
+                  {item.archivo && (
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-sm text-[#001871]">Documento PDF</h4>
-                        <a href={item.archivo_url} download className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors">
+                        <a href={`/media/${item.archivo}`} download className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors">
                           <Download size={14} /> Descargar
                         </a>
                       </div>
-                      <iframe src={item.archivo_url} className="w-full border border-slate-200 rounded-lg" style={{ height: '500px' }} />
+                      <iframe src={`/media/${item.archivo}`} className="w-full border border-slate-200 rounded-lg" style={{ height: '500px' }} />
                     </div>
                   )}
                   {item.contenido && (
