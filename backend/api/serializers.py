@@ -245,9 +245,10 @@ class ReglamentoItemSerializer(serializers.ModelSerializer):
     def get_archivo_url(self, obj):
         if obj.archivo:
             request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.archivo.url)
-            return obj.archivo.url
+            if request and hasattr(request, 'build_absolute_uri'):
+                url = obj.archivo.url if obj.archivo.url.startswith('/') else f'/{obj.archivo.url}'
+                return request.build_absolute_uri(url)
+            return obj.archivo.url if obj.archivo.url else None
         return None
 
 
