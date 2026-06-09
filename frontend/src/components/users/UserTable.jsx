@@ -835,7 +835,7 @@ const UserTable = () => {
                     className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500"
                   />
                   <label htmlFor="acceso_sqf" className="text-sm font-medium text-amber-900 cursor-pointer">
-                    Acceso a Formularios SQF (Clientes y Contratos)
+                    Acceso a Formulario creacion de clientes/contratos (Clientes y Contratos)
                   </label>
                 </div>
 

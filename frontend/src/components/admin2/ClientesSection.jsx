@@ -1585,7 +1585,7 @@ export default function ClientesSection({ onGoToSQF }) {
           onClick={() => onGoToSQF?.()}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all text-slate-500 hover:text-slate-700 hover:bg-slate-100 ml-1"
         >
-          <ExternalLink size={14}/> Formularios SQF
+          <ExternalLink size={14}/> FORMULARIO CREACION CLIENTES/CONTRATOS
         </button>
       </div>
 
