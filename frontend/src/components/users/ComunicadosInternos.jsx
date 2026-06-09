@@ -21,10 +21,6 @@ const ComunicadosInternos = () => {
     }
   };
 
-  const onPdfLoadSuccess = (itemId, { numPages }) => {
-    setPdfPages(prev => ({ ...prev, [itemId]: numPages }));
-  };
-
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <RefreshCw size={24} className="text-indigo-600 animate-spin"/>
@@ -74,19 +70,13 @@ const ComunicadosInternos = () => {
               {expanded === item.id && (
                 <div className="border-t border-slate-50 bg-slate-50/30 p-6 space-y-4">
                   {item.archivo_url && (
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-sm text-[#001871]">Documento PDF</h4>
-                        <div className="flex gap-2">
-                          <a href={item.archivo_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors">
-                            Abrir PDF
-                          </a>
-                          <a href={item.archivo_url} download className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors">
-                            <Download size={14} /> Descargar
-                          </a>
-                        </div>
-                      </div>
-                      <iframe src={item.archivo_url} className="w-full border border-slate-200 rounded-lg" style={{ height: '500px' }} title="PDF Viewer" />
+                    <div className="flex gap-2 mb-4">
+                      <a href={item.archivo_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+                        Abrir PDF
+                      </a>
+                      <a href={item.archivo_url} download className="flex items-center gap-2 px-4 py-2 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-300 transition-colors">
+                        <Download size={14} /> Descargar
+                      </a>
                     </div>
                   )}
                   {item.contenido && (
