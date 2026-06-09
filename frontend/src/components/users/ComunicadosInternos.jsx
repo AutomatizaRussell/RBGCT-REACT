@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, ChevronDown, ChevronRight, RefreshCw, Download } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.js?worker';
 import { getAllReglamento } from '../../lib/api';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `${new URL('pdfjs-dist/build/pdf.worker.min.js', import.meta.url).href}`;
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const ComunicadosInternos = () => {
   const [items, setItems] = useState([]);
