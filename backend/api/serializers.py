@@ -243,7 +243,16 @@ class ReglamentoItemSerializer(serializers.ModelSerializer):
 
     def get_archivo_url(self, obj):
         if obj.archivo:
-            return obj.archivo.url
+            # Always return relative URL to avoid hostname issues in production
+            url = obj.archivo.url
+            # Ensure it starts with / for relative URLs
+            if url and not url.startswith('http'):
+                return f'/{url.lstrip("/")}' if url else None
+            # If absolute URL, extract just the path
+            if url and url.startswith('http'):
+                from urllib.parse import urlparse
+                return urlparse(url).path
+            return url
         return None
 
 
