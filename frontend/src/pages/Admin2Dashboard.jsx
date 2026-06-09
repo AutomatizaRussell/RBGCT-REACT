@@ -1,13 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
-
-// Configure PDF worker
-if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.js',
-    import.meta.url,
-  ).href;
-}
 import { useDataCache } from '../context/DataCacheContext';
 import { Admin2Sidebar } from '../components/layout/Admin2Sidebar';
 import Topbar from '../components/layout/Topbar'
@@ -1154,7 +1145,6 @@ const ReglamentoTab = () => {
   const [adding, setAdding] = useState(false);
   const [newData, setNewData] = useState({ titulo: '', contenido: '', archivo: null });
   const [saving, setSaving] = useState(false);
-  const [pdfPages, setPdfPages] = useState({});
 
   const fetchItems = async () => {
     try {
@@ -1168,10 +1158,6 @@ const ReglamentoTab = () => {
   };
 
   useEffect(() => { fetchItems(); }, []);
-
-  const onPdfLoadSuccess = (itemId, { numPages }) => {
-    setPdfPages(prev => ({ ...prev, [itemId]: numPages }));
-  };
 
   const handleEdit = (item) => {
     setEditingId(item.id);
@@ -1345,22 +1331,8 @@ const ReglamentoTab = () => {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-[#001871] text-base mb-3">{item.titulo}</h3>
                       {item.archivo_url && (
-                        <div className="mb-5 border border-slate-200 rounded-lg overflow-hidden bg-white p-4">
-                          <Document
-                            file={item.archivo_url}
-                            onLoadSuccess={(doc) => onPdfLoadSuccess(item.id, doc)}
-                            loading={<div className="text-center text-xs text-slate-500">Cargando PDF...</div>}
-                            error={<div className="text-center text-xs text-red-500">Error al cargar el PDF</div>}
-                          >
-                            {Array.from(new Array(Math.min(pdfPages[item.id] || 1, 2)), (el, index) => (
-                              <div key={`page_${index + 1}`} className="mb-2 pb-2 border-b border-slate-100 last:border-b-0">
-                                <Page pageNumber={index + 1} width={400} />
-                              </div>
-                            ))}
-                            {pdfPages[item.id] && pdfPages[item.id] > 2 && (
-                              <p className="text-xs text-slate-500 mt-2">+ {pdfPages[item.id] - 2} páginas más</p>
-                            )}
-                          </Document>
+                        <div className="mb-5">
+                          <iframe src={item.archivo_url} className="w-full border border-slate-200 rounded-lg" style={{ height: '400px' }} />
                         </div>
                       )}
                       {item.contenido && (

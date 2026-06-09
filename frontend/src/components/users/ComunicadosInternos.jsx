@@ -1,21 +1,11 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, ChevronDown, ChevronRight, RefreshCw, Download } from 'lucide-react';
-import { Document, Page, pdfjs } from 'react-pdf';
 import { getAllReglamento } from '../../lib/api';
-
-// Configure PDF worker
-if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.js',
-    import.meta.url,
-  ).href;
-}
 
 const ComunicadosInternos = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
-  const [pdfPages, setPdfPages] = useState({});
 
   useEffect(() => { fetchReglamento(); }, []);
 
@@ -82,41 +72,26 @@ const ComunicadosInternos = () => {
               </button>
 
               {expanded === item.id && (
-                <div className="border-t border-slate-50 bg-slate-50/30">
-                  {item.archivo_url ? (
-                    <div className="p-6">
-                      <div className="flex items-center justify-between mb-4">
+                <div className="border-t border-slate-50 bg-slate-50/30 p-6 space-y-4">
+                  {item.archivo_url && (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold text-sm text-[#001871]">Documento PDF</h4>
                         <a href={item.archivo_url} download className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors">
                           <Download size={14} /> Descargar
                         </a>
                       </div>
-                      <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
-                        <Document
-                          file={item.archivo_url}
-                          onLoadSuccess={(doc) => onPdfLoadSuccess(item.id, doc)}
-                          loading={<div className="p-8 text-center text-sm text-slate-500">Cargando PDF...</div>}
-                          error={<div className="p-8 text-center text-sm text-red-500">Error al cargar el PDF</div>}
-                        >
-                          {Array.from(new Array(pdfPages[item.id] || 1), (el, index) => (
-                            <div key={`page_${index + 1}`} className="mb-4 border-b border-slate-100 pb-4 last:border-b-0">
-                              <Page pageNumber={index + 1} width={500} />
-                            </div>
-                          ))}
-                        </Document>
-                      </div>
+                      <iframe src={item.archivo_url} className="w-full border border-slate-200 rounded-lg" style={{ height: '500px' }} />
                     </div>
-                  ) : null}
+                  )}
                   {item.contenido && (
-                    <div className="px-6 pb-5">
-                      <div className="space-y-2 pt-4">
-                        {item.contenido.split('\n').filter(l => l.trim()).map((linea, i) => (
-                          <div key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
-                            <span className="mt-2 w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"/>
-                            {linea.trim()}
-                          </div>
-                        ))}
-                      </div>
+                    <div className="space-y-2">
+                      {item.contenido.split('\n').filter(l => l.trim()).map((linea, i) => (
+                        <div key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
+                          <span className="mt-2 w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"/>
+                          {linea.trim()}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
