@@ -243,6 +243,9 @@ class ReglamentoItemSerializer(serializers.ModelSerializer):
 
     def get_archivo_url(self, obj):
         if obj.archivo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.archivo.url)
             return f'/media/{obj.archivo.name}'
         return None
 

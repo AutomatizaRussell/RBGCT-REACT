@@ -1161,14 +1161,22 @@ const ReglamentoTab = () => {
 
   const handleEdit = (item) => {
     setEditingId(item.id);
-    setEditData({ titulo: item.titulo, contenido: item.contenido });
+    setEditData({ titulo: item.titulo, contenido: item.contenido, archivo: null, archivoExistente: item.archivo_url });
   };
 
   const handleSaveEdit = async (id) => {
     if (!editData.titulo.trim()) return;
     setSaving(true);
     try {
-      await updateReglamentoItem(id, editData);
+      if (editData.archivo) {
+        const formData = new FormData();
+        formData.append('titulo', editData.titulo);
+        formData.append('contenido', editData.contenido);
+        formData.append('archivo', editData.archivo);
+        await updateReglamentoItem(id, formData);
+      } else {
+        await updateReglamentoItem(id, { titulo: editData.titulo, contenido: editData.contenido });
+      }
       setEditingId(null);
       fetchItems();
     } catch (err) {
@@ -1309,6 +1317,19 @@ const ReglamentoTab = () => {
                     rows={5}
                     className="w-full px-4 py-2.5 text-sm bg-white border border-amber-200 rounded-xl focus:outline-none focus:border-amber-400 transition-colors resize-none"
                   />
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-amber-600">PDF (opcional)</label>
+                    {editData.archivoExistente && !editData.archivo && (
+                      <p className="text-xs text-amber-600">✓ PDF actual presente</p>
+                    )}
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={e => setEditData(p => ({ ...p, archivo: e.target.files?.[0] || null }))}
+                      className="w-full px-4 py-2.5 text-sm bg-white border border-amber-200 rounded-xl focus:outline-none focus:border-amber-400 transition-colors"
+                    />
+                    {editData.archivo && <p className="text-xs text-amber-600">✓ {editData.archivo.name}</p>}
+                  </div>
                   <div className="flex gap-3">
                     <button
                       onClick={() => handleSaveEdit(item.id)}

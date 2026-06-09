@@ -381,7 +381,7 @@ const Login = () => {
 
         {/* Footer */}
         <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-6">
-          © 2026 Russell Bedford RBG. Todos los derechos reservados.
+          © 2026 Russell Bedford GCT. Todos los derechos reservados.
         </p>
       </div>
 
