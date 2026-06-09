@@ -1330,9 +1330,9 @@ const ReglamentoTab = () => {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-[#001871] text-base mb-3">{item.titulo}</h3>
-                      {item.archivo && (
+                      {item.archivo_url && (
                         <div className="mb-5">
-                          <iframe src={`/media/${item.archivo}`} className="w-full border border-slate-200 rounded-lg" style={{ height: '400px' }} />
+                          <iframe src={item.archivo_url} className="w-full border border-slate-200 rounded-lg" style={{ height: '400px' }} />
                         </div>
                       )}
                       {item.contenido && (

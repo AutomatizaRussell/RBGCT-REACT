@@ -236,19 +236,14 @@ class SolicitudesPasswordSerializer(serializers.ModelSerializer):
 
 class ReglamentoItemSerializer(serializers.ModelSerializer):
     archivo_url = serializers.SerializerMethodField()
-    archivo = serializers.FileField(required=False, allow_null=True)
 
     class Meta:
         model = ReglamentoItem
-        fields = ['id', 'titulo', 'contenido', 'archivo', 'archivo_url', 'orden', 'created_at', 'updated_at']
+        fields = ['id', 'titulo', 'contenido', 'archivo_url', 'orden', 'created_at', 'updated_at']
 
     def get_archivo_url(self, obj):
         if obj.archivo:
-            request = self.context.get('request')
-            if request and hasattr(request, 'build_absolute_uri'):
-                url = obj.archivo.url if obj.archivo.url.startswith('/') else f'/{obj.archivo.url}'
-                return request.build_absolute_uri(url)
-            return obj.archivo.url if obj.archivo.url else None
+            return f'/media/{obj.archivo.name}'
         return None
 
 
