@@ -558,7 +558,16 @@ export default function FormulariosSQF({ onBack }) {
         setActiveSection('billing');
         setBillingReqType('facturacion'); setBillingType('Servicio actual'); setBillingClientType('Cliente antiguo');
         setBillingClientName(contract?.clientName || '');
-        setBillingClientDocument(contract?.clientDocument || '');
+
+        // Obtener NIT del contrato o buscar en la lista de clientes
+        let clientNit = contract?.clientDocument || '';
+        if (!clientNit && contract?.clientName) {
+            const matchedClient = validClients.find(c =>
+                String(c?.name || '').toLowerCase() === String(contract?.clientName || '').toLowerCase()
+            );
+            clientNit = matchedClient?.document || '';
+        }
+        setBillingClientDocument(clientNit);
 
         const today = new Date().toISOString().split('T')[0];
         const dueDate = calculateBusinessDaysDate(today, 5);
@@ -577,7 +586,7 @@ export default function FormulariosSQF({ onBack }) {
         setBillingCloser(contract?.manager || '');
         setBillingAreas([{ id: 1, centro: 'Administración', concepto: contract?.name || '', valor: val }]);
 
-        showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
+        showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar. NIT: ${clientNit || 'No disponible'}`);
     };
 
     const handleBillingSubmit = async (e) => {
