@@ -1137,9 +1137,6 @@ export default function FormulariosSQF({ onBack }) {
                                 </div>
                                 <div className="lookup-body nit-modal-body">
                                     <p className="nit-modal-desc">Para generar un contrato, es obligatorio verificar primero la existencia del cliente asociado.</p>
-                                    <button className="btn-reload nit-modal-reload" onClick={loadDataFromWebhooks} title="Recargar datos desde n8n">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="reload-icon"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg> Sincronizar clientes con n8n
-                                    </button>
                                     <div className="lookup-input-row nit-modal-input-row">
                                         <div className="lookup-input-wrapper">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="lookup-input-icon"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
