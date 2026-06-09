@@ -224,18 +224,18 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
       onNavigate={handleNavigation}
       sections={sections}
       userCard={
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="rounded-xl border-2 border-[#00bfb3]/30 bg-gradient-to-br from-[#f8fafc] to-[#f0f9fb] px-4 py-3 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#001871] text-sm font-bold text-white">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#001871] to-[#00a9ce] text-sm font-bold text-white shadow-md">
               {inicial}
             </div>
 
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-slate-900">
+              <p className="truncate text-sm font-bold text-[#001871]">
                 {nombreUsuario}
               </p>
 
-              <p className="truncate text-[11px] font-medium text-slate-500">
+              <p className="truncate text-[11px] font-medium text-[#00bfb3]">
                 {areaUsuario}
               </p>
             </div>
