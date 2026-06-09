@@ -1,8 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.js?worker';
 
-pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+// Configure PDF worker
+if (typeof window !== 'undefined') {
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.js',
+    import.meta.url,
+  ).href;
+}
 import { useDataCache } from '../context/DataCacheContext';
 import { Admin2Sidebar } from '../components/layout/Admin2Sidebar';
 import Topbar from '../components/layout/Topbar'
