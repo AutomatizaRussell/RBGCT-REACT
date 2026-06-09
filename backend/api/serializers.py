@@ -236,6 +236,7 @@ class SolicitudesPasswordSerializer(serializers.ModelSerializer):
 
 class ReglamentoItemSerializer(serializers.ModelSerializer):
     archivo_url = serializers.SerializerMethodField()
+    archivo = serializers.FileField(required=False, allow_null=True)
 
     class Meta:
         model = ReglamentoItem
