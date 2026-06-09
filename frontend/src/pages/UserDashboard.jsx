@@ -164,7 +164,7 @@ const UserDashboard = () => {
   const topbarTitle = isHome
     ? `${saludo}, ${nombreUsuario}`
     : isSQF
-      ? 'Formularios SQF'
+      ? 'FORMULARIO CREACION CLIENTES/CONTRATOS'
       : getHeaderTitle() || 'Portal Empleado'
 
   return (

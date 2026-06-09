@@ -605,7 +605,7 @@ const Admin2Dashboard = () => {
       case 'profile': return 'Mi Perfil';
       case 'contratos': return 'Contratos Laborales';
       case 'clientes': return 'Clientes';
-      case 'formularios-sqf': return 'Formularios SQF';
+      case 'formularios-sqf': return 'Formulario creacion clientes/contratos';
       case 'herramientas': return 'Herramientas';
       case 'reglamento': return 'Reglamento Interno';
       case 'certificado': return 'Certificado de Empleo';
