@@ -556,18 +556,29 @@ export default function FormulariosSQF({ onBack }) {
 
     const sendContractToBilling = (contract) => {
         setActiveSection('billing');
-        setBillingReqType('facturacion'); setBillingType('Servicio actual'); setBillingClientType('Cliente antiguo');
-        setBillingClientName(contract?.clientName || '');
+        setBillingReqType('facturacion');
+        setBillingType('Servicio actual');
+        setBillingClientType('Cliente antiguo');
 
-        // Obtener NIT del contrato o buscar en la lista de clientes
-        let clientNit = contract?.clientDocument || '';
-        if (!clientNit && contract?.clientName) {
-            const matchedClient = validClients.find(c =>
-                String(c?.name || '').toLowerCase() === String(contract?.clientName || '').toLowerCase()
-            );
-            clientNit = matchedClient?.document || '';
+        const clientName = contract?.clientName || '';
+        setBillingClientName(clientName);
+
+        // Intentar obtener NIT de múltiples fuentes
+        let clientNit = contract?.clientDocument || contract?.DocumentoCliente || contract?.NIT || contract?.Nit || '';
+
+        // Si no viene en el contrato, buscar el cliente en la lista validada
+        if (!clientNit || clientNit.trim() === '') {
+            const matchedClient = validClients.find(c => {
+                const cName = String(c?.name || '').toLowerCase().trim();
+                const contractName = String(clientName || '').toLowerCase().trim();
+                return cName === contractName;
+            });
+            if (matchedClient) {
+                clientNit = matchedClient.document || '';
+            }
         }
-        setBillingClientDocument(clientNit);
+
+        setBillingClientDocument(clientNit || '');
 
         const today = new Date().toISOString().split('T')[0];
         const dueDate = calculateBusinessDaysDate(today, 5);
@@ -586,7 +597,7 @@ export default function FormulariosSQF({ onBack }) {
         setBillingCloser(contract?.manager || '');
         setBillingAreas([{ id: 1, centro: 'Administración', concepto: contract?.name || '', valor: val }]);
 
-        showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar. NIT: ${clientNit || 'No disponible'}`);
+        showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
     };
 
     const handleBillingSubmit = async (e) => {

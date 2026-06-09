@@ -102,7 +102,7 @@ const EditorDashboard = () => {
   const getHeaderTitle = () => {
     if (location.pathname.includes('cursos')) return 'Gestión de Cursos'
     if (location.pathname.includes('historial')) return 'Historial de Cambios'
-    if (location.pathname.includes('tareas')) return 'Calendario de Tareas'
+    if (location.pathname.includes('tareas')) return 'Calendario de eventos'
     if (location.pathname.includes('herramientas')) return 'Herramientas'
     if (location.pathname.includes('perfil')) return 'Mi Perfil'
     if (location.pathname.includes('biblioteca')) return 'Biblioteca de Medios'

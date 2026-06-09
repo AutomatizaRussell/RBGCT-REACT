@@ -419,7 +419,7 @@ const AdminDashboard = () => {
     switch (activeTab) {
       case 'dashboard': return 'Panel General';
       case 'users': return 'Gestión de Personal';
-      case 'tasks': return 'Calendario de Tareas';
+      case 'tasks': return 'Calendario de eventos';
       case 'apikeys': return 'Gestión de API Keys';
       case 'logs': return 'Monitoreo de n8n';
       case 'settings': return 'Ajustes del Sistema';

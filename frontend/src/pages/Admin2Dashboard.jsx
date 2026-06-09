@@ -600,7 +600,7 @@ const Admin2Dashboard = () => {
     switch (activeTab) {
       case 'dashboard': return 'Resumen de Equipo';
       case 'users': return 'Gestión de Personal';
-      case 'tasks': return 'Calendario de Tareas';
+      case 'tasks': return 'Calendario de eventos';
       case 'autogestion': return 'Auto Gestión';
       case 'profile': return 'Mi Perfil';
       case 'contratos': return 'Contratos Laborales';
