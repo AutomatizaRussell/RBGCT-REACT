@@ -215,8 +215,8 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
   return (
     <SidebarShell
-      title=""
-      subtitle=""
+      title={null}
+      subtitle={null}
       badge="Portal Empleado"
       activeTab={activeTab}
       isOpen={isOpen}

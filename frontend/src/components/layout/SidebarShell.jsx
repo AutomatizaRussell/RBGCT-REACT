@@ -1,12 +1,12 @@
 import { X } from 'lucide-react'
+import rbLogo from '../../assets/russell-bedford-logo.png'
 import { BRAND } from '../../lib/brand'
 import { cn } from '../../lib/cn'
 
 /**
  * Item visual del sidebar.
  *
- * Mantiene la navegación delegada al componente padre para no acoplar
- * este shell a rutas concretas, permisos, autenticación ni lógica de negocio.
+ * Solo maneja apariencia y delega navegación al padre.
  */
 function SidebarNavItem({ item, activeTab, onNavigate }) {
   const Icon = item.icon
@@ -33,24 +33,13 @@ function SidebarNavItem({ item, activeTab, onNavigate }) {
 /**
  * SidebarShell
  *
- * Componente visual base para todas las barras laterales.
+ * Shell visual común para sidebars.
  *
- * Objetivo:
- * - Migrar el lenguaje visual desde Next.js hacia React/Vite.
- * - Unificar ancho, colores, bordes, navegación y footer.
- * - Mantener intacta la lógica funcional de cada rol.
- *
- * Decisión de diseño:
- * - El logo NO vive aquí. El logo pertenece a la Topbar.
- * - Este componente solo muestra contexto del menú: title, subtitle y badge.
- * - title/subtitle/badge son opcionales para evitar textos globales incorrectos.
- *
- * No hace:
- * - No autentica.
- * - No consulta APIs.
- * - No conoce permisos.
- * - No decide rutas.
- * - No renderiza logo.
+ * Decisiones:
+ * - El logo corporativo vive arriba del sidebar.
+ * - El item activo usa el morado del diseño origen: #2d007f.
+ * - No se usa ring turquesa ni borde visible en el item activo.
+ * - No maneja autenticación, permisos, rutas ni APIs.
  */
 export function SidebarShell({
   title,
@@ -64,7 +53,7 @@ export function SidebarShell({
   footer,
   userCard,
 }) {
-  const hasHeaderContent = Boolean(title || subtitle || badge)
+  const hasTextHeader = Boolean(title || subtitle || badge)
 
   return (
     <aside
@@ -75,32 +64,37 @@ export function SidebarShell({
       )}
     >
       <div className="flex h-full flex-col">
-        <div
-          className={cn(
-            'border-b border-slate-200 px-6',
-            hasHeaderContent ? 'py-6' : 'py-4'
-          )}
-        >
+        <div className="border-b border-slate-200 px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              {title ? (
-                <p
-                  className="text-base font-extrabold uppercase tracking-wide"
-                  style={{ color: BRAND.navy }}
-                >
-                  {title}
-                </p>
-              ) : null}
+              <img
+                src={rbLogo}
+                alt="Russell Bedford GCT"
+                className="h-10 w-auto max-w-[220px] object-contain"
+              />
 
-              {subtitle ? (
-                <p className="mt-2 text-sm leading-5 text-slate-500">
-                  {subtitle}
-                </p>
-              ) : null}
+              {hasTextHeader ? (
+                <div className="mt-4">
+                  {title ? (
+                    <p
+                      className="text-sm font-extrabold uppercase tracking-widest"
+                      style={{ color: BRAND.navy }}
+                    >
+                      {title}
+                    </p>
+                  ) : null}
 
-              {badge ? (
-                <div className="mt-4 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
-                  {badge}
+                  {subtitle ? (
+                    <p className="mt-1 text-sm leading-5 text-slate-500">
+                      {subtitle}
+                    </p>
+                  ) : null}
+
+                  {badge ? (
+                    <div className="mt-3 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
+                      {badge}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
