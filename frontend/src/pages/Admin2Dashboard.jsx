@@ -339,7 +339,7 @@ const Admin2Dashboard = () => {
       case 'configuraciones':
         return (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <ConfiguracionesTab user={user} />
+            <ConfiguracionesTab user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} />
           </div>
         );
       case 'dashboard':
@@ -1372,7 +1372,7 @@ const ReglamentoTab = () => {
 
 // ── ConfiguracionesTab ─────────────────────────────────────────────────────────
 
-const ConfiguracionesTab = ({ user }) => {
+const ConfiguracionesTab = ({ user, sidebarOpen, setSidebarOpen, activeTab, setActiveTab }) => {
   const { fetchEmpleados } = useDataCache();
   const [seccion, setSeccion] = useState('cuenta');
   const [empleados, setEmpleados] = useState([]);
