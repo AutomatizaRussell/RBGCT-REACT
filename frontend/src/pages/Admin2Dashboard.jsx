@@ -339,7 +339,7 @@ const Admin2Dashboard = () => {
       case 'configuraciones':
         return (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <ConfiguracionesTab user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} />
+            <ConfiguracionesTab user={user} />
           </div>
         );
       case 'dashboard':
@@ -1427,7 +1427,9 @@ const ReglamentoTab = () => {
 
 // ── ConfiguracionesTab ─────────────────────────────────────────────────────────
 
-const ConfiguracionesTab = ({ user, sidebarOpen, setSidebarOpen, activeTab, setActiveTab }) => {
+// Se renderiza DENTRO del layout del dashboard (que ya pinta sidebar y topbar):
+// debe devolver solo su contenido, sin chrome de página.
+const ConfiguracionesTab = ({ user }) => {
   const { fetchEmpleados } = useDataCache();
   const [seccion, setSeccion] = useState('cuenta');
   const [empleados, setEmpleados] = useState([]);
@@ -1522,36 +1524,7 @@ const ConfiguracionesTab = ({ user, sidebarOpen, setSidebarOpen, activeTab, setA
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-100 font-sans antialiased text-[#001871]">
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      <Admin2Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-slate-100">
-        <Topbar
-          eyebrow="Gestión administrativa"
-          description="Clientes · Personas · Operación"
-          userName={
-            user?.primer_nombre
-              ? `${user.primer_nombre} ${user.primer_apellido || ''}`.trim()
-              : 'Administrador'
-          }
-          userRole="Administración"
-          onOpenSidebar={() => setSidebarOpen(true)}
-        />
-
-        <div className="flex-1 overflow-auto px-4 py-6 lg:px-8 lg:py-8">
-          <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
             {/* Selector de sección */}
             <div className="flex flex-wrap gap-2">
               {SECCIONES_CFG.map(s => (
@@ -1735,11 +1708,6 @@ const ConfiguracionesTab = ({ user, sidebarOpen, setSidebarOpen, activeTab, setA
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      </main>
-
-      <GeminiChat />
     </div>
   );
 };
