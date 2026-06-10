@@ -778,7 +778,7 @@ const CompleteProfile = () => {
 
         {/* Footer */}
         <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-6">
-          Paso {step} de 3 • Russell Bedford RBG
+          Paso {step} de 3 • Russell Bedford GCT
         </p>
       </div>
     </div>

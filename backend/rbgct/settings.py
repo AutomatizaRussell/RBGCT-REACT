@@ -224,6 +224,10 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 
+# Sin timeout, una conexión SMTP lenta puede colgar un worker de gunicorn
+# por minutos y degradar la latencia de toda la API.
+EMAIL_TIMEOUT = _env_int('EMAIL_TIMEOUT', 10)
+
 DEFAULT_FROM_EMAIL = os.getenv(
     'DEFAULT_FROM_EMAIL',
     'RBG CT <no-reply@rbgct.com>'

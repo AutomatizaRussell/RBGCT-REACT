@@ -381,7 +381,7 @@ def enviar_email_verificacion(email, codigo, password=None, nombre=None):
     </div>
 
     <div style="background-color: #001871; color: #ffffff; padding: 20px; text-align: center; font-size: 12px; line-height: 1.6;">
-      <p style="margin: 0; font-size: 14px;"><strong>RBG CT - Sistema de Gestión</strong></p>
+      <p style="margin: 0; font-size: 14px;"><strong>GCT - Sistema de Gestión</strong></p>
       <p style="margin: 5px 0 0 0; color: #e2e8f0;">Russell Bedford Colombia</p>
       <p style="margin: 10px 0 0 0;"><a href="https://conecta.rbgct.cloud" style="color: #00a9ce; text-decoration: none; font-size: 13px; font-weight: bold;">🌐 conecta.rbgct.cloud</a></p>
       <p style="margin: 10px 0 0 0; font-size: 11px; color: #a0aec0;">Si no solicitaste esta cuenta, por favor ignora este correo o contacta al equipo de TI y Proyectos.</p>
@@ -392,7 +392,7 @@ def enviar_email_verificacion(email, codigo, password=None, nombre=None):
     payload = {
         'tipo': 'bienvenida_nuevo_usuario',
         'destinatario': email,
-        'asunto': 'Bienvenido a RBG CT - Credenciales de acceso',
+        'asunto': 'Bienvenido a GCT - Credenciales de acceso',
         'html_email': html_email,
         'datos_sensibles': {'correo_login': email, 'password_temporal': password, 'codigo_verificacion': codigo},
         'datos_usuario': {'nombre': nombre_usuario, 'expira_en': '15 minutos'},
@@ -409,11 +409,11 @@ def _enviar_email_smtp_fallback(email, codigo):
     try:
         from django.core.mail import send_mail
         
-        subject = 'Código de verificación - RBG CT'
+        subject = 'Código de verificación - GCT'
         html_content = f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5;">
             <div style="background: #001e33; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-                <h2 style="margin: 0;">RBG CT</h2>
+                <h2 style="margin: 0;">GCT</h2>
                 <p style="margin: 10px 0 0 0; opacity: 0.9;">Código de verificación</p>
             </div>
             <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -429,7 +429,7 @@ def _enviar_email_smtp_fallback(email, codigo):
                 <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
                 <p style="font-size: 12px; color: #999; text-align: center;">
                     Si no solicitaste este código, ignora este mensaje.<br>
-                    RBG CT - Sistema de Gestión
+                    GCT - Sistema de Gestión
                 </p>
             </div>
         </div>
@@ -523,11 +523,18 @@ def login_view(request):
                         'intentos': 0,
                         'password_verificada': True,
                     }, timeout=900)
-                    email_sent, email_result = enviar_email_verificacion(email, codigo)
-                    if email_sent:
-                        logger.info(f"[LOGIN] Código de verificación reenviado a {email}")
-                    else:
-                        logger.error(f"[LOGIN] Error enviando código a {email}: {email_result}")
+                    # Envío en hilo aparte: n8n/SMTP lentos no deben bloquear el
+                    # login (el usuario puede usar "Reenviar código" si no llega).
+                    import threading
+
+                    def _enviar_codigo_login(destino=email, cod=codigo):
+                        ok, detalle = enviar_email_verificacion(destino, cod)
+                        if ok:
+                            logger.info(f"[LOGIN] Código de verificación reenviado a {destino}")
+                        else:
+                            logger.error(f"[LOGIN] Error enviando código a {destino}: {detalle}")
+
+                    threading.Thread(target=_enviar_codigo_login, daemon=True).start()
 
                 return Response({
                     'type': 'empleado',
@@ -2444,7 +2451,7 @@ def enviar_email_recuperacion_n8n(email, codigo, nombre=None):
     </div>
 
     <div style="background-color: #001871; color: #ffffff; padding: 20px; text-align: center; font-size: 12px; line-height: 1.6;">
-      <p style="margin: 0; font-size: 14px;"><strong>RBG CT - Sistema de Gestión</strong></p>
+      <p style="margin: 0; font-size: 14px;"><strong>GCT - Sistema de Gestión</strong></p>
       <p style="margin: 5px 0 0 0; color: #e2e8f0;">Russell Bedford Colombia</p>
       <p style="margin: 10px 0 0 0;"><a href="https://conecta.rbgct.cloud" style="color: #00a9ce; text-decoration: none; font-size: 13px; font-weight: bold;">🌐 conecta.rbgct.cloud</a></p>
       <p style="margin: 10px 0 0 0; font-size: 11px; color: #a0aec0;">Este es un mensaje automático, por favor no respondas a este correo.</p>
@@ -2455,7 +2462,7 @@ def enviar_email_recuperacion_n8n(email, codigo, nombre=None):
     payload = {
         'tipo': 'recuperacion_password',
         'destinatario': email,
-        'asunto': 'Recuperación de Contraseña - RBG CT',
+        'asunto': 'Recuperación de Contraseña - GCT',
         'html_email': html_email,
         'datos_sensibles': {'correo_login': email, 'codigo_verificacion': codigo},
         'datos_usuario': {'nombre': nombre_usuario, 'expira_en': '15 minutos'},
@@ -2690,7 +2697,7 @@ def gemini_chat(request):
         return Response({'error': 'Mensaje vacío.'}, status=400)
 
     system_prompt = (
-        "Eres un asistente virtual de RBG CT (Russell Bedford Colombia), especializado en apoyar "
+        "Eres un asistente virtual de GCT (Russell Bedford Colombia), especializado en apoyar "
         "a los administradores con dudas sobre empleados, usuarios del sistema, gestión de recursos "
         "humanos, contratos, certificados laborales y funcionalidades del panel de administración. "
         "Responde siempre en español, de forma clara, concisa y profesional."

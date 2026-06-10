@@ -198,7 +198,7 @@ const VerifyCode = () => {
 
         {/* Footer */}
         <p className="text-center text-slate-400 text-sm mt-8">
-          RBG CT - Sistema de Gestión
+          GCT - Sistema de Gestión
         </p>
       </div>
     </div>
