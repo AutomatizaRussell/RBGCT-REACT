@@ -14,6 +14,8 @@
 - Coolify construye desde la rama `ui/redesign-rb`; el deploy **no** se dispara automáticamente con `git push` (lanzarlo manualmente desde la UI de Coolify).
 - Proxy: Traefik (TLS) → nginx interno (`nginx/nginx-proxy.conf`) → Django/React. En `location /api/` los `proxy_set_header` se repiten explícitamente (definir uno anula la herencia del bloque `server` — no eliminarlos). `settings.py` añade `conecta.rbgct.cloud` a `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` como blindaje aunque el env de Coolify no lo incluya.
 - Ojo: tras cambiar la conf del nginx interno en caliente, usar `docker restart` del contenedor nginx (un `nginx -s reload` dejó conexiones colgadas con Traefik y produjo 504s).
+- **Causa raíz de 504s intermitentes (resuelta jun 2026):** los servicios quedan en DOS redes (la del compose `gct-network-prod` y la de Coolify `hqso6...`); Traefik solo está en la de Coolify y a veces elegía la IP de la otra → timeout/504. Fijado con la label `traefik.docker.network=hqso6bdpvt7izvvlu2fq541t` en el servicio nginx del compose. No quitar esa label ni la red de Coolify.
+- **Watchdog de auto-recuperación:** cron del host cada minuto ejecuta `scripts/gct-watchdog.sh` (log en `/var/log/gct-watchdog.log`): reinicia contenedores unhealthy, y si la ruta externa Traefik→nginx falla 3 min con la interna sana, reinicia nginx solo. Health endpoint: `GET /api/health/` (público, verifica BD+cache).
 - El env de Coolify aún apunta a `intranetrb.rbgct.cloud` en `ALLOWED_HOSTS`/`CORS_ALLOWED_ORIGINS`/`FRONTEND_URL` (dominio viejo); conviene corregirlo o borrar esas vars para que apliquen los defaults correctos del compose.
 
 ---

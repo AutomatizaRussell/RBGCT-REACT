@@ -50,6 +50,8 @@ urlpatterns = [
     path('actividad-reciente/', views.actividad_reciente, name='actividad_reciente'),
     # Mantener sesión activa (heartbeat)
     path('ping/', views.ping_actividad, name='ping_actividad'),
+    # Health check para watchdog e infraestructura (público, sin auth)
+    path('health/', views.health_check, name='health_check'),
     # JWT
     path('token/refresh/', views.refresh_token_view, name='token_refresh'),
     # Proxy n8n (server-side, sin CORS)

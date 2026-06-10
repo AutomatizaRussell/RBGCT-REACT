@@ -136,6 +136,12 @@ services:
       dockerfile: Dockerfile.nginx
     container_name: rbgct-nginx-prod
     restart: always
+    labels:
+      # CRÍTICO (504s intermitentes): en Coolify este contenedor queda en DOS
+      # redes (la del compose y la de Coolify). Traefik solo alcanza la de
+      # Coolify; sin esta etiqueta a veces elige la IP de la otra red y todo
+      # responde 504. La etiqueta le fija la red correcta.
+      - traefik.docker.network=hqso6bdpvt7izvvlu2fq541t
     volumes:
       - 'media_volume_prod:/app/media:ro'
       - 'static_volume_prod:/app/staticfiles:ro'
