@@ -68,7 +68,7 @@ const GeminiChat = () => {
             <div className="flex items-center gap-2">
               <Bot size={18} />
               <div>
-                <p className="text-sm font-bold leading-tight">Asistente RBG CT</p>
+                <p className="text-sm font-bold leading-tight">Asistente GCT</p>
                 <p className="text-[10px] text-blue-200 font-medium">Gemini 2.5 Flash</p>
               </div>
             </div>
