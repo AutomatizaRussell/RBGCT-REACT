@@ -2182,6 +2182,31 @@ def get_alertas_recuperacion(request):
     return Response(payload)
 
 
+# Health check público para watchdog/healthchecks de infraestructura.
+# Verifica BD y cache de verdad (un worker colgado o una BD caída deben
+# reflejarse aquí), sin auth ni efectos secundarios.
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    from django.db import connection
+    estado = {'status': 'ok', 'db': False, 'cache': False}
+    try:
+        with connection.cursor() as cur:
+            cur.execute('SELECT 1')
+            estado['db'] = cur.fetchone()[0] == 1
+    except Exception as e:
+        logger.error(f"[HEALTH] DB caída: {e}")
+    try:
+        cache.set('health_probe', '1', 10)
+        estado['cache'] = cache.get('health_probe') == '1'
+    except Exception as e:
+        logger.error(f"[HEALTH] Cache caída: {e}")
+    if not (estado['db'] and estado['cache']):
+        estado['status'] = 'degraded'
+        return Response(estado, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    return Response(estado)
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 @throttle_classes([UserRateThrottle])
