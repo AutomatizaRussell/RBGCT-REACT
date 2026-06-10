@@ -8,6 +8,12 @@
 - **Correo:** AUTOMATIZACIONMEDELLIN@rbcol.co
 - **Rama activa:** `ui/redesign-rb` (migración UI a estilo corporativo Russell Bedford)
 
+### Despliegue real (IMPORTANTE)
+- Producción corre en **Coolify** en esta VPS: contenedores `*-hqso6bdpvt7izvvlu2fq541t-*` (db, backend, frontend, nginx, redis). Traefik (`coolify-proxy`) enruta `conecta.rbgct.cloud` → nginx del stack Coolify.
+- El stack manual `rbgct-*-prod` (docker-compose) está **detenido y obsoleto** — no recibe tráfico. No usarlo ni confundir sus volúmenes/BD con los de Coolify.
+- Coolify construye desde la rama `ui/redesign-rb`; el deploy **no** se dispara automáticamente con `git push` (lanzarlo manualmente desde la UI de Coolify).
+- Nota: en `location /api/` del nginx interno, `proxy_set_header Connection ""` anula la herencia de `proxy_set_header Host $host`, por lo que Django recibe `Host: django` (por eso pasa ALLOWED_HOSTS aunque el env no incluya `conecta.rbgct.cloud`). Recomendado añadir `conecta.rbgct.cloud` a `ALLOWED_HOSTS` en el env de Coolify.
+
 ---
 
 ## Stack Tecnológico
