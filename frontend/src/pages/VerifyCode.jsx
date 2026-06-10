@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -38,11 +38,12 @@ const VerifyCode = () => {
   const [intentos, setIntentos] = useState(0);
   const [reenviando, setReenviando] = useState(false);
 
-  // Si no hay email en state, redirigir al login
-  if (!email) {
-    navigate('/login');
-    return null;
-  }
+  // Si no hay email en state, redirigir al login (en efecto, no durante el render)
+  useEffect(() => {
+    if (!email) navigate('/login', { replace: true });
+  }, [email, navigate]);
+
+  if (!email) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();

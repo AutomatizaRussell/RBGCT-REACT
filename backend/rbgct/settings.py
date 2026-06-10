@@ -254,9 +254,21 @@ CORS_ALLOWED_ORIGINS = [
     o for o in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if o
 ]
 
-# Si no hay orígenes explícitos en .env → permite todos
-# (la seguridad la proveen las API Keys y JWT)
-CORS_ALLOW_ALL_ORIGINS = not bool(CORS_ALLOWED_ORIGINS)
+# Sin orígenes explícitos en el env: permitir solo el frontend conocido.
+# (Nunca allow-all con credenciales habilitadas.)
+if not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS = [
+        'https://conecta.rbgct.cloud',
+        'http://localhost:5173',
+        'http://localhost',
+    ]
+
+# Blindaje: el dominio de producción siempre permitido aunque el env apunte
+# al dominio viejo (mismo criterio que ALLOWED_HOSTS).
+if 'https://conecta.rbgct.cloud' not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append('https://conecta.rbgct.cloud')
+
+CORS_ALLOW_ALL_ORIGINS = False
 
 # Permite el header X-API-Key en peticiones cross-origin
 from corsheaders.defaults import default_headers
@@ -338,6 +350,19 @@ LOGGING = {
 CACHE_BACKEND = os.getenv('CACHE_BACKEND', 'file')
 CACHE_DIR = os.getenv('CACHE_DIR', '/tmp/django_cache')
 REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379/1')
+
+# Si piden 'file' pero hay un Redis alcanzable, preferir Redis: el cache de
+# archivos vive dentro del contenedor (los códigos 2FA se pierden en cada
+# redeploy) y su locking degrada bajo carga. Esto cubre el env desactualizado
+# de Coolify sin requerir cambiar variables.
+if CACHE_BACKEND == 'file' and REDIS_URL:
+    try:
+        import socket
+        _r = urlparse(REDIS_URL)
+        with socket.create_connection((_r.hostname or 'redis', _r.port or 6379), timeout=1):
+            CACHE_BACKEND = 'redis'
+    except OSError:
+        pass  # Redis no disponible: seguir con file cache
 
 if CACHE_BACKEND == 'redis':
     CACHES = {

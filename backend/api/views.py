@@ -571,8 +571,10 @@ def login_view(request):
 
 
 # Endpoint para crear usuarios (solo SuperAdmin)
+# Exige JWT de superadmin; las credenciales del body se mantienen como
+# verificación adicional (defensa en profundidad).
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Se valida dentro del endpoint
+@permission_classes([IsSuperAdminUser])
 def crear_usuario_superadmin(request):
     """
     Solo SuperAdmin puede crear usuarios.
@@ -691,9 +693,12 @@ def crear_usuario_superadmin(request):
     }, status=status.HTTP_201_CREATED)
 
 
-# Endpoint para completar datos en primer login - PÚBLICO
+# Endpoint para completar datos en primer login.
+# Requiere JWT (emitido por login o verificar-codigo); cada empleado solo
+# puede completar SUS datos. Antes era AllowAny: cualquiera que conociera un
+# empleado_id podía ponerle contraseña a una cuenta pendiente de onboarding.
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def completar_datos_empleado(request):
     """
     Endpoint para que el empleado complete sus datos en el primer login.
@@ -704,6 +709,11 @@ def completar_datos_empleado(request):
 
     if not empleado_id:
         return Response({'error': 'ID de empleado requerido'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not _es_superadmin(request.user):
+        if not _es_empleado(request.user) or str(request.user.id_empleado) != str(empleado_id):
+            return Response({'error': 'Solo puedes completar tus propios datos'},
+                            status=status.HTTP_403_FORBIDDEN)
 
     try:
         empleado = DatosEmpleado.objects.get(id_empleado=empleado_id)
@@ -720,6 +730,13 @@ def completar_datos_empleado(request):
             return Response({'error': 'Contraseña requerida para verificar identidad'}, status=status.HTTP_400_BAD_REQUEST)
         if not empleado.password_hash or not bcrypt.checkpw(password.encode('utf-8'), empleado.password_hash.encode('utf-8')):
             return Response({'error': 'Contraseña incorrecta'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    # Validar la nueva contraseña antes de tocar la base de datos
+    # (mismo mínimo que restablecer-password).
+    nueva_password_solicitada = request.data.get('nueva_password')
+    if empleado.primer_login and nueva_password_solicitada and len(nueva_password_solicitada) < 6:
+        return Response({'error': 'La contraseña debe tener al menos 6 caracteres'},
+                        status=status.HTTP_400_BAD_REQUEST)
 
     # Resolver conflicto de número de documento ANTES de guardar:
     # pueden existir Personas residuales (de empleados eliminados) que aún
@@ -824,8 +841,9 @@ def completar_datos_empleado(request):
 
 
 # Endpoint para que Admin/SuperAdmin habiliten edición de datos
+# Exige JWT de admin/superadmin; credenciales del body como verificación extra.
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAdminOrSuperAdmin])
 def habilitar_edicion_datos(request):
     """
     Admin o SuperAdmin pueden habilitar la edición de datos para un usuario específico o para todos.
@@ -880,9 +898,10 @@ def habilitar_edicion_datos(request):
             'message': f'Edición de datos {"habilitada" if habilitar else "deshabilitada"} para todos los empleados activos'
         })
 
-# Endpoint específico para SuperAdmin habilitar edición masiva - PÚBLICO (se valida dentro)
+# Endpoint específico para SuperAdmin habilitar edición masiva
+# Exige JWT de superadmin; credenciales del body como verificación extra.
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsSuperAdminUser])
 def habilitar_edicion_masiva_superadmin(request):
     """
     Solo SuperAdmin puede habilitar la edición de datos para TODOS los empleados de golpe.
