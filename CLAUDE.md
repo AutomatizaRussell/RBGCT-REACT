@@ -12,7 +12,9 @@
 - Producción corre en **Coolify** en esta VPS: contenedores `*-hqso6bdpvt7izvvlu2fq541t-*` (db, backend, frontend, nginx, redis). Traefik (`coolify-proxy`) enruta `conecta.rbgct.cloud` → nginx del stack Coolify.
 - El stack manual `rbgct-*-prod` (docker-compose) está **detenido y obsoleto** — no recibe tráfico. No usarlo ni confundir sus volúmenes/BD con los de Coolify.
 - Coolify construye desde la rama `ui/redesign-rb`; el deploy **no** se dispara automáticamente con `git push` (lanzarlo manualmente desde la UI de Coolify).
-- Nota: en `location /api/` del nginx interno, `proxy_set_header Connection ""` anula la herencia de `proxy_set_header Host $host`, por lo que Django recibe `Host: django` (por eso pasa ALLOWED_HOSTS aunque el env no incluya `conecta.rbgct.cloud`). Recomendado añadir `conecta.rbgct.cloud` a `ALLOWED_HOSTS` en el env de Coolify.
+- Proxy: Traefik (TLS) → nginx interno (`nginx/nginx-proxy.conf`) → Django/React. En `location /api/` los `proxy_set_header` se repiten explícitamente (definir uno anula la herencia del bloque `server` — no eliminarlos). `settings.py` añade `conecta.rbgct.cloud` a `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` como blindaje aunque el env de Coolify no lo incluya.
+- Ojo: tras cambiar la conf del nginx interno en caliente, usar `docker restart` del contenedor nginx (un `nginx -s reload` dejó conexiones colgadas con Traefik y produjo 504s).
+- El env de Coolify aún apunta a `intranetrb.rbgct.cloud` en `ALLOWED_HOSTS`/`CORS_ALLOWED_ORIGINS`/`FRONTEND_URL` (dominio viejo); conviene corregirlo o borrar esas vars para que apliquen los defaults correctos del compose.
 
 ---
 
