@@ -1498,6 +1498,10 @@ const ConfiguracionesTab = ({ user, sidebarOpen, setSidebarOpen, activeTab, setA
       setResultPass({ ok: false, msg: 'La contraseña debe tener al menos 8 caracteres.' });
       return;
     }
+    if (newPass !== confirmPass) {
+      setResultPass({ ok: false, msg: 'Las contraseñas no coinciden.' });
+      return;
+    }
     setSavingPass(true);
     setResultPass(null);
     try {
@@ -1544,60 +1548,196 @@ const ConfiguracionesTab = ({ user, sidebarOpen, setSidebarOpen, activeTab, setA
           }
           userRole="Administración"
           onOpenSidebar={() => setSidebarOpen(true)}
-          actions={
-            <>
-              {activeTab === 'dashboard' && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    fetchStats()
-                    fetchAllActivity()
-                  }}
-                  className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-[#001871]"
-                  title="Actualizar datos"
-                >
-                  <RefreshCw size={16} />
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() =>
-                  (alertasCount > 0 || (puedeExpedirCert && solicitudesCertCount > 0)) &&
-                  setShowAlertasModal(true)
-                }
-                className="relative rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-[#001871]"
-                title="Notificaciones"
-              >
-                <Bell size={18} />
-
-                {(alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0)) > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white">
-                    {alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0)}
-                  </span>
-                )}
-              </button>
-            </>
-          }
         />
 
         <div className="flex-1 overflow-auto px-4 py-6 lg:px-8 lg:py-8">
-          {renderContent()}
+          <div className="mx-auto max-w-3xl space-y-6">
+            {/* Selector de sección */}
+            <div className="flex flex-wrap gap-2">
+              {SECCIONES_CFG.map(s => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSeccion(s.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${seccion === s.id
+                    ? 'bg-[#001871] text-white shadow'
+                    : 'bg-white text-slate-400 hover:text-[#001871] hover:bg-slate-50'
+                    }`}
+                >
+                  {s.icon} {s.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Mi Cuenta */}
+            {seccion === 'cuenta' && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-[#001871]">
+                  <Info size={16} /> Mi Cuenta
+                </h3>
+                <dl className="space-y-3 text-sm">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+                    <dt className="w-40 font-semibold text-slate-500">Nombre</dt>
+                    <dd className="font-bold text-[#001871]">{adminNombre}</dd>
+                  </div>
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+                    <dt className="w-40 font-semibold text-slate-500">Correo</dt>
+                    <dd className="text-slate-700">{adminEmail}</dd>
+                  </div>
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+                    <dt className="w-40 font-semibold text-slate-500">Rol</dt>
+                    <dd className="text-slate-700">Administración</dd>
+                  </div>
+                  {miPerfil?.nombre_cargo && (
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+                      <dt className="w-40 font-semibold text-slate-500">Cargo</dt>
+                      <dd className="text-slate-700">{miPerfil.nombre_cargo}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
+
+            {/* Permisos de edición de datos */}
+            {seccion === 'permisos' && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h3 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-[#001871]">
+                  <ShieldCheck size={16} /> Permiso de edición de datos
+                </h3>
+                <p className="mb-4 text-xs text-slate-400">
+                  Permite a un empleado actualizar sus datos personales (un solo uso).
+                </p>
+                <div className="space-y-4">
+                  <select
+                    value={selEmpPerm}
+                    onChange={e => setSelEmpPerm(e.target.value)}
+                    className="input-modern w-full"
+                  >
+                    <option value="">Selecciona un empleado…</option>
+                    {empleados.map(emp => (
+                      <option key={emp.id_empleado} value={emp.id_empleado}>
+                        {`${emp.primer_nombre || ''} ${emp.primer_apellido || ''}`.trim() || emp.correo_corporativo} — {emp.correo_corporativo}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setHabilitar(true)}
+                      className={`flex-1 rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-widest transition ${habilitar ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400'}`}
+                    >
+                      Habilitar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHabilitar(false)}
+                      className={`flex-1 rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-widest transition ${!habilitar ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-400'}`}
+                    >
+                      Deshabilitar
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    value={adminPassPerm}
+                    onChange={e => setAdminPassPerm(e.target.value)}
+                    placeholder="Tu contraseña de administrador"
+                    className="input-modern w-full"
+                    autoComplete="current-password"
+                  />
+                  {resultPerm && (
+                    <p className={`flex items-center gap-2 text-sm font-semibold ${resultPerm.ok ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {resultPerm.ok ? <CheckCircle size={15} /> : <AlertTriangle size={15} />}
+                      {resultPerm.msg}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleHabilitarEdicion}
+                    disabled={savingPerm}
+                    className="w-full rounded-xl bg-[#001871] px-4 py-3 text-xs font-bold uppercase tracking-widest text-white transition hover:bg-[#001871]/90 disabled:opacity-50"
+                  >
+                    {savingPerm ? 'Aplicando…' : 'Aplicar'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Restablecer contraseñas */}
+            {seccion === 'contrasenas' && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h3 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-[#001871]">
+                  <KeyRound size={16} /> Restablecer contraseña de empleado
+                </h3>
+                <p className="mb-4 text-xs text-slate-400">
+                  Asigna una nueva contraseña a un empleado (mínimo 8 caracteres).
+                </p>
+                <div className="space-y-4">
+                  <select
+                    value={selEmpPass}
+                    onChange={e => setSelEmpPass(e.target.value)}
+                    className="input-modern w-full"
+                  >
+                    <option value="">Selecciona un empleado…</option>
+                    {empleados.map(emp => (
+                      <option key={emp.id_empleado} value={emp.id_empleado}>
+                        {`${emp.primer_nombre || ''} ${emp.primer_apellido || ''}`.trim() || emp.correo_corporativo} — {emp.correo_corporativo}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="relative">
+                    <input
+                      type={showPass ? 'text' : 'password'}
+                      value={newPass}
+                      onChange={e => setNewPass(e.target.value)}
+                      placeholder="Nueva contraseña"
+                      className="input-modern w-full pr-10"
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#001871]"
+                      title={showPass ? 'Ocultar' : 'Mostrar'}
+                    >
+                      <Eye size={16} />
+                    </button>
+                  </div>
+                  <input
+                    type={showPass ? 'text' : 'password'}
+                    value={confirmPass}
+                    onChange={e => setConfirmPass(e.target.value)}
+                    placeholder="Confirmar nueva contraseña"
+                    className="input-modern w-full"
+                    autoComplete="new-password"
+                  />
+                  <input
+                    type="password"
+                    value={adminPassReset}
+                    onChange={e => setAdminPassReset(e.target.value)}
+                    placeholder="Tu contraseña de administrador"
+                    className="input-modern w-full"
+                    autoComplete="current-password"
+                  />
+                  {resultPass && (
+                    <p className={`flex items-center gap-2 text-sm font-semibold ${resultPass.ok ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {resultPass.ok ? <CheckCircle size={15} /> : <AlertTriangle size={15} />}
+                      {resultPass.msg}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleResetPassword}
+                    disabled={savingPass}
+                    className="w-full rounded-xl bg-[#001871] px-4 py-3 text-xs font-bold uppercase tracking-widest text-white transition hover:bg-[#001871]/90 disabled:opacity-50"
+                  >
+                    {savingPass ? 'Guardando…' : 'Restablecer contraseña'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </main>
-
-      <AlertasModal
-        isOpen={showAlertasModal}
-        onClose={() => setShowAlertasModal(false)}
-        alertas={alertasRecuperacion}
-        onViewDetail={showAlertDetail}
-        onAtender={handleMarkAsRead}
-        onEliminar={handleEliminarAlerta}
-        solicitudesCert={puedeExpedirCert ? solicitudesCert : []}
-        onAceptarCert={handleAceptarSolicitudCert}
-        onRechazarCert={handleRechazarSolicitudCert}
-        showCertTab={puedeExpedirCert}
-      />
 
       <GeminiChat />
     </div>
