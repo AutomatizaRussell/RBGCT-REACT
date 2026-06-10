@@ -1,32 +1,38 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { DataCacheProvider } from './context/DataCacheContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
-// Vistas principales
+// Vistas públicas (carga inmediata: son la puerta de entrada)
 import Login from './pages/Login';
 import CompleteProfile from './pages/CompleteProfile';
 import VerifyCode from './pages/VerifyCode';
-import AdminDashboard from './pages/AdminDashboard';
-import Admin2Dashboard from './pages/Admin2Dashboard';
-import UserDashboard from './pages/UserDashboard';
-import EditorDashboard from './pages/EditorDashboard';
-import GestorPDFPage from './pages/GestorPDFPage';
 
-// Componentes comunes de Gestión de Usuarios
-import UserTable from './components/users/UserTable';
-import CreateUserPage from './components/users/CreateUserPage';
+// Dashboards y secciones pesadas: lazy por ruta para no cargar
+// recharts/jspdf/xlsx/pdfjs en el bundle inicial del login.
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const Admin2Dashboard = lazy(() => import('./pages/Admin2Dashboard'));
+const UserDashboard = lazy(() => import('./pages/UserDashboard'));
+const EditorDashboard = lazy(() => import('./pages/EditorDashboard'));
+const GestorPDFPage = lazy(() => import('./pages/GestorPDFPage'));
 
-// Componentes de USUARIO
-import AutoGestion from './components/users/AutoGestion';
-import UserProfile from './components/users/UserProfile';
-import ManualesCargo from './components/users/ManualesCargo';
-import ComunicadosInternos from './components/users/ComunicadosInternos';
-import MisClientes from './components/users/MisClientes';
-import MisClienteDetalle from './components/users/MisClienteDetalle';
+const UserTable = lazy(() => import('./components/users/UserTable'));
+const CreateUserPage = lazy(() => import('./components/users/CreateUserPage'));
+const AutoGestion = lazy(() => import('./components/users/AutoGestion'));
+const UserProfile = lazy(() => import('./components/users/UserProfile'));
+const ManualesCargo = lazy(() => import('./components/users/ManualesCargo'));
+const ComunicadosInternos = lazy(() => import('./components/users/ComunicadosInternos'));
+const MisClientes = lazy(() => import('./components/users/MisClientes'));
+const MisClienteDetalle = lazy(() => import('./components/users/MisClienteDetalle'));
+const EditorCursos = lazy(() => import('./components/editor/EditorCursos'));
+const EditorHistorial = lazy(() => import('./components/editor/EditorHistorial'));
 
-// Componentes de CURSOS
-import EditorCursos from './components/editor/EditorCursos';
-import EditorHistorial from './components/editor/EditorHistorial';
+// Fallback mientras carga el chunk de la ruta
+const RouteLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="w-10 h-10 border-4 border-[#001871]/20 border-t-[#001871] rounded-full animate-spin" />
+  </div>
+);
 
 
 // --- COMPONENTES LOCALES / PLACEHOLDERS ---
@@ -45,6 +51,7 @@ function App() {
     <AuthProvider>
       <DataCacheProvider>
         <Router>
+          <Suspense fallback={<RouteLoader />}>
           <Routes>
 
             {/* 1. LOGIN - Público */}
@@ -129,6 +136,7 @@ function App() {
             {/* 6. SEGURIDAD: Redirección por defecto */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
+          </Suspense>
         </Router>
       </DataCacheProvider>
     </AuthProvider>

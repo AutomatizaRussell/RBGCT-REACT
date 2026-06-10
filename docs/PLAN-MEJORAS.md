@@ -14,8 +14,8 @@
 | 2 | CORS: con env vacío se activaba `CORS_ALLOW_ALL_ORIGINS=True` **con credenciales**. Ahora lista explícita, nunca allow-all. | ✅ |
 | 3 | `.env.docker` con secretos reales estaba **commiteado**. Sacado del índice (`git rm --cached`), añadido a `.gitignore`, creado `.env.docker.example`. | ✅ |
 | 4 | **Rotar los secretos que quedaron expuestos en el historial de git**: `DB_PASSWORD` (¡es el mismo de producción!), `SUPERADMIN_PASSWORD`, `APPWRITE_API_KEY`, `N8N_WEBHOOK_API_KEY`, `GEMINI_API_KEY`. El `DJANGO_SECRET_KEY` de producción es distinto al commiteado (verificado), ese no urge. Cambiarlos en Coolify UI → Deploy. Opcional: limpiar historial con BFG/git-filter-repo. | ⏳ |
-| 5 | Coolify env del recurso `conecta`: borrar `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `FRONTEND_URL` (apuntan a `intranetrb.rbgct.cloud`, dominio viejo) y `CACHE_BACKEND=file` para que apliquen los defaults correctos del compose (`conecta...` y `redis`). Con Redis, los códigos 2FA sobreviven a los redeploys. | ⏳ |
-| 6 | `habilitar-edicion` y `crear-usuario` validan credenciales de admin en el body en vez de usar el JWT. Migrarlos a `IsAdminOrSuperAdmin`/`IsSuperAdminUser` (coordinar cambio con frontend, que hoy envía `admin_email`/`admin_password`). | ⏳ |
+| 5 | Coolify env del recurso `conecta`: borrar `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `FRONTEND_URL` (dominio viejo) y `CACHE_BACKEND=file`. **Mitigado en código:** settings ahora prefiere Redis automáticamente si está alcanzable (códigos 2FA sobreviven redeploys); igual conviene limpiar las vars. | ✳️ mitigado |
+| 6 | `habilitar-edicion`, `habilitar-edicion-masiva` y `crear-usuario` ahora exigen JWT (`IsAdminOrSuperAdmin`/`IsSuperAdminUser`); las credenciales del body quedan como verificación extra. | ✅ |
 | 7 | API Keys guardadas en texto plano en BD (`ApiKey.key`). Guardar hash (sha256) y mostrar la key solo al crearla. | ⏳ |
 | 8 | Subir mínimo de contraseña de 6 → 8+ caracteres (unificado en `completar-datos` y `restablecer-password`). | ⏳ |
 
@@ -36,14 +36,14 @@
 | # | Item | Estado |
 |---|------|--------|
 | 1 | `api/views.py` tiene **4.350+ líneas**. Partirlo en módulos: `views/auth.py`, `views/empleados.py`, `views/tareas.py`, `views/cursos.py`, `views/herramientas.py`, `views/recuperacion.py`, `views/integraciones.py` (paquete `views/` con re-exports en `__init__.py` para no romper imports). | ⏳ |
-| 2 | Tests automatizados (pytest-django) para los flujos críticos: login/2FA, recuperación, completar-datos (incluye caso documento duplicado), permisos por rol. Hoy no hay ningún test. | ⏳ |
+| 2 | Tests automatizados de flujos críticos en `backend/api/tests.py` (14 tests: login/2FA, completar-datos con ownership y documento duplicado, crear-usuario, recuperación). Ejecutar con `python manage.py test api`. Ampliar a tareas/cursos/CRM. | ✳️ base lista |
 | 3 | CI en GitHub Actions: lint (ruff + eslint) + tests + build de imágenes en cada PR. | ⏳ |
 | 4 | Validación de entrada con serializers DRF en los endpoints manuales (hoy hacen `request.data.get(...)` a mano). | ⏳ |
 | 5 | Unificar configs de nginx: existen `nginx.conf`, `nginx-prod.conf` y `nginx-proxy.conf`, pero Coolify solo usa `nginx-proxy.conf` (vía `Dockerfile.nginx`). Eliminar/archivar los otros dos y documentarlo. | ⏳ |
 | 6 | VerifyCode: `navigate()` durante render movido a `useEffect`. | ✅ |
 | 7 | Normalización de emails a minúsculas en creación de usuarios (login y cache 2FA lo asumen). Pendiente: migración que normalice los existentes + `CITextField` o constraint. | ✳️ parcial |
-| 8 | Frontend: code-splitting por ruta con `React.lazy` (los 4 dashboards cargan todo en un bundle); `build.rollupOptions.manualChunks` para vendor (recharts, jspdf, xlsx, pdfjs son pesados). | ⏳ |
-| 9 | Frontend: eliminar `console.log` en build (`esbuild.drop`) y limpiar los 5 restantes. | ⏳ |
+| 8 | Frontend: code-splitting por ruta con `React.lazy` + `manualChunks` por vendor. Bundle inicial: 2 MB → 52 KB (gzip 11 KB); recharts/jspdf/xlsx se descargan solo al usarse. | ✅ |
+| 9 | Frontend: quedan ~5 `console.log` sueltos (`esbuild.drop` no aplica en Vite 8/rolldown; los `console.error` se conservan a propósito para diagnóstico). | ⏳ |
 | 10 | `App.css` (scaffold de Vite sin uso) y assets sin referencia: eliminar. | ⏳ |
 
 ## P3 — Rendimiento (cuando haya más usuarios)

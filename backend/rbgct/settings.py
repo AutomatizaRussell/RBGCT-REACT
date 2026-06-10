@@ -351,6 +351,19 @@ CACHE_BACKEND = os.getenv('CACHE_BACKEND', 'file')
 CACHE_DIR = os.getenv('CACHE_DIR', '/tmp/django_cache')
 REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379/1')
 
+# Si piden 'file' pero hay un Redis alcanzable, preferir Redis: el cache de
+# archivos vive dentro del contenedor (los códigos 2FA se pierden en cada
+# redeploy) y su locking degrada bajo carga. Esto cubre el env desactualizado
+# de Coolify sin requerir cambiar variables.
+if CACHE_BACKEND == 'file' and REDIS_URL:
+    try:
+        import socket
+        _r = urlparse(REDIS_URL)
+        with socket.create_connection((_r.hostname or 'redis', _r.port or 6379), timeout=1):
+            CACHE_BACKEND = 'redis'
+    except OSError:
+        pass  # Redis no disponible: seguir con file cache
+
 if CACHE_BACKEND == 'redis':
     CACHES = {
         'default': {

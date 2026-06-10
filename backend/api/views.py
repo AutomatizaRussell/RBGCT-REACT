@@ -571,8 +571,10 @@ def login_view(request):
 
 
 # Endpoint para crear usuarios (solo SuperAdmin)
+# Exige JWT de superadmin; las credenciales del body se mantienen como
+# verificación adicional (defensa en profundidad).
 @api_view(['POST'])
-@permission_classes([AllowAny])  # Se valida dentro del endpoint
+@permission_classes([IsSuperAdminUser])
 def crear_usuario_superadmin(request):
     """
     Solo SuperAdmin puede crear usuarios.
@@ -839,8 +841,9 @@ def completar_datos_empleado(request):
 
 
 # Endpoint para que Admin/SuperAdmin habiliten edición de datos
+# Exige JWT de admin/superadmin; credenciales del body como verificación extra.
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAdminOrSuperAdmin])
 def habilitar_edicion_datos(request):
     """
     Admin o SuperAdmin pueden habilitar la edición de datos para un usuario específico o para todos.
@@ -895,9 +898,10 @@ def habilitar_edicion_datos(request):
             'message': f'Edición de datos {"habilitada" if habilitar else "deshabilitada"} para todos los empleados activos'
         })
 
-# Endpoint específico para SuperAdmin habilitar edición masiva - PÚBLICO (se valida dentro)
+# Endpoint específico para SuperAdmin habilitar edición masiva
+# Exige JWT de superadmin; credenciales del body como verificación extra.
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsSuperAdminUser])
 def habilitar_edicion_masiva_superadmin(request):
     """
     Solo SuperAdmin puede habilitar la edición de datos para TODOS los empleados de golpe.
