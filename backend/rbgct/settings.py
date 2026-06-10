@@ -254,9 +254,21 @@ CORS_ALLOWED_ORIGINS = [
     o for o in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if o
 ]
 
-# Si no hay orígenes explícitos en .env → permite todos
-# (la seguridad la proveen las API Keys y JWT)
-CORS_ALLOW_ALL_ORIGINS = not bool(CORS_ALLOWED_ORIGINS)
+# Sin orígenes explícitos en el env: permitir solo el frontend conocido.
+# (Nunca allow-all con credenciales habilitadas.)
+if not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS = [
+        'https://conecta.rbgct.cloud',
+        'http://localhost:5173',
+        'http://localhost',
+    ]
+
+# Blindaje: el dominio de producción siempre permitido aunque el env apunte
+# al dominio viejo (mismo criterio que ALLOWED_HOSTS).
+if 'https://conecta.rbgct.cloud' not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append('https://conecta.rbgct.cloud')
+
+CORS_ALLOW_ALL_ORIGINS = False
 
 # Permite el header X-API-Key en peticiones cross-origin
 from corsheaders.defaults import default_headers

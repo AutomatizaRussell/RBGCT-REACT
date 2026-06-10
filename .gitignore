@@ -39,6 +39,8 @@ backend/media/
 frontend/.env
 backend/.env
 backend/.env.docker
+.env.docker
+.env.production
 backend/.env.local
 backend/.env.production
 
