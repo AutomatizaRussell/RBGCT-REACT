@@ -512,6 +512,22 @@ def login_view(request):
                 if isinstance(datos_cache, dict) and str(datos_cache.get('empleado_id')) == str(empleado.id_empleado):
                     datos_cache['password_verificada'] = True
                     cache.set(cache_key, datos_cache, timeout=900)
+                else:
+                    # No hay código vigente (el generado al crear el usuario dura
+                    # solo 15 min): generar y enviar uno nuevo para que el primer
+                    # login no dependa de ese email inicial.
+                    codigo = generar_codigo_verificacion()
+                    cache.set(cache_key, {
+                        'codigo': codigo,
+                        'empleado_id': empleado.id_empleado,
+                        'intentos': 0,
+                        'password_verificada': True,
+                    }, timeout=900)
+                    email_sent, email_result = enviar_email_verificacion(email, codigo)
+                    if email_sent:
+                        logger.info(f"[LOGIN] Código de verificación reenviado a {email}")
+                    else:
+                        logger.error(f"[LOGIN] Error enviando código a {email}: {email_result}")
 
                 return Response({
                     'type': 'empleado',
@@ -583,8 +599,8 @@ def crear_usuario_superadmin(request):
         logger.error(f"[CREAR USUARIO] Admin no existe: {admin_email}")
         return Response({'error': 'No autorizado. Solo SuperAdmin puede crear usuarios.'}, status=status.HTTP_403_FORBIDDEN)
 
-    # Datos del nuevo usuario
-    email = request.data.get('correo_corporativo', '').strip()
+    # Datos del nuevo usuario (email en minúsculas: login y cache 2FA lo normalizan así)
+    email = request.data.get('correo_corporativo', '').strip().lower()
     password = request.data.get('password', '').strip()
     id_permisos = request.data.get('id_permisos', 3)  # Default: Usuario
 
@@ -705,60 +721,92 @@ def completar_datos_empleado(request):
         if not empleado.password_hash or not bcrypt.checkpw(password.encode('utf-8'), empleado.password_hash.encode('utf-8')):
             return Response({'error': 'Contraseña incorrecta'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    # Actualizar Persona (datos de identidad)
-    campos_persona = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido',
-                      'apodo', 'tipo_documento', 'numero_documento', 'fecha_nacimiento', 'sexo', 'tipo_sangre']
-    persona_actualizada = False
-    for campo in campos_persona:
-        if campo in request.data:
-            setattr(empleado.persona, campo, request.data[campo])
-            persona_actualizada = True
-    if persona_actualizada:
-        empleado.persona.save()
+    # Resolver conflicto de número de documento ANTES de guardar:
+    # pueden existir Personas residuales (de empleados eliminados) que aún
+    # retienen el documento y violarían la restricción única (error 500).
+    numero_documento = request.data.get('numero_documento')
+    if numero_documento:
+        conflicto = Persona.objects.filter(
+            numero_documento=numero_documento
+        ).exclude(pk=empleado.persona_id).first()
+        if conflicto:
+            if not DatosEmpleado.objects.filter(persona=conflicto).exists():
+                logger.warning(
+                    f"[COMPLETAR DATOS] Eliminando persona residual {conflicto.pk} "
+                    f"que retenía el documento {numero_documento}"
+                )
+                conflicto.delete()
+            else:
+                return Response({
+                    'error': 'El número de documento ya está registrado por otro empleado. '
+                             'Verifica el dato o contacta al administrador.'
+                }, status=status.HTTP_409_CONFLICT)
 
-    # Actualizar DatosContacto
-    campos_contacto = ['correo_personal', 'telefono', 'telefono_emergencia',
-                       'nombre_contacto_emergencia', 'parentesco_emergencia', 'direccion']
-    contacto_data = {c: request.data[c] for c in campos_contacto if c in request.data}
-    if contacto_data:
-        contacto, _ = DatosContacto.objects.get_or_create(persona=empleado.persona)
-        for campo, valor in contacto_data.items():
-            setattr(contacto, campo, valor)
-        contacto.save()
+    from django.db import transaction, IntegrityError
 
-    # Actualizar campos laborales en DatosEmpleado
-    for campo in ['area_id', 'cargo_id', 'fecha_ingreso']:
-        if campo in request.data:
-            setattr(empleado, campo, request.data[campo])
+    try:
+        with transaction.atomic():
+            # Actualizar Persona (datos de identidad)
+            campos_persona = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido',
+                              'apodo', 'tipo_documento', 'numero_documento', 'fecha_nacimiento', 'sexo', 'tipo_sangre']
+            persona_actualizada = False
+            for campo in campos_persona:
+                if campo in request.data:
+                    setattr(empleado.persona, campo, request.data[campo])
+                    persona_actualizada = True
+            if persona_actualizada:
+                empleado.persona.save()
 
-    # Cambiar contraseña SOLO si es primer login y se proporciona nueva_password
-    password_cambiada = False
-    logger.info(f"[COMPLETAR DATOS] primer_login={empleado.primer_login}, nueva_password recibida={request.data.get('nueva_password') is not None}")
-    
-    if empleado.primer_login:
-        nueva_password = request.data.get('nueva_password')
-        if nueva_password:
-            password_hash = bcrypt.hashpw(nueva_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            empleado.password_hash = password_hash
-            password_cambiada = True
-            logger.info(f"[COMPLETAR DATOS] Contraseña cambiada para empleado {empleado_id}")
-        else:
-            logger.info(f"[COMPLETAR DATOS] No se proporcionó nueva contraseña")
-    else:
-        logger.warning(f"[COMPLETAR DATOS] NO es primer login, no se puede cambiar contraseña")
+            # Actualizar DatosContacto
+            campos_contacto = ['correo_personal', 'telefono', 'telefono_emergencia',
+                               'nombre_contacto_emergencia', 'parentesco_emergencia', 'direccion']
+            contacto_data = {c: request.data[c] for c in campos_contacto if c in request.data}
+            if contacto_data:
+                contacto, _ = DatosContacto.objects.get_or_create(persona=empleado.persona)
+                for campo, valor in contacto_data.items():
+                    setattr(contacto, campo, valor)
+                contacto.save()
 
-    # Marcar como completado y quitar primer_login
-    empleado.datos_completados = True
-    empleado.primer_login = False
-    
-    # Si estaba usando permiso de edición, revocarlo (un solo uso)
-    permiso_revocado = False
-    if not empleado.primer_login and empleado.permitir_edicion_datos:
-        permiso_revocado = True
-        logger.info(f"[COMPLETAR DATOS] REVOCANDO PERMISO de edición para empleado {empleado_id}")
-    
-    empleado.permitir_edicion_datos = False  # Deshabilitar después de usar
-    empleado.save()
+            # Actualizar campos laborales en DatosEmpleado
+            for campo in ['area_id', 'cargo_id', 'fecha_ingreso']:
+                if campo in request.data:
+                    setattr(empleado, campo, request.data[campo])
+
+            # Cambiar contraseña SOLO si es primer login y se proporciona nueva_password
+            password_cambiada = False
+            logger.info(f"[COMPLETAR DATOS] primer_login={empleado.primer_login}, nueva_password recibida={request.data.get('nueva_password') is not None}")
+
+            if empleado.primer_login:
+                nueva_password = request.data.get('nueva_password')
+                if nueva_password:
+                    password_hash = bcrypt.hashpw(nueva_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                    empleado.password_hash = password_hash
+                    password_cambiada = True
+                    logger.info(f"[COMPLETAR DATOS] Contraseña cambiada para empleado {empleado_id}")
+                else:
+                    logger.info(f"[COMPLETAR DATOS] No se proporcionó nueva contraseña")
+            else:
+                logger.warning(f"[COMPLETAR DATOS] NO es primer login, no se puede cambiar contraseña")
+
+            # Marcar como completado y quitar primer_login
+            empleado.datos_completados = True
+            empleado.primer_login = False
+
+            # Si estaba usando permiso de edición, revocarlo (un solo uso)
+            permiso_revocado = False
+            if not empleado.primer_login and empleado.permitir_edicion_datos:
+                permiso_revocado = True
+                logger.info(f"[COMPLETAR DATOS] REVOCANDO PERMISO de edición para empleado {empleado_id}")
+
+            empleado.permitir_edicion_datos = False  # Deshabilitar después de usar
+            empleado.save()
+    except IntegrityError as e:
+        logger.error(f"[COMPLETAR DATOS] IntegrityError para empleado {empleado_id}: {e}")
+        return Response({
+            'error': 'Alguno de los datos ya está registrado (documento duplicado). '
+                     'Verifica la información o contacta al administrador.'
+        }, status=status.HTTP_409_CONFLICT)
+
     logger.info(f"[COMPLETAR DATOS] Empleado {empleado_id} guardado. Password cambiada={password_cambiada}, permiso_revocado={permiso_revocado}")
 
     # Mensaje especial si se revocó el permiso
@@ -1700,13 +1748,22 @@ def enviar_codigo_verificacion(request):
     
     # Generar código
     codigo = generar_codigo_verificacion()
-    
-    # Guardar en cache por 15 minutos
+
+    # Guardar en cache por 15 minutos, preservando la validación de contraseña
+    # hecha en el login (si no, verificar-codigo exigiría password y el
+    # frontend no la envía en el reenvío).
     cache_key = f"verificacion_{email}"
+    datos_prev = cache.get(cache_key)
+    password_verificada = bool(
+        isinstance(datos_prev, dict)
+        and datos_prev.get('password_verificada')
+        and str(datos_prev.get('empleado_id')) == str(empleado.id_empleado)
+    )
     cache.set(cache_key, {
         'codigo': codigo,
         'empleado_id': empleado.id_empleado,
-        'intentos': 0
+        'intentos': 0,
+        'password_verificada': password_verificada,
     }, timeout=900)  # 15 minutos
     
     # Enviar email
