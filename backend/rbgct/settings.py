@@ -33,15 +33,20 @@ ALLOWED_HOSTS = os.getenv(
     'localhost,127.0.0.1'
 ).split(',')
 
-# Permitir hosts internos de infraestructura (reverse proxy / health checks).
-for _infra_host in ('127.0.0.1', 'localhost', 'backend', 'django', 'nginx'):
+# Permitir hosts internos de infraestructura (reverse proxy / health checks)
+# y el dominio de producción, aunque el env de Coolify no los incluya.
+for _infra_host in ('127.0.0.1', 'localhost', 'backend', 'django', 'nginx',
+                    'conecta.rbgct.cloud'):
     if _infra_host not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(_infra_host)
-    
+
 CSRF_TRUSTED_ORIGINS = os.getenv(
     'CSRF_TRUSTED_ORIGINS',
     'http://localhost:5173'
 ).split(',')
+
+if 'https://conecta.rbgct.cloud' not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append('https://conecta.rbgct.cloud')
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
