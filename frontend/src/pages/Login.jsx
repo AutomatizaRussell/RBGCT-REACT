@@ -6,7 +6,7 @@ import {
   verificarCodigoRecuperacion, 
   restablecerPassword 
 } from '../lib/api';
-import { Building2, Eye, EyeOff, Loader2, Mail, Lock, AlertTriangle, X } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, Lock, AlertTriangle, X } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -258,14 +258,18 @@ const Login = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-[#001871] rounded-2xl mb-4 shadow-xl shadow-blue-900/20">
-            <Building2 className="text-white" size={40} />
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-[#001871] rounded-2xl mb-4 shadow-xl shadow-blue-900/20 overflow-hidden p-2">
+            <img 
+              src="https://raw.githubusercontent.com/AutomatizaRussell/Resourse_GestionHumana/main/Logo_RB2021.png" 
+              alt="Russell Bedford Logo"
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-2xl font-black text-[#001871] tracking-tight">
             RUSSELL <span className="text-slate-400 font-light">BEDFORD</span>
           </h1>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">
-            Portal GCT - Gestión Corporativa
+            CONECTA
           </p>
         </div>
 
@@ -381,7 +385,7 @@ const Login = () => {
 
         {/* Footer */}
         <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-6">
-          © 2026 Russell Bedford RBG. Todos los derechos reservados.
+          © 2026 Russell Bedford GCT. Todos los derechos reservados.
         </p>
       </div>
 

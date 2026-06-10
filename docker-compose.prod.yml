@@ -60,7 +60,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
       DEBUG: ${DEBUG:-False}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-conecta.rbgct.cloud,.rbgct.cloud}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-conecta.rbgct.cloud,.rbgct.cloud,localhost,127.0.0.1,host.docker.internal,backend,nginx}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://conecta.rbgct.cloud}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://conecta.rbgct.cloud}
       FRONTEND_URL: ${FRONTEND_URL:-https://conecta.rbgct.cloud}

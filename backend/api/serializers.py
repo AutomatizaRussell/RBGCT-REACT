@@ -235,9 +235,25 @@ class SolicitudesPasswordSerializer(serializers.ModelSerializer):
 
 
 class ReglamentoItemSerializer(serializers.ModelSerializer):
+    archivo_url = serializers.SerializerMethodField()
+
     class Meta:
         model = ReglamentoItem
-        fields = ['id', 'titulo', 'contenido', 'orden', 'created_at', 'updated_at']
+        fields = ['id', 'titulo', 'contenido', 'archivo', 'archivo_url', 'orden', 'created_at', 'updated_at']
+
+    def get_archivo_url(self, obj):
+        if obj.archivo:
+            # Always return relative URL to avoid hostname issues in production
+            url = obj.archivo.url
+            # Ensure it starts with / for relative URLs
+            if url and not url.startswith('http'):
+                return f'/{url.lstrip("/")}' if url else None
+            # If absolute URL, extract just the path
+            if url and url.startswith('http'):
+                from urllib.parse import urlparse
+                return urlparse(url).path
+            return url
+        return None
 
 
 class CursoContenidoSerializer(serializers.ModelSerializer):

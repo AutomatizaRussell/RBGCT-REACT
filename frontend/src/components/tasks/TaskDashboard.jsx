@@ -52,7 +52,7 @@ const TaskDashboard = ({ userArea = null }) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-bold text-[#001871]">Calendario de Tareas</h3>
+          <h3 className="text-lg font-bold text-[#001871]">Calendario de eventos</h3>
           <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
             {canManageAll 
               ? 'Gestión completa de todas las áreas' 

@@ -83,7 +83,7 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
         const cursos = Array.isArray(data) ? data : data?.results || []
         setTieneCursos(cursos.some((curso) => curso.activo !== false))
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   /**
@@ -215,8 +215,8 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
 
   return (
     <SidebarShell
-      title=""
-      subtitle=""
+      title={null}
+      subtitle={null}
       badge="Portal Empleado"
       activeTab={activeTab}
       isOpen={isOpen}
@@ -226,12 +226,12 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
       userCard={
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#001871] text-sm font-bold text-white">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#001871] to-[#00a9ce] text-sm font-bold text-white shadow-md">
               {inicial}
             </div>
 
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-slate-900">
+              <p className="truncate text-sm font-bold text-[#001871]">
                 {nombreUsuario}
               </p>
 

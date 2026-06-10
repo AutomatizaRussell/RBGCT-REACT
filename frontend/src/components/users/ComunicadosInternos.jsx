@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronRight, RefreshCw, Download } from 'lucide-react';
 import { getAllReglamento } from '../../lib/api';
 
 const ComunicadosInternos = () => {
@@ -67,16 +67,28 @@ const ComunicadosInternos = () => {
                 }
               </button>
 
-              {expanded === item.id && item.contenido && (
-                <div className="px-6 pb-5 border-t border-slate-50 bg-slate-50/30">
-                  <div className="space-y-2 pt-4">
-                    {item.contenido.split('\n').filter(l => l.trim()).map((linea, i) => (
-                      <div key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
-                        <span className="mt-2 w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"/>
-                        {linea.trim()}
-                      </div>
-                    ))}
-                  </div>
+              {expanded === item.id && (
+                <div className="border-t border-slate-50 bg-slate-50/30 p-6 space-y-4">
+                  {item.archivo_url && (
+                    <div className="flex gap-2 mb-4">
+                      <a href={item.archivo_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+                        Abrir PDF
+                      </a>
+                      <a href={item.archivo_url} download className="flex items-center gap-2 px-4 py-2 bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-300 transition-colors">
+                        <Download size={14} /> Descargar
+                      </a>
+                    </div>
+                  )}
+                  {item.contenido && (
+                    <div className="space-y-2">
+                      {item.contenido.split('\n').filter(l => l.trim()).map((linea, i) => (
+                        <div key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
+                          <span className="mt-2 w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"/>
+                          {linea.trim()}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

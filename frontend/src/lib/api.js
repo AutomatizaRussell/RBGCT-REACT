@@ -366,14 +366,17 @@ export const getCursoHistorial = (limit = 100) => fetchApi(`/curso-historial/?li
 
 export const getAllReglamento = () => fetchApi('/reglamento/');
 
-export const createReglamentoItem = (data) => fetchApi('/reglamento/', {
-  method: 'POST',
-  body: JSON.stringify(data),
-});
+export const createReglamentoItem = (data) => {
+  const isFormData = data instanceof FormData;
+  return fetchApi('/reglamento/', {
+    method: 'POST',
+    body: isFormData ? data : JSON.stringify(data),
+  });
+};
 
 export const updateReglamentoItem = (id, data) => fetchApi(`/reglamento/${id}/`, {
   method: 'PATCH',
-  body: JSON.stringify(data),
+  body: data instanceof FormData ? data : JSON.stringify(data),
 });
 
 export const deleteReglamentoItem = (id) => fetchApi(`/reglamento/${id}/`, { method: 'DELETE' });

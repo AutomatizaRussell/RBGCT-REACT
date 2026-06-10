@@ -28,7 +28,6 @@ import MisClienteDetalle from './components/users/MisClienteDetalle';
 import EditorCursos from './components/editor/EditorCursos';
 import EditorHistorial from './components/editor/EditorHistorial';
 
-import DevPreview from './DevPreview'
 
 // --- COMPONENTES LOCALES / PLACEHOLDERS ---
 const WelcomeUser = () => (
@@ -47,7 +46,6 @@ function App() {
       <DataCacheProvider>
         <Router>
           <Routes>
-            <Route path="/dev-preview" element={<DevPreview />} />
 
             {/* 1. LOGIN - Público */}
             <Route path="/" element={<Login />} />

@@ -124,7 +124,7 @@ export default function MisClientes() {
                 className="flex items-center gap-2 rounded-lg border border-[#001871]/20 bg-[#001871] px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#002a9e] transition-colors"
               >
                 <FileText size={14} />
-                Formularios SQF
+                Formulario creacion clientes/contratos
               </button>
             )}
           </div>

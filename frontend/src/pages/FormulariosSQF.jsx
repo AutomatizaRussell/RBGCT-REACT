@@ -556,9 +556,29 @@ export default function FormulariosSQF({ onBack }) {
 
     const sendContractToBilling = (contract) => {
         setActiveSection('billing');
-        setBillingReqType('facturacion'); setBillingType('Servicio actual'); setBillingClientType('Cliente antiguo');
-        setBillingClientName(contract?.clientName || '');
-        setBillingClientDocument(contract?.clientDocument || '');
+        setBillingReqType('facturacion');
+        setBillingType('Servicio actual');
+        setBillingClientType('Cliente antiguo');
+
+        const clientName = contract?.clientName || '';
+        setBillingClientName(clientName);
+
+        // Intentar obtener NIT de múltiples fuentes
+        let clientNit = contract?.clientDocument || contract?.DocumentoCliente || contract?.NIT || contract?.Nit || '';
+
+        // Si no viene en el contrato, buscar el cliente en la lista validada
+        if (!clientNit || clientNit.trim() === '') {
+            const matchedClient = validClients.find(c => {
+                const cName = String(c?.name || '').toLowerCase().trim();
+                const contractName = String(clientName || '').toLowerCase().trim();
+                return cName === contractName;
+            });
+            if (matchedClient) {
+                clientNit = matchedClient.document || '';
+            }
+        }
+
+        setBillingClientDocument(clientNit || '');
 
         const today = new Date().toISOString().split('T')[0];
         const dueDate = calculateBusinessDaysDate(today, 5);
@@ -1117,9 +1137,6 @@ export default function FormulariosSQF({ onBack }) {
                                 </div>
                                 <div className="lookup-body nit-modal-body">
                                     <p className="nit-modal-desc">Para generar un contrato, es obligatorio verificar primero la existencia del cliente asociado.</p>
-                                    <button className="btn-reload nit-modal-reload" onClick={loadDataFromWebhooks} title="Recargar datos desde n8n">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="reload-icon"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg> Sincronizar clientes con n8n
-                                    </button>
                                     <div className="lookup-input-row nit-modal-input-row">
                                         <div className="lookup-input-wrapper">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="lookup-input-icon"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>

@@ -2,6 +2,7 @@
 
 :root {
   --rb-blue: #001871;
+  --rb-light-blue: #00a9ce;
   --rb-magenta: #981d97;
   --rb-turquoise: #00bfb3;
   --rb-orange: #ed8b00;
@@ -117,4 +118,29 @@ textarea:not(.no-upper) {
   .rb-panel-swap {
     animation: none;
   }
+}
+
+.rb-sidebar-item {
+  color: var(--rb-text);
+}
+
+.rb-sidebar-item:hover {
+  background-color: rgba(0, 169, 206, 0.08);
+  color: var(--rb-blue);
+}
+
+.rb-sidebar-item-active {
+  background: linear-gradient(135deg, var(--rb-blue) 0%, #0a2b5f 100%);
+  color: #ffffff;
+  box-shadow: 0 8px 18px -12px rgba(0, 24, 113, 0.45);
+}
+
+.rb-sidebar-section-label {
+  color: #94a3b8;
+}
+
+.rb-sidebar-badge {
+  border: 1px solid var(--rb-border);
+  background-color: var(--rb-card);
+  color: #64748b;
 }
