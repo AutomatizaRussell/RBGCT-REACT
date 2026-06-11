@@ -67,6 +67,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     salario: '',
     auxilio_transporte: 'No',
     ingresos_adicionales: '',
+    incluir_actividades: 'No',
     actividades: '',
     nombre_empresa: 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S',
     nit_empresa: '900.930.391-1',
@@ -94,6 +95,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
       salario: prefill.salario || '',
       auxilio_transporte: prefill.auxilio_transporte || 'No',
       ingresos_adicionales: prefill.ingresos_adicionales || '',
+      incluir_actividades: prefill.actividades ? 'Sí' : 'No',
       actividades: prefill.actividades || '',
     }));
     if (prefill.id_empleado) {
@@ -107,7 +109,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     if (onPrefillUsed) onPrefillUsed();
   }, [prefill, empleados, onPrefillUsed]);
 
-  const SELECT_FIELDS = ['incluir_salario', 'auxilio_transporte', 'tipo_contrato'];
+  const SELECT_FIELDS = ['incluir_salario', 'auxilio_transporte', 'tipo_contrato', 'incluir_actividades'];
   // Campos de texto libre que no se fuerzan a mayúsculas (van como frases)
   const NO_UPPER_FIELDS = ['actividades'];
   const handleChange = (e) =>
@@ -277,7 +279,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         salario:              form.salario,
         auxilio_transporte:   form.auxilio_transporte,
         ingresos_adicionales: form.ingresos_adicionales,
-        actividades:          form.actividades,
+        actividades:          form.incluir_actividades === 'Sí' ? form.actividades : '',
         fecha:                form.fecha,
         consecutivo:          form.consecutivo,
         firmante_nombre:      form.firmante_nombre,
@@ -428,14 +430,20 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
               </FieldSelect>
             </div>
             {form.incluir_salario === 'Sí' && <Field label="Monto Salarial" name="salario" value={form.salario} onChange={handleChange} onBlur={handleSalarioBlur} />}
-            <FieldTextarea
-              label="Actividades que realiza (opcional)"
-              name="actividades"
-              value={form.actividades}
-              onChange={handleChange}
-              rows={5}
-              placeholder={'Una actividad por línea. Ej:\nBrindar apoyo en la revisión de los impuestos de las empresas.\nCompletar la prueba analítica preliminar.'}
-            />
+            <FieldSelect label="Actividades que realiza" name="incluir_actividades" value={form.incluir_actividades} onChange={handleChange}>
+              <option value="No">No</option>
+              <option value="Sí">Sí</option>
+            </FieldSelect>
+            {form.incluir_actividades === 'Sí' && (
+              <FieldTextarea
+                label="Actividades que realiza"
+                name="actividades"
+                value={form.actividades}
+                onChange={handleChange}
+                rows={5}
+                placeholder={'Una actividad por línea. Ej:\nBrindar apoyo en la revisión de los impuestos de las empresas.\nCompletar la prueba analítica preliminar.'}
+              />
+            )}
           </Section>
 
           <Section title="Responsable de Firma">
@@ -574,8 +582,8 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
           );
         })()}
 
-        {/* Actividades que realiza (opcional): solo se muestra si hay contenido */}
-        {(() => {
+        {/* Actividades que realiza: solo si se marcó "Sí" y hay contenido */}
+        {form.incluir_actividades === 'Sí' && (() => {
           const items = (form.actividades || '')
             .split('\n')
             .map(l => l.replace(/^[\s•·*-]+/, '').trim())
