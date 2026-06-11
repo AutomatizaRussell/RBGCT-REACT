@@ -681,7 +681,7 @@ export default function ContratosSection() {
         <div className="p-5 border-b border-slate-100">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-800">Contratos Laborales</h2>
+              <h2 className="text-lg font-bold text-slate-800">Gestión Personas</h2>
               <p className="text-xs text-slate-400 mt-0.5">{empleados.length} empleados activos</p>
             </div>
             <div className="flex items-center gap-1">
