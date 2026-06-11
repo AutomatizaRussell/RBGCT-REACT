@@ -442,8 +442,8 @@ const UserDashboard = () => {
             <div className="animate-in fade-in duration-500">
               <FormulariosSQF
                 onBack={() => {
-                  setActiveTab('dashboard')
-                  navigate('/app')
+                  setActiveTab('clientes')
+                  navigate('/app/mis-clientes')
                 }}
               />
             </div>
