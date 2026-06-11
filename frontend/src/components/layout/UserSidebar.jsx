@@ -7,7 +7,6 @@ import {
   PlayCircle,
   Wrench,
   Building2,
-  FileText,
 } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
@@ -61,13 +60,6 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
     empleadoData?.nombre_area ||
     empleadoData?.nombre_cargo ||
     'Colaborador'
-
-  /**
-   * Permiso SQF.
-   *
-   * No se cambia la regla funcional existente.
-   */
-  const tieneSQF = Boolean(empleadoData?.acceso_formularios_sqf)
 
   /**
    * Cursos disponibles.
@@ -203,12 +195,8 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
           label: 'Herramientas',
           icon: Wrench,
         },
-        {
-          tab: 'sqf',
-          label: 'Formulario Creacion clientes/contratos',
-          icon: FileText,
-          visible: tieneSQF,
-        },
+        // El Formulario SQF ya no va en el sidebar: se accede desde
+        // "Mis clientes" (mismo patrón que el panel admin2).
       ],
     },
   ]
