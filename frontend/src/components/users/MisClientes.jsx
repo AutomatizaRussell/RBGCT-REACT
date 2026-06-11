@@ -81,24 +81,29 @@ export default function MisClientes() {
 
   if (clientes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50">
-          <Briefcase size={28} className="text-slate-400" strokeWidth={1.5} />
-        </div>
-        <p className="mt-6 text-sm font-semibold text-slate-800">Sin clientes en cartera</p>
-        <p className="mt-2 max-w-md text-xs text-slate-500 leading-relaxed">
-          Aún no tienes empresas asignadas. Si deberías verlas aquí, contacta a tu supervisor o al área comercial.
-        </p>
+      <div className="relative animate-in fade-in duration-500">
+        {/* Acceso al formulario SQF en la esquina superior derecha */}
         {empleadoData?.acceso_formularios_sqf && (
-          <button
-            type="button"
-            onClick={() => navigate('/app/sqf')}
-            className="mt-6 flex items-center gap-2 rounded-lg border border-[#001871]/20 bg-[#001871] px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#002a9e] transition-colors"
-          >
-            <FileText size={14} />
-            Formulario creacion clientes/contratos
-          </button>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => navigate('/app/sqf')}
+              className="flex items-center gap-2 rounded-lg border border-[#001871]/20 bg-[#001871] px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#002a9e] transition-colors"
+            >
+              <FileText size={14} />
+              Formulario creacion clientes/contratos
+            </button>
+          </div>
         )}
+        <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50">
+            <Briefcase size={28} className="text-slate-400" strokeWidth={1.5} />
+          </div>
+          <p className="mt-6 text-sm font-semibold text-slate-800">Sin clientes en cartera</p>
+          <p className="mt-2 max-w-md text-xs text-slate-500 leading-relaxed">
+            Aún no tienes empresas asignadas. Si deberías verlas aquí, contacta a tu supervisor o al área comercial.
+          </p>
+        </div>
       </div>
     );
   }
