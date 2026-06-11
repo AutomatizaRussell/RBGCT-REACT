@@ -89,6 +89,7 @@ export default function FormulariosSQF({ onBack }) {
     const [nitLookupResult, setNitLookupResult] = useState(null);
 
     const [billingReqType, setBillingReqType] = useState('facturacion');
+    const [billingModality, setBillingModality] = useState('');
     const [billingType, setBillingType] = useState('Servicio nuevo');
     const [billingClientType, setBillingClientType] = useState('Cliente nuevo');
     const [billingClientName, setBillingClientName] = useState('');
@@ -544,7 +545,7 @@ export default function FormulariosSQF({ onBack }) {
     };
 
     const resetBillingForm = () => {
-        setBillingReqType('facturacion'); setBillingType('Servicio nuevo'); setBillingClientType('Cliente nuevo');
+        setBillingReqType('facturacion'); setBillingModality(''); setBillingType('Servicio nuevo'); setBillingClientType('Cliente nuevo');
         setBillingClientName(''); setBillingCompany(''); setSaleType(''); setCrossSalePerson('');
         setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations(''); setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
         setServiceType(''); setBillingValorMes(''); setBillingValorProyecto('');
@@ -605,6 +606,7 @@ export default function FormulariosSQF({ onBack }) {
         let errors = {};
         let isValid = true;
 
+        if (!billingModality) { errors.billingModality = 'Requerido'; isValid = false; }
         if (!billingClientName.trim()) { errors.billingClientName = 'Requerido'; isValid = false; }
         if (!billingCompany) { errors.billingCompany = 'Requerido'; isValid = false; }
         if (!saleType) { errors.saleType = 'Requerido'; isValid = false; }
@@ -637,6 +639,7 @@ export default function FormulariosSQF({ onBack }) {
 
         const payload = {
             id: generateId('BIL'), tipoSolicitud: 'Facturación', billingType, billingClientType,
+            billingModality, modalidad_facturacion: billingModality,
             clientName: billingClientName.toUpperCase(), company: billingCompany, saleType, crossSalePerson: saleType === 'Venta cruzada' ? crossSalePerson.toUpperCase() : '',
             serviceType,
             valorMes: parseInt(String(billingValorMes).replace(/\D/g, '') || '0', 10),
@@ -688,6 +691,7 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('client_name', payload.clientName);
             datatableForm.append('billing_type', payload.billingType);
             datatableForm.append('billing_client_type', payload.billingClientType);
+            datatableForm.append('billing_modality', payload.billingModality);
             datatableForm.append('company', payload.company);
             datatableForm.append('sale_type', payload.saleType);
             datatableForm.append('cross_sale_person', payload.crossSalePerson);
@@ -1343,7 +1347,16 @@ export default function FormulariosSQF({ onBack }) {
                         {billingReqType === 'facturacion' ? (
                             <>
                                 <div className="billing-step-card">
-                                    <h2 className="billing-step-title"><span className="step-pill">2</span> Detalles de la Facturación</h2>
+                                    <h2 className="billing-step-title"><span className="step-pill">2</span> Modalidad de Facturación</h2>
+                                    <div className="radio-group radio-group-col">
+                                        <label className="radio-option"><input type="radio" value="Proyecto" checked={billingModality === 'Proyecto'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Proyecto</strong><small>Factura única vez</small></span></label>
+                                        <label className="radio-option"><input type="radio" value="Mensual" checked={billingModality === 'Mensual'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Se incluye en la facturación mensual</small></span></label>
+                                    </div>
+                                    <span className="field-error">{billingErrors.billingModality}</span>
+                                </div>
+
+                                <div className="billing-step-card">
+                                    <h2 className="billing-step-title"><span className="step-pill">3</span> Detalles de la Facturación</h2>
                                     <div className="form-grid">
                                         <div className="form-group">
                                             <label className="form-label required">Tipo de Facturación</label>
