@@ -1334,3 +1334,64 @@
     background: rgba(229,62,62,.1);
     border-color: var(--color-danger);
 }
+
+/* =============================================================================
+   RESPONSIVE — el formulario se usa también en portátiles pequeños y móviles.
+   Sin esto, los grids de 2-3 columnas y las tablas desbordan la pantalla.
+   ============================================================================= */
+
+/* Tablas: scroll horizontal propio en vez de desbordar la página */
+.profile-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.profile-table { min-width: 560px; }
+
+@media (max-width: 1024px) {
+  .area-block .form-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+  /* Header: logo arriba, navegación con scroll horizontal debajo */
+  .header-inner {
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+  .brand { justify-content: center; }
+  .main-nav {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .main-nav::-webkit-scrollbar { display: none; }
+  .nav-btn { padding: 8px 14px; font-size: 13px; }
+
+  /* Contenido */
+  .app-main { padding: 20px 14px; }
+  .section-title { font-size: 21px; }
+  .section-header { margin-bottom: 20px; }
+
+  /* Formularios: una sola columna */
+  .form-grid { grid-template-columns: 1fr; gap: 16px; padding: 20px 16px; }
+  .area-block .form-grid { grid-template-columns: 1fr; }
+  .form-card-header { padding: 16px; }
+  .form-actions { padding: 16px; flex-wrap: wrap; gap: 10px; }
+  .form-actions .btn-primary,
+  .form-actions .btn-secondary,
+  .btn-submit { flex: 1 1 100%; min-width: 0; justify-content: center; }
+
+  /* Búsqueda por NIT y tarjetas */
+  .lookup-input-row { flex-direction: column; align-items: stretch; }
+  .billing-step-card { padding: 16px; }
+  .list-header { padding: 16px; }
+  .alert-card { padding: 14px 16px; }
+}
+
+@media (max-width: 480px) {
+  .app-main { padding: 16px 10px; }
+  .section-title { font-size: 18px; }
+  .form-grid { padding: 16px 12px; }
+  .brand-text { display: none; } /* solo logo en pantallas muy pequeñas */
+  .nit-modal-dialog { width: 94%; padding: 18px; }
+}
