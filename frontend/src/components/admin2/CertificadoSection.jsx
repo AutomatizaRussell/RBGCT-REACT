@@ -349,6 +349,27 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
              display: none !important;
            }
          }
+
+         /* ── Ajuste visual del panel de previsualización (solo pantalla) ──
+            La hoja es tamaño carta fijo (816px) con márgenes calibrados a la
+            plantilla. Con container queries + zoom se reduce proporcionalmente
+            (texto, plantilla y milímetros por igual) para caber en el panel,
+            sin tocar nada de la lógica ni la impresión. */
+         .cert-panel {
+           container-type: inline-size;
+         }
+         @container (max-width: 900px) { .cert-panel .certificado-preview { zoom: 0.95; } }
+         @container (max-width: 850px) { .cert-panel .certificado-preview { zoom: 0.90; } }
+         @container (max-width: 800px) { .cert-panel .certificado-preview { zoom: 0.85; } }
+         @container (max-width: 750px) { .cert-panel .certificado-preview { zoom: 0.80; } }
+         @container (max-width: 700px) { .cert-panel .certificado-preview { zoom: 0.75; } }
+         @container (max-width: 650px) { .cert-panel .certificado-preview { zoom: 0.70; } }
+         @container (max-width: 600px) { .cert-panel .certificado-preview { zoom: 0.64; } }
+         @container (max-width: 550px) { .cert-panel .certificado-preview { zoom: 0.58; } }
+         @container (max-width: 500px) { .cert-panel .certificado-preview { zoom: 0.53; } }
+         @container (max-width: 450px) { .cert-panel .certificado-preview { zoom: 0.47; } }
+         @container (max-width: 400px) { .cert-panel .certificado-preview { zoom: 0.42; } }
+         @container (max-width: 350px) { .cert-panel .certificado-preview { zoom: 0.37; } }
       `}</style>
 
       <div className="flex gap-6 h-full no-print bg-slate-50 p-6 overflow-hidden">
@@ -442,7 +463,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         </div>
 
         {/* PANEL PREVISUALIZACIÓN */}
-        <div className="flex-1 bg-white rounded-3xl shadow-2xl overflow-y-auto p-12 flex justify-center border border-slate-200">
+        <div className="cert-panel flex-1 bg-slate-200/70 rounded-3xl shadow-inner overflow-y-auto p-4 lg:p-8 flex justify-center items-start border border-slate-200">
           <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
         </div>
       </div>
