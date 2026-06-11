@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import './FormulariosSQF.css';
 import { useAuth } from '../hooks/useAuth';
 import { fetchApi } from '../lib/api';
-import rbLogo from '../assets/russell-bedford-logo.png';
 
 const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',
@@ -919,9 +918,7 @@ export default function FormulariosSQF({ onBack }) {
             {/* ===================== HEADER ===================== */}
             <header className="app-header">
                 <div className="header-inner">
-                    <div className="brand">
-                        <img src={rbLogo} alt="Russell Bedford GCT" className="brand-logo-img" />
-                    </div>
+                    {/* Sin logo: el dashboard ya lo muestra y aquí desbordaba la barra */}
                     <nav className="main-nav" role="navigation" aria-label="Navegación principal">
                         <button className={`nav-btn ${activeSection === 'clients' ? 'active' : ''}`} onClick={() => setActiveSection('clients')} role="tab">
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
