@@ -462,8 +462,8 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
           </button>
         </div>
 
-        {/* PANEL PREVISUALIZACIÓN */}
-        <div className="cert-panel flex-1 bg-slate-200/70 rounded-3xl shadow-inner overflow-y-auto p-4 lg:p-8 flex justify-center items-start border border-slate-200">
+        {/* PANEL PREVISUALIZACIÓN — sin caja de fondo: la hoja flota con su sombra */}
+        <div className="cert-panel flex-1 overflow-y-auto p-2 lg:p-4 flex justify-center items-start">
           <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
         </div>
       </div>
