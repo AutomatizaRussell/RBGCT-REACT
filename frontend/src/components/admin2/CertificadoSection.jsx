@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getAllEmpleados, enviarCertificadoEmpleo } from '../../lib/api';
 import { Printer, User, RefreshCw, Send, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 import plantilla from '../../../img/PLANTILLA.png';
@@ -442,8 +442,10 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         </div>
 
         {/* PANEL PREVISUALIZACIÓN */}
-        <div className="flex-1 bg-white rounded-3xl shadow-2xl overflow-y-auto p-12 flex justify-center border border-slate-200">
-          <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
+        <div className="flex-1 bg-slate-100 rounded-3xl shadow-inner overflow-y-auto p-4 lg:p-8 border border-slate-200">
+          <PreviewEscalado>
+            <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
+          </PreviewEscalado>
         </div>
       </div>
 
@@ -452,6 +454,39 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
       </div>
     </>
+  );
+};
+
+// ─── Sub-componente: Previsualización a escala ───────────────────────────────
+// El certificado tiene tamaño carta fijo (215.9mm ≈ 816px) porque sus márgenes
+// están calibrados a la plantilla de fondo. Para que no se corte en pantallas
+// angostas, se escala visualmente al ancho disponible del panel.
+
+const CARTA_ANCHO_PX = 816;   // 215.9mm
+const CARTA_ALTO_PX = 1056;   // 279.4mm
+
+const PreviewEscalado = ({ children }) => {
+  const contRef = useRef(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = contRef.current;
+    if (!el) return;
+    const ajustar = () => setScale(Math.min(1, el.clientWidth / CARTA_ANCHO_PX));
+    ajustar();
+    const ro = new ResizeObserver(ajustar);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div ref={contRef} className="w-full flex justify-center">
+      <div style={{ width: CARTA_ANCHO_PX * scale, height: CARTA_ALTO_PX * scale }}>
+        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: CARTA_ANCHO_PX }}>
+          {children}
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -488,13 +523,13 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
       {/* Todo el contenido en un solo bloque con márgenes ajustados a la plantilla */}
       <div style={{ padding: '42mm calc(29mm + 3px) 15mm 20mm' }}>
 
-        {/* Fecha + Consecutivo */}
+        {/* Fecha + Consecutivo — misma tipografía del cuerpo de la carta */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10mm' }}>
-          <p style={sn({ margin: 0, fontSize: '8pt', color: '#374151' })}>
+          <p style={sr({ margin: 0, color: '#111' })}>
             Medellín, {form.fecha}
           </p>
           {form.consecutivo && (
-            <p style={sn({ margin: 0, fontSize: '8pt', fontWeight: '700', color: '#111', letterSpacing: '1pt' })}>
+            <p style={sr({ margin: 0, fontWeight: '700', color: '#111', letterSpacing: '0.5pt' })}>
               {form.consecutivo}
             </p>
           )}
