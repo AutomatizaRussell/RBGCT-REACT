@@ -60,14 +60,40 @@ const BILLING_DESCRIPTIONS = [
     { name: 'Otros Servicios', code: 'OTR-010' }
 ];
 
+// Permisos por sección del formulario (flags en DatosEmpleado)
+const SQF_SECTIONS = [
+    { id: 'clients', flag: 'acceso_sqf_clientes' },
+    { id: 'contracts', flag: 'acceso_sqf_contratos' },
+    { id: 'billing', flag: 'acceso_sqf_facturacion' },
+    { id: 'auditor', flag: 'acceso_sqf_auditoria' },
+];
+
 export default function FormulariosSQF({ onBack }) {
     const navigate = useNavigate();
-    const { user, empleadoData } = useAuth();
+    const { user, empleadoData, isSuperAdmin, isAdmin } = useAuth();
+
+    // Secciones visibles: admins ven todo; empleados según sus flags por sección.
+    // Fallback legacy: localStorage anterior al despliegue sin los flags nuevos
+    // pero con acceso general (se corrige solo cuando AuthContext sincroniza).
+    const legacyAccess = Boolean(empleadoData?.acceso_formularios_sqf)
+        && SQF_SECTIONS.every(s => empleadoData?.[s.flag] === undefined);
+    const allowedSections = (isSuperAdmin || isAdmin || legacyAccess)
+        ? SQF_SECTIONS.map(s => s.id)
+        : SQF_SECTIONS.filter(s => Boolean(empleadoData?.[s.flag])).map(s => s.id);
+    const canSee = (sectionId) => allowedSections.includes(sectionId);
 
     // ==========================================
     // ESTADOS GLOBALES
     // ==========================================
-    const [activeSection, setActiveSection] = useState('clients');
+    const [activeSection, setActiveSection] = useState(allowedSections[0] || 'clients');
+
+    // Si los permisos cambian (sync de AuthContext) y la sección activa deja
+    // de estar permitida, reubicar en la primera permitida.
+    useEffect(() => {
+        if (allowedSections.length > 0 && !allowedSections.includes(activeSection)) {
+            setActiveSection(allowedSections[0]);
+        }
+    }, [allowedSections.join('|'), activeSection]); // eslint-disable-line react-hooks/exhaustive-deps
     const [clients, setClients] = useState([]);
     const [contracts, setContracts] = useState([]);
     const [pendingClients, setPendingClients] = useState([]);
@@ -924,26 +950,26 @@ export default function FormulariosSQF({ onBack }) {
                 <div className="header-inner">
                     {/* Sin logo: el dashboard ya lo muestra y aquí desbordaba la barra */}
                     <nav className="main-nav" role="navigation" aria-label="Navegación principal">
-                        <button className={`nav-btn ${activeSection === 'clients' ? 'active' : ''}`} onClick={() => setActiveSection('clients')} role="tab">
+                        {canSee('clients') && <button className={`nav-btn ${activeSection === 'clients' ? 'active' : ''}`} onClick={() => setActiveSection('clients')} role="tab">
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg> Clientes
-                        </button>
-                        <button className={`nav-btn ${activeSection === 'contracts' ? 'active' : ''}`} onClick={() => setActiveSection('contracts')} role="tab">
+                        </button>}
+                        {canSee('contracts') && <button className={`nav-btn ${activeSection === 'contracts' ? 'active' : ''}`} onClick={() => setActiveSection('contracts')} role="tab">
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
                             </svg> Contratos
-                        </button>
-                        <button className={`nav-btn ${activeSection === 'billing' ? 'active' : ''}`} onClick={() => setActiveSection('billing')} role="tab">
+                        </button>}
+                        {canSee('billing') && <button className={`nav-btn ${activeSection === 'billing' ? 'active' : ''}`} onClick={() => setActiveSection('billing')} role="tab">
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" />
                             </svg> Facturación
-                        </button>
-                        <button className={`nav-btn ${activeSection === 'auditor' ? 'active' : ''}`} onClick={() => setActiveSection('auditor')} role="tab">
+                        </button>}
+                        {canSee('auditor') && <button className={`nav-btn ${activeSection === 'auditor' ? 'active' : ''}`} onClick={() => setActiveSection('auditor')} role="tab">
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                             </svg> Auditoría
-                        </button>
+                        </button>}
                         <button className="nav-btn" onClick={() => onBack ? onBack() : navigate('/admin2')} style={{ marginLeft: '8px', paddingLeft: '16px', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
                             ← Volver
                         </button>
@@ -954,7 +980,7 @@ export default function FormulariosSQF({ onBack }) {
             <main className="app-main">
                 
                 {/* ========== SECTION: CLIENTES ========== */}
-                <section className={`content-section ${activeSection === 'clients' ? 'active' : ''}`}>
+                <section className={`content-section ${activeSection === 'clients' && canSee('clients') ? 'active' : ''}`}>
                     <div className="section-header">
                         <div>
                             <h1 className="section-title">Gestión de Clientes</h1>
@@ -1115,7 +1141,7 @@ export default function FormulariosSQF({ onBack }) {
                 </section>
 
                 {/* ========== SECTION: CONTRATOS ========== */}
-                <section className={`content-section ${activeSection === 'contracts' ? 'active' : ''}`}>
+                <section className={`content-section ${activeSection === 'contracts' && canSee('contracts') ? 'active' : ''}`}>
                     <div className="section-header">
                         <div>
                             <h1 className="section-title">Gestión de Contratos</h1>
@@ -1174,7 +1200,7 @@ export default function FormulariosSQF({ onBack }) {
                     {validClients.length === 0 && !isLoading && (
                         <div className="alert-card alert-warning">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="alert-icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-                            <div><strong>No hay clientes registrados</strong><p>Debe registrar al menos un cliente antes de crear un contrato. <button className="link-btn" onClick={() => setActiveSection('clients')}>Ir a Clientes →</button></p></div>
+                            <div><strong>No hay clientes registrados</strong><p>Debe registrar al menos un cliente antes de crear un contrato. {canSee('clients') && <button className="link-btn" onClick={() => setActiveSection('clients')}>Ir a Clientes →</button>}</p></div>
                         </div>
                     )}
 
@@ -1304,10 +1330,10 @@ export default function FormulariosSQF({ onBack }) {
                                                     <td><span className="card-value">{c?.valueFormatted || formatCurrencyDisplay(c?.value)}</span></td>
                                                     <td>{c?.startDate || ''} a {c?.endDate || ''}</td>
                                                     <td>
-                                                        <button type="button" className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); sendContractToBilling(c); }} style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                                        {canSee('billing') && <button type="button" className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); sendContractToBilling(c); }} style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px' }}><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
                                                             Enviar a Facturar
-                                                        </button>
+                                                        </button>}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -1320,7 +1346,7 @@ export default function FormulariosSQF({ onBack }) {
                 </section>
 
                 {/* ========== SECTION: FACTURACIÓN ========== */}
-                <section className={`content-section ${activeSection === 'billing' ? 'active' : ''}`}>
+                <section className={`content-section ${activeSection === 'billing' && canSee('billing') ? 'active' : ''}`}>
                     <div className="section-header">
                         <div>
                             <h1 className="section-title">Facturación</h1>
@@ -1331,7 +1357,7 @@ export default function FormulariosSQF({ onBack }) {
                     {validContracts.length === 0 && !isLoading && (
                         <div className="alert-card alert-warning">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="alert-icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-                            <div><strong>No hay contratos registrados</strong><p>Debe tener al menos un contrato activo antes de registrar una facturación. <button className="link-btn" onClick={() => setActiveSection('contracts')}>Ir a Contratos →</button></p></div>
+                            <div><strong>No hay contratos registrados</strong><p>Debe tener al menos un contrato activo antes de registrar una facturación. {canSee('contracts') && <button className="link-btn" onClick={() => setActiveSection('contracts')}>Ir a Contratos →</button>}</p></div>
                         </div>
                     )}
 
@@ -1596,7 +1622,7 @@ export default function FormulariosSQF({ onBack }) {
                 </section>
 
                 {/* ========== SECTION: AUDITORÍA ========== */}
-                <section className={`content-section ${activeSection === 'auditor' ? 'active' : ''}`}>
+                <section className={`content-section ${activeSection === 'auditor' && canSee('auditor') ? 'active' : ''}`}>
                     <div className="section-header">
                         <div>
                             <h1 className="section-title">Panel de Control de Auditoría</h1>

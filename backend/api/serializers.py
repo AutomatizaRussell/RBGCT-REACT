@@ -74,6 +74,10 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
     numero_documento = serializers.SerializerMethodField()
     nombre_completo = serializers.SerializerMethodField()
 
+    # Acceso general al Formulario SQF: derivado de los permisos por sección
+    # (se mantiene por compatibilidad con el frontend existente)
+    acceso_formularios_sqf = serializers.SerializerMethodField()
+
     # Campos aplanados de DatosContacto
     correo_personal = serializers.SerializerMethodField()
     telefono = serializers.SerializerMethodField()
@@ -99,9 +103,17 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
             'nombre_area', 'nombre_cargo', 'fecha_ingreso', 'fecha_retiro', 'estado',
             # Acceso
             'id_permisos', 'permitir_edicion_datos', 'acceso_formularios_sqf',
+            'acceso_sqf_clientes', 'acceso_sqf_contratos',
+            'acceso_sqf_facturacion', 'acceso_sqf_auditoria',
             # Auditoría
             'created_at', 'updated_at',
         ]
+
+    def get_acceso_formularios_sqf(self, obj):
+        return bool(
+            obj.acceso_sqf_clientes or obj.acceso_sqf_contratos
+            or obj.acceso_sqf_facturacion or obj.acceso_sqf_auditoria
+        )
 
     # Métodos get_ para Persona
     def get_primer_nombre(self, obj):

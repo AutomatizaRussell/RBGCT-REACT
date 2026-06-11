@@ -169,7 +169,10 @@ const UserTable = () => {
       id_permisos: user.id_permisos || 3,
       estado: user.estado || 'ACTIVA',
       permitir_edicion_datos: user.permitir_edicion_datos || false,
-      acceso_formularios_sqf: user.acceso_formularios_sqf || false
+      acceso_sqf_clientes: user.acceso_sqf_clientes || false,
+      acceso_sqf_contratos: user.acceso_sqf_contratos || false,
+      acceso_sqf_facturacion: user.acceso_sqf_facturacion || false,
+      acceso_sqf_auditoria: user.acceso_sqf_auditoria || false
     });
     setCertPermEdit(certPermisosBackend.includes(String(user.id_empleado)));
   };
@@ -824,19 +827,33 @@ const UserTable = () => {
                   </label>
                 </div>
 
-                {/* Toggle para acceso a Formularios SQF */}
-                <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
-                  <input
-                    type="checkbox"
-                    id="acceso_sqf"
-                    name="acceso_formularios_sqf"
-                    checked={editFormData.acceso_formularios_sqf}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, acceso_formularios_sqf: e.target.checked }))}
-                    className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500"
-                  />
-                  <label htmlFor="acceso_sqf" className="text-sm font-medium text-amber-900 cursor-pointer">
-                    Acceso a Formulario creacion de clientes/contratos (Clientes y Contratos)
-                  </label>
+                {/* Permisos por sección del Formulario SQF (acceso al formulario = al menos una sección activa) */}
+                <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                  <p className="text-sm font-medium text-amber-900 mb-3">
+                    Acceso a Formulario creacion de clientes/contratos (por sección)
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { key: 'acceso_sqf_clientes', label: 'Clientes' },
+                      { key: 'acceso_sqf_contratos', label: 'Contratos' },
+                      { key: 'acceso_sqf_facturacion', label: 'Facturación' },
+                      { key: 'acceso_sqf_auditoria', label: 'Auditoría' },
+                    ].map(({ key, label }) => (
+                      <div key={key} className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          id={key}
+                          name={key}
+                          checked={editFormData[key]}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, [key]: e.target.checked }))}
+                          className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500"
+                        />
+                        <label htmlFor={key} className="text-sm font-medium text-amber-900 cursor-pointer">
+                          {label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Toggle para expedir certificados: solo SuperAdmin */}

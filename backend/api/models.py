@@ -205,7 +205,20 @@ class DatosEmpleado(models.Model):
     primer_login = models.BooleanField(default=True)
     datos_completados = models.BooleanField(default=False)
     permitir_edicion_datos = models.BooleanField(default=False)
-    acceso_formularios_sqf = models.BooleanField(default=False)
+    # Permisos por sección del Formulario SQF (el acceso general al formulario
+    # se deriva: tiene acceso si al menos una sección está activa)
+    acceso_sqf_clientes = models.BooleanField(default=False)
+    acceso_sqf_contratos = models.BooleanField(default=False)
+    acceso_sqf_facturacion = models.BooleanField(default=False)
+    acceso_sqf_auditoria = models.BooleanField(default=False)
+
+    @property
+    def acceso_formularios_sqf(self):
+        """Compatibilidad: acceso general al formulario SQF (alguna sección activa)."""
+        return bool(
+            self.acceso_sqf_clientes or self.acceso_sqf_contratos
+            or self.acceso_sqf_facturacion or self.acceso_sqf_auditoria
+        )
     ultima_actividad = models.DateTimeField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
