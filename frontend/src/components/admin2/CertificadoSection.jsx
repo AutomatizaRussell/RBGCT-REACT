@@ -67,6 +67,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     salario: '',
     auxilio_transporte: 'No',
     ingresos_adicionales: '',
+    actividades: '',
     nombre_empresa: 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S',
     nit_empresa: '900.930.391-1',
     firmante_nombre: 'PAOLA ANDREA AGUILAR TAMAYO',
@@ -93,6 +94,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
       salario: prefill.salario || '',
       auxilio_transporte: prefill.auxilio_transporte || 'No',
       ingresos_adicionales: prefill.ingresos_adicionales || '',
+      actividades: prefill.actividades || '',
     }));
     if (prefill.id_empleado) {
       const emp = empleados.find(e => String(e.id_empleado) === String(prefill.id_empleado));
@@ -106,10 +108,12 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
   }, [prefill, empleados, onPrefillUsed]);
 
   const SELECT_FIELDS = ['incluir_salario', 'auxilio_transporte', 'tipo_contrato'];
+  // Campos de texto libre que no se fuerzan a mayúsculas (van como frases)
+  const NO_UPPER_FIELDS = ['actividades'];
   const handleChange = (e) =>
     setForm(prev => ({
       ...prev,
-      [e.target.name]: SELECT_FIELDS.includes(e.target.name)
+      [e.target.name]: SELECT_FIELDS.includes(e.target.name) || NO_UPPER_FIELDS.includes(e.target.name)
         ? e.target.value
         : e.target.value.toUpperCase(),
     }));
@@ -273,6 +277,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         salario:              form.salario,
         auxilio_transporte:   form.auxilio_transporte,
         ingresos_adicionales: form.ingresos_adicionales,
+        actividades:          form.actividades,
         fecha:                form.fecha,
         consecutivo:          form.consecutivo,
         firmante_nombre:      form.firmante_nombre,
@@ -423,6 +428,14 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
               </FieldSelect>
             </div>
             {form.incluir_salario === 'Sí' && <Field label="Monto Salarial" name="salario" value={form.salario} onChange={handleChange} onBlur={handleSalarioBlur} />}
+            <FieldTextarea
+              label="Actividades que realiza (opcional)"
+              name="actividades"
+              value={form.actividades}
+              onChange={handleChange}
+              rows={5}
+              placeholder={'Una actividad por línea. Ej:\nBrindar apoyo en la revisión de los impuestos de las empresas.\nCompletar la prueba analítica preliminar.'}
+            />
           </Section>
 
           <Section title="Responsable de Firma">
@@ -561,6 +574,27 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
           );
         })()}
 
+        {/* Actividades que realiza (opcional): solo se muestra si hay contenido */}
+        {(() => {
+          const items = (form.actividades || '')
+            .split('\n')
+            .map(l => l.replace(/^[\s•·*-]+/, '').trim())
+            .filter(Boolean);
+          if (items.length === 0) return null;
+          return (
+            <div style={{ margin: '0 0 24pt' }}>
+              <p style={sr({ textAlign: 'justify', margin: '0 0 6pt' })}>
+                Dentro de las actividades que realiza se encuentran:
+              </p>
+              <ul style={sr({ margin: 0, paddingLeft: '6mm', listStyleType: 'disc', textAlign: 'justify' })}>
+                {items.map((item, i) => (
+                  <li key={i} style={{ marginBottom: '3pt' }}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
+
         <p style={sr({ margin: '0 0 4pt' })}>Cordialmente,</p>
 
         {/* Firma */}
@@ -600,6 +634,13 @@ const Field = ({ label, ...props }) => (
   <div className="space-y-1">
     <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">{label}</label>
     <input {...props} className="input-modern" />
+  </div>
+);
+
+const FieldTextarea = ({ label, ...props }) => (
+  <div className="space-y-1">
+    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">{label}</label>
+    <textarea {...props} className="input-modern" />
   </div>
 );
 
