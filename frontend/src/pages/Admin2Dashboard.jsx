@@ -603,7 +603,7 @@ const Admin2Dashboard = () => {
       case 'tasks': return 'Calendario de eventos';
       case 'autogestion': return 'Auto Gestión';
       case 'profile': return 'Mi Perfil';
-      case 'contratos': return 'Contratos Laborales';
+      case 'contratos': return 'Gestión Personas';
       case 'clientes': return 'Clientes';
       case 'formularios-sqf': return 'Formulario creacion clientes/contratos';
       case 'herramientas': return 'Herramientas';
