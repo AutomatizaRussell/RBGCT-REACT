@@ -1441,9 +1441,6 @@ export default function FormulariosSQF({ onBack }) {
                                                     <option value="">Seleccione...</option>
                                                     <option value="GCT">GCT</option>
                                                     <option value="GLT">GLT</option>
-                                                    <option value="PROFIT">PROFIT</option>
-                                                    <option value="Líneas Familiares">Líneas Familiares</option>
-                                                    <option value="Diseño Logístico">Diseño Logístico</option>
                                                 </select>
                                                 <span className="field-error">{billingErrors.billingCompany}</span>
                                             </div>
