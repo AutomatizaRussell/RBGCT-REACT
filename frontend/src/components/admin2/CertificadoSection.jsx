@@ -490,8 +490,10 @@ const toTitleCase = (str) =>
 const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, area }) => {
   const empresa     = form.nombre_empresa || 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S';
   const salarioText = parseSalario(form.salario);
-  const sans        = 'Arial, Helvetica, sans-serif';
-  const serif       = '"Times New Roman", Times, serif';
+  // Tipografía uniforme del documento: Verdana en todo el cuerpo;
+  // solo la firma conserva la letra cursiva.
+  const sans        = 'Verdana, Geneva, sans-serif';
+  const serif       = 'Verdana, Geneva, sans-serif';
   const script      = '"Dancing Script", cursive';
   const sn = (s) => ({ fontFamily: sans, ...s });
   const sr = (s) => ({ fontFamily: serif, ...s });
