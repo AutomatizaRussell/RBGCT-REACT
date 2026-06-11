@@ -148,114 +148,148 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
   const handlePrint = () => window.print();
 
+  // Genera el PDF del certificado capturando la versión de impresión
+  // (.solo-print) — se usa tanto para la vista previa como para el envío.
+  const generarPdfCertificado = async (scale = 3) => {
+    const { default: html2canvas } = await import('html2canvas');
+    const { jsPDF } = await import('jspdf');
+    const soloPrintRoot = document.querySelector('.solo-print');
+    if (!soloPrintRoot) throw new Error('No se encontró el contenedor de impresión del certificado');
+
+    const originalSoloPrintStyles = {
+      display: soloPrintRoot.style.display,
+      position: soloPrintRoot.style.position,
+      left: soloPrintRoot.style.left,
+      top: soloPrintRoot.style.top,
+      width: soloPrintRoot.style.width,
+      height: soloPrintRoot.style.height,
+      opacity: soloPrintRoot.style.opacity,
+      pointerEvents: soloPrintRoot.style.pointerEvents,
+      zIndex: soloPrintRoot.style.zIndex,
+    };
+    let elemento = null;
+    let originalCertStyles = null;
+    try {
+      soloPrintRoot.style.display = 'block';
+      soloPrintRoot.style.position = 'fixed';
+      soloPrintRoot.style.left = '0';
+      soloPrintRoot.style.top = '0';
+      soloPrintRoot.style.width = '100%';
+      soloPrintRoot.style.height = '100%';
+      soloPrintRoot.style.opacity = '0';
+      soloPrintRoot.style.pointerEvents = 'none';
+      soloPrintRoot.style.zIndex = '-1';
+
+      elemento = soloPrintRoot.querySelector('.certificado-preview');
+      if (!elemento) throw new Error('No se encontró el contenido del certificado');
+
+      originalCertStyles = {
+        boxShadow: elemento.style.boxShadow,
+      };
+      elemento.style.boxShadow = 'none';
+
+      if (document.fonts?.ready) await document.fonts.ready;
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      const rect = elemento.getBoundingClientRect();
+
+      const canvas = await html2canvas(elemento, {
+        scale,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        width: Math.ceil(rect.width),
+        height: Math.ceil(rect.height),
+        windowWidth: Math.ceil(rect.width),
+        windowHeight: Math.ceil(rect.height),
+      });
+
+      const MARGIN = 25.4; // mm — margen estándar (1 pulgada)
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter', compress: true });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const pxPerMm = canvas.width / pageW;
+
+      const cropAndPlace = (srcY, srcH, destYmm) => {
+        const c = document.createElement('canvas');
+        c.width  = canvas.width;
+        c.height = srcH;
+        c.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+        const renderH = (srcH / canvas.width) * pageW;
+        pdf.addImage(c.toDataURL('image/png'), 'PNG', 0, destYmm, pageW, renderH, undefined, 'FAST');
+      };
+
+      // Página 1: ocupa toda la hoja (el certificado ya lleva su propio margen interno)
+      const p1H = Math.min(Math.round(pageH * pxPerMm), canvas.height);
+      cropAndPlace(0, p1H, 0);
+
+      // Páginas siguientes: margen superior e inferior de 25.4 mm
+      const contPx = Math.round((pageH - 2 * MARGIN) * pxPerMm);
+      let srcY = p1H;
+      let left = canvas.height - p1H;
+
+      while (left > 0) {
+        pdf.addPage('letter', 'portrait');
+        const chunk = Math.min(contPx, left);
+        cropAndPlace(srcY, chunk, MARGIN);
+        srcY += chunk;
+        left -= chunk;
+      }
+
+      return pdf;
+    } finally {
+      if (elemento && originalCertStyles) {
+        elemento.style.boxShadow = originalCertStyles.boxShadow;
+      }
+      soloPrintRoot.style.display = originalSoloPrintStyles.display;
+      soloPrintRoot.style.position = originalSoloPrintStyles.position;
+      soloPrintRoot.style.left = originalSoloPrintStyles.left;
+      soloPrintRoot.style.top = originalSoloPrintStyles.top;
+      soloPrintRoot.style.width = originalSoloPrintStyles.width;
+      soloPrintRoot.style.height = originalSoloPrintStyles.height;
+      soloPrintRoot.style.opacity = originalSoloPrintStyles.opacity;
+      soloPrintRoot.style.pointerEvents = originalSoloPrintStyles.pointerEvents;
+      soloPrintRoot.style.zIndex = originalSoloPrintStyles.zIndex;
+    }
+  };
+
+  // Vista previa PDF en vivo: se regenera (con debounce) al cambiar el formulario.
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(true);
+  const previewUrlRef = useRef(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    setPreviewLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const pdf = await generarPdfCertificado(2);
+        if (cancelado) return;
+        const url = URL.createObjectURL(pdf.output('blob'));
+        if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = url;
+        setPreviewUrl(url);
+      } catch (e) {
+        console.error('[Certificado] No se pudo generar la vista previa:', e);
+      } finally {
+        if (!cancelado) setPreviewLoading(false);
+      }
+    }, 700);
+    return () => { cancelado = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, emp]);
+
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+  }, []);
+
   const handleEnviarCorreo = async () => {
     if (!emailDestino.trim()) return;
     setEnviando(true);
     setEnvioStatus(null);
     try {
-      const { default: html2canvas } = await import('html2canvas');
-      const { jsPDF } = await import('jspdf');
-      const soloPrintRoot = document.querySelector('.solo-print');
-      if (!soloPrintRoot) throw new Error('No se encontró el contenedor de impresión del certificado');
-
-      // Capturamos desde la versión de impresión para respetar el estándar visual
-      // del documento enviado, sin depender del panel de previsualización.
-      const originalSoloPrintStyles = {
-        display: soloPrintRoot.style.display,
-        position: soloPrintRoot.style.position,
-        left: soloPrintRoot.style.left,
-        top: soloPrintRoot.style.top,
-        width: soloPrintRoot.style.width,
-        height: soloPrintRoot.style.height,
-        opacity: soloPrintRoot.style.opacity,
-        pointerEvents: soloPrintRoot.style.pointerEvents,
-        zIndex: soloPrintRoot.style.zIndex,
-      };
-      let pdfBase64 = '';
-      let elemento = null;
-      let originalCertStyles = null;
-      try {
-        soloPrintRoot.style.display = 'block';
-        soloPrintRoot.style.position = 'fixed';
-        soloPrintRoot.style.left = '0';
-        soloPrintRoot.style.top = '0';
-        soloPrintRoot.style.width = '100%';
-        soloPrintRoot.style.height = '100%';
-        soloPrintRoot.style.opacity = '0';
-        soloPrintRoot.style.pointerEvents = 'none';
-        soloPrintRoot.style.zIndex = '-1';
-
-        elemento = soloPrintRoot.querySelector('.certificado-preview');
-        if (!elemento) throw new Error('No se encontró el contenido del certificado para envío');
-
-        originalCertStyles = {
-          boxShadow: elemento.style.boxShadow,
-        };
-        elemento.style.boxShadow = 'none';
-
-        if (document.fonts?.ready) await document.fonts.ready;
-        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-        const rect = elemento.getBoundingClientRect();
-
-        const canvas = await html2canvas(elemento, {
-          scale: 3,
-          useCORS: true,
-          backgroundColor: '#ffffff',
-          width: Math.ceil(rect.width),
-          height: Math.ceil(rect.height),
-          windowWidth: Math.ceil(rect.width),
-          windowHeight: Math.ceil(rect.height),
-        });
-
-        const MARGIN = 25.4; // mm — margen estándar (1 pulgada)
-
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter', compress: true });
-        const pageW = pdf.internal.pageSize.getWidth();
-        const pageH = pdf.internal.pageSize.getHeight();
-        const pxPerMm = canvas.width / pageW;
-
-        const cropAndPlace = (srcY, srcH, destYmm) => {
-          const c = document.createElement('canvas');
-          c.width  = canvas.width;
-          c.height = srcH;
-          c.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-          const renderH = (srcH / canvas.width) * pageW;
-          pdf.addImage(c.toDataURL('image/png'), 'PNG', 0, destYmm, pageW, renderH, undefined, 'FAST');
-        };
-
-        // Página 1: ocupa toda la hoja (el certificado ya lleva su propio margen interno)
-        const p1H = Math.min(Math.round(pageH * pxPerMm), canvas.height);
-        cropAndPlace(0, p1H, 0);
-
-        // Páginas siguientes: margen superior e inferior de 25.4 mm
-        const contPx = Math.round((pageH - 2 * MARGIN) * pxPerMm);
-        let srcY = p1H;
-        let left = canvas.height - p1H;
-
-        while (left > 0) {
-          pdf.addPage('letter', 'portrait');
-          const chunk = Math.min(contPx, left);
-          cropAndPlace(srcY, chunk, MARGIN);
-          srcY += chunk;
-          left -= chunk;
-        }
-
-        pdfBase64 = pdf.output('datauristring').split(',')[1];
-      } finally {
-        if (elemento && originalCertStyles) {
-          elemento.style.boxShadow = originalCertStyles.boxShadow;
-        }
-        soloPrintRoot.style.display = originalSoloPrintStyles.display;
-        soloPrintRoot.style.position = originalSoloPrintStyles.position;
-        soloPrintRoot.style.left = originalSoloPrintStyles.left;
-        soloPrintRoot.style.top = originalSoloPrintStyles.top;
-        soloPrintRoot.style.width = originalSoloPrintStyles.width;
-        soloPrintRoot.style.height = originalSoloPrintStyles.height;
-        soloPrintRoot.style.opacity = originalSoloPrintStyles.opacity;
-        soloPrintRoot.style.pointerEvents = originalSoloPrintStyles.pointerEvents;
-        soloPrintRoot.style.zIndex = originalSoloPrintStyles.zIndex;
-      }
+      const pdf = await generarPdfCertificado(3);
+      const pdfBase64 = pdf.output('datauristring').split(',')[1];
 
       await enviarCertificadoEmpleo({
         email_destino:        emailDestino.trim(),
@@ -441,11 +475,27 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
           </button>
         </div>
 
-        {/* PANEL PREVISUALIZACIÓN */}
-        <div className="flex-1 bg-slate-100 rounded-3xl shadow-inner overflow-y-auto p-4 lg:p-8 border border-slate-200">
-          <PreviewEscalado>
-            <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
-          </PreviewEscalado>
+        {/* PANEL PREVISUALIZACIÓN — visor PDF nativo del navegador */}
+        <div className="flex-1 relative rounded-3xl overflow-hidden border border-slate-200 shadow-inner bg-slate-200 min-h-[70vh]">
+          {previewUrl ? (
+            <iframe
+              key={previewUrl}
+              src={`${previewUrl}#view=FitH`}
+              title="Vista previa del certificado"
+              className="absolute inset-0 h-full w-full"
+              style={{ border: 0 }}
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-500">
+              <RefreshCw size={22} className="animate-spin" />
+              <p className="text-xs font-semibold uppercase tracking-widest">Generando vista previa…</p>
+            </div>
+          )}
+          {previewLoading && previewUrl && (
+            <div className="absolute top-3 right-3 flex items-center gap-2 rounded-full bg-white/95 border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 shadow">
+              <RefreshCw size={12} className="animate-spin" /> Actualizando…
+            </div>
+          )}
         </div>
       </div>
 
@@ -454,39 +504,6 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
       </div>
     </>
-  );
-};
-
-// ─── Sub-componente: Previsualización a escala ───────────────────────────────
-// El certificado tiene tamaño carta fijo (215.9mm ≈ 816px) porque sus márgenes
-// están calibrados a la plantilla de fondo. Para que no se corte en pantallas
-// angostas, se escala visualmente al ancho disponible del panel.
-
-const CARTA_ANCHO_PX = 816;   // 215.9mm
-const CARTA_ALTO_PX = 1056;   // 279.4mm
-
-const PreviewEscalado = ({ children }) => {
-  const contRef = useRef(null);
-  const [scale, setScale] = useState(1);
-
-  useEffect(() => {
-    const el = contRef.current;
-    if (!el) return;
-    const ajustar = () => setScale(Math.min(1, el.clientWidth / CARTA_ANCHO_PX));
-    ajustar();
-    const ro = new ResizeObserver(ajustar);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  return (
-    <div ref={contRef} className="w-full flex justify-center">
-      <div style={{ width: CARTA_ANCHO_PX * scale, height: CARTA_ALTO_PX * scale }}>
-        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: CARTA_ANCHO_PX }}>
-          {children}
-        </div>
-      </div>
-    </div>
   );
 };
 
