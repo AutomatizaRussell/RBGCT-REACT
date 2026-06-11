@@ -56,7 +56,7 @@
     animation: slideDown .5s cubic-bezier(.4,0,.2,1);
     border-bottom: 1px solid rgba(0,169,206,.1);
 }
-.header-inner { max-width: 1200px; margin: 0 auto; padding: 0 28px; height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.header-inner { max-width: 1200px; margin: 0 auto; padding: 0 28px; height: 72px; display: flex; align-items: center; justify-content: center; gap: 24px; }
 .brand { display: flex; align-items: center; gap: 14px; animation: fadeInLeft .6s ease-out; }
 .brand-logo-img { height: 45px; width: auto; filter: drop-shadow(0 4px 16px rgba(0,0,0,.4)); transition: transform var(--transition); }
 .brand-logo-img:hover { transform: scale(1.05); filter: drop-shadow(0 6px 20px rgba(0,0,0,.5)); }
@@ -75,7 +75,12 @@
   backdrop-filter: blur(4px);
   border: 1px solid rgba(255,255,255,.15);
   animation: fadeInRight .6s ease-out;
+  /* Nunca desbordar: si las pestañas no caben, scroll horizontal propio */
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.main-nav::-webkit-scrollbar { display: none; }
 @keyframes fadeInRight {
   from {
     opacity: 0;
