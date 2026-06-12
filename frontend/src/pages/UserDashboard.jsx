@@ -19,9 +19,10 @@ import {
 import { UserSidebar } from '../components/layout/UserSidebar'
 import Topbar from '../components/layout/Topbar'
 import { useAuth } from '../hooks/useAuth'
-import { getTareasByEmpleado } from '../lib/api'
+import { getTareasByEmpleado, getMisSugerencias, confirmarSugerenciaVista } from '../lib/api'
 import UtilidadesSection from '../components/admin2/UtilidadesSection'
 import FormulariosSQF from './FormulariosSQF'
+import SugerenciasChat from '../components/common/SugerenciasChat'
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -42,6 +43,7 @@ const UserDashboard = () => {
   const [showNotif, setShowNotif] = useState(false)
   const [notifTareas, setNotifTareas] = useState([])
   const [loadingNotif, setLoadingNotif] = useState(false)
+  const [confirmaciones, setConfirmaciones] = useState([])
 
   const notifRef = useRef(null)
 
@@ -113,6 +115,31 @@ const UserDashboard = () => {
     }
   }, [])
 
+  const cargarConfirmaciones = async () => {
+    try {
+      const data = await getMisSugerencias()
+      const lista = data?.sugerencias || []
+      setConfirmaciones(lista.filter((s) => s.recibida && !s.confirmacion_vista))
+    } catch {
+      // Silencioso
+    }
+  }
+
+  // Cargar confirmaciones de sugerencias al entrar (para el badge de la campanita)
+  useEffect(() => {
+    if (empleadoData?.id_empleado) cargarConfirmaciones()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empleadoData?.id_empleado])
+
+  const descartarConfirmacion = async (id) => {
+    setConfirmaciones((prev) => prev.filter((s) => s.id !== id))
+    try {
+      await confirmarSugerenciaVista(id)
+    } catch {
+      // Silencioso
+    }
+  }
+
   const toggleNotif = async () => {
     if (showNotif) {
       setShowNotif(false)
@@ -130,6 +157,7 @@ const UserDashboard = () => {
       const tareas = Array.isArray(data) ? data : data?.results || []
 
       setNotifTareas(tareas.filter((t) => t.estado !== 'completada'))
+      cargarConfirmaciones()
     } catch {
       // Silencioso: el panel de notificaciones no debe tumbar el dashboard.
     } finally {
@@ -205,9 +233,9 @@ const UserDashboard = () => {
               >
                 <Bell size={18} strokeWidth={1.75} />
 
-                {taskStats.pending > 0 && (
+                {(taskStats.pending + confirmaciones.length) > 0 && (
                   <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#001871] px-1 text-[10px] font-semibold text-white">
-                    {taskStats.pending > 9 ? '9+' : taskStats.pending}
+                    {(taskStats.pending + confirmaciones.length) > 9 ? '9+' : taskStats.pending + confirmaciones.length}
                   </span>
                 )}
               </button>
@@ -216,6 +244,8 @@ const UserDashboard = () => {
                 <NotificationsPanel
                   tareas={notifTareas}
                   loading={loadingNotif}
+                  confirmaciones={confirmaciones}
+                  onDescartarConfirmacion={descartarConfirmacion}
                   onClose={() => setShowNotif(false)}
                   onNavigate={() => {
                     setShowNotif(false)
@@ -454,11 +484,12 @@ const UserDashboard = () => {
           )}
         </div>
       </main>
+      <SugerenciasChat />
     </div>
   )
 }
 
-const NotificationsPanel = ({ tareas, loading, onClose, onNavigate }) => {
+const NotificationsPanel = ({ tareas, loading, onClose, onNavigate, confirmaciones = [], onDescartarConfirmacion }) => {
   const now = new Date()
 
   const vencidas = tareas.filter(
@@ -492,6 +523,38 @@ const NotificationsPanel = ({ tareas, loading, onClose, onNavigate }) => {
       </div>
 
       <div className="max-h-[420px] overflow-y-auto">
+        {/* Confirmaciones de sugerencias recibidas */}
+        {confirmaciones.length > 0 && (
+          <div>
+            <p className="flex items-center gap-1.5 border-b border-slate-100 bg-cyan-50 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-cyan-700">
+              <CheckCircle2 size={11} strokeWidth={2} />
+              Sugerencias recibidas ({confirmaciones.length})
+            </p>
+            {confirmaciones.map((s) => (
+              <div key={s.id} className="flex items-start gap-2 border-b border-slate-100 px-4 py-3">
+                <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0 text-emerald-500" strokeWidth={2} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-slate-700">
+                    Tu mensaje fue recibido por el equipo administrativo
+                  </p>
+                  <p className="mt-0.5 truncate text-[11px] text-slate-500">“{s.sugerencia}”</p>
+                  <p className="mt-0.5 text-[10px] text-slate-400">
+                    {s.fecha_recibida && new Date(s.fecha_recibida).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onDescartarConfirmacion?.(s.id)}
+                  className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#001871]"
+                  title="Descartar"
+                >
+                  <X size={13} strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <RefreshCw

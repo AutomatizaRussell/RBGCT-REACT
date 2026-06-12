@@ -529,6 +529,35 @@ class ReglamentoItem(models.Model):
         return self.titulo
 
 
+class SugerenciaEmpleado(models.Model):
+    """Sugerencias, dudas o problemas enviados por cualquier empleado.
+
+    Flujo: el empleado envía → aparece en la campanita de los admin →
+    un admin marca "recibido" → el empleado ve la confirmación en la suya.
+    """
+    id = models.AutoField(primary_key=True)
+    empleado = models.ForeignKey(DatosEmpleado, on_delete=models.CASCADE,
+                                 db_column='id_empleado', related_name='sugerencias')
+    sugerencia = models.TextField()
+    fecha_envio = models.DateTimeField(auto_now_add=True)
+    recibida = models.BooleanField(default=False)
+    fecha_recibida = models.DateTimeField(null=True, blank=True)
+    # La confirmación deja de mostrarse en la campanita del empleado al verla.
+    confirmacion_vista = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'sugerencias_empleado'
+        managed = True
+        ordering = ['-fecha_envio']
+        indexes = [
+            models.Index(fields=['recibida', 'fecha_envio'], name='sugerencia_recibida_idx'),
+            models.Index(fields=['empleado', 'fecha_envio'], name='sugerencia_empleado_idx'),
+        ]
+
+    def __str__(self):
+        return f"Sugerencia {self.id} - {self.empleado}"
+
+
 class Alerta(models.Model):
     TIPOS_ALERTA = [
         ('recuperacion_password', 'Recuperación de Contraseña'),

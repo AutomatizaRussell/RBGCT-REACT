@@ -16,6 +16,7 @@ import UtilidadesSection from '../components/admin2/UtilidadesSection'
 import { getAllCursos, getCursoHistorial } from '../lib/api'
 import StatCard from '../components/ui/StatCard'
 import ActionButton from '../components/ui/ActionButton'
+import SugerenciasChat from '../components/common/SugerenciasChat'
 
 const EditorDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -293,6 +294,7 @@ const EditorDashboard = () => {
           {renderContent()}
         </div>
       </main>
+      <SugerenciasChat />
     </div>
   )
 }

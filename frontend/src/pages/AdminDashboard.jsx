@@ -30,6 +30,7 @@ import TaskDashboard from '../components/tasks/TaskDashboard';
 import N8nLogs from '../components/users/N8nLogs';
 import SystemSettings from '../components/users/SystemSettings';
 import ApiKeyManager from '../components/admin/ApiKeyManager';
+import SugerenciasChat from '../components/common/SugerenciasChat';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -468,6 +469,8 @@ const AdminDashboard = () => {
         />
         <div className="p-4 lg:p-10 overflow-auto flex-1">{renderContent()}</div>
       </main>
+
+      <SugerenciasChat />
 
       {/* Modal de Alertas */}
       <AlertasModal

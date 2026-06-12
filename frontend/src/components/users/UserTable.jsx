@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
-import { Trash2, Shield, ShieldCheck, UserX, UserCheck, X, Check, Loader2, Search, Mail, Calendar, Hash, Briefcase, Info, AlertTriangle, Activity, Edit3, Save, UserPlus, Lock, KeyRound, FileSpreadsheet, Download } from 'lucide-react';
-import { updateEmpleado, cambiarEstadoEmpleado, deleteEmpleado, actualizarPasswordEmpleado, getCertPermisosBackend, setCertPermisoBackend } from '../../lib/api';
+import { Trash2, Shield, ShieldCheck, UserX, UserCheck, X, Check, Loader2, Search, Mail, Calendar, Hash, Briefcase, Info, AlertTriangle, Activity, Edit3, Save, UserPlus, Lock, KeyRound, FileSpreadsheet, Download, MessageSquareText, CheckCheck } from 'lucide-react';
+import { updateEmpleado, cambiarEstadoEmpleado, deleteEmpleado, actualizarPasswordEmpleado, getCertPermisosBackend, setCertPermisoBackend, getSugerencias } from '../../lib/api';
 import { exportEmpleadosCSV, exportEmpleadosXLSX } from '../../lib/exportEmpleados';
 import RoleModal from './RoleModal';
 import AuthContext from '../../context/AuthContext';
@@ -47,6 +47,23 @@ const UserTable = () => {
 
   const [certPermEdit, setCertPermEdit] = useState(false);
   const [certPermisosBackend, setCertPermisosBackend] = useState([]);
+
+  // Historial de sugerencias del colaborador (modal sobre la ficha)
+  const [sugerenciasUser, setSugerenciasUser] = useState(null);
+  const [loadingSugerencias, setLoadingSugerencias] = useState(false);
+
+  const abrirSugerencias = async (user) => {
+    setLoadingSugerencias(true);
+    setSugerenciasUser({ user, lista: [] });
+    try {
+      const data = await getSugerencias({ empleado_id: user.id_empleado });
+      setSugerenciasUser({ user, lista: data?.sugerencias || [] });
+    } catch {
+      setSugerenciasUser({ user, lista: [], error: true });
+    } finally {
+      setLoadingSugerencias(false);
+    }
+  };
 
   useEffect(() => {
     getCertPermisosBackend()
@@ -500,8 +517,64 @@ const UserTable = () => {
               <DetailItem icon={<Mail size={16}/>} label="Email" value={selectedUser.correo_corporativo} />
               <DetailItem icon={<Shield size={16}/>} label="UUID Autenticación" value={selectedUser.auth_id} colSpan />
             </div>
-            <div className="bg-slate-50 p-6 flex justify-end">
-              <button onClick={() => setSelectedUser(null)} className="px-8 py-3 bg-[#001871] text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform">Cerrar Ficha</button>
+            <div className="bg-slate-50 p-6 flex justify-between items-center gap-3">
+              {(isSuperAdmin || isAdmin) && (
+                <button
+                  onClick={() => abrirSugerencias(selectedUser)}
+                  className="flex items-center gap-2 px-5 py-3 bg-[#00a9ce] text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform hover:bg-[#0090b0]"
+                >
+                  <MessageSquareText size={14} /> Sugerencias
+                </button>
+              )}
+              <button onClick={() => setSelectedUser(null)} className="px-8 py-3 bg-[#001871] text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform ml-auto">Cerrar Ficha</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Historial de sugerencias del colaborador */}
+      {sugerenciasUser && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSugerenciasUser(null)}></div>
+          <div className="relative z-10 bg-white rounded-3xl w-full max-w-xl max-h-[80vh] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="bg-[#00a9ce] px-6 py-4 text-white flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <MessageSquareText size={18} />
+                <div className="min-w-0">
+                  <p className="font-bold text-sm truncate">Sugerencias de {sugerenciasUser.user.primer_nombre} {sugerenciasUser.user.primer_apellido}</p>
+                  <p className="text-[11px] text-cyan-100 truncate">{sugerenciasUser.user.correo_corporativo}</p>
+                </div>
+              </div>
+              <button onClick={() => setSugerenciasUser(null)} className="p-2 hover:bg-white/20 rounded-xl transition-colors shrink-0"><X size={18} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-slate-50">
+              {loadingSugerencias ? (
+                <div className="flex justify-center py-12"><Loader2 size={22} className="animate-spin text-[#00a9ce]" /></div>
+              ) : sugerenciasUser.lista.length === 0 ? (
+                <div className="text-center py-12">
+                  <MessageSquareText size={40} className="mx-auto text-slate-300 mb-3" />
+                  <p className="text-sm text-slate-500">{sugerenciasUser.error ? 'No se pudieron cargar las sugerencias' : 'Este colaborador no ha enviado sugerencias'}</p>
+                </div>
+              ) : (
+                sugerenciasUser.lista.map(s => (
+                  <div key={s.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <p className="text-[11px] font-semibold text-slate-400">
+                        {new Date(s.fecha_envio).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                      {s.recibida ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold uppercase"><CheckCheck size={11} /> Recibida</span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-lg text-[10px] font-bold uppercase">Pendiente</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">{s.sugerencia}</p>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="p-4 border-t border-slate-100 bg-white flex-shrink-0">
+              <button onClick={() => setSugerenciasUser(null)} className="w-full py-2.5 bg-[#001871] text-white rounded-xl font-semibold text-sm hover:bg-[#003366] transition-colors">Cerrar</button>
             </div>
           </div>
         </div>

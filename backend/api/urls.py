@@ -52,6 +52,12 @@ urlpatterns = [
     path('ping/', views.ping_actividad, name='ping_actividad'),
     # Health check para watchdog e infraestructura (público, sin auth)
     path('health/', views.health_check, name='health_check'),
+    # Sugerencias de empleados
+    path('sugerencias/', views.crear_sugerencia, name='crear_sugerencia'),
+    path('sugerencias/mias/', views.mis_sugerencias, name='mis_sugerencias'),
+    path('sugerencias/listado/', views.listar_sugerencias, name='listar_sugerencias'),
+    path('sugerencias/<int:sugerencia_id>/recibir/', views.recibir_sugerencia, name='recibir_sugerencia'),
+    path('sugerencias/<int:sugerencia_id>/vista/', views.confirmar_sugerencia_vista, name='confirmar_sugerencia_vista'),
     # JWT
     path('token/refresh/', views.refresh_token_view, name='token_refresh'),
     # Proxy n8n (server-side, sin CORS)

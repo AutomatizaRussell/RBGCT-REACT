@@ -423,6 +423,25 @@ export const habilitarEdicionMasivaSuperAdmin = (adminEmail, adminPassword, habi
     body: JSON.stringify({ admin_email: adminEmail, admin_password: adminPassword, habilitar }),
   });
 
+// ── SUGERENCIAS DE EMPLEADOS ─────────────────────────────────────────────────
+
+export const enviarSugerencia = (sugerencia) =>
+  fetchApi('/sugerencias/', { method: 'POST', body: JSON.stringify({ sugerencia }) });
+
+export const getMisSugerencias = () => fetchApi('/sugerencias/mias/');
+
+export const confirmarSugerenciaVista = (id) =>
+  fetchApi(`/sugerencias/${id}/vista/`, { method: 'POST' });
+
+// Admin: listado (filtros: { empleado_id, pendientes })
+export const getSugerencias = (params = {}) => {
+  const q = new URLSearchParams(params).toString();
+  return fetchApi(`/sugerencias/listado/${q ? `?${q}` : ''}`);
+};
+
+export const recibirSugerencia = (id) =>
+  fetchApi(`/sugerencias/${id}/recibir/`, { method: 'POST' });
+
 // ── ACTIVIDAD ─────────────────────────────────────────────────────────────────
 
 export const healthCheck = () => fetchApi('/health/');
