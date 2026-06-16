@@ -471,11 +471,17 @@ export default function FormulariosSQF({ onBack }) {
         appendLoggedUserMeta(formData);
 
         try {
-            await fetch(N8N_WEBHOOKS.client, { method: 'POST', mode: 'no-cors', body: formData });
-            showToastMsg('success', 'Cliente Creado', 'El cliente fue registrado exitosamente.');
-            form.reset();
-            resetClientForm();
-            setTimeout(loadDataFromWebhooks, 1000);
+            const res = await fetch(N8N_WEBHOOKS.client, { method: 'POST', body: formData });
+            if (res.status === 409) {
+                showToastMsg('error', 'Cliente Duplicado', 'El cliente ya se encuentra registrado.');
+            } else if (!res.ok) {
+                showToastMsg('error', 'Error', 'Ocurrió un error al registrar el cliente.');
+            } else {
+                showToastMsg('success', 'Cliente Creado', 'El cliente fue registrado exitosamente.');
+                form.reset();
+                resetClientForm();
+                setTimeout(loadDataFromWebhooks, 1000);
+            }
         } catch {
             showToastMsg('error', 'Error de Conexión', 'Ocurrió un error al conectar con n8n.');
         } finally {
@@ -550,7 +556,7 @@ export default function FormulariosSQF({ onBack }) {
         const today = new Date().toISOString().split('T')[0];
         formData.append('startDate', today);
         formData.append('endDate', calculateBusinessDaysDate(today, 5));
-
+        
         if (!isValid) { setContractErrors(errors); return; }
 
         setIsSubmittingContract(true);
