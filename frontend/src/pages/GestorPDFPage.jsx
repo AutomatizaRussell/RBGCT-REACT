@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   FileText, Upload, Download, X, Loader2, 
   Merge, Scissors, RotateCw, Lock, Unlock, Droplet, 
@@ -67,8 +67,14 @@ export default function GestorPDFPage() {
     align: 'left',
   });
   const editorCanvasRef = useRef(null);
-  const [_isDragging, _setIsDragging] = useState(false);
-  const [_dragOffset, _setDragOffset] = useState({ x: 0, y: 0 });
+  const isDraggingRef = useRef(false);
+  const draggingElementIdRef = useRef(null);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const pdfUrlRef = useRef(null);
+
+  useEffect(() => {
+    return () => { if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current); };
+  }, []);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
@@ -308,13 +314,25 @@ export default function GestorPDFPage() {
   };
 
   // ========== EDITOR VISUAL FUNCIONES ==========
-  const cargarPDFParaEditar = (file) => {
+  const cargarPDFParaEditar = async (file) => {
+    if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
     const url = URL.createObjectURL(file);
+    pdfUrlRef.current = url;
+
+    let totalPaginas = 1;
+    try {
+      const pdfjsLib = await import('pdfjs-dist');
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      totalPaginas = pdfDoc.numPages;
+    } catch (_) { /* fallback a 1 */ }
+
     setEditorVisual(prev => ({
       ...prev,
       pdfCargado: file,
       pdfUrl: url,
       paginaActual: 0,
+      totalPaginas,
       elementos: [],
     }));
   };
@@ -352,6 +370,38 @@ export default function GestorPDFPage() {
       ...prev,
       elementos: prev.elementos.map(el => el.id === id ? { ...el, ...cambios } : el),
     }));
+  };
+
+  const handleElementMouseDown = (e, elId) => {
+    if (editorVisual.herramientaActiva !== 'seleccionar') return;
+    e.preventDefault();
+    e.stopPropagation();
+    setElementoSeleccionado(elId);
+    const rect = editorCanvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const el = editorVisual.elementos.find(el => el.id === elId);
+    if (!el) return;
+    isDraggingRef.current = true;
+    draggingElementIdRef.current = elId;
+    dragOffsetRef.current = {
+      x: (e.clientX - rect.left) - el.x,
+      y: (e.clientY - rect.top) - el.y,
+    };
+  };
+
+  const handleCanvasMouseMove = (e) => {
+    if (!isDraggingRef.current || !draggingElementIdRef.current) return;
+    const rect = editorCanvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    actualizarElemento(draggingElementIdRef.current, {
+      x: (e.clientX - rect.left) - dragOffsetRef.current.x,
+      y: (e.clientY - rect.top) - dragOffsetRef.current.y,
+    });
+  };
+
+  const handleCanvasMouseUp = () => {
+    isDraggingRef.current = false;
+    draggingElementIdRef.current = null;
   };
 
   const manejarClickCanvas = (e) => {
@@ -472,7 +522,29 @@ export default function GestorPDFPage() {
               {pestañaActiva === 'insertar' && (
                 <div className="flex flex-wrap items-center gap-4">
                   <button onClick={() => setEditorVisual(prev => ({ ...prev, herramientaActiva: 'texto' }))} className={`p-2 rounded ${editorVisual.herramientaActiva === 'texto' ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Type size={20} /></button>
-                  <button onClick={() => imagenInputRef.current?.click()} className="p-2 hover:bg-slate-100 rounded"><Image size={20} /></button>
+                  <button
+                    onClick={() => imagenInputRef.current?.click()}
+                    className="p-2 hover:bg-slate-100 rounded"
+                  >
+                    <Image size={20} />
+                  </button>
+                  <input
+                    ref={imagenInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (evt) => {
+                        const nuevoId = agregarElementoVisual('imagen');
+                        actualizarElemento(nuevoId, { contenido: evt.target.result });
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = '';
+                    }}
+                  />
                   <button onClick={() => setEditorVisual(prev => ({ ...prev, herramientaActiva: 'rectangulo' }))} className={`p-2 rounded ${editorVisual.herramientaActiva === 'rectangulo' ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Square size={20} /></button>
                   <button onClick={() => setEditorVisual(prev => ({ ...prev, herramientaActiva: 'circulo' }))} className={`p-2 rounded ${editorVisual.herramientaActiva === 'circulo' ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Circle size={20} /></button>
                   <button onClick={() => setEditorVisual(prev => ({ ...prev, herramientaActiva: 'linea' }))} className={`p-2 rounded ${editorVisual.herramientaActiva === 'linea' ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Minus size={20} /></button>
@@ -487,6 +559,9 @@ export default function GestorPDFPage() {
               className="relative bg-white shadow-lg mx-auto"
               style={{ width: `${612 * editorVisual.zoom}px`, height: `${792 * editorVisual.zoom}px` }}
               onClick={manejarClickCanvas}
+              onMouseMove={handleCanvasMouseMove}
+              onMouseUp={handleCanvasMouseUp}
+              onMouseLeave={handleCanvasMouseUp}
             >
               <iframe
                 src={`${editorVisual.pdfUrl}#page=${editorVisual.paginaActual + 1}`}
@@ -507,10 +582,8 @@ export default function GestorPDFPage() {
                       color: el.estilo?.color,
                       fontSize: el.estilo?.fontSize,
                     }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setElementoSeleccionado(el.id);
-                    }}
+                    onClick={(e) => { e.stopPropagation(); setElementoSeleccionado(el.id); }}
+                    onMouseDown={(e) => handleElementMouseDown(e, el.id)}
                   >
                     {el.tipo === 'texto' ? (
                       <div contentEditable suppressContentEditableWarning className="w-full h-full outline-none p-1" onBlur={(e) => actualizarElemento(el.id, { contenido: e.target.innerText })}>
@@ -529,9 +602,19 @@ export default function GestorPDFPage() {
                 ))}
             </div>
             <div className="flex items-center justify-center gap-4 mt-4">
-              <button onClick={() => setEditorVisual(prev => ({ ...prev, paginaActual: Math.max(0, prev.paginaActual - 1) }))} disabled={editorVisual.paginaActual === 0} className="p-2 bg-white rounded-lg disabled:opacity-50"><ChevronLeft size={20} /></button>
-              <span className="text-sm font-medium text-slate-600">Página {editorVisual.paginaActual + 1}</span>
-              <button onClick={() => setEditorVisual(prev => ({ ...prev, paginaActual: prev.paginaActual + 1 }))} className="p-2 bg-white rounded-lg"><ChevronRight size={20} /></button>
+              <button
+                onClick={() => setEditorVisual(prev => ({ ...prev, paginaActual: Math.max(0, prev.paginaActual - 1) }))}
+                disabled={editorVisual.paginaActual === 0}
+                className="p-2 bg-white rounded-lg disabled:opacity-50"
+              ><ChevronLeft size={20} /></button>
+              <span className="text-sm font-medium text-slate-600">
+                Página {editorVisual.paginaActual + 1}{editorVisual.totalPaginas > 0 ? ` de ${editorVisual.totalPaginas}` : ''}
+              </span>
+              <button
+                onClick={() => setEditorVisual(prev => ({ ...prev, paginaActual: Math.min(prev.totalPaginas - 1, prev.paginaActual + 1) }))}
+                disabled={editorVisual.totalPaginas > 0 && editorVisual.paginaActual >= editorVisual.totalPaginas - 1}
+                className="p-2 bg-white rounded-lg disabled:opacity-50"
+              ><ChevronRight size={20} /></button>
             </div>
           </div>
           <div className="p-4 bg-white border-t border-slate-200">
@@ -607,7 +690,7 @@ export default function GestorPDFPage() {
       <div className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/app/utilidades" className="p-2 hover:bg-slate-100 rounded-xl"><ArrowLeft size={20} className="text-slate-500" /></Link>
+            <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-xl"><ArrowLeft size={20} className="text-slate-500" /></button>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-gradient-to-br from-red-500 to-red-600 rounded-xl"><FileText size={24} className="text-white" /></div>
               <div><h1 className="text-xl font-black text-[#001871]">Gestor de PDFs</h1><p className="text-xs text-slate-400">Editor profesional</p></div>
@@ -675,9 +758,12 @@ export default function GestorPDFPage() {
                     )}
                   </div>
                 )}
-                {archivos.length > 0 && renderOpcionesHerramienta() && (
-                  <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">{renderOpcionesHerramienta()}</div>
-                )}
+                {(() => {
+                  const optsRender = archivos.length > 0 ? renderOpcionesHerramienta() : null;
+                  return optsRender && (
+                    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">{optsRender}</div>
+                  );
+                })()}
               </div>
               <div className="space-y-6">
                 {archivos.length > 0 && !resultado && herramientaActiva !== 'editor' && herramientaActiva !== 'crear' && (
