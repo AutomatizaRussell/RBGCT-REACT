@@ -454,7 +454,7 @@ export default function FormulariosSQF({ onBack }) {
 
         try {
             await fetch(N8N_WEBHOOKS.client, { method: 'POST', mode: 'no-cors', body: formData });
-            showToastMsg('success', 'Cliente Creado', 'La información se envió a n8n y el cliente fue registrado.');
+            showToastMsg('success', 'Cliente Creado', 'El cliente fue registrado exitosamente.');
             form.reset();
             resetClientForm();
             setTimeout(loadDataFromWebhooks, 1000);
@@ -553,7 +553,7 @@ export default function FormulariosSQF({ onBack }) {
 
         try {
             await fetch(N8N_WEBHOOKS.contract, { method: 'POST', mode: 'no-cors', body: formData });
-            showToastMsg('success', 'Contrato Creado', 'La información se envió a n8n y el contrato fue registrado.');
+            showToastMsg('success', 'Contrato Creado', 'El contrato fue registrado exitosamente.');
             form.reset();
             resetContractForm();
             setTimeout(loadDataFromWebhooks, 1000);
