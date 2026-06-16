@@ -60,6 +60,14 @@ const BILLING_DESCRIPTIONS = [
     { name: 'Otros Servicios', code: 'OTR-010' }
 ];
 
+const CONTRACT_ROLES = [
+    'Socio',
+    'Gerente 1', 'Gerente 2', 'Gerente 3',
+    'Senior 1', 'Senior 2', 'Senior 3',
+    'Líder/Semi-Senior 1', 'Líder/Semi-Senior 2', 'Líder/Semi-Senior 3',
+    'Analista/Asistente 1', 'Analista/Asistente 2', 'Analista/Asistente 3', 'Analista/Asistente 4',
+];
+
 // Permisos por sección del formulario (flags en DatosEmpleado)
 const SQF_SECTIONS = [
     { id: 'clients', flag: 'acceso_sqf_clientes' },
@@ -134,6 +142,7 @@ export default function FormulariosSQF({ onBack }) {
     const [originRef, setOriginRef] = useState('');
     const [billingCloser, setBillingCloser] = useState('');
     const [billingAreas, setBillingAreas] = useState([{ id: 1, centro: '', concepto: '', valor: '' }]);
+    const [contractRoles, setContractRoles] = useState([{ id: 1, cargo: '', horas: '' }]);
 
     const [auditorModalItem, setAuditorModalItem] = useState(null);
     const [auditorModalType, setAuditorModalType] = useState('');
@@ -494,6 +503,7 @@ export default function FormulariosSQF({ onBack }) {
     const resetContractForm = () => {
         setShowContractForm(false); setSelectedClientForContract(null);
         setClientDropdownQuery(''); setIsClientDropdownOpen(false); setContractErrors({});
+        setContractRoles([{ id: 1, cargo: '', horas: '' }]);
     };
 
     const selectClientFromDropdown = (client) => {
@@ -511,10 +521,13 @@ export default function FormulariosSQF({ onBack }) {
         
         const form = e.target;
         const formData = new FormData(form);
-        const reqFields = ['economicGroup', 'name', 'value', 'manager', 'service', 'roles'];
+        const reqFields = ['economicGroup', 'name', 'value', 'manager', 'service'];
         reqFields.forEach(f => {
             if (!formData.get(f)?.trim()) { errors[f] = 'Este campo es requerido'; isValid = false; }
         });
+
+        const rolesValid = contractRoles.every(r => r.cargo.trim() && r.horas.toString().trim());
+        if (!rolesValid) { errors.roles = 'Completa cargo y horas en todos los registros'; isValid = false; }
 
         const today = new Date().toISOString().split('T')[0];
         formData.append('startDate', today);
@@ -523,9 +536,10 @@ export default function FormulariosSQF({ onBack }) {
         if (!isValid) { setContractErrors(errors); return; }
 
         setIsSubmittingContract(true);
-        ['economicGroup', 'name', 'manager', 'service', 'roles', 'notes'].forEach(f => {
+        ['economicGroup', 'name', 'manager', 'service', 'notes'].forEach(f => {
             const v = formData.get(f); if (v) formData.set(f, v.toUpperCase());
         });
+        formData.append('roles', JSON.stringify(contractRoles.map(r => ({ cargo: r.cargo.toUpperCase(), horas: r.horas }))));
         formData.append('id', generateId('CTR'));
         formData.append('clientId', selectedClientForContract.id);
         formData.append('clientName', selectedClientForContract.name.toUpperCase());
@@ -570,6 +584,21 @@ export default function FormulariosSQF({ onBack }) {
         setBillingAreas(billingAreas.map(area => area.id === id ? { ...area, [field]: value } : area));
     };
 
+    const addContractRole = () => {
+        setContractRoles(prev => [...prev, { id: prev.length + 1, cargo: '', horas: '' }]);
+    };
+
+    const removeContractRole = (idToRemove) => {
+        if (contractRoles.length === 1) return;
+        setContractRoles(prev =>
+            prev.filter(r => r.id !== idToRemove).map((r, i) => ({ ...r, id: i + 1 }))
+        );
+    };
+
+    const updateContractRole = (id, field, value) => {
+        setContractRoles(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+    };
+
     const resetBillingForm = () => {
         setBillingReqType('facturacion'); setBillingModality(''); setBillingType('Servicio nuevo'); setBillingClientType('Cliente nuevo');
         setBillingClientName(''); setBillingCompany(''); setSaleType(''); setCrossSalePerson('');
@@ -605,10 +634,6 @@ export default function FormulariosSQF({ onBack }) {
         }
 
         setBillingClientDocument(clientNit || '');
-
-        const today = new Date().toISOString().split('T')[0];
-        const dueDate = calculateBusinessDaysDate(today, 5);
-        setBillingDueDate(dueDate);
 
         let sType = 'Otro';
         const cTypeStr = String(contract?.contractType || '');
@@ -663,6 +688,8 @@ export default function FormulariosSQF({ onBack }) {
             return { code, quantity, unitPrice, description, total: quantity * unitPrice };
         }).filter(it => it.code || it.quantity || it.unitPrice || it.description);
 
+        const autoDueDate = calculateBusinessDaysDate(new Date().toISOString().split('T')[0], 3);
+
         const payload = {
             id: generateId('BIL'), tipoSolicitud: 'Facturación', billingType, billingClientType,
             billingModality, modalidad_facturacion: billingModality,
@@ -675,9 +702,9 @@ export default function FormulariosSQF({ onBack }) {
             clientDocument: billingClientDocument || '',
             nit: billingClientDocument || '',
             documento: billingClientDocument || '',
-            dueDate: billingDueDate || '',
-            fecha_vencimiento: billingDueDate || '',
-            fechaVencimiento: billingDueDate || '',
+            dueDate: autoDueDate,
+            fecha_vencimiento: autoDueDate,
+            fechaVencimiento: autoDueDate,
             observations: billingObservations || '',
             observaciones: billingObservations || '',
             items: JSON.stringify(parsedItems),
@@ -1281,8 +1308,35 @@ export default function FormulariosSQF({ onBack }) {
                                         <span className="field-error">{contractErrors.service}</span>
                                     </div>
                                     <div className="form-group full-width">
-                                        <label className="form-label required">Cargos y Horas Asignadas</label>
-                                        <textarea name="roles" className="form-input form-textarea" rows="3"></textarea>
+                                        <div className="areas-header">
+                                            <span className="areas-title">Cargos y Horas Asignadas</span>
+                                            <button type="button" className="btn-secondary" style={{ padding: '6px 14px', fontSize: '13px' }} onClick={addContractRole}>
+                                                + Agregar cargo
+                                            </button>
+                                        </div>
+                                        {contractRoles.map((role) => (
+                                            <div key={role.id} className="area-block" style={{ marginBottom: '10px' }}>
+                                                <div className="area-block-header">
+                                                    <span className="area-block-label">Cargo {role.id}</span>
+                                                    {contractRoles.length > 1 && (
+                                                        <button type="button" className="btn-remove-area" onClick={() => removeContractRole(role.id)}>✕ Quitar</button>
+                                                    )}
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                    <div className="form-group">
+                                                        <label className="form-label required">Cargo / Rol</label>
+                                                        <select className="form-input form-select" value={role.cargo} onChange={(e) => updateContractRole(role.id, 'cargo', e.target.value)}>
+                                                            <option value="">-- Seleccionar cargo --</option>
+                                                            {CONTRACT_ROLES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label className="form-label required">Horas Asignadas</label>
+                                                        <input type="number" min="1" className="form-input" placeholder="Ej: 40" value={role.horas} onChange={(e) => updateContractRole(role.id, 'horas', e.target.value)} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
                                         <span className="field-error">{contractErrors.roles}</span>
                                     </div>
                                     <div className="form-group full-width">
@@ -1418,10 +1472,6 @@ export default function FormulariosSQF({ onBack }) {
                                             <div className="form-group">
                                                 <label className="form-label">Referencia</label>
                                                 <input type="text" className="form-input" value={billingReference} onChange={(e) => setBillingReference(e.target.value)} />
-                                            </div>
-                                            <div className="form-group">
-                                                <label className="form-label">Fecha Vencimiento</label>
-                                                <input type="date" className="form-input" value={billingDueDate} onChange={(e) => setBillingDueDate(e.target.value)} />
                                             </div>
                                             <div className="form-group full-width">
                                                 <label className="form-label">Observaciones</label>
