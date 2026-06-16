@@ -68,6 +68,22 @@ const CONTRACT_ROLES = [
     'Analista/Asistente 1', 'Analista/Asistente 2', 'Analista/Asistente 3', 'Analista/Asistente 4',
 ];
 
+const BILLING_CENTERS = {
+    'REVISORIA FISCAL':      [{ label: 'REVISORIA FISCAL',          code: '01 - 0101' }, { label: 'AUDITORIA EXTERNA',            code: '01 - 0102' }],
+    'CONTABILIDAD':          [{ label: 'CONTABILIDAD',              code: '02 - 0201' }, { label: 'RENTA MEDIOS CONTABILIDAD',    code: '02 - 0203' }],
+    'IMPUESTOS':             [{ label: 'IMPUESTOS',                 code: '03 - 0301' }, { label: 'RENTA MEDIOS IMPUESTOS',       code: '03 - 0302' }],
+    'BPO':                   [{ label: 'BPO',                       code: '04 - 0202' }],
+    'LEGAL':                 [{ label: 'LEGAL',                     code: '06 - 0601' }],
+    'FINANZAS':              [{ label: 'FINANZAS',                  code: '07 - 0701' }],
+    'PROPIEDAD INTELECTUAL': [{ label: 'PROPIEDAD INTELECTUAL',     code: '08 - 0801' }],
+    'ADMINISTRACIÓN':        [
+        { label: 'ADMINISTRACION TI',      code: '99 - 0901' },
+        { label: 'ADMINISTRACION MERCADEO', code: '99 - 1001' },
+        { label: 'ADMINISTRACION 2',        code: '99 - 8888' },
+        { label: 'ADMINISTRACIÓN',          code: '99 - 9999' },
+    ],
+};
+
 // Permisos por sección del formulario (flags en DatosEmpleado)
 const SQF_SECTIONS = [
     { id: 'clients', flag: 'acceso_sqf_clientes' },
@@ -583,7 +599,19 @@ export default function FormulariosSQF({ onBack }) {
     };
 
     const updateArea = (id, field, value) => {
-        setBillingAreas(billingAreas.map(area => area.id === id ? { ...area, [field]: value } : area));
+        setBillingAreas(prev => prev.map(area => {
+            if (area.id !== id) return area;
+            if (field === 'centro') {
+                setBillingReference('');
+                return { ...area, centro: value, concepto: '' };
+            }
+            if (field === 'concepto') {
+                const found = (BILLING_CENTERS[area.centro] || []).find(c => c.label === value);
+                if (found) setBillingReference(found.code);
+                return { ...area, concepto: value };
+            }
+            return { ...area, [field]: value };
+        }));
     };
 
     const addContractRole = () => {
@@ -648,7 +676,8 @@ export default function FormulariosSQF({ onBack }) {
         else { setBillingValorProyecto(val); setBillingValorMes(''); }
 
         setBillingCloser(contract?.manager || '');
-        setBillingAreas([{ id: 1, centro: 'Administración', concepto: contract?.name || '', valor: val }]);
+        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val }]);
+        setBillingReference('');
 
         showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
     };
@@ -1561,7 +1590,7 @@ export default function FormulariosSQF({ onBack }) {
                                             </div>
                                             <div className="form-group">
                                                 <label className="form-label">Referencia</label>
-                                                <input type="text" className="form-input" value={billingReference} onChange={(e) => setBillingReference(e.target.value)} />
+                                                <input type="text" className="form-input" value={billingReference} readOnly placeholder="Se completa al elegir concepto" style={{ background: '#f5f9ff', cursor: 'default', color: billingReference ? 'var(--color-text)' : 'var(--color-text-light)' }} />
                                             </div>
                                             <div className="form-group full-width">
                                                 <label className="form-label">Observaciones</label>
@@ -1716,8 +1745,20 @@ export default function FormulariosSQF({ onBack }) {
                                                             {index > 0 && <button type="button" className="btn-remove-area" onClick={() => removeAreaBlock(area.id)}>✕ Eliminar</button>}
                                                         </div>
                                                         <div className="form-grid" style={{ gridTemplateColumns: '1fr 1.5fr 1fr', padding: 0 }}>
-                                                            <div className="form-group"><label className="form-label required">Centro</label><input type="text" className="form-input" value={area.centro} onChange={(e) => updateArea(area.id, 'centro', e.target.value)} /></div>
-                                                            <div className="form-group"><label className="form-label required">Concepto</label><input type="text" className="form-input" value={area.concepto} onChange={(e) => updateArea(area.id, 'concepto', e.target.value)} /></div>
+                                                            <div className="form-group">
+                                                                <label className="form-label required">Centro</label>
+                                                                <select className="form-input form-select" value={area.centro} onChange={(e) => updateArea(area.id, 'centro', e.target.value)}>
+                                                                    <option value="">-- Seleccionar --</option>
+                                                                    {Object.keys(BILLING_CENTERS).map(c => <option key={c} value={c}>{c}</option>)}
+                                                                </select>
+                                                            </div>
+                                                            <div className="form-group">
+                                                                <label className="form-label required">Concepto</label>
+                                                                <select className="form-input form-select" value={area.concepto} onChange={(e) => updateArea(area.id, 'concepto', e.target.value)} disabled={!area.centro}>
+                                                                    <option value="">-- Seleccionar --</option>
+                                                                    {(BILLING_CENTERS[area.centro] || []).map(c => <option key={c.code} value={c.label}>{c.label}</option>)}
+                                                                </select>
+                                                            </div>
                                                             <div className="form-group"><label className="form-label required">Valor</label><div className="input-currency-wrapper"><span className="currency-prefix">$</span><input type="text" className="form-input currency-input" value={area.valor} onChange={(e) => updateArea(area.id, 'valor', formatCurrency(e.target.value))} /></div></div>
                                                         </div>
                                                     </div>
