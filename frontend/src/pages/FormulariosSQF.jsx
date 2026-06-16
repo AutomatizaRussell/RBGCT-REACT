@@ -304,7 +304,8 @@ export default function FormulariosSQF({ onBack }) {
                     info: c.info || '',
                     createdAt: c.createdAt || '',
                     status: c.status || c.Estado || 'Validado',
-                    source: c.source || ''
+                    source: c.source || '',
+                    solicitante_nombre: c.solicitante_nombre || c.Solicitante || c.solicitante || ''
                 }));
                 setClients(mappedClients);
             }
@@ -337,7 +338,8 @@ export default function FormulariosSQF({ onBack }) {
                         roles: c.roles || c.Posiciones || '',
                         notes: c.notes || '',
                         createdAt: c.createdAt || '',
-                        status: c.status || c.Estado || 'Validado'
+                        status: c.status || c.Estado || 'Validado',
+                        solicitante_nombre: c.solicitante_nombre || c.Solicitante || c.solicitante || ''
                     };
                 });
                 setContracts(mappedContracts);
@@ -1165,6 +1167,49 @@ export default function FormulariosSQF({ onBack }) {
                             )}
                         </div>
                     </div>
+
+                    {/* Histórico de clientes */}
+                    <div className="list-card" style={{ marginTop: '28px' }}>
+                        <div className="list-header">
+                            <h2 className="list-title">Histórico de Clientes</h2>
+                        </div>
+                        <div>
+                            {validClients.length === 0 ? (
+                                <div className="empty-state">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="empty-icon"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
+                                    <p>Sin registros aún.</p>
+                                </div>
+                            ) : (
+                                <div className="profile-scroll">
+                                    <table className="profile-table">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Cliente / Razón Social</th>
+                                                <th>Solicitante</th>
+                                                <th>Fecha de Solicitud</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[...validClients]
+                                                .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+                                                .map((c, i) => (
+                                                    <tr key={i}>
+                                                        <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                                                        <td className="td-wrap"><strong>{c?.name || '—'}</strong></td>
+                                                        <td>{c?.solicitante_nombre || '—'}</td>
+                                                        <td style={{ whiteSpace: 'nowrap' }}>{formatDateSafe(c?.createdAt) || '—'}</td>
+                                                        <td><span className={`status-badge ${c?.status === 'Validado' ? 'validated' : 'pending'}`}>{c?.status || '—'}</span></td>
+                                                    </tr>
+                                                ))
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </section>
 
                 {/* ========== SECTION: CONTRATOS ========== */}
@@ -1391,6 +1436,51 @@ export default function FormulariosSQF({ onBack }) {
                                                     </td>
                                                 </tr>
                                             ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Histórico de contratos */}
+                    <div className="list-card" style={{ marginTop: '28px' }}>
+                        <div className="list-header">
+                            <h2 className="list-title">Histórico de Contratos</h2>
+                        </div>
+                        <div>
+                            {validContracts.length === 0 ? (
+                                <div className="empty-state">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="empty-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                                    <p>Sin registros aún.</p>
+                                </div>
+                            ) : (
+                                <div className="profile-scroll">
+                                    <table className="profile-table">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Contrato / Proyecto</th>
+                                                <th>Cliente</th>
+                                                <th>Solicitante</th>
+                                                <th>Fecha de Solicitud</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[...validContracts]
+                                                .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+                                                .map((c, i) => (
+                                                    <tr key={i}>
+                                                        <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                                                        <td className="td-wrap"><strong>{c?.name || '—'}</strong></td>
+                                                        <td>{c?.clientName || '—'}</td>
+                                                        <td>{c?.solicitante_nombre || '—'}</td>
+                                                        <td style={{ whiteSpace: 'nowrap' }}>{formatDateSafe(c?.createdAt) || '—'}</td>
+                                                        <td><span className={`status-badge ${c?.status === 'Validado' ? 'validated' : 'pending'}`}>{c?.status || '—'}</span></td>
+                                                    </tr>
+                                                ))
+                                            }
                                         </tbody>
                                     </table>
                                 </div>

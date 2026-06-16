@@ -21,6 +21,7 @@
      2.9 Configuraciones
      2.10 Notificaciones y Alertas
      2.11 Asistente IA (Gemini)
+     2.12 Sugerencias del Equipo
   3. ROL: USUARIO (Empleado)
      3.1 Panel Principal (Dashboard)
      3.2 Auto-gestión (Mis Tareas)
@@ -30,6 +31,8 @@
      3.6 Herramientas
      3.7 Mis Clientes
      3.8 Solicitar Certificado de Empleo
+     3.9 Formulario SQF
+     3.10 Enviar Sugerencias, Dudas o Problemas
   4. TABLA COMPARATIVA: ¿QUÉ PUEDE HACER CADA ROL?
   5. PREGUNTAS FRECUENTES
 
@@ -89,6 +92,8 @@
     - Activar o desactivar empleados.
     - Ver el perfil completo de cualquier empleado.
     - Cambiar el rol de un empleado (Usuario / Editor / Administrador).
+    - Ver el historial de sugerencias de cada colaborador (botón
+      "Sugerencias" en la ficha del empleado).
 
   ✘ No puede:
     - Eliminar empleados permanentemente (solo desactivarlos).
@@ -177,6 +182,28 @@
     - Recibir solicitudes de certificado enviadas por empleados.
     - Aceptar la solicitud y generar el certificado.
     - Rechazar la solicitud.
+    - Generar certificados directamente desde el Generador Legal,
+      seleccionando el empleado y completando los datos del documento.
+
+  Campos disponibles en el Generador Legal:
+    • Empleado           → Filtrar por área y seleccionar el empleado.
+    • Fecha de emisión   → Se completa automáticamente con la fecha actual.
+    • Consecutivo        → Número de radicado del certificado (ej: AD-26-XXX).
+    • Destinatario       → Entidad o persona a quien va dirigido.
+    • Empresa emisora    → GLT Gestión Legal o GCT Russell Bedford.
+    • Tipo de contrato   → Indefinido, Fijo u Obra o Labor.
+    • Salario            → Selector Sí/No. Si marca "Sí", ingrese el monto;
+                           el sistema lo convierte automáticamente a letras.
+    • Auxilio transporte → Selector Sí/No para incluirlo en el texto.
+    • Actividades        → Selector Sí/No. Si marca "Sí", aparece un campo
+                           de texto donde puede ingresar una actividad por
+                           línea. El bloque "Dentro de las actividades que
+                           realiza se encuentran:" aparecerá en el documento
+                           únicamente si hay contenido y está marcado "Sí".
+    • Firmante           → Nombre, cargo y C.C. de quien firma el certificado.
+
+  El certificado se puede imprimir directamente o enviar por correo
+  electrónico (se adjunta como PDF).
 
   Las solicitudes llegan también al ícono de campana (🔔) en la
   parte superior derecha.
@@ -193,9 +220,11 @@
   ► PERMISOS
     - Habilitar o deshabilitar que un empleado pueda editar
       su propio perfil (datos personales).
+    - Habilitar o deshabilitar el acceso a secciones del formulario SQF
+      por empleado (Clientes, Contratos, Facturación, Auditoría).
     - Requiere ingresar su contraseña de administrador para confirmar.
-    - Nota: este permiso es de un solo uso; el empleado podrá
-      editar sus datos una sola vez.
+    - Nota: el permiso de edición de perfil es de un solo uso; el empleado
+      podrá editar sus datos una sola vez.
 
   ► CONTRASEÑAS
     - Resetear la contraseña de cualquier empleado.
@@ -212,8 +241,10 @@
     su contraseña. Puede ver el detalle, marcarla como atendida
     o eliminarla.
   • Solicitudes de certificado (si tiene ese permiso habilitado).
+  • Sugerencias del equipo: mensajes enviados por los empleados
+    a través del botón de chat flotante. Ver sección 2.12.
 
-  Tipos de alertas:
+  Tipos de alertas de contraseña:
   - "Usuario Existe" (rojo): el email pertenece a un empleado registrado.
   - "No Registrado" (amarillo): el email no está en el sistema.
 
@@ -221,7 +252,7 @@
   2.11 ASISTENTE IA (Gemini)
 ────────────────────────────────────────────────────────────────────────────────
 
-  El botón de chat (ícono de burbuja) en la esquina inferior derecha
+  El botón de chat con ícono de burbuja en la esquina inferior derecha
   abre un asistente de inteligencia artificial.
 
   ✔ Puede usarlo para:
@@ -229,6 +260,31 @@
     - Redactar textos, resumir información, resolver dudas.
 
   ✘ El asistente no tiene acceso a los datos privados del sistema.
+
+  💡 En el panel Admin2 conviven dos botones flotantes: el Asistente IA
+     (derecha) y el botón de Sugerencias (desplazado a su izquierda).
+
+────────────────────────────────────────────────────────────────────────────────
+  2.12 SUGERENCIAS DEL EQUIPO
+────────────────────────────────────────────────────────────────────────────────
+
+  Los empleados pueden enviar mensajes al equipo administrativo desde
+  cualquier pantalla del sistema usando el botón flotante de chat (ícono
+  de mensaje, color cyan).
+
+  Como Administrador:
+
+  ✔ Puede:
+    - Ver todas las sugerencias recibidas en la pestaña "Sugerencias"
+      de la campanita (🔔), identificada con un badge cuando hay mensajes
+      nuevos sin leer.
+    - Marcar cada sugerencia como "Recibida". El empleado recibirá
+      una confirmación automática en su campanita.
+    - Ver el historial completo de sugerencias de cada colaborador
+      abriendo su ficha desde Gestión de Personal (botón "Sugerencias").
+
+  Cada mensaje muestra el texto, la fecha de envío y si ya fue marcado
+  como recibido.
 
 
 ================================================================================
@@ -272,7 +328,8 @@
 
   💡 Consejo: Use el ícono de campana (🔔) en la barra superior
      para ver rápidamente sus tareas pendientes sin salir de la
-     sección actual.
+     sección actual. La campana también muestra una notificación
+     cuando el administrador marca como recibida una sugerencia suya.
 
 ────────────────────────────────────────────────────────────────────────────────
   3.3 MI PERFIL
@@ -366,40 +423,106 @@
   ⚠ La aprobación depende del administrador.
     No es automática.
 
+────────────────────────────────────────────────────────────────────────────────
+  3.9 FORMULARIO SQF
+────────────────────────────────────────────────────────────────────────────────
+
+  El Formulario SQF centraliza la gestión operativa de clientes, contratos,
+  facturación y auditoría. Aparece en el menú lateral si el administrador
+  le otorgó acceso.
+
+  Las secciones visibles dependen de los permisos que le haya asignado
+  el administrador. Puede ver solo las pestañas habilitadas para usted:
+
+  ► CLIENTES
+    - Registrar y consultar los clientes asociados a su trabajo.
+    - Buscar clientes existentes antes de crear uno nuevo.
+
+  ► CONTRATOS
+    - Crear contratos para los clientes registrados.
+    - Completar los datos del contrato:
+        • Grupo económico, nombre del cliente, valor, gestor, servicio.
+        • Tabla de roles y horas: agregue una fila por cada perfil
+          que participará en el contrato. Seleccione el cargo del listado
+          (Socio, Gerente 1-3, Senior 1-3, Líder/Semi-Senior 1-3,
+          Analista/Asistente 1-4) e ingrese las horas estimadas.
+          Puede agregar o eliminar filas con los botones (+) y (×).
+          Todos los registros de cargo y horas son obligatorios.
+        • Notas adicionales (opcional).
+
+  ► FACTURACIÓN
+    - Registrar solicitudes de facturación asociadas a contratos activos.
+    - Seleccionar modalidad, tipo de servicio y conceptos a facturar.
+
+  ► AUDITORÍA
+    - Registrar información de papeles de trabajo y auditorías.
+
+  ⚠ Si no ve una sección, contacte al administrador para que le
+    habilite el acceso correspondiente.
+
+────────────────────────────────────────────────────────────────────────────────
+  3.10 ENVIAR SUGERENCIAS, DUDAS O PROBLEMAS
+────────────────────────────────────────────────────────────────────────────────
+
+  En cualquier pantalla del sistema encontrará un botón flotante
+  de color cyan (ícono de mensaje) en la esquina inferior derecha.
+
+  ✔ Puede:
+    - Escribir y enviar sugerencias, dudas o reportes de problemas
+      al equipo administrativo.
+    - Ver el historial de sus mensajes enviados y su estado:
+        • Enviada    → el mensaje fue registrado en el sistema.
+        • Recibida   → el administrador lo marcó como atendido.
+    - Recibir confirmación automática en la campanita (🔔) cuando
+      el administrador marca su mensaje como recibido.
+
+  Cómo usar:
+    1. Haga clic en el botón flotante de chat (esquina inferior derecha).
+    2. Escriba su mensaje en el campo de texto.
+    3. Presione Enter o el botón de envío (→).
+    4. El mensaje llega inmediatamente al equipo administrativo.
+
+  💡 Puede escribir varias líneas con Shift + Enter antes de enviar.
+
 
 ================================================================================
   4. TABLA COMPARATIVA: ¿QUÉ PUEDE HACER CADA ROL?
 ================================================================================
 
-  FUNCIÓN                              ADMINISTRADOR    USUARIO
-  ─────────────────────────────────────────────────────────────
-  Ver dashboard global del equipo           ✔               ✘
-  Ver solo su propio dashboard              ✔               ✔
-  Gestionar empleados (crear/editar)        ✔               ✘
-  Ver lista de todos los empleados          ✔               ✘
-  Ver su propio perfil                      ✔               ✔
-  Editar su propio perfil                   ✔           Solo si admin lo habilita
-  Crear y asignar tareas                    ✔               ✘
-  Ver tareas de todo el equipo              ✔               ✘
-  Ver y cambiar estado de SUS tareas        ✔               ✔
-  Gestionar contratos laborales             ✔               ✘
-  Ver sus propios contratos                 ✘*              ✘*
-  Gestionar clientes (todos)                ✔               ✘
-  Ver sus clientes asignados                ✔               ✔
-  Crear/editar/eliminar áreas y cargos      ✔               ✘
-  Crear y gestionar cursos                  ✔               ✘
-  Ver cursos disponibles para mí            ✔               ✔
-  Editar reglamento interno                 ✔               ✘
-  Leer reglamento interno                   ✔               ✔
-  Emitir certificado de empleo              ✔ (con permiso)  ✘
-  Solicitar certificado de empleo           ✘               ✔
-  Resetear contraseña de empleados          ✔               ✘
-  Gestionar permisos de edición             ✔               ✘
-  Ver alertas de seguridad                  ✔               ✘
-  Usar herramientas / utilidades            ✔               ✔
-  Usar asistente IA (Gemini)                ✔               ✘
+  FUNCIÓN                                  ADMINISTRADOR    USUARIO
+  ─────────────────────────────────────────────────────────────────
+  Ver dashboard global del equipo               ✔               ✘
+  Ver solo su propio dashboard                  ✔               ✔
+  Gestionar empleados (crear/editar)            ✔               ✘
+  Ver lista de todos los empleados              ✔               ✘
+  Ver su propio perfil                          ✔               ✔
+  Editar su propio perfil                       ✔           Solo si admin lo habilita
+  Crear y asignar tareas                        ✔               ✘
+  Ver tareas de todo el equipo                  ✔               ✘
+  Ver y cambiar estado de SUS tareas            ✔               ✔
+  Gestionar contratos laborales                 ✔               ✘
+  Ver sus propios contratos                     ✘*              ✘*
+  Gestionar clientes (todos)                    ✔               ✘
+  Ver sus clientes asignados                    ✔               ✔
+  Crear/editar/eliminar áreas y cargos          ✔               ✘
+  Crear y gestionar cursos                      ✔               ✘
+  Ver cursos disponibles para mí                ✔               ✔
+  Editar reglamento interno                     ✔               ✘
+  Leer reglamento interno                       ✔               ✔
+  Emitir certificado de empleo                  ✔ (con permiso)  ✘
+  Solicitar certificado de empleo               ✘               ✔
+  Resetear contraseña de empleados              ✔               ✘
+  Gestionar permisos de edición y SQF           ✔               ✘
+  Ver alertas de seguridad                      ✔               ✘
+  Usar herramientas / utilidades                ✔               ✔
+  Usar asistente IA (Gemini)                    ✔               ✘
+  Enviar sugerencias / dudas / problemas        ✔               ✔
+  Ver y gestionar sugerencias del equipo        ✔               ✘
+  Acceder al formulario SQF                     ✔           Solo si admin lo habilita
+  Gestionar roles y horas en contratos SQF      ✔               ✔**
 
-  * Los contratos se consultan a través de Gestión de Personal (admin).
+  *  Los contratos se consultan a través de Gestión de Personal (admin).
+  ** Solo en las secciones del SQF habilitadas por el administrador.
 
 
 ================================================================================
@@ -434,6 +557,20 @@
   R: El administrador la aprueba o rechaza desde su panel de
      notificaciones. Consulte con el administrador si no recibe
      respuesta.
+
+  P: Envié una sugerencia, ¿cómo sé si la leyeron?
+  R: Cuando el administrador marque su mensaje como recibido, verá
+     el estado "Recibida ✔✔" junto al mensaje en el chat de sugerencias
+     y recibirá una notificación en la campanita (🔔) de su panel.
+
+  P: No veo todas las pestañas en el formulario SQF.
+  R: El acceso a cada sección (Clientes, Contratos, Facturación,
+     Auditoría) se habilita individualmente por el administrador.
+     Solicítele que active las secciones que necesita.
+
+  P: ¿Cuántas filas de roles puedo agregar en un contrato SQF?
+  R: No hay límite. Use el botón (+) para agregar filas y (×) para
+     eliminar las que no necesite. Cada fila requiere cargo y horas.
 
 ================================================================================
   Para soporte técnico contacte al administrador del sistema.
