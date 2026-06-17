@@ -1400,3 +1400,57 @@
   .brand-text { display: none; } /* solo logo en pantallas muy pequeñas */
   .nit-modal-dialog { width: 94%; padding: 18px; }
 }
+
+/* ============================================================
+   HISTÓRICO CON SCROLL INTERNO Y FILTROS DE FECHA
+   ============================================================ */
+.history-scroll-container {
+  max-height: 420px;
+  overflow-y: auto;
+  border-top: 1px solid var(--color-border);
+}
+.history-scroll-container::-webkit-scrollbar { width: 6px; }
+.history-scroll-container::-webkit-scrollbar-track { background: transparent; }
+.history-scroll-container::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+.history-scroll-container::-webkit-scrollbar-thumb:hover { background: var(--color-text-light); }
+
+.history-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0 12px;
+  flex-wrap: wrap;
+}
+.history-filter-row label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.history-filter-row input[type="date"] {
+  padding: 7px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  cursor: pointer;
+}
+.history-filter-row input[type="date"]:focus {
+  border-color: var(--color-blue-light);
+  box-shadow: 0 0 0 3px rgba(0,169,206,.12);
+}
+.history-filter-clear {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--color-text-light);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition);
+  font-family: inherit;
+}
+.history-filter-clear:hover { color: var(--color-danger); }
