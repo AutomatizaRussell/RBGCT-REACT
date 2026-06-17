@@ -1346,7 +1346,7 @@
    ============================================================================= */
 
 /* Tablas: scroll horizontal propio en vez de desbordar la página */
-.profile-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.profile-scroll { overflow-x: auto; overflow-y: auto; -webkit-overflow-scrolling: touch; max-height: 380px; }
 .profile-table { min-width: 560px; }
 
 @media (max-width: 1024px) {
