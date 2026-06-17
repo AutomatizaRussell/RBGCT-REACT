@@ -88,8 +88,17 @@ function App() {
             >
               <Route index element={<UserTable />} />
               <Route path="usuarios/nuevo" element={<CreateUserPage />} />
-              <Route path="gestor-pdf" element={<GestorPDFPage />} />
             </Route>
+
+            {/* Herramientas standalone para admin2 (sin shell del dashboard) */}
+            <Route
+              path="/admin2/gestor-pdf"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                  <GestorPDFPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* 4. RUTA DE EDITOR (Contenido) */}
             <Route
