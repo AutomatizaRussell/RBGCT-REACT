@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchApi } from '../lib/api.js';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 const HERRAMIENTAS = [
   { id: 'editor', icono: Edit3, label: 'Editor Visual', descripcion: 'Editar PDF como en Word', color: 'from-violet-500 to-violet-600' },
@@ -259,11 +260,7 @@ export default function GestorPDFPage() {
 
     try {
       const pdfjsLib = await import('pdfjs-dist');
-      // Worker necesario para que pdf.js no falle silenciosamente en producción
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-        'pdfjs-dist/build/pdf.worker.min.mjs',
-        import.meta.url
-      ).toString();
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
       const arrayBuffer = await file.arrayBuffer();
       const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
