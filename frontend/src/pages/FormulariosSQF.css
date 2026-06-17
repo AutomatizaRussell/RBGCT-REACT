@@ -1407,6 +1407,8 @@
 .history-scroll-container {
   max-height: 420px;
   overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-top: 1px solid var(--color-border);
 }
 .history-scroll-container::-webkit-scrollbar { width: 6px; }

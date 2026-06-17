@@ -56,6 +56,15 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
   const [emailDestino, setEmailDestino] = useState('');
   const [enviando, setEnviando]         = useState(false);
   const [envioStatus, setEnvioStatus]   = useState(null);
+  const [modoManual, setModoManual]     = useState(false);
+  const [datosManual, setDatosManual]   = useState({
+    nombre_completo: '',
+    tipo_documento: 'C.C.',
+    numero_documento: '',
+    cargo: '',
+    fecha_ingreso: '',
+    nombre_area: '',
+  });
 
   const [form, setForm] = useState({
     fecha: hoy(),
@@ -144,13 +153,22 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
   const empleadosFiltrados = empleados.filter(e => e.estado === 'ACTIVA').filter(e => !areaFiltro || e.nombre_area === areaFiltro);
 
   const emp = seleccionado;
-  const nombreEmp = emp?.nombre_completo || '[NOMBRE COMPLETO DEL EMPLEADO]';
-  const tipoDoc = emp?.tipo_documento || 'C.C.';
-  const numDoc = emp?.numero_documento || '[NÚMERO]';
-  const cargo = emp?.nombre_cargo ? limpiarCargo(emp.nombre_cargo) : '[CARGO]';
-  const fechaIngreso = emp?.fecha_ingreso
-    ? new Date(emp.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
-    : '[FECHA]';
+  const nombreEmp = modoManual
+    ? (datosManual.nombre_completo || '[NOMBRE COMPLETO DEL EMPLEADO]')
+    : (emp?.nombre_completo || '[NOMBRE COMPLETO DEL EMPLEADO]');
+  const tipoDoc = modoManual ? datosManual.tipo_documento : (emp?.tipo_documento || 'C.C.');
+  const numDoc  = modoManual ? (datosManual.numero_documento || '[NÚMERO]') : (emp?.numero_documento || '[NÚMERO]');
+  const cargo   = modoManual
+    ? (datosManual.cargo ? datosManual.cargo.toUpperCase() : '[CARGO]')
+    : (emp?.nombre_cargo ? limpiarCargo(emp.nombre_cargo) : '[CARGO]');
+  const fechaIngreso = modoManual
+    ? (datosManual.fecha_ingreso
+        ? new Date(datosManual.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
+        : '[FECHA]')
+    : (emp?.fecha_ingreso
+        ? new Date(emp.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
+        : '[FECHA]');
+  const areaEmp = modoManual ? datosManual.nombre_area : (emp?.nombre_area || '');
 
   const handlePrint = () => window.print();
 
@@ -388,16 +406,83 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
           </div>
 
           <Section icon={<User size={14}/>} title="Empleado">
-            {loadingEmp ? <div className="animate-pulse text-xs">Cargando nómina...</div> : (
+            <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => setModoManual(false)}
+                className={`flex-1 py-1.5 transition-colors ${!modoManual ? 'bg-[#001871] text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+              >
+                Seleccionar
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoManual(true)}
+                className={`flex-1 py-1.5 transition-colors ${modoManual ? 'bg-[#001871] text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+              >
+                Datos manuales
+              </button>
+            </div>
+
+            {!modoManual ? (
+              loadingEmp ? <div className="animate-pulse text-xs">Cargando nómina...</div> : (
+                <div className="space-y-3">
+                  <select value={areaFiltro} onChange={e => setAreaFiltro(e.target.value)} className="input-modern bg-slate-50">
+                    <option value="">— Todas las áreas —</option>
+                    {areas.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                  <select onChange={handleEmpleado} value={emp?.id_empleado || ''} className="input-modern">
+                    <option value="">— Seleccionar empleado —</option>
+                    {empleadosFiltrados.map(e => <option key={e.id_empleado} value={e.id_empleado}>{e.nombre_completo}</option>)}
+                  </select>
+                </div>
+              )
+            ) : (
               <div className="space-y-3">
-                <select value={areaFiltro} onChange={e => setAreaFiltro(e.target.value)} className="input-modern bg-slate-50">
-                  <option value="">— Todas las áreas —</option>
-                  {areas.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
-                <select onChange={handleEmpleado} value={emp?.id_empleado || ''} className="input-modern">
-                  <option value="">— Seleccionar empleado —</option>
-                  {empleadosFiltrados.map(e => <option key={e.id_empleado} value={e.id_empleado}>{e.nombre_completo}</option>)}
-                </select>
+                <Field
+                  label="Nombre completo"
+                  value={datosManual.nombre_completo}
+                  onChange={e => setDatosManual(p => ({ ...p, nombre_completo: e.target.value }))}
+                  placeholder="JUAN PÉREZ GÓMEZ"
+                />
+                <div className="flex gap-2">
+                  <div className="space-y-1 flex-shrink-0" style={{ width: '90px' }}>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Tipo doc.</label>
+                    <select
+                      value={datosManual.tipo_documento}
+                      onChange={e => setDatosManual(p => ({ ...p, tipo_documento: e.target.value }))}
+                      className="input-modern"
+                    >
+                      <option value="C.C.">C.C.</option>
+                      <option value="C.E.">C.E.</option>
+                      <option value="Pasaporte">Pasaporte</option>
+                      <option value="NIT">NIT</option>
+                    </select>
+                  </div>
+                  <Field
+                    label="Número de documento"
+                    value={datosManual.numero_documento}
+                    onChange={e => setDatosManual(p => ({ ...p, numero_documento: e.target.value }))}
+                    placeholder="1234567890"
+                  />
+                </div>
+                <Field
+                  label="Cargo"
+                  value={datosManual.cargo}
+                  onChange={e => setDatosManual(p => ({ ...p, cargo: e.target.value }))}
+                  placeholder="ANALISTA CONTABLE"
+                />
+                <Field
+                  label="Área"
+                  value={datosManual.nombre_area}
+                  onChange={e => setDatosManual(p => ({ ...p, nombre_area: e.target.value }))}
+                  placeholder="CONTABILIDAD"
+                />
+                <Field
+                  label="Fecha de ingreso"
+                  type="date"
+                  value={datosManual.fecha_ingreso}
+                  onChange={e => setDatosManual(p => ({ ...p, fecha_ingreso: e.target.value }))}
+                />
               </div>
             )}
           </Section>
@@ -485,13 +570,13 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
         {/* PANEL PREVISUALIZACIÓN — sin caja de fondo: la hoja flota con su sombra */}
         <div className="cert-panel flex-1 overflow-y-auto p-2 lg:p-4 flex justify-center items-start">
-          <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
+          <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={areaEmp} />
         </div>
       </div>
 
       {/* VERSIÓN IMPRESIÓN */}
       <div className="hidden solo-print">
-        <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
+        <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={areaEmp} />
       </div>
     </>
   );

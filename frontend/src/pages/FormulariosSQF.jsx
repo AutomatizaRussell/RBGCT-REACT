@@ -1181,7 +1181,7 @@ export default function FormulariosSQF({ onBack }) {
                                     <p>{isLoading ? 'Cargando datos...' : 'No hay clientes registrados.'}</p>
                                 </div>
                             ) : (
-                                <div className="profile-scroll">
+                                <div className="profile-scroll history-scroll-container">
                                     <table className="profile-table">
                                         <thead>
                                             <tr><th>Cliente / Razón Social</th><th>NIT / Documento</th><th>Correo Electrónico</th><th>Teléfono</th></tr>
@@ -1468,7 +1468,7 @@ export default function FormulariosSQF({ onBack }) {
                                     <p>{isLoading ? 'Cargando contratos...' : 'No hay contratos registrados aún.'}</p>
                                 </div>
                             ) : (
-                                <div className="profile-scroll">
+                                <div className="profile-scroll history-scroll-container">
                                     <table className="profile-table">
                                         <thead>
                                             <tr><th>Nombre del Contrato</th><th>Cliente Vinculado</th><th>Tipo</th><th>Valor (COP)</th><th>Vigencia</th><th>Acciones</th></tr>
