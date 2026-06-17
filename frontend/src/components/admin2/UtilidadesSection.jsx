@@ -11,7 +11,7 @@ export default function UtilidadesSection() {
       <div className="flex flex-wrap gap-3">
         <LimpiadorMetadatos />
         <ConvertidorArchivos />
-        <GestorPDF />
+        <GestorPDF to="/admin2/gestor-pdf" />
       </div>
     </div>
   );

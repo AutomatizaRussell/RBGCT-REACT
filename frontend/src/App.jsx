@@ -88,7 +88,7 @@ function App() {
             >
               <Route index element={<UserTable />} />
               <Route path="usuarios/nuevo" element={<CreateUserPage />} />
-
+              <Route path="gestor-pdf" element={<GestorPDFPage />} />
             </Route>
 
             {/* 4. RUTA DE EDITOR (Contenido) */}

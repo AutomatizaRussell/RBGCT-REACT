@@ -1,12 +1,12 @@
 import { FileText, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function GestorPDF() {
+export default function GestorPDF({ to = '/app/gestor-pdf' }) {
   const navigate = useNavigate();
 
   return (
     <button
-      onClick={() => navigate('/app/gestor-pdf')}
+      onClick={() => navigate(to)}
       className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all group"
       title="Gestor de PDFs"
     >
