@@ -1,16 +1,15 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import {
-  FileText, Upload, Download, X, Loader2,
-  Merge, Scissors, RotateCw, Lock, Unlock, Droplet,
+import { useState, useRef, useEffect } from 'react';
+import { 
+  FileText, Upload, Download, X, Loader2, 
+  Merge, Scissors, RotateCw, Lock, Unlock, Droplet, 
   FilePlus, Check, AlertCircle, ArrowLeft, Home,
-  PlusCircle, Edit3, Type, Image, Save, Trash2,
-  Bold, Italic, Underline,
-  ZoomIn, ZoomOut, ChevronLeft, ChevronRight,
-  Square, Circle, Minus, MousePointer2
+  PlusCircle, Edit3, Type, Image, Save, Trash2, Move,
+  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
+  ZoomIn, ZoomOut, ChevronLeft, ChevronRight, PenTool,
+  Square, Circle, Minus, Highlighter
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { fetchApi } from '../lib/api.js';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 const HERRAMIENTAS = [
   { id: 'editor', icono: Edit3, label: 'Editor Visual', descripcion: 'Editar PDF como en Word', color: 'from-violet-500 to-violet-600' },
@@ -25,17 +24,7 @@ const HERRAMIENTAS = [
   { id: 'desbloquear', icono: Unlock, label: 'Desbloquear PDF', descripcion: 'Quitar contraseña del documento', color: 'from-amber-500 to-amber-600' },
 ];
 
-// Etiquetas legibles para el indicador de modo activo del editor visual
-const ETIQUETAS_HERRAMIENTA = {
-  seleccionar: { label: 'Modo selección', hint: 'Haz click sobre un elemento para moverlo o editarlo' },
-  texto: { label: 'Insertar texto', hint: 'Haz click en cualquier parte de la hoja para escribir' },
-  rectangulo: { label: 'Insertar rectángulo', hint: 'Haz click para dibujar un rectángulo' },
-  circulo: { label: 'Insertar círculo', hint: 'Haz click para dibujar un círculo' },
-  linea: { label: 'Insertar línea', hint: 'Haz click para dibujar una línea' },
-};
-
 export default function GestorPDFPage() {
-  const navigate = useNavigate();
   const [herramientaActiva, setHerramientaActiva] = useState(null);
   const [archivos, setArchivos] = useState([]);
   const [procesando, setProcesando] = useState(false);
@@ -54,7 +43,9 @@ export default function GestorPDFPage() {
     titulo: 'documento',
   });
   const [elementoSeleccionado, setElementoSeleccionado] = useState(null);
+  const [nuevoElemento, setNuevoElemento] = useState({ tipo: 'texto', contenido: '', x: 50, y: 50, fontSize: 12, color: '#000000' });
   const fileInputRef = useRef(null);
+  const _marcaImagenRef = useRef(null);
   const imagenInputRef = useRef(null);
   const [pestañaActiva, setPestañaActiva] = useState('inicio');
 
@@ -75,15 +66,7 @@ export default function GestorPDFPage() {
     underline: false,
     align: 'left',
   });
-
-  // Dimensiones reales (en px, a escala 1) de la página actual renderizada por pdf.js
-  const [dimsPagina, setDimsPagina] = useState({ width: 612, height: 792 });
-  const [cargandoPagina, setCargandoPagina] = useState(false);
-  const [hoverCanvas, setHoverCanvas] = useState(false);
-
   const editorCanvasRef = useRef(null);
-  const pdfCanvasRef = useRef(null);
-  const pdfDocRef = useRef(null);
   const isDraggingRef = useRef(false);
   const draggingElementIdRef = useRef(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
@@ -125,11 +108,7 @@ export default function GestorPDFPage() {
       titulo: 'documento',
     });
     setElementoSeleccionado(null);
-    if (pdfUrlRef.current) {
-      URL.revokeObjectURL(pdfUrlRef.current);
-      pdfUrlRef.current = null;
-    }
-    pdfDocRef.current = null;
+    setNuevoElemento({ tipo: 'texto', contenido: '', x: 50, y: 50, fontSize: 12, color: '#000000' });
     setEditorVisual({
       pdfCargado: null,
       pdfUrl: null,
@@ -147,6 +126,59 @@ export default function GestorPDFPage() {
       align: 'left',
     });
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const _agregarPagina = () => {
+    setEditorPDF(prev => ({
+      ...prev,
+      paginas: [...prev.paginas, { contenido: '', elementos: [] }],
+      paginaActual: prev.paginas.length,
+    }));
+  };
+
+  const _eliminarPagina = (index) => {
+    if (editorPDF.paginas.length <= 1) return;
+    setEditorPDF(prev => ({
+      ...prev,
+      paginas: prev.paginas.filter((_, i) => i !== index),
+      paginaActual: Math.min(prev.paginaActual, prev.paginas.length - 2),
+    }));
+  };
+
+  const _agregarElemento = () => {
+    if (!nuevoElemento.contenido) return;
+    setEditorPDF(prev => {
+      const nuevasPaginas = [...prev.paginas];
+      nuevasPaginas[prev.paginaActual] = {
+        ...nuevasPaginas[prev.paginaActual],
+        elementos: [...nuevasPaginas[prev.paginaActual].elementos, { ...nuevoElemento, id: Date.now() }],
+      };
+      return { ...prev, paginas: nuevasPaginas };
+    });
+    setNuevoElemento({ tipo: 'texto', contenido: '', x: 50, y: 50, fontSize: 12, color: '#000000' });
+  };
+
+  const _eliminarElemento = (id) => {
+    setEditorPDF(prev => {
+      const nuevasPaginas = [...prev.paginas];
+      nuevasPaginas[prev.paginaActual] = {
+        ...nuevasPaginas[prev.paginaActual],
+        elementos: nuevasPaginas[prev.paginaActual].elementos.filter(e => e.id !== id),
+      };
+      return { ...prev, paginas: nuevasPaginas };
+    });
+    setElementoSeleccionado(null);
+  };
+
+  const _handleImagenSelect = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setNuevoElemento(prev => ({ ...prev, tipo: 'imagen', contenido: event.target.result, imagenNombre: file.name }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const crearPDF = async () => {
@@ -177,15 +209,46 @@ export default function GestorPDFPage() {
     }
   };
 
-  const procesarPDF = async () => {
+  const _editarPDF = async () => {
     if (archivos.length === 0) return;
-
+    
     setProcesando(true);
     setError(null);
 
     try {
       const formData = new FormData();
+      formData.append('archivo_0', archivos[0]);
+      formData.append('cantidad_archivos', '1');
+      formData.append('herramienta', 'editar');
+      formData.append('elementos', JSON.stringify(editorPDF.paginas[0].elementos));
 
+      const response = await fetchApi('/gestor-pdf/', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.error) throw new Error(response.error);
+
+      setResultado(response);
+      if (response.archivos?.length === 1) {
+        descargarArchivo(response.archivos[0]);
+      }
+    } catch (err) {
+      setError(err.message || 'Error al editar PDF');
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  const procesarPDF = async () => {
+    if (archivos.length === 0) return;
+    
+    setProcesando(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      
       archivos.forEach((file, index) => {
         formData.append(`archivo_${index}`, file);
       });
@@ -221,7 +284,7 @@ export default function GestorPDFPage() {
       }
 
       setResultado(response);
-
+      
       if (response.archivos && response.archivos.length === 1) {
         descargarArchivo(response.archivos[0]);
       }
@@ -250,87 +313,29 @@ export default function GestorPDFPage() {
     URL.revokeObjectURL(url);
   };
 
-  // ========== EDITOR VISUAL: CARGA Y RENDER REAL CON PDF.JS ==========
-
+  // ========== EDITOR VISUAL FUNCIONES ==========
   const cargarPDFParaEditar = async (file) => {
     if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
     const url = URL.createObjectURL(file);
     pdfUrlRef.current = url;
-    setCargandoPagina(true);
 
+    let totalPaginas = 1;
     try {
       const pdfjsLib = await import('pdfjs-dist');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-
       const arrayBuffer = await file.arrayBuffer();
       const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      pdfDocRef.current = pdfDoc;
+      totalPaginas = pdfDoc.numPages;
+    } catch (_) { /* fallback a 1 */ }
 
-      setEditorVisual(prev => ({
-        ...prev,
-        pdfCargado: file,
-        pdfUrl: url,
-        paginaActual: 0,
-        totalPaginas: pdfDoc.numPages,
-        elementos: [],
-        herramientaActiva: 'seleccionar',
-      }));
-    } catch (err) {
-      // Si pdf.js falla, igual dejamos el archivo cargado con 1 página
-      // para no bloquear al usuario, pero reportamos el error.
-      setError('No se pudo leer el PDF para previsualizarlo. Puedes intentar con otro archivo.');
-      setEditorVisual(prev => ({
-        ...prev,
-        pdfCargado: file,
-        pdfUrl: url,
-        paginaActual: 0,
-        totalPaginas: 1,
-        elementos: [],
-      }));
-    } finally {
-      setCargandoPagina(false);
-    }
+    setEditorVisual(prev => ({
+      ...prev,
+      pdfCargado: file,
+      pdfUrl: url,
+      paginaActual: 0,
+      totalPaginas,
+      elementos: [],
+    }));
   };
-
-  // Renderiza la página actual al canvas cada vez que cambia página, zoom o el documento
-  const renderizarPaginaActual = useCallback(async () => {
-    const pdfDoc = pdfDocRef.current;
-    const canvas = pdfCanvasRef.current;
-    if (!pdfDoc || !canvas) return;
-
-    setCargandoPagina(true);
-    try {
-      const pagina = await pdfDoc.getPage(editorVisual.paginaActual + 1);
-      const escalaBase = 1.5; // nitidez base independiente del zoom de UI
-      const viewport = pagina.getViewport({ scale: escalaBase * editorVisual.zoom });
-
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      canvas.style.width = `${viewport.width / escalaBase}px`;
-      canvas.style.height = `${viewport.height / escalaBase}px`;
-
-      const ctx = canvas.getContext('2d');
-      await pagina.render({ canvasContext: ctx, viewport }).promise;
-
-      // Las coordenadas de los elementos viven en el espacio "CSS" (sin escalaBase)
-      setDimsPagina({
-        width: viewport.width / escalaBase,
-        height: viewport.height / escalaBase,
-      });
-    } catch (err) {
-      // Mantener dimensiones por defecto si algo falla en el render
-    } finally {
-      setCargandoPagina(false);
-    }
-  }, [editorVisual.paginaActual, editorVisual.zoom]);
-
-  useEffect(() => {
-    if (editorVisual.pdfCargado && pdfDocRef.current) {
-      renderizarPaginaActual();
-    }
-  }, [editorVisual.pdfCargado, editorVisual.paginaActual, editorVisual.zoom, renderizarPaginaActual]);
-
-  // ========== EDITOR VISUAL: ELEMENTOS ==========
 
   const agregarElementoVisual = (tipo, x = 50, y = 50) => {
     const nuevoId = Date.now();
@@ -339,11 +344,10 @@ export default function GestorPDFPage() {
       tipo,
       x,
       y,
-      width: tipo === 'texto' ? 220 : tipo === 'linea' ? 140 : 100,
-      height: tipo === 'texto' ? 40 : tipo === 'linea' ? 4 : 100,
-      contenido: tipo === 'texto' ? 'Escribe aquí…' : '',
+      width: tipo === 'texto' ? 200 : tipo === 'linea' ? 100 : 80,
+      height: tipo === 'texto' ? 30 : 80,
+      contenido: tipo === 'texto' ? 'Nuevo texto' : '',
       pagina: editorVisual.paginaActual,
-      esNuevo: tipo === 'texto', // controla el autofocus al insertar
       estilo: {
         color: editorVisual.colorActivo,
         fontSize: editorVisual.fontSizeActivo,
@@ -366,14 +370,6 @@ export default function GestorPDFPage() {
       ...prev,
       elementos: prev.elementos.map(el => el.id === id ? { ...el, ...cambios } : el),
     }));
-  };
-
-  const eliminarElementoVisual = (id) => {
-    setEditorVisual(prev => ({
-      ...prev,
-      elementos: prev.elementos.filter(el => el.id !== id),
-    }));
-    setElementoSeleccionado(null);
   };
 
   const handleElementMouseDown = (e, elId) => {
@@ -417,8 +413,7 @@ export default function GestorPDFPage() {
     if (!rect) return;
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const nuevoId = agregarElementoVisual(editorVisual.herramientaActiva, x, y);
-    setElementoSeleccionado(nuevoId);
+    agregarElementoVisual(editorVisual.herramientaActiva, x, y);
     setEditorVisual(prev => ({ ...prev, herramientaActiva: 'seleccionar' }));
   };
 
@@ -447,28 +442,6 @@ export default function GestorPDFPage() {
       setProcesando(false);
     }
   };
-
-  // Botón de herramienta de inserción del ribbon, con estado activo visible
-  const BotonHerramienta = ({ herramienta, Icono, titulo }) => (
-    <button
-      type="button"
-      onClick={() => setEditorVisual(prev => ({
-        ...prev,
-        herramientaActiva: prev.herramientaActiva === herramienta ? 'seleccionar' : herramienta,
-      }))}
-      title={titulo}
-      className={`p-2.5 rounded-lg border transition-all ${
-        editorVisual.herramientaActiva === herramienta
-          ? 'bg-violet-100 border-violet-400 text-violet-700 shadow-sm'
-          : 'bg-white border-transparent hover:bg-slate-100 text-slate-600'
-      }`}
-    >
-      <Icono size={20} />
-    </button>
-  );
-
-  const modoInfo = ETIQUETAS_HERRAMIENTA[editorVisual.herramientaActiva] || ETIQUETAS_HERRAMIENTA.seleccionar;
-  const modoInsertando = editorVisual.herramientaActiva !== 'seleccionar';
 
   const renderEditorVisual = () => (
     <div className="space-y-0">
@@ -499,7 +472,7 @@ export default function GestorPDFPage() {
           {/* Ribbon */}
           <div className="bg-[#f3f2f1] border-b border-slate-300">
             <div className="flex">
-              {['inicio', 'insertar'].map((pestana) => (
+              {['archivo', 'inicio', 'insertar', 'diseño'].map((pestana) => (
                 <button
                   key={pestana}
                   onClick={() => setPestañaActiva(pestana)}
@@ -512,34 +485,14 @@ export default function GestorPDFPage() {
                   {pestana.charAt(0).toUpperCase() + pestana.slice(1)}
                 </button>
               ))}
-
-              {/* Indicador de modo activo SIEMPRE visible, sin importar la pestaña */}
-              <div className="flex-1 flex items-center justify-end pr-4">
-                <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${
-                  modoInsertando ? 'bg-violet-100 text-violet-700' : 'bg-slate-200 text-slate-600'
-                }`}>
-                  {modoInsertando ? <Type size={14} /> : <MousePointer2 size={14} />}
-                  {modoInfo.label}
-                  {modoInsertando && (
-                    <button
-                      onClick={() => setEditorVisual(prev => ({ ...prev, herramientaActiva: 'seleccionar' }))}
-                      className="ml-1 hover:bg-violet-200 rounded-full p-0.5"
-                      title="Cancelar inserción"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-              </div>
             </div>
-
             <div className="bg-white p-3 border-b border-slate-200">
               {pestañaActiva === 'inicio' && (
                 <div className="flex flex-wrap items-center gap-4">
                   <select
                     value={editorVisual.fontFamilyActivo}
                     onChange={(e) => setEditorVisual(prev => ({ ...prev, fontFamilyActivo: e.target.value }))}
-                    className="px-2 py-1.5 bg-white border border-slate-300 rounded text-sm min-w-[130px]"
+                    className="px-2 py-1 bg-white border border-slate-300 rounded text-sm min-w-[120px]"
                   >
                     <option value="Helvetica">Helvetica</option>
                     <option value="Times-Roman">Times New Roman</option>
@@ -549,44 +502,29 @@ export default function GestorPDFPage() {
                     type="number"
                     value={editorVisual.fontSizeActivo}
                     onChange={(e) => setEditorVisual(prev => ({ ...prev, fontSizeActivo: parseInt(e.target.value) || 12 }))}
-                    className="w-16 px-2 py-1.5 bg-white border border-slate-300 rounded text-sm text-center"
+                    className="w-14 px-2 py-1 bg-white border border-slate-300 rounded text-sm text-center"
                     min="8"
                     max="72"
                   />
-                  <div className="flex gap-1 border-l border-slate-200 pl-3">
-                    <button onClick={() => setEditorVisual(prev => ({ ...prev, bold: !prev.bold }))} className={`p-2 rounded ${editorVisual.bold ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Bold size={18} /></button>
-                    <button onClick={() => setEditorVisual(prev => ({ ...prev, italic: !prev.italic }))} className={`p-2 rounded ${editorVisual.italic ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Italic size={18} /></button>
-                    <button onClick={() => setEditorVisual(prev => ({ ...prev, underline: !prev.underline }))} className={`p-2 rounded ${editorVisual.underline ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Underline size={18} /></button>
+                  <div className="flex gap-0.5">
+                    <button onClick={() => setEditorVisual(prev => ({ ...prev, bold: !prev.bold }))} className={`p-1.5 rounded ${editorVisual.bold ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Bold size={16} /></button>
+                    <button onClick={() => setEditorVisual(prev => ({ ...prev, italic: !prev.italic }))} className={`p-1.5 rounded ${editorVisual.italic ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Italic size={16} /></button>
+                    <button onClick={() => setEditorVisual(prev => ({ ...prev, underline: !prev.underline }))} className={`p-1.5 rounded ${editorVisual.underline ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Underline size={16} /></button>
                   </div>
                   <input
                     type="color"
                     value={editorVisual.colorActivo}
                     onChange={(e) => setEditorVisual(prev => ({ ...prev, colorActivo: e.target.value }))}
-                    className="w-9 h-9 rounded cursor-pointer border border-slate-300"
-                    title="Color"
+                    className="w-8 h-8 rounded cursor-pointer border border-slate-300"
                   />
-                  <div className="flex items-center gap-1 border-l border-slate-200 pl-3">
-                    <button onClick={() => setEditorVisual(prev => ({ ...prev, zoom: Math.max(0.5, +(prev.zoom - 0.1).toFixed(2)) }))} className="p-2 hover:bg-slate-100 rounded" title="Reducir zoom"><ZoomOut size={18} /></button>
-                    <span className="text-xs font-medium text-slate-500 w-10 text-center">{Math.round(editorVisual.zoom * 100)}%</span>
-                    <button onClick={() => setEditorVisual(prev => ({ ...prev, zoom: Math.min(2, +(prev.zoom + 0.1).toFixed(2)) }))} className="p-2 hover:bg-slate-100 rounded" title="Aumentar zoom"><ZoomIn size={18} /></button>
-                  </div>
-                  {elementoSeleccionado && (
-                    <button
-                      onClick={() => eliminarElementoVisual(elementoSeleccionado)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 border-l border-slate-200 ml-1"
-                    >
-                      <Trash2 size={16} /> Eliminar
-                    </button>
-                  )}
                 </div>
               )}
               {pestañaActiva === 'insertar' && (
-                <div className="flex flex-wrap items-center gap-3">
-                  <BotonHerramienta herramienta="texto" Icono={Type} titulo="Insertar texto" />
+                <div className="flex flex-wrap items-center gap-4">
+                  <button onClick={() => setEditorVisual(prev => ({ ...prev, herramientaActiva: 'texto' }))} className={`p-2 rounded ${editorVisual.herramientaActiva === 'texto' ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Type size={20} /></button>
                   <button
                     onClick={() => imagenInputRef.current?.click()}
-                    className="p-2.5 rounded-lg hover:bg-slate-100 text-slate-600"
-                    title="Insertar imagen"
+                    className="p-2 hover:bg-slate-100 rounded"
                   >
                     <Image size={20} />
                   </button>
@@ -602,154 +540,83 @@ export default function GestorPDFPage() {
                       reader.onload = (evt) => {
                         const nuevoId = agregarElementoVisual('imagen');
                         actualizarElemento(nuevoId, { contenido: evt.target.result });
-                        setElementoSeleccionado(nuevoId);
                       };
                       reader.readAsDataURL(file);
                       e.target.value = '';
                     }}
                   />
-                  <div className="border-l border-slate-200 h-8 mx-1" />
-                  <BotonHerramienta herramienta="rectangulo" Icono={Square} titulo="Insertar rectángulo" />
-                  <BotonHerramienta herramienta="circulo" Icono={Circle} titulo="Insertar círculo" />
-                  <BotonHerramienta herramienta="linea" Icono={Minus} titulo="Insertar línea" />
-
-                  {modoInsertando && (
-                    <span className="text-xs text-violet-600 font-medium ml-2 flex items-center gap-1.5 bg-violet-50 px-3 py-1.5 rounded-full">
-                      <MousePointer2 size={13} /> {modoInfo.hint}
-                    </span>
-                  )}
+                  <button onClick={() => setEditorVisual(prev => ({ ...prev, herramientaActiva: 'rectangulo' }))} className={`p-2 rounded ${editorVisual.herramientaActiva === 'rectangulo' ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Square size={20} /></button>
+                  <button onClick={() => setEditorVisual(prev => ({ ...prev, herramientaActiva: 'circulo' }))} className={`p-2 rounded ${editorVisual.herramientaActiva === 'circulo' ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Circle size={20} /></button>
+                  <button onClick={() => setEditorVisual(prev => ({ ...prev, herramientaActiva: 'linea' }))} className={`p-2 rounded ${editorVisual.herramientaActiva === 'linea' ? 'bg-[#e1dfdd]' : 'hover:bg-slate-100'}`}><Minus size={20} /></button>
                 </div>
               )}
             </div>
           </div>
-
           {/* Canvas */}
-          <div className="bg-slate-200 rounded-b-2xl p-8 overflow-auto" style={{ maxHeight: '70vh' }}>
+          <div className="bg-slate-100 rounded-b-2xl p-6 overflow-auto" style={{ maxHeight: '60vh' }}>
             <div
               ref={editorCanvasRef}
-              onMouseEnter={() => setHoverCanvas(true)}
-              onMouseLeave={() => { setHoverCanvas(false); handleCanvasMouseUp(); }}
-              className={`relative bg-white shadow-2xl mx-auto transition-shadow ${
-                modoInsertando ? 'ring-2 ring-violet-300' : ''
-              }`}
-              style={{
-                width: dimsPagina.width,
-                height: dimsPagina.height,
-                cursor: modoInsertando ? 'crosshair' : 'default',
-              }}
+              className="relative bg-white shadow-lg mx-auto"
+              style={{ width: `${612 * editorVisual.zoom}px`, height: `${792 * editorVisual.zoom}px` }}
               onClick={manejarClickCanvas}
               onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
+              onMouseLeave={handleCanvasMouseUp}
             >
-              <canvas ref={pdfCanvasRef} className="absolute inset-0 pointer-events-none" />
-
-              {cargandoPagina && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-                  <Loader2 size={28} className="animate-spin text-violet-500" />
-                </div>
-              )}
-
-              {/* Affordance: mensaje flotante mientras el modo de inserción está activo y el mouse está sobre la hoja */}
-              {modoInsertando && hoverCanvas && !cargandoPagina && (
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-violet-600 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg pointer-events-none z-20 whitespace-nowrap">
-                  {modoInfo.hint}
-                </div>
-              )}
-
-              {/* Estado vacío: ningún elemento aún y estamos en modo selección */}
-              {!modoInsertando && editorVisual.elementos.filter(el => el.pagina === editorVisual.paginaActual).length === 0 && !cargandoPagina && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <p className="text-slate-300 text-sm font-medium">Usa la pestaña "Insertar" para agregar texto, imágenes o formas</p>
-                </div>
-              )}
-
+              <iframe
+                src={`${editorVisual.pdfUrl}#page=${editorVisual.paginaActual + 1}`}
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                title="PDF Preview"
+              />
               {editorVisual.elementos
                 .filter(el => el.pagina === editorVisual.paginaActual)
                 .map((el) => (
                   <div
                     key={el.id}
-                    className={`absolute group ${editorVisual.herramientaActiva === 'seleccionar' ? 'cursor-move' : ''} ${
-                      elementoSeleccionado === el.id
-                        ? 'ring-2 ring-violet-500'
-                        : el.tipo === 'texto'
-                          ? 'ring-1 ring-dashed ring-slate-300 hover:ring-violet-300'
-                          : ''
-                    }`}
+                    className={`absolute cursor-move ${elementoSeleccionado === el.id ? 'ring-2 ring-violet-500' : ''}`}
                     style={{
                       left: el.x,
                       top: el.y,
                       width: el.width,
-                      minHeight: el.height,
-                      height: el.tipo === 'texto' ? 'auto' : el.height,
+                      height: el.height,
                       color: el.estilo?.color,
                       fontSize: el.estilo?.fontSize,
-                      fontWeight: el.estilo?.bold ? 'bold' : 'normal',
-                      fontStyle: el.estilo?.italic ? 'italic' : 'normal',
-                      textDecoration: el.estilo?.underline ? 'underline' : 'none',
-                      textAlign: el.estilo?.align,
-                      padding: el.tipo === 'texto' ? '6px 8px' : 0,
                     }}
                     onClick={(e) => { e.stopPropagation(); setElementoSeleccionado(el.id); }}
                     onMouseDown={(e) => handleElementMouseDown(e, el.id)}
                   >
                     {el.tipo === 'texto' ? (
-                      <div
-                        contentEditable
-                        suppressContentEditableWarning
-                        className="w-full min-h-[1.5em] outline-none"
-                        autoFocus={el.esNuevo}
-                        onFocus={(e) => {
-                          // Si es texto recién insertado con placeholder, lo limpiamos al enfocar
-                          if (el.esNuevo) {
-                            e.currentTarget.innerText = '';
-                            actualizarElemento(el.id, { esNuevo: false });
-                          }
-                        }}
-                        onBlur={(e) => actualizarElemento(el.id, { contenido: e.target.innerText })}
-                      >
+                      <div contentEditable suppressContentEditableWarning className="w-full h-full outline-none p-1" onBlur={(e) => actualizarElemento(el.id, { contenido: e.target.innerText })}>
                         {el.contenido}
                       </div>
                     ) : el.tipo === 'imagen' ? (
-                      <img src={el.contenido} alt="elemento" className="w-full h-full object-contain" />
+                      <img src={el.contenido} alt="element" className="max-w-full max-h-full object-contain" />
                     ) : el.tipo === 'rectangulo' ? (
                       <div className="w-full h-full border-2" style={{ borderColor: el.estilo?.color }} />
                     ) : el.tipo === 'circulo' ? (
                       <div className="w-full h-full border-2 rounded-full" style={{ borderColor: el.estilo?.color }} />
                     ) : el.tipo === 'linea' ? (
-                      <div className="w-full h-full" style={{ backgroundColor: el.estilo?.color }} />
+                      <div className="w-full h-0.5" style={{ backgroundColor: el.estilo?.color }} />
                     ) : null}
-
-                    {/* Botón eliminar al pasar el mouse, visible solo si el elemento está seleccionado o en hover */}
-                    {editorVisual.herramientaActiva === 'seleccionar' && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); eliminarElementoVisual(el.id); }}
-                        className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow"
-                        title="Eliminar elemento"
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
                   </div>
                 ))}
             </div>
-
-            <div className="flex items-center justify-center gap-4 mt-5">
+            <div className="flex items-center justify-center gap-4 mt-4">
               <button
                 onClick={() => setEditorVisual(prev => ({ ...prev, paginaActual: Math.max(0, prev.paginaActual - 1) }))}
                 disabled={editorVisual.paginaActual === 0}
-                className="p-2.5 bg-white rounded-lg shadow-sm disabled:opacity-40 hover:bg-slate-50"
+                className="p-2 bg-white rounded-lg disabled:opacity-50"
               ><ChevronLeft size={20} /></button>
-              <span className="text-sm font-medium text-slate-600 bg-white px-4 py-2 rounded-lg shadow-sm">
+              <span className="text-sm font-medium text-slate-600">
                 Página {editorVisual.paginaActual + 1}{editorVisual.totalPaginas > 0 ? ` de ${editorVisual.totalPaginas}` : ''}
               </span>
               <button
                 onClick={() => setEditorVisual(prev => ({ ...prev, paginaActual: Math.min(prev.totalPaginas - 1, prev.paginaActual + 1) }))}
                 disabled={editorVisual.totalPaginas > 0 && editorVisual.paginaActual >= editorVisual.totalPaginas - 1}
-                className="p-2.5 bg-white rounded-lg shadow-sm disabled:opacity-40 hover:bg-slate-50"
+                className="p-2 bg-white rounded-lg disabled:opacity-50"
               ><ChevronRight size={20} /></button>
             </div>
           </div>
-
           <div className="p-4 bg-white border-t border-slate-200">
             <button onClick={guardarPDFEditado} disabled={procesando} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-violet-500 to-violet-600 text-white rounded-xl text-sm font-bold uppercase shadow-lg disabled:opacity-50">
               {procesando ? <><Loader2 size={20} className="animate-spin" /> Guardando...</> : <><Save size={20} /> Guardar PDF</>}
@@ -853,9 +720,7 @@ export default function GestorPDFPage() {
         {herramientaActiva && (
           <div className="space-y-6">
             <button onClick={limpiar} className="text-sm text-slate-500 hover:text-slate-700">← Cambiar herramienta</button>
-
-            {herramientaActiva === 'editor' ? (
-              // El editor visual necesita el ancho completo: layout de una sola columna
+            <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-6">
                 {(() => {
                   const h = HERRAMIENTAS.find(x => x.id === herramientaActiva);
@@ -869,13 +734,45 @@ export default function GestorPDFPage() {
                     </div>
                   );
                 })()}
-                {error && (
-                  <div className="p-5 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700 flex items-start gap-3">
-                    <AlertCircle size={20} className="mt-0.5" />
-                    <div><p className="font-bold">Error</p><p className="text-sm">{error}</p></div>
+                <input ref={fileInputRef} type="file" accept=".pdf" multiple={herramientaActiva === 'fusionar'} onChange={handleFileSelect} className="hidden" />
+                {herramientaActiva !== 'editor' && herramientaActiva !== 'crear' && (
+                  <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <h3 className="text-sm font-bold text-slate-600 uppercase mb-4">Archivos</h3>
+                    {archivos.length > 0 ? (
+                      <div className="space-y-3">
+                        {archivos.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-red-100 rounded-lg"><FileText size={20} className="text-red-600" /></div>
+                              <div><p className="text-sm font-medium text-slate-700">{file.name}</p><p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p></div>
+                            </div>
+                            <button onClick={() => removeFile(index)} className="p-2 hover:bg-red-100 rounded-lg"><X size={18} className="text-red-500" /></button>
+                          </div>
+                        ))}
+                        <button onClick={() => fileInputRef.current?.click()} className="w-full py-3 text-sm text-slate-500 border-2 border-dashed border-slate-200 rounded-xl hover:border-slate-300">+ Agregar otro PDF</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => fileInputRef.current?.click()} className="w-full flex flex-col items-center gap-3 px-6 py-12 border-2 border-dashed border-slate-300 rounded-xl hover:border-red-400 hover:bg-red-50">
+                        <Upload size={40} className="text-slate-300" /><span className="text-sm font-medium text-slate-600">Seleccionar PDF</span>
+                      </button>
+                    )}
                   </div>
                 )}
-                {resultado ? (
+                {(() => {
+                  const optsRender = archivos.length > 0 ? renderOpcionesHerramienta() : null;
+                  return optsRender && (
+                    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">{optsRender}</div>
+                  );
+                })()}
+              </div>
+              <div className="space-y-6">
+                {archivos.length > 0 && !resultado && herramientaActiva !== 'editor' && herramientaActiva !== 'crear' && (
+                  <button onClick={procesarPDF} disabled={procesando} className={`w-full flex items-center justify-center gap-3 px-6 py-5 bg-gradient-to-r ${HERRAMIENTAS.find(h => h.id === herramientaActiva)?.color || 'from-emerald-500 to-emerald-600'} text-white rounded-2xl text-sm font-bold uppercase shadow-lg disabled:opacity-50`}>
+                    {procesando ? <><Loader2 size={20} className="animate-spin" /> Procesando...</> : <><Check size={20} /> Procesar PDF</>}
+                  </button>
+                )}
+                {error && <div className="p-5 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700"><AlertCircle size={20} /><p className="font-bold">Error</p><p className="text-sm">{error}</p></div>}
+                {resultado && (
                   <div className="bg-white rounded-2xl p-6 border-2 border-green-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-4 text-green-600"><Check size={24} /><span className="text-lg font-bold">Exitoso</span></div>
                     <div className="space-y-3">
@@ -888,86 +785,11 @@ export default function GestorPDFPage() {
                     </div>
                     <button onClick={limpiar} className="w-full mt-4 py-3 text-sm text-slate-500 hover:text-red-500 border-2 border-slate-200 rounded-xl">Procesar otro</button>
                   </div>
-                ) : (
-                  renderEditorVisual()
                 )}
+                {herramientaActiva === 'editor' && renderEditorVisual()}
+                {herramientaActiva === 'crear' && renderEditorCrearPDF()}
               </div>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                  {(() => {
-                    const h = HERRAMIENTAS.find(x => x.id === herramientaActiva);
-                    const Icono = h?.icono;
-                    return (
-                      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                        <div className="flex items-center gap-4">
-                          <div className={`p-3 bg-gradient-to-br ${h?.color} rounded-xl`}><Icono size={24} className="text-white" /></div>
-                          <div><p className="text-lg font-bold text-slate-700">{h?.label}</p><p className="text-sm text-slate-400">{h?.descripcion}</p></div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                  <input ref={fileInputRef} type="file" accept=".pdf" multiple={herramientaActiva === 'fusionar'} onChange={handleFileSelect} className="hidden" />
-                  {herramientaActiva !== 'crear' && (
-                    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                      <h3 className="text-sm font-bold text-slate-600 uppercase mb-4">Archivos</h3>
-                      {archivos.length > 0 ? (
-                        <div className="space-y-3">
-                          {archivos.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
-                              <div className="flex items-center gap-3">
-                                <div className="p-2 bg-red-100 rounded-lg"><FileText size={20} className="text-red-600" /></div>
-                                <div><p className="text-sm font-medium text-slate-700">{file.name}</p><p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p></div>
-                              </div>
-                              <button onClick={() => removeFile(index)} className="p-2 hover:bg-red-100 rounded-lg"><X size={18} className="text-red-500" /></button>
-                            </div>
-                          ))}
-                          <button onClick={() => fileInputRef.current?.click()} className="w-full py-3 text-sm text-slate-500 border-2 border-dashed border-slate-200 rounded-xl hover:border-slate-300">+ Agregar otro PDF</button>
-                        </div>
-                      ) : (
-                        <button onClick={() => fileInputRef.current?.click()} className="w-full flex flex-col items-center gap-3 px-6 py-12 border-2 border-dashed border-slate-300 rounded-xl hover:border-red-400 hover:bg-red-50">
-                          <Upload size={40} className="text-slate-300" /><span className="text-sm font-medium text-slate-600">Seleccionar PDF</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {(() => {
-                    const optsRender = archivos.length > 0 ? renderOpcionesHerramienta() : null;
-                    return optsRender && (
-                      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">{optsRender}</div>
-                    );
-                  })()}
-                </div>
-                <div className="space-y-6">
-                  {archivos.length > 0 && !resultado && herramientaActiva !== 'crear' && (
-                    <button onClick={procesarPDF} disabled={procesando} className={`w-full flex items-center justify-center gap-3 px-6 py-5 bg-gradient-to-r ${HERRAMIENTAS.find(h => h.id === herramientaActiva)?.color || 'from-emerald-500 to-emerald-600'} text-white rounded-2xl text-sm font-bold uppercase shadow-lg disabled:opacity-50`}>
-                      {procesando ? <><Loader2 size={20} className="animate-spin" /> Procesando...</> : <><Check size={20} /> Procesar PDF</>}
-                    </button>
-                  )}
-                  {error && (
-                    <div className="p-5 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700 flex items-start gap-3">
-                      <AlertCircle size={20} className="mt-0.5" />
-                      <div><p className="font-bold">Error</p><p className="text-sm">{error}</p></div>
-                    </div>
-                  )}
-                  {resultado && (
-                    <div className="bg-white rounded-2xl p-6 border-2 border-green-200 shadow-sm">
-                      <div className="flex items-center gap-3 mb-4 text-green-600"><Check size={24} /><span className="text-lg font-bold">Exitoso</span></div>
-                      <div className="space-y-3">
-                        {resultado.archivos?.map((archivo, index) => (
-                          <button key={index} onClick={() => descargarArchivo(archivo)} className="w-full flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100">
-                            <div className="flex items-center gap-3"><FileText size={20} className="text-red-600" /><span className="text-sm font-medium text-slate-700">{archivo.nombre}</span></div>
-                            <Download size={20} className="text-green-600" />
-                          </button>
-                        ))}
-                      </div>
-                      <button onClick={limpiar} className="w-full mt-4 py-3 text-sm text-slate-500 hover:text-red-500 border-2 border-slate-200 rounded-xl">Procesar otro</button>
-                    </div>
-                  )}
-                  {herramientaActiva === 'crear' && renderEditorCrearPDF()}
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>
