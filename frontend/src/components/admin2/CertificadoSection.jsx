@@ -61,6 +61,8 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     nombre_completo: '',
     tipo_documento: 'C.C.',
     numero_documento: '',
+    lugar_expedicion: '',
+    fecha_expedicion: '',
     cargo: '',
     fecha_ingreso: '',
     nombre_area: '',
@@ -169,6 +171,16 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         ? new Date(emp.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
         : '[FECHA]');
   const areaEmp = modoManual ? datosManual.nombre_area : (emp?.nombre_area || '');
+
+  const lugarExpedicion = modoManual
+    ? (datosManual.lugar_expedicion || '')
+    : (emp?.lugar_expedicion || '');
+
+  const fechaExpedicion = (() => {
+    const raw = modoManual ? datosManual.fecha_expedicion : emp?.fecha_expedicion;
+    if (!raw) return '';
+    return new Date(raw + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+  })();
 
   const handlePrint = () => window.print();
 
@@ -286,6 +298,8 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         nombre_empleado:      nombreEmp,
         tipo_documento:       tipoDoc,
         numero_documento:     numDoc,
+        lugar_expedicion:     lugarExpedicion || '',
+        fecha_expedicion:     fechaExpedicion || '',
         cargo,
         fecha_ingreso:        fechaIngreso,
         destinatario:         form.destinatario,
@@ -466,6 +480,18 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
                   />
                 </div>
                 <Field
+                  label="Lugar de expedición"
+                  value={datosManual.lugar_expedicion}
+                  onChange={e => setDatosManual(p => ({ ...p, lugar_expedicion: e.target.value }))}
+                  placeholder="Medellín, Antioquia"
+                />
+                <Field
+                  label="Fecha de expedición"
+                  type="date"
+                  value={datosManual.fecha_expedicion}
+                  onChange={e => setDatosManual(p => ({ ...p, fecha_expedicion: e.target.value }))}
+                />
+                <Field
                   label="Cargo"
                   value={datosManual.cargo}
                   onChange={e => setDatosManual(p => ({ ...p, cargo: e.target.value }))}
@@ -570,13 +596,13 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
         {/* PANEL PREVISUALIZACIÓN — sin caja de fondo: la hoja flota con su sombra */}
         <div className="cert-panel flex-1 overflow-y-auto p-2 lg:p-4 flex justify-center items-start">
-          <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={areaEmp} />
+          <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={areaEmp} lugarExpedicion={lugarExpedicion} fechaExpedicion={fechaExpedicion} />
         </div>
       </div>
 
       {/* VERSIÓN IMPRESIÓN */}
       <div className="hidden solo-print">
-        <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={areaEmp} />
+        <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={areaEmp} lugarExpedicion={lugarExpedicion} fechaExpedicion={fechaExpedicion} />
       </div>
     </>
   );
@@ -593,7 +619,7 @@ const parseSalario = (val) => {
 const toTitleCase = (str) =>
   (str || '').toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, area }) => {
+const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, area, lugarExpedicion, fechaExpedicion }) => {
   const empresa     = form.nombre_empresa || 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S';
   const salarioText = parseSalario(form.salario);
   // Tipografía uniforme del documento: Verdana en todo el cuerpo;
@@ -646,7 +672,9 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
         {/* Párrafo principal */}
         <p style={sr({ textAlign: 'justify', margin: '0 0 14pt' })}>
           Certificamos que el/la señor(a) <strong>{(nombreEmp || '').toUpperCase()}</strong>,
-          identificado(a) con {tipoDoc === 'C.C.' ? 'cédula de ciudadanía' : tipoDoc === 'C.E.' ? 'cédula de extranjería' : tipoDoc} No <strong>{numDoc}</strong>,
+          identificado(a) con {tipoDoc === 'C.C.' ? 'cédula de ciudadanía' : tipoDoc === 'C.E.' ? 'cédula de extranjería' : tipoDoc} No <strong>{numDoc}</strong>
+          {lugarExpedicion ? <> de <strong>{lugarExpedicion.toUpperCase()}</strong></> : ''}
+          {fechaExpedicion ? <> expedida el <strong>{fechaExpedicion}</strong></> : ''},
           labora en <strong>{empresa}</strong>
           {form.nit_empresa ? <> con Nit. <strong>{form.nit_empresa}</strong></> : ''},
           desde el <strong>{fechaIngreso}</strong>, con contrato a{' '}
