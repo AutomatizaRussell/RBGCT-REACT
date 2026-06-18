@@ -2224,6 +2224,33 @@ def health_check(request):
     return Response(estado)
 
 
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def actualizar_mi_contacto(request):
+    """Permite al empleado autenticado actualizar sus propios datos de contacto."""
+    if not _es_empleado(request.user):
+        return Response({'error': 'Solo empleados pueden usar este endpoint'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        empleado = DatosEmpleado.objects.get(id_empleado=request.user.id_empleado)
+    except DatosEmpleado.DoesNotExist:
+        return Response({'error': 'Empleado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    campos_contacto = ['correo_personal', 'telefono', 'direccion',
+                       'telefono_emergencia', 'nombre_contacto_emergencia', 'parentesco_emergencia']
+    contacto_data = {c: request.data[c] for c in campos_contacto if c in request.data}
+
+    if contacto_data:
+        from django.db import transaction
+        with transaction.atomic():
+            contacto, _ = DatosContacto.objects.get_or_create(persona=empleado.persona)
+            for campo, valor in contacto_data.items():
+                setattr(contacto, campo, valor or None)
+            contacto.save()
+
+    return Response({'ok': True})
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 @throttle_classes([UserRateThrottle])

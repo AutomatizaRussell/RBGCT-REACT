@@ -3,7 +3,7 @@ import {
   UserCircle, Mail, Building2, Briefcase, CalendarDays, Phone,
   MapPin, Shield, RefreshCw, Edit3, Save, X, Heart, User, Hash
 } from 'lucide-react';
-import { getEmpleadoById, updateEmpleado } from '../../lib/api';
+import { getEmpleadoById, actualizarMiContacto } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
 
 const ROLE_LABELS = {
@@ -57,7 +57,7 @@ const UserProfile = () => {
   const handleGuardar = async () => {
     try {
       setSaving(true);
-      await updateEmpleado(empleadoData.id_empleado, {
+      await actualizarMiContacto({
         telefono: form.telefono,
         correo_personal: form.correo_personal,
         direccion: form.direccion,
