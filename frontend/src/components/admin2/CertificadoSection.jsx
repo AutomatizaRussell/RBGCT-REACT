@@ -560,6 +560,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
           <Section title="Responsable de Firma">
             <Field label="Nombre del Firmante" name="firmante_nombre" value={form.firmante_nombre} onChange={handleChange} />
             <Field label="Cargo del Firmante" name="firmante_cargo" value={form.firmante_cargo} onChange={handleChange} />
+            <Field label="C.C. del Firmante" name="firmante_cc" value={form.firmante_cc} onChange={handleChange} placeholder="Ej. 21468161" />
           </Section>
 
           <Section title="Enviar por correo">
