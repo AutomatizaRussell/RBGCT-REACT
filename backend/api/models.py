@@ -123,6 +123,8 @@ class Persona(models.Model):
     apodo = models.CharField(max_length=50, blank=True, null=True, help_text="Nombre como desea ser llamado/a")
     tipo_documento = models.CharField(max_length=2, choices=TIPO_DOC_CHOICES, default='CC')
     numero_documento = models.CharField(max_length=30, blank=True, null=True, unique=True)
+    lugar_expedicion = models.CharField(max_length=150, blank=True, null=True)
+    fecha_expedicion = models.DateField(blank=True, null=True)
     fecha_nacimiento = models.DateField(blank=True, null=True)
     sexo = models.CharField(max_length=1, choices=SEXO_CHOICES, blank=True, null=True)
     tipo_sangre = models.CharField(max_length=3, choices=SANGRE_CHOICES, blank=True, null=True)

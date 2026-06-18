@@ -36,6 +36,7 @@ class PersonaSerializer(serializers.ModelSerializer):
             'id_persona', 'primer_nombre', 'segundo_nombre',
             'primer_apellido', 'segundo_apellido', 'apodo',
             'tipo_documento', 'numero_documento',
+            'lugar_expedicion', 'fecha_expedicion',
             'fecha_nacimiento', 'sexo', 'tipo_sangre',
         ]
 
@@ -72,6 +73,8 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
     tipo_sangre = serializers.SerializerMethodField()
     tipo_documento = serializers.SerializerMethodField()
     numero_documento = serializers.SerializerMethodField()
+    lugar_expedicion = serializers.SerializerMethodField()
+    fecha_expedicion = serializers.SerializerMethodField()
     nombre_completo = serializers.SerializerMethodField()
 
     # Acceso general al Formulario SQF: derivado de los permisos por sección
@@ -93,6 +96,7 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
             # Persona
             'primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido',
             'apodo', 'nombre_completo', 'tipo_documento', 'numero_documento',
+            'lugar_expedicion', 'fecha_expedicion',
             'fecha_nacimiento', 'sexo', 'tipo_sangre',
             # Contacto
             'correo_personal', 'telefono', 'direccion',
@@ -145,6 +149,12 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
 
     def get_numero_documento(self, obj):
         return obj.persona.numero_documento if obj.persona else None
+
+    def get_lugar_expedicion(self, obj):
+        return obj.persona.lugar_expedicion if obj.persona else None
+
+    def get_fecha_expedicion(self, obj):
+        return obj.persona.fecha_expedicion if obj.persona else None
 
     def get_nombre_completo(self, obj):
         return obj.persona.nombre_completo if obj.persona else None

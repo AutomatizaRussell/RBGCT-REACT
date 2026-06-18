@@ -648,6 +648,8 @@ def crear_usuario_superadmin(request):
         'fecha_nacimiento': request.data.get('fecha_nacimiento') or None,
         'sexo': request.data.get('sexo') or None,
         'tipo_sangre': request.data.get('tipo_sangre') or None,
+        'lugar_expedicion': request.data.get('lugar_expedicion') or None,
+        'fecha_expedicion': request.data.get('fecha_expedicion') or None,
     }
     contacto_data = {
         'correo_personal':             request.data.get('correo_personal') or None,
@@ -781,7 +783,9 @@ def completar_datos_empleado(request):
         with transaction.atomic():
             # Actualizar Persona (datos de identidad)
             campos_persona = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido',
-                              'apodo', 'tipo_documento', 'numero_documento', 'fecha_nacimiento', 'sexo', 'tipo_sangre']
+                              'apodo', 'tipo_documento', 'numero_documento',
+                              'lugar_expedicion', 'fecha_expedicion',
+                              'fecha_nacimiento', 'sexo', 'tipo_sangre']
             persona_actualizada = False
             for campo in campos_persona:
                 if campo in request.data:

@@ -28,7 +28,9 @@ const CompleteProfile = () => {
     apodo: empleadoData?.apodo || '',
     tipo_documento: empleadoData?.tipo_documento || 'CC',
     numero_documento: empleadoData?.numero_documento || '',
-    
+    lugar_expedicion: empleadoData?.lugar_expedicion || '',
+    fecha_expedicion: empleadoData?.fecha_expedicion || '',
+
     // Paso 2: Datos de contacto
     correo_personal: empleadoData?.correo_personal || '',
     telefono: empleadoData?.telefono || '',
@@ -174,6 +176,8 @@ const CompleteProfile = () => {
         apodo: formData.apodo,
         tipo_documento: formData.tipo_documento,
         numero_documento: formData.numero_documento,
+        lugar_expedicion: formData.lugar_expedicion || null,
+        fecha_expedicion: formData.fecha_expedicion || null,
         correo_personal: formData.correo_personal,
         telefono: formData.telefono,
         telefono_emergencia: formData.telefono_emergencia,
@@ -334,6 +338,33 @@ const CompleteProfile = () => {
             onChange={handleChange}
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. 1234567890"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            <MapPin size={12} /> Lugar de Expedición
+          </label>
+          <input
+            type="text"
+            name="lugar_expedicion"
+            value={formData.lugar_expedicion}
+            onChange={handleChange}
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
+            placeholder="Ej. Medellín, Antioquia"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            <Calendar size={12} /> Fecha de Expedición
+          </label>
+          <input
+            type="date"
+            name="fecha_expedicion"
+            value={formData.fecha_expedicion}
+            onChange={handleChange}
+            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
           />
         </div>
       </div>

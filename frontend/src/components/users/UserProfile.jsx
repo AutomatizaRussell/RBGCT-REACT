@@ -227,6 +227,20 @@ const UserProfile = () => {
                 value={formatDateOnly(empleado.fecha_nacimiento)}
               />
             )}
+            {empleado.lugar_expedicion && (
+              <InfoRow
+                icon={<MapPin size={16} />}
+                label="Lugar Expedición"
+                value={empleado.lugar_expedicion}
+              />
+            )}
+            {empleado.fecha_expedicion && (
+              <InfoRow
+                icon={<CalendarDays size={16} />}
+                label="Fecha Expedición"
+                value={formatDateOnly(empleado.fecha_expedicion)}
+              />
+            )}
           </div>
           {editando && (
             <p className="text-[10px] text-slate-400 mt-4">
