@@ -37,7 +37,12 @@ class PersonaSerializer(serializers.ModelSerializer):
             'primer_apellido', 'segundo_apellido', 'apodo',
             'tipo_documento', 'numero_documento',
             'lugar_expedicion', 'fecha_expedicion',
-            'fecha_nacimiento', 'sexo', 'tipo_sangre',
+            'fecha_nacimiento', 'ciudad_nacimiento',
+            'departamento_nacimiento', 'pais_nacimiento', 'nacionalidad',
+            'sexo', 'tipo_sangre',
+            'estado_civil', 'estrato_socioeconomico', 'tipo_vivienda',
+            'tiene_discapacidad', 'descripcion_discapacidad',
+            'tiene_hijos', 'numero_hijos',
         ]
 
 
@@ -69,8 +74,19 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
     segundo_apellido = serializers.SerializerMethodField()
     apodo = serializers.SerializerMethodField()
     fecha_nacimiento = serializers.SerializerMethodField()
+    ciudad_nacimiento = serializers.SerializerMethodField()
+    departamento_nacimiento = serializers.SerializerMethodField()
+    pais_nacimiento = serializers.SerializerMethodField()
+    nacionalidad = serializers.SerializerMethodField()
     sexo = serializers.SerializerMethodField()
     tipo_sangre = serializers.SerializerMethodField()
+    estado_civil = serializers.SerializerMethodField()
+    estrato_socioeconomico = serializers.SerializerMethodField()
+    tipo_vivienda = serializers.SerializerMethodField()
+    tiene_discapacidad = serializers.SerializerMethodField()
+    descripcion_discapacidad = serializers.SerializerMethodField()
+    tiene_hijos = serializers.SerializerMethodField()
+    numero_hijos = serializers.SerializerMethodField()
     tipo_documento = serializers.SerializerMethodField()
     numero_documento = serializers.SerializerMethodField()
     lugar_expedicion = serializers.SerializerMethodField()
@@ -93,11 +109,21 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
         model = DatosEmpleado
         fields = [
             'id_empleado', 'auth_id',
-            # Persona
+            # Persona — identidad
             'primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido',
             'apodo', 'nombre_completo', 'tipo_documento', 'numero_documento',
             'lugar_expedicion', 'fecha_expedicion',
-            'fecha_nacimiento', 'sexo', 'tipo_sangre',
+            # Persona — nacimiento y origen
+            'fecha_nacimiento', 'ciudad_nacimiento', 'departamento_nacimiento',
+            'pais_nacimiento', 'nacionalidad',
+            # Persona — bio
+            'sexo', 'tipo_sangre', 'estado_civil',
+            # Persona — socioeconomico
+            'estrato_socioeconomico', 'tipo_vivienda',
+            # Persona — discapacidad
+            'tiene_discapacidad', 'descripcion_discapacidad',
+            # Persona — familia
+            'tiene_hijos', 'numero_hijos',
             # Contacto
             'correo_personal', 'telefono', 'direccion',
             # Emergencia
@@ -120,44 +146,33 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
         )
 
     # Métodos get_ para Persona
-    def get_primer_nombre(self, obj):
-        return obj.persona.primer_nombre if obj.persona else None
+    def _p(self, obj, field):
+        return getattr(obj.persona, field, None) if obj.persona else None
 
-    def get_segundo_nombre(self, obj):
-        return obj.persona.segundo_nombre if obj.persona else None
-
-    def get_primer_apellido(self, obj):
-        return obj.persona.primer_apellido if obj.persona else None
-
-    def get_segundo_apellido(self, obj):
-        return obj.persona.segundo_apellido if obj.persona else None
-
-    def get_apodo(self, obj):
-        return obj.persona.apodo if obj.persona else None
-
-    def get_fecha_nacimiento(self, obj):
-        return obj.persona.fecha_nacimiento if obj.persona else None
-
-    def get_sexo(self, obj):
-        return obj.persona.sexo if obj.persona else None
-
-    def get_tipo_sangre(self, obj):
-        return obj.persona.tipo_sangre if obj.persona else None
-
-    def get_tipo_documento(self, obj):
-        return obj.persona.tipo_documento if obj.persona else None
-
-    def get_numero_documento(self, obj):
-        return obj.persona.numero_documento if obj.persona else None
-
-    def get_lugar_expedicion(self, obj):
-        return obj.persona.lugar_expedicion if obj.persona else None
-
-    def get_fecha_expedicion(self, obj):
-        return obj.persona.fecha_expedicion if obj.persona else None
-
-    def get_nombre_completo(self, obj):
-        return obj.persona.nombre_completo if obj.persona else None
+    def get_primer_nombre(self, obj):          return self._p(obj, 'primer_nombre')
+    def get_segundo_nombre(self, obj):         return self._p(obj, 'segundo_nombre')
+    def get_primer_apellido(self, obj):        return self._p(obj, 'primer_apellido')
+    def get_segundo_apellido(self, obj):       return self._p(obj, 'segundo_apellido')
+    def get_apodo(self, obj):                  return self._p(obj, 'apodo')
+    def get_tipo_documento(self, obj):         return self._p(obj, 'tipo_documento')
+    def get_numero_documento(self, obj):       return self._p(obj, 'numero_documento')
+    def get_lugar_expedicion(self, obj):       return self._p(obj, 'lugar_expedicion')
+    def get_fecha_expedicion(self, obj):       return self._p(obj, 'fecha_expedicion')
+    def get_fecha_nacimiento(self, obj):       return self._p(obj, 'fecha_nacimiento')
+    def get_ciudad_nacimiento(self, obj):      return self._p(obj, 'ciudad_nacimiento')
+    def get_departamento_nacimiento(self, obj):return self._p(obj, 'departamento_nacimiento')
+    def get_pais_nacimiento(self, obj):        return self._p(obj, 'pais_nacimiento')
+    def get_nacionalidad(self, obj):           return self._p(obj, 'nacionalidad')
+    def get_sexo(self, obj):                   return self._p(obj, 'sexo')
+    def get_tipo_sangre(self, obj):            return self._p(obj, 'tipo_sangre')
+    def get_estado_civil(self, obj):           return self._p(obj, 'estado_civil')
+    def get_estrato_socioeconomico(self, obj): return self._p(obj, 'estrato_socioeconomico')
+    def get_tipo_vivienda(self, obj):          return self._p(obj, 'tipo_vivienda')
+    def get_tiene_discapacidad(self, obj):     return self._p(obj, 'tiene_discapacidad')
+    def get_descripcion_discapacidad(self, obj):return self._p(obj, 'descripcion_discapacidad')
+    def get_tiene_hijos(self, obj):            return self._p(obj, 'tiene_hijos')
+    def get_numero_hijos(self, obj):           return self._p(obj, 'numero_hijos')
+    def get_nombre_completo(self, obj):        return self._p(obj, 'nombre_completo')
 
     # Métodos get_ para DatosContacto
     def get_correo_personal(self, obj):
@@ -187,6 +202,19 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
     def _split_data(self, validated_data):
         """Separa los datos validados en persona, contacto y empleado."""
         persona_data = validated_data.pop('persona', {})
+        persona_fields = [
+            'primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido', 'apodo',
+            'tipo_documento', 'numero_documento', 'lugar_expedicion', 'fecha_expedicion',
+            'fecha_nacimiento', 'ciudad_nacimiento', 'departamento_nacimiento',
+            'pais_nacimiento', 'nacionalidad',
+            'sexo', 'tipo_sangre', 'estado_civil',
+            'estrato_socioeconomico', 'tipo_vivienda',
+            'tiene_discapacidad', 'descripcion_discapacidad',
+            'tiene_hijos', 'numero_hijos',
+        ]
+        for k in persona_fields:
+            if k in validated_data:
+                persona_data[k] = validated_data.pop(k)
         contacto_fields = ['correo_personal', 'telefono', 'direccion',
                            'telefono_emergencia', 'nombre_contacto_emergencia', 'parentesco_emergencia']
         contacto_data = {k: validated_data.pop(k) for k in contacto_fields if k in validated_data}

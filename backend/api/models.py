@@ -114,6 +114,18 @@ class Persona(models.Model):
         ('PA', 'Pasaporte'),
         ('TI', 'Tarjeta de Identidad'),
     ]
+    ESTADO_CIVIL_CHOICES = [
+        ('S', 'Soltero/a'),
+        ('C', 'Casado/a'),
+        ('UL', 'Unión Libre'),
+        ('D', 'Divorciado/a'),
+        ('V', 'Viudo/a'),
+    ]
+    TIPO_VIVIENDA_CHOICES = [
+        ('propia', 'Propia'),
+        ('arrendada', 'Arrendada'),
+        ('familiar', 'Familiar'),
+    ]
 
     id_persona = models.AutoField(primary_key=True)
     primer_nombre = models.CharField(max_length=100)
@@ -126,8 +138,19 @@ class Persona(models.Model):
     lugar_expedicion = models.CharField(max_length=150, blank=True, null=True)
     fecha_expedicion = models.DateField(blank=True, null=True)
     fecha_nacimiento = models.DateField(blank=True, null=True)
+    ciudad_nacimiento = models.CharField(max_length=150, blank=True, null=True)
+    departamento_nacimiento = models.CharField(max_length=150, blank=True, null=True)
+    pais_nacimiento = models.CharField(max_length=100, blank=True, null=True, default='Colombia')
+    nacionalidad = models.CharField(max_length=100, blank=True, null=True, default='Colombiana')
     sexo = models.CharField(max_length=1, choices=SEXO_CHOICES, blank=True, null=True)
     tipo_sangre = models.CharField(max_length=3, choices=SANGRE_CHOICES, blank=True, null=True)
+    estado_civil = models.CharField(max_length=2, choices=ESTADO_CIVIL_CHOICES, blank=True, null=True)
+    estrato_socioeconomico = models.PositiveSmallIntegerField(blank=True, null=True)
+    tipo_vivienda = models.CharField(max_length=10, choices=TIPO_VIVIENDA_CHOICES, blank=True, null=True)
+    tiene_discapacidad = models.BooleanField(default=False)
+    descripcion_discapacidad = models.TextField(blank=True, null=True)
+    tiene_hijos = models.BooleanField(default=False)
+    numero_hijos = models.PositiveSmallIntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
