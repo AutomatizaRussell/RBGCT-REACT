@@ -20,7 +20,7 @@ from django.conf import settings
 from django.core.cache import cache
 from .models import (
     DatosArea, DatosCargo, SuperAdmin, Persona, DatosContacto, DatosEmpleado,
-    TareasCalendario, SolicitudesPassword, ReglamentoItem,
+    TareasCalendario, SolicitudesPassword, ReglamentoItem, SugerenciaEmpleado,
     Curso, CursoContenido, CursoHistorial, Alerta, N8nLog, ApiKey,
     EntidadEPS, EntidadAFP, EntidadARL, CajaCompensacion,
     Contrato, AfiliacionSeguridadSocial, ContratoRenovacion,
@@ -493,7 +493,8 @@ def login_view(request):
         empleado = DatosEmpleado.objects.select_related('persona').only(
             'id_empleado', 'correo_corporativo', 'id_permisos', 'estado',
             'area_id', 'cargo_id', 'primer_login', 'datos_completados',
-            'permitir_edicion_datos', 'acceso_formularios_sqf', 'password_hash', 'persona',
+            'permitir_edicion_datos', 'acceso_sqf_clientes', 'acceso_sqf_contratos',
+            'acceso_sqf_facturacion', 'acceso_sqf_auditoria', 'password_hash', 'persona',
             'persona__primer_nombre', 'persona__segundo_nombre',
             'persona__primer_apellido', 'persona__segundo_apellido',
         ).get(correo_corporativo=email, estado='ACTIVA')
@@ -545,6 +546,10 @@ def login_view(request):
                         'primer_login': True,
                         'datos_completados': empleado.datos_completados,
                         'acceso_formularios_sqf': empleado.acceso_formularios_sqf,
+                        'acceso_sqf_clientes': empleado.acceso_sqf_clientes,
+                        'acceso_sqf_contratos': empleado.acceso_sqf_contratos,
+                        'acceso_sqf_facturacion': empleado.acceso_sqf_facturacion,
+                        'acceso_sqf_auditoria': empleado.acceso_sqf_auditoria,
                     },
                     'requiere_verificacion': True,
                     'mensaje': 'Por favor ingresa el código de verificación enviado a tu correo',
@@ -568,6 +573,10 @@ def login_view(request):
                     'datos_completados': empleado.datos_completados,
                     'permitir_edicion_datos': empleado.permitir_edicion_datos,
                     'acceso_formularios_sqf': empleado.acceso_formularios_sqf,
+                    'acceso_sqf_clientes': empleado.acceso_sqf_clientes,
+                    'acceso_sqf_contratos': empleado.acceso_sqf_contratos,
+                    'acceso_sqf_facturacion': empleado.acceso_sqf_facturacion,
+                    'acceso_sqf_auditoria': empleado.acceso_sqf_auditoria,
                 },
                 **tokens,
             })
@@ -639,6 +648,8 @@ def crear_usuario_superadmin(request):
         'fecha_nacimiento': request.data.get('fecha_nacimiento') or None,
         'sexo': request.data.get('sexo') or None,
         'tipo_sangre': request.data.get('tipo_sangre') or None,
+        'lugar_expedicion': request.data.get('lugar_expedicion') or None,
+        'fecha_expedicion': request.data.get('fecha_expedicion') or None,
     }
     contacto_data = {
         'correo_personal':             request.data.get('correo_personal') or None,
@@ -772,7 +783,9 @@ def completar_datos_empleado(request):
         with transaction.atomic():
             # Actualizar Persona (datos de identidad)
             campos_persona = ['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido',
-                              'apodo', 'tipo_documento', 'numero_documento', 'fecha_nacimiento', 'sexo', 'tipo_sangre']
+                              'apodo', 'tipo_documento', 'numero_documento',
+                              'lugar_expedicion', 'fecha_expedicion',
+                              'fecha_nacimiento', 'sexo', 'tipo_sangre']
             persona_actualizada = False
             for campo in campos_persona:
                 if campo in request.data:
@@ -1896,6 +1909,10 @@ def verificar_codigo_login(request):
             'primer_login': empleado.primer_login,
             'datos_completados': empleado.datos_completados,
             'acceso_formularios_sqf': empleado.acceso_formularios_sqf,
+            'acceso_sqf_clientes': empleado.acceso_sqf_clientes,
+            'acceso_sqf_contratos': empleado.acceso_sqf_contratos,
+            'acceso_sqf_facturacion': empleado.acceso_sqf_facturacion,
+            'acceso_sqf_auditoria': empleado.acceso_sqf_auditoria,
         },
         'necesita_completar_datos': necesita_completar,
         **tokens,
@@ -2205,6 +2222,33 @@ def health_check(request):
         estado['status'] = 'degraded'
         return Response(estado, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     return Response(estado)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def actualizar_mi_contacto(request):
+    """Permite al empleado autenticado actualizar sus propios datos de contacto."""
+    if not _es_empleado(request.user):
+        return Response({'error': 'Solo empleados pueden usar este endpoint'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        empleado = DatosEmpleado.objects.get(id_empleado=request.user.id_empleado)
+    except DatosEmpleado.DoesNotExist:
+        return Response({'error': 'Empleado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    campos_contacto = ['correo_personal', 'telefono', 'direccion',
+                       'telefono_emergencia', 'nombre_contacto_emergencia', 'parentesco_emergencia']
+    contacto_data = {c: request.data[c] for c in campos_contacto if c in request.data}
+
+    if contacto_data:
+        from django.db import transaction
+        with transaction.atomic():
+            contacto, _ = DatosContacto.objects.get_or_create(persona=empleado.persona)
+            for campo, valor in contacto_data.items():
+                setattr(contacto, campo, valor or None)
+            contacto.save()
+
+    return Response({'ok': True})
 
 
 @api_view(['POST'])
@@ -4403,3 +4447,108 @@ def set_cert_permiso(request):
     except Exception as e:
         logger.error(f'[cert_permisos] Error: {e}')
         return Response({'error': str(e)}, status=500)
+
+
+# =============================================================================
+# SUGERENCIAS DE EMPLEADOS
+# Flujo: empleado envía (cualquier rol) → campanita de admins → admin marca
+# "recibido" → el empleado ve la confirmación en su campanita.
+# =============================================================================
+
+def _sugerencia_a_dict(s, incluir_empleado=False):
+    data = {
+        'id': s.id,
+        'sugerencia': s.sugerencia,
+        'fecha_envio': s.fecha_envio.isoformat(),
+        'recibida': s.recibida,
+        'fecha_recibida': s.fecha_recibida.isoformat() if s.fecha_recibida else None,
+        'confirmacion_vista': s.confirmacion_vista,
+    }
+    if incluir_empleado:
+        data['empleado'] = {
+            'id_empleado': s.empleado.id_empleado,
+            'nombre': s.empleado.persona.nombre_completo if s.empleado.persona_id else '',
+            'correo': s.empleado.correo_corporativo,
+        }
+    return data
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([UserRateThrottle])
+def crear_sugerencia(request):
+    """El empleado autenticado envía una sugerencia/duda/problema."""
+    if not _es_empleado(request.user):
+        return Response({'error': 'Solo los empleados pueden enviar sugerencias'},
+                        status=status.HTTP_403_FORBIDDEN)
+    texto = (request.data.get('sugerencia') or '').strip()
+    if not texto:
+        return Response({'error': 'La sugerencia no puede estar vacía'},
+                        status=status.HTTP_400_BAD_REQUEST)
+    if len(texto) > 4000:
+        return Response({'error': 'La sugerencia es demasiado larga (máx. 4000 caracteres)'},
+                        status=status.HTTP_400_BAD_REQUEST)
+    s = SugerenciaEmpleado.objects.create(empleado=request.user, sugerencia=texto)
+    logger.info(f"[SUGERENCIAS] Nueva sugerencia {s.id} de {request.user.correo_corporativo}")
+    return Response(_sugerencia_a_dict(s), status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def mis_sugerencias(request):
+    """Sugerencias del empleado autenticado (para su widget y su campanita)."""
+    if not _es_empleado(request.user):
+        return Response({'sugerencias': []})
+    qs = SugerenciaEmpleado.objects.filter(empleado=request.user).order_by('-fecha_envio')[:50]
+    return Response({'sugerencias': [_sugerencia_a_dict(s) for s in qs]})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def confirmar_sugerencia_vista(request, sugerencia_id):
+    """El empleado marca como vista la confirmación de recibido (limpia su campanita)."""
+    try:
+        s = SugerenciaEmpleado.objects.get(id=sugerencia_id)
+    except SugerenciaEmpleado.DoesNotExist:
+        return Response({'error': 'Sugerencia no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+    if not _es_empleado(request.user) or s.empleado_id != request.user.id_empleado:
+        return Response({'error': 'Solo puedes confirmar tus propias sugerencias'},
+                        status=status.HTTP_403_FORBIDDEN)
+    s.confirmacion_vista = True
+    s.save(update_fields=['confirmacion_vista'])
+    return Response({'ok': True})
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminOrSuperAdmin])
+def listar_sugerencias(request):
+    """
+    Admin/SuperAdmin:
+    - ?empleado_id=X → historial completo de ese empleado (ficha de colaborador)
+    - ?pendientes=1  → solo las no recibidas (campanita)
+    """
+    qs = SugerenciaEmpleado.objects.select_related('empleado', 'empleado__persona')
+    empleado_id = request.query_params.get('empleado_id')
+    if empleado_id:
+        qs = qs.filter(empleado_id=empleado_id)
+    if request.query_params.get('pendientes'):
+        qs = qs.filter(recibida=False)
+    qs = qs.order_by('-fecha_envio')[:200]
+    return Response({'sugerencias': [_sugerencia_a_dict(s, incluir_empleado=True) for s in qs]})
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminOrSuperAdmin])
+def recibir_sugerencia(request, sugerencia_id):
+    """Admin marca la sugerencia como recibida; el empleado verá la confirmación."""
+    from django.utils import timezone
+    try:
+        s = SugerenciaEmpleado.objects.get(id=sugerencia_id)
+    except SugerenciaEmpleado.DoesNotExist:
+        return Response({'error': 'Sugerencia no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+    if not s.recibida:
+        s.recibida = True
+        s.fecha_recibida = timezone.now()
+        s.save(update_fields=['recibida', 'fecha_recibida'])
+        logger.info(f"[SUGERENCIAS] Sugerencia {s.id} marcada como recibida")
+    return Response(_sugerencia_a_dict(s, incluir_empleado=True))

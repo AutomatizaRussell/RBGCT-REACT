@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Save, User, Mail, Shield, Briefcase, Loader2, Check } from 'lucide-react';
+import { ArrowLeft, Save, User, Mail, Shield, Briefcase, Loader2, Check, MapPin, Calendar } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { getAllAreas, crearUsuarioSuperAdmin, getAllCargos } from '../../lib/api';
@@ -53,6 +53,8 @@ const CreateUserPage = () => {
     direccion: '',
     sexo: '',
     tipo_sangre: '',
+    lugar_expedicion: '',
+    fecha_expedicion: '',
     area_id: '',
     cargo_id: ''
   });
@@ -166,6 +168,8 @@ const CreateUserPage = () => {
           direccion: formData.direccion,
           sexo: formData.sexo,
           tipo_sangre: formData.tipo_sangre,
+          lugar_expedicion: formData.lugar_expedicion || null,
+          fecha_expedicion: formData.fecha_expedicion || null,
           area_id: formData.area_id ? parseInt(formData.area_id) : null,
           cargo_id: formData.cargo_id ? parseInt(formData.cargo_id) : null
         });
@@ -599,14 +603,43 @@ const CreateUserPage = () => {
                   {/* FECHA NACIMIENTO */}
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                      <User size={12} /> Fecha de Nacimiento
+                      <Calendar size={12} /> Fecha de Nacimiento
                     </label>
-                    <input 
+                    <input
                       type="date"
                       name="fecha_nacimiento"
                       value={formData.fecha_nacimiento}
                       onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
+                    />
+                  </div>
+
+                  {/* LUGAR DE EXPEDICIÓN */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                      <MapPin size={12} /> Lugar de Expedición
+                    </label>
+                    <input
+                      type="text"
+                      name="lugar_expedicion"
+                      value={formData.lugar_expedicion}
+                      onChange={handleChange}
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
+                      placeholder="Ej. Medellín, Antioquia"
+                    />
+                  </div>
+
+                  {/* FECHA DE EXPEDICIÓN */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                      <Calendar size={12} /> Fecha de Expedición
+                    </label>
+                    <input
+                      type="date"
+                      name="fecha_expedicion"
+                      value={formData.fecha_expedicion}
+                      onChange={handleChange}
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                     />
                   </div>
 

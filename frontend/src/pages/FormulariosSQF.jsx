@@ -60,14 +60,64 @@ const BILLING_DESCRIPTIONS = [
     { name: 'Otros Servicios', code: 'OTR-010' }
 ];
 
+const CONTRACT_ROLES = [
+    'Socio',
+    'Gerente 1', 'Gerente 2', 'Gerente 3',
+    'Senior 1', 'Senior 2', 'Senior 3',
+    'Líder/Semi-Senior 1', 'Líder/Semi-Senior 2', 'Líder/Semi-Senior 3',
+    'Analista/Asistente 1', 'Analista/Asistente 2', 'Analista/Asistente 3', 'Analista/Asistente 4',
+];
+
+const BILLING_CENTERS = {
+    'REVISORIA FISCAL':      [{ label: 'REVISORIA FISCAL',          code: '01 - 0101' }, { label: 'AUDITORIA EXTERNA',            code: '01 - 0102' }],
+    'CONTABILIDAD':          [{ label: 'CONTABILIDAD',              code: '02 - 0201' }, { label: 'RENTA MEDIOS CONTABILIDAD',    code: '02 - 0203' }],
+    'IMPUESTOS':             [{ label: 'IMPUESTOS',                 code: '03 - 0301' }, { label: 'RENTA MEDIOS IMPUESTOS',       code: '03 - 0302' }],
+    'BPO':                   [{ label: 'BPO',                       code: '04 - 0202' }],
+    'LEGAL':                 [{ label: 'LEGAL',                     code: '06 - 0601' }],
+    'FINANZAS':              [{ label: 'FINANZAS',                  code: '07 - 0701' }],
+    'PROPIEDAD INTELECTUAL': [{ label: 'PROPIEDAD INTELECTUAL',     code: '08 - 0801' }],
+    'ADMINISTRACIÓN':        [
+        { label: 'ADMINISTRACION TI',      code: '99 - 0901' },
+        { label: 'ADMINISTRACION MERCADEO', code: '99 - 1001' },
+        { label: 'ADMINISTRACION 2',        code: '99 - 8888' },
+        { label: 'ADMINISTRACIÓN',          code: '99 - 9999' },
+    ],
+};
+
+// Permisos por sección del formulario (flags en DatosEmpleado)
+const SQF_SECTIONS = [
+    { id: 'clients', flag: 'acceso_sqf_clientes' },
+    { id: 'contracts', flag: 'acceso_sqf_contratos' },
+    { id: 'billing', flag: 'acceso_sqf_facturacion' },
+    { id: 'auditor', flag: 'acceso_sqf_auditoria' },
+];
+
 export default function FormulariosSQF({ onBack }) {
     const navigate = useNavigate();
-    const { user, empleadoData } = useAuth();
+    const { user, empleadoData, isSuperAdmin, isAdmin } = useAuth();
+
+    // Secciones visibles: admins ven todo; empleados según sus flags por sección.
+    // Fallback legacy: localStorage anterior al despliegue sin los flags nuevos
+    // pero con acceso general (se corrige solo cuando AuthContext sincroniza).
+    const legacyAccess = Boolean(empleadoData?.acceso_formularios_sqf)
+        && SQF_SECTIONS.every(s => empleadoData?.[s.flag] === undefined);
+    const allowedSections = (isSuperAdmin || isAdmin || legacyAccess)
+        ? SQF_SECTIONS.map(s => s.id)
+        : SQF_SECTIONS.filter(s => Boolean(empleadoData?.[s.flag])).map(s => s.id);
+    const canSee = (sectionId) => allowedSections.includes(sectionId);
 
     // ==========================================
     // ESTADOS GLOBALES
     // ==========================================
-    const [activeSection, setActiveSection] = useState('clients');
+    const [activeSection, setActiveSection] = useState(allowedSections[0] || 'clients');
+
+    // Si los permisos cambian (sync de AuthContext) y la sección activa deja
+    // de estar permitida, reubicar en la primera permitida.
+    useEffect(() => {
+        if (allowedSections.length > 0 && !allowedSections.includes(activeSection)) {
+            setActiveSection(allowedSections[0]);
+        }
+    }, [allowedSections.join('|'), activeSection]); // eslint-disable-line react-hooks/exhaustive-deps
     const [clients, setClients] = useState([]);
     const [contracts, setContracts] = useState([]);
     const [pendingClients, setPendingClients] = useState([]);
@@ -78,6 +128,10 @@ export default function FormulariosSQF({ onBack }) {
 
     const [clientSearchQuery, setClientSearchQuery] = useState('');
     const [contractSearchQuery, setContractSearchQuery] = useState('');
+    const [clientDateFrom, setClientDateFrom] = useState('');
+    const [clientDateTo, setClientDateTo] = useState('');
+    const [contractDateFrom, setContractDateFrom] = useState('');
+    const [contractDateTo, setContractDateTo] = useState('');
     const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
     const [clientDropdownQuery, setClientDropdownQuery] = useState('');
 
@@ -89,6 +143,7 @@ export default function FormulariosSQF({ onBack }) {
     const [nitLookupResult, setNitLookupResult] = useState(null);
 
     const [billingReqType, setBillingReqType] = useState('facturacion');
+    const [billingModality, setBillingModality] = useState('');
     const [billingType, setBillingType] = useState('Servicio nuevo');
     const [billingClientType, setBillingClientType] = useState('Cliente nuevo');
     const [billingClientName, setBillingClientName] = useState('');
@@ -107,6 +162,7 @@ export default function FormulariosSQF({ onBack }) {
     const [originRef, setOriginRef] = useState('');
     const [billingCloser, setBillingCloser] = useState('');
     const [billingAreas, setBillingAreas] = useState([{ id: 1, centro: '', concepto: '', valor: '' }]);
+    const [contractRoles, setContractRoles] = useState([{ id: 1, cargo: '', horas: '' }]);
 
     const [auditorModalItem, setAuditorModalItem] = useState(null);
     const [auditorModalType, setAuditorModalType] = useState('');
@@ -268,7 +324,8 @@ export default function FormulariosSQF({ onBack }) {
                     info: c.info || '',
                     createdAt: c.createdAt || '',
                     status: c.status || c.Estado || 'Validado',
-                    source: c.source || ''
+                    source: c.source || '',
+                    solicitante_nombre: c.solicitante_nombre || c.Solicitante || c.solicitante || ''
                 }));
                 setClients(mappedClients);
             }
@@ -301,7 +358,8 @@ export default function FormulariosSQF({ onBack }) {
                         roles: c.roles || c.Posiciones || '',
                         notes: c.notes || '',
                         createdAt: c.createdAt || '',
-                        status: c.status || c.Estado || 'Validado'
+                        status: c.status || c.Estado || 'Validado',
+                        solicitante_nombre: c.solicitante_nombre || c.Solicitante || c.solicitante || ''
                     };
                 });
                 setContracts(mappedContracts);
@@ -417,11 +475,17 @@ export default function FormulariosSQF({ onBack }) {
         appendLoggedUserMeta(formData);
 
         try {
-            await fetch(N8N_WEBHOOKS.client, { method: 'POST', mode: 'no-cors', body: formData });
-            showToastMsg('success', 'Cliente Creado', 'La información se envió a n8n y el cliente fue registrado.');
-            form.reset();
-            resetClientForm();
-            setTimeout(loadDataFromWebhooks, 1000);
+            const res = await fetch(N8N_WEBHOOKS.client, { method: 'POST', body: formData });
+            if (res.status === 409) {
+                showToastMsg('error', 'Cliente Duplicado', 'El cliente ya se encuentra registrado.');
+            } else if (!res.ok) {
+                showToastMsg('error', 'Error', 'Ocurrió un error al registrar el cliente.');
+            } else {
+                showToastMsg('success', 'Cliente Creado', 'El cliente fue registrado exitosamente.');
+                form.reset();
+                resetClientForm();
+                setTimeout(loadDataFromWebhooks, 1000);
+            }
         } catch {
             showToastMsg('error', 'Error de Conexión', 'Ocurrió un error al conectar con n8n.');
         } finally {
@@ -467,6 +531,7 @@ export default function FormulariosSQF({ onBack }) {
     const resetContractForm = () => {
         setShowContractForm(false); setSelectedClientForContract(null);
         setClientDropdownQuery(''); setIsClientDropdownOpen(false); setContractErrors({});
+        setContractRoles([{ id: 1, cargo: '', horas: '' }]);
     };
 
     const selectClientFromDropdown = (client) => {
@@ -484,21 +549,25 @@ export default function FormulariosSQF({ onBack }) {
         
         const form = e.target;
         const formData = new FormData(form);
-        const reqFields = ['economicGroup', 'name', 'value', 'manager', 'service', 'roles'];
+        const reqFields = ['economicGroup', 'name', 'value', 'manager', 'service'];
         reqFields.forEach(f => {
             if (!formData.get(f)?.trim()) { errors[f] = 'Este campo es requerido'; isValid = false; }
         });
 
+        const rolesValid = contractRoles.every(r => r.cargo.trim() && r.horas.toString().trim());
+        if (!rolesValid) { errors.roles = 'Completa cargo y horas en todos los registros'; isValid = false; }
+
         const today = new Date().toISOString().split('T')[0];
         formData.append('startDate', today);
         formData.append('endDate', calculateBusinessDaysDate(today, 5));
-
+        
         if (!isValid) { setContractErrors(errors); return; }
 
         setIsSubmittingContract(true);
-        ['economicGroup', 'name', 'manager', 'service', 'roles', 'notes'].forEach(f => {
+        ['economicGroup', 'name', 'manager', 'service', 'notes'].forEach(f => {
             const v = formData.get(f); if (v) formData.set(f, v.toUpperCase());
         });
+        formData.append('roles', JSON.stringify(contractRoles.map(r => ({ cargo: r.cargo.toUpperCase(), horas: r.horas }))));
         formData.append('id', generateId('CTR'));
         formData.append('clientId', selectedClientForContract.id);
         formData.append('clientName', selectedClientForContract.name.toUpperCase());
@@ -512,7 +581,7 @@ export default function FormulariosSQF({ onBack }) {
 
         try {
             await fetch(N8N_WEBHOOKS.contract, { method: 'POST', mode: 'no-cors', body: formData });
-            showToastMsg('success', 'Contrato Creado', 'La información se envió a n8n y el contrato fue registrado.');
+            showToastMsg('success', 'Contrato Creado', 'El contrato fue registrado exitosamente.');
             form.reset();
             resetContractForm();
             setTimeout(loadDataFromWebhooks, 1000);
@@ -540,11 +609,38 @@ export default function FormulariosSQF({ onBack }) {
     };
 
     const updateArea = (id, field, value) => {
-        setBillingAreas(billingAreas.map(area => area.id === id ? { ...area, [field]: value } : area));
+        setBillingAreas(prev => prev.map(area => {
+            if (area.id !== id) return area;
+            if (field === 'centro') {
+                setBillingReference('');
+                return { ...area, centro: value, concepto: '' };
+            }
+            if (field === 'concepto') {
+                const found = (BILLING_CENTERS[area.centro] || []).find(c => c.label === value);
+                if (found) setBillingReference(found.code);
+                return { ...area, concepto: value };
+            }
+            return { ...area, [field]: value };
+        }));
+    };
+
+    const addContractRole = () => {
+        setContractRoles(prev => [...prev, { id: prev.length + 1, cargo: '', horas: '' }]);
+    };
+
+    const removeContractRole = (idToRemove) => {
+        if (contractRoles.length === 1) return;
+        setContractRoles(prev =>
+            prev.filter(r => r.id !== idToRemove).map((r, i) => ({ ...r, id: i + 1 }))
+        );
+    };
+
+    const updateContractRole = (id, field, value) => {
+        setContractRoles(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
     };
 
     const resetBillingForm = () => {
-        setBillingReqType('facturacion'); setBillingType('Servicio nuevo'); setBillingClientType('Cliente nuevo');
+        setBillingReqType('facturacion'); setBillingModality(''); setBillingType('Servicio nuevo'); setBillingClientType('Cliente nuevo');
         setBillingClientName(''); setBillingCompany(''); setSaleType(''); setCrossSalePerson('');
         setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations(''); setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
         setServiceType(''); setBillingValorMes(''); setBillingValorProyecto('');
@@ -579,10 +675,6 @@ export default function FormulariosSQF({ onBack }) {
 
         setBillingClientDocument(clientNit || '');
 
-        const today = new Date().toISOString().split('T')[0];
-        const dueDate = calculateBusinessDaysDate(today, 5);
-        setBillingDueDate(dueDate);
-
         let sType = 'Otro';
         const cTypeStr = String(contract?.contractType || '');
         if (cTypeStr === 'Mensual' || cTypeStr.includes('Mensual')) sType = 'Fee mensual';
@@ -594,7 +686,8 @@ export default function FormulariosSQF({ onBack }) {
         else { setBillingValorProyecto(val); setBillingValorMes(''); }
 
         setBillingCloser(contract?.manager || '');
-        setBillingAreas([{ id: 1, centro: 'Administración', concepto: contract?.name || '', valor: val }]);
+        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val }]);
+        setBillingReference('');
 
         showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
     };
@@ -605,6 +698,7 @@ export default function FormulariosSQF({ onBack }) {
         let errors = {};
         let isValid = true;
 
+        if (!billingModality) { errors.billingModality = 'Requerido'; isValid = false; }
         if (!billingClientName.trim()) { errors.billingClientName = 'Requerido'; isValid = false; }
         if (!billingCompany) { errors.billingCompany = 'Requerido'; isValid = false; }
         if (!saleType) { errors.saleType = 'Requerido'; isValid = false; }
@@ -635,8 +729,11 @@ export default function FormulariosSQF({ onBack }) {
             return { code, quantity, unitPrice, description, total: quantity * unitPrice };
         }).filter(it => it.code || it.quantity || it.unitPrice || it.description);
 
+        const autoDueDate = calculateBusinessDaysDate(new Date().toISOString().split('T')[0], 3);
+
         const payload = {
             id: generateId('BIL'), tipoSolicitud: 'Facturación', billingType, billingClientType,
+            billingModality, modalidad_facturacion: billingModality,
             clientName: billingClientName.toUpperCase(), company: billingCompany, saleType, crossSalePerson: saleType === 'Venta cruzada' ? crossSalePerson.toUpperCase() : '',
             serviceType,
             valorMes: parseInt(String(billingValorMes).replace(/\D/g, '') || '0', 10),
@@ -646,9 +743,9 @@ export default function FormulariosSQF({ onBack }) {
             clientDocument: billingClientDocument || '',
             nit: billingClientDocument || '',
             documento: billingClientDocument || '',
-            dueDate: billingDueDate || '',
-            fecha_vencimiento: billingDueDate || '',
-            fechaVencimiento: billingDueDate || '',
+            dueDate: autoDueDate,
+            fecha_vencimiento: autoDueDate,
+            fechaVencimiento: autoDueDate,
             observations: billingObservations || '',
             observaciones: billingObservations || '',
             items: JSON.stringify(parsedItems),
@@ -688,6 +785,7 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('client_name', payload.clientName);
             datatableForm.append('billing_type', payload.billingType);
             datatableForm.append('billing_client_type', payload.billingClientType);
+            datatableForm.append('billing_modality', payload.billingModality);
             datatableForm.append('company', payload.company);
             datatableForm.append('sale_type', payload.saleType);
             datatableForm.append('cross_sale_person', payload.crossSalePerson);
@@ -920,26 +1018,21 @@ export default function FormulariosSQF({ onBack }) {
                 <div className="header-inner">
                     {/* Sin logo: el dashboard ya lo muestra y aquí desbordaba la barra */}
                     <nav className="main-nav" role="navigation" aria-label="Navegación principal">
-                        <button className={`nav-btn ${activeSection === 'clients' ? 'active' : ''}`} onClick={() => setActiveSection('clients')} role="tab">
+                        {canSee('clients') && <button className={`nav-btn ${activeSection === 'clients' ? 'active' : ''}`} onClick={() => setActiveSection('clients')} role="tab">
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg> Clientes
-                        </button>
-                        <button className={`nav-btn ${activeSection === 'contracts' ? 'active' : ''}`} onClick={() => setActiveSection('contracts')} role="tab">
+                        </button>}
+                        {canSee('contracts') && <button className={`nav-btn ${activeSection === 'contracts' ? 'active' : ''}`} onClick={() => setActiveSection('contracts')} role="tab">
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
                             </svg> Contratos
-                        </button>
-                        <button className={`nav-btn ${activeSection === 'billing' ? 'active' : ''}`} onClick={() => setActiveSection('billing')} role="tab">
-                            <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" />
-                            </svg> Facturación
-                        </button>
-                        <button className={`nav-btn ${activeSection === 'auditor' ? 'active' : ''}`} onClick={() => setActiveSection('auditor')} role="tab">
+                        </button>}
+                        {canSee('auditor') && <button className={`nav-btn ${activeSection === 'auditor' ? 'active' : ''}`} onClick={() => setActiveSection('auditor')} role="tab">
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                             </svg> Auditoría
-                        </button>
+                        </button>}
                         <button className="nav-btn" onClick={() => onBack ? onBack() : navigate('/admin2')} style={{ marginLeft: '8px', paddingLeft: '16px', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
                             ← Volver
                         </button>
@@ -950,7 +1043,7 @@ export default function FormulariosSQF({ onBack }) {
             <main className="app-main">
                 
                 {/* ========== SECTION: CLIENTES ========== */}
-                <section className={`content-section ${activeSection === 'clients' ? 'active' : ''}`}>
+                <section className={`content-section ${activeSection === 'clients' && canSee('clients') ? 'active' : ''}`}>
                     <div className="section-header">
                         <div>
                             <h1 className="section-title">Gestión de Clientes</h1>
@@ -1088,7 +1181,7 @@ export default function FormulariosSQF({ onBack }) {
                                     <p>{isLoading ? 'Cargando datos...' : 'No hay clientes registrados.'}</p>
                                 </div>
                             ) : (
-                                <div className="profile-scroll">
+                                <div className="profile-scroll history-scroll-container">
                                     <table className="profile-table">
                                         <thead>
                                             <tr><th>Cliente / Razón Social</th><th>NIT / Documento</th><th>Correo Electrónico</th><th>Teléfono</th></tr>
@@ -1108,10 +1201,72 @@ export default function FormulariosSQF({ onBack }) {
                             )}
                         </div>
                     </div>
+
+                    {/* Histórico de clientes */}
+                    <div className="list-card" style={{ marginTop: '28px' }}>
+                        <div className="list-header">
+                            <h2 className="list-title">Histórico de Clientes</h2>
+                        </div>
+                        <div style={{ padding: '0 24px' }}>
+                            <div className="history-filter-row">
+                                <label>Desde</label>
+                                <input type="date" value={clientDateFrom} onChange={e => setClientDateFrom(e.target.value)} />
+                                <label>Hasta</label>
+                                <input type="date" value={clientDateTo} onChange={e => setClientDateTo(e.target.value)} />
+                                {(clientDateFrom || clientDateTo) && (
+                                    <button className="history-filter-clear" onClick={() => { setClientDateFrom(''); setClientDateTo(''); }}>
+                                        Limpiar filtro
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            {validClients.length === 0 ? (
+                                <div className="empty-state">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="empty-icon"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
+                                    <p>Sin registros aún.</p>
+                                </div>
+                            ) : (
+                                <div className="history-scroll-container">
+                                    <table className="profile-table">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Cliente / Razón Social</th>
+                                                <th>Solicitante</th>
+                                                <th>Fecha de Solicitud</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[...validClients]
+                                                .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+                                                .filter(c => {
+                                                    const d = c.createdAt?.slice(0, 10);
+                                                    if (clientDateFrom && d < clientDateFrom) return false;
+                                                    if (clientDateTo && d > clientDateTo) return false;
+                                                    return true;
+                                                })
+                                                .map((c, i) => (
+                                                    <tr key={i}>
+                                                        <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                                                        <td className="td-wrap"><strong>{c?.name || '—'}</strong></td>
+                                                        <td>{c?.solicitante_nombre || '—'}</td>
+                                                        <td style={{ whiteSpace: 'nowrap' }}>{formatDateSafe(c?.createdAt) || '—'}</td>
+                                                        <td><span className={`status-badge ${c?.status === 'Validado' ? 'validated' : 'pending'}`}>{c?.status || '—'}</span></td>
+                                                    </tr>
+                                                ))
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </section>
 
                 {/* ========== SECTION: CONTRATOS ========== */}
-                <section className={`content-section ${activeSection === 'contracts' ? 'active' : ''}`}>
+                <section className={`content-section ${activeSection === 'contracts' && canSee('contracts') ? 'active' : ''}`}>
                     <div className="section-header">
                         <div>
                             <h1 className="section-title">Gestión de Contratos</h1>
@@ -1170,7 +1325,7 @@ export default function FormulariosSQF({ onBack }) {
                     {validClients.length === 0 && !isLoading && (
                         <div className="alert-card alert-warning">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="alert-icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-                            <div><strong>No hay clientes registrados</strong><p>Debe registrar al menos un cliente antes de crear un contrato. <button className="link-btn" onClick={() => setActiveSection('clients')}>Ir a Clientes →</button></p></div>
+                            <div><strong>No hay clientes registrados</strong><p>Debe registrar al menos un cliente antes de crear un contrato. {canSee('clients') && <button className="link-btn" onClick={() => setActiveSection('clients')}>Ir a Clientes →</button>}</p></div>
                         </div>
                     )}
 
@@ -1251,8 +1406,35 @@ export default function FormulariosSQF({ onBack }) {
                                         <span className="field-error">{contractErrors.service}</span>
                                     </div>
                                     <div className="form-group full-width">
-                                        <label className="form-label required">Cargos y Horas Asignadas</label>
-                                        <textarea name="roles" className="form-input form-textarea" rows="3"></textarea>
+                                        <div className="areas-header">
+                                            <span className="areas-title">Cargos y Horas Asignadas</span>
+                                            <button type="button" className="btn-secondary" style={{ padding: '6px 14px', fontSize: '13px' }} onClick={addContractRole}>
+                                                + Agregar cargo
+                                            </button>
+                                        </div>
+                                        {contractRoles.map((role) => (
+                                            <div key={role.id} className="area-block" style={{ marginBottom: '10px' }}>
+                                                <div className="area-block-header">
+                                                    <span className="area-block-label">Cargo {role.id}</span>
+                                                    {contractRoles.length > 1 && (
+                                                        <button type="button" className="btn-remove-area" onClick={() => removeContractRole(role.id)}>✕ Quitar</button>
+                                                    )}
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                    <div className="form-group">
+                                                        <label className="form-label required">Cargo / Rol</label>
+                                                        <select className="form-input form-select" value={role.cargo} onChange={(e) => updateContractRole(role.id, 'cargo', e.target.value)}>
+                                                            <option value="">-- Seleccionar cargo --</option>
+                                                            {CONTRACT_ROLES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label className="form-label required">Horas Asignadas</label>
+                                                        <input type="number" min="1" className="form-input" placeholder="Ej: 40" value={role.horas} onChange={(e) => updateContractRole(role.id, 'horas', e.target.value)} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
                                         <span className="field-error">{contractErrors.roles}</span>
                                     </div>
                                     <div className="form-group full-width">
@@ -1286,7 +1468,7 @@ export default function FormulariosSQF({ onBack }) {
                                     <p>{isLoading ? 'Cargando contratos...' : 'No hay contratos registrados aún.'}</p>
                                 </div>
                             ) : (
-                                <div className="profile-scroll">
+                                <div className="profile-scroll history-scroll-container">
                                     <table className="profile-table">
                                         <thead>
                                             <tr><th>Nombre del Contrato</th><th>Cliente Vinculado</th><th>Tipo</th><th>Valor (COP)</th><th>Vigencia</th><th>Acciones</th></tr>
@@ -1300,10 +1482,10 @@ export default function FormulariosSQF({ onBack }) {
                                                     <td><span className="card-value">{c?.valueFormatted || formatCurrencyDisplay(c?.value)}</span></td>
                                                     <td>{c?.startDate || ''} a {c?.endDate || ''}</td>
                                                     <td>
-                                                        <button type="button" className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); sendContractToBilling(c); }} style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                                        {canSee('billing') && <button type="button" className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); sendContractToBilling(c); }} style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px' }}><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
                                                             Enviar a Facturar
-                                                        </button>
+                                                        </button>}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -1313,10 +1495,74 @@ export default function FormulariosSQF({ onBack }) {
                             )}
                         </div>
                     </div>
+
+                    {/* Histórico de contratos */}
+                    <div className="list-card" style={{ marginTop: '28px' }}>
+                        <div className="list-header">
+                            <h2 className="list-title">Histórico de Contratos</h2>
+                        </div>
+                        <div style={{ padding: '0 24px' }}>
+                            <div className="history-filter-row">
+                                <label>Desde</label>
+                                <input type="date" value={contractDateFrom} onChange={e => setContractDateFrom(e.target.value)} />
+                                <label>Hasta</label>
+                                <input type="date" value={contractDateTo} onChange={e => setContractDateTo(e.target.value)} />
+                                {(contractDateFrom || contractDateTo) && (
+                                    <button className="history-filter-clear" onClick={() => { setContractDateFrom(''); setContractDateTo(''); }}>
+                                        Limpiar filtro
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            {validContracts.length === 0 ? (
+                                <div className="empty-state">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="empty-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                                    <p>Sin registros aún.</p>
+                                </div>
+                            ) : (
+                                <div className="history-scroll-container">
+                                    <table className="profile-table">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Contrato / Proyecto</th>
+                                                <th>Cliente</th>
+                                                <th>Solicitante</th>
+                                                <th>Fecha de Solicitud</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[...validContracts]
+                                                .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+                                                .filter(c => {
+                                                    const d = c.createdAt?.slice(0, 10);
+                                                    if (contractDateFrom && d < contractDateFrom) return false;
+                                                    if (contractDateTo && d > contractDateTo) return false;
+                                                    return true;
+                                                })
+                                                .map((c, i) => (
+                                                    <tr key={i}>
+                                                        <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                                                        <td className="td-wrap"><strong>{c?.name || '—'}</strong></td>
+                                                        <td>{c?.clientName || '—'}</td>
+                                                        <td>{c?.solicitante_nombre || '—'}</td>
+                                                        <td style={{ whiteSpace: 'nowrap' }}>{formatDateSafe(c?.createdAt) || '—'}</td>
+                                                        <td><span className={`status-badge ${c?.status === 'Validado' ? 'validated' : 'pending'}`}>{c?.status || '—'}</span></td>
+                                                    </tr>
+                                                ))
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </section>
 
                 {/* ========== SECTION: FACTURACIÓN ========== */}
-                <section className={`content-section ${activeSection === 'billing' ? 'active' : ''}`}>
+                <section className={`content-section ${activeSection === 'billing' && canSee('billing') ? 'active' : ''}`}>
                     <div className="section-header">
                         <div>
                             <h1 className="section-title">Facturación</h1>
@@ -1327,7 +1573,7 @@ export default function FormulariosSQF({ onBack }) {
                     {validContracts.length === 0 && !isLoading && (
                         <div className="alert-card alert-warning">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="alert-icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-                            <div><strong>No hay contratos registrados</strong><p>Debe tener al menos un contrato activo antes de registrar una facturación. <button className="link-btn" onClick={() => setActiveSection('contracts')}>Ir a Contratos →</button></p></div>
+                            <div><strong>No hay contratos registrados</strong><p>Debe tener al menos un contrato activo antes de registrar una facturación. {canSee('contracts') && <button className="link-btn" onClick={() => setActiveSection('contracts')}>Ir a Contratos →</button>}</p></div>
                         </div>
                     )}
 
@@ -1343,7 +1589,16 @@ export default function FormulariosSQF({ onBack }) {
                         {billingReqType === 'facturacion' ? (
                             <>
                                 <div className="billing-step-card">
-                                    <h2 className="billing-step-title"><span className="step-pill">2</span> Detalles de la Facturación</h2>
+                                    <h2 className="billing-step-title"><span className="step-pill">2</span> Modalidad de Facturación</h2>
+                                    <div className="radio-group radio-group-col">
+                                        <label className="radio-option"><input type="radio" value="Proyecto" checked={billingModality === 'Proyecto'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Proyecto</strong><small>Factura única vez</small></span></label>
+                                        <label className="radio-option"><input type="radio" value="Mensual" checked={billingModality === 'Mensual'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Se incluye en la facturación mensual</small></span></label>
+                                    </div>
+                                    <span className="field-error">{billingErrors.billingModality}</span>
+                                </div>
+
+                                <div className="billing-step-card">
+                                    <h2 className="billing-step-title"><span className="step-pill">3</span> Detalles de la Facturación</h2>
                                     <div className="form-grid">
                                         <div className="form-group">
                                             <label className="form-label required">Tipo de Facturación</label>
@@ -1378,11 +1633,7 @@ export default function FormulariosSQF({ onBack }) {
                                             </div>
                                             <div className="form-group">
                                                 <label className="form-label">Referencia</label>
-                                                <input type="text" className="form-input" value={billingReference} onChange={(e) => setBillingReference(e.target.value)} />
-                                            </div>
-                                            <div className="form-group">
-                                                <label className="form-label">Fecha Vencimiento</label>
-                                                <input type="date" className="form-input" value={billingDueDate} onChange={(e) => setBillingDueDate(e.target.value)} />
+                                                <input type="text" className="form-input" value={billingReference} readOnly placeholder="Se completa al elegir concepto" style={{ background: '#f5f9ff', cursor: 'default', color: billingReference ? 'var(--color-text)' : 'var(--color-text-light)' }} />
                                             </div>
                                             <div className="form-group full-width">
                                                 <label className="form-label">Observaciones</label>
@@ -1441,9 +1692,6 @@ export default function FormulariosSQF({ onBack }) {
                                                     <option value="">Seleccione...</option>
                                                     <option value="GCT">GCT</option>
                                                     <option value="GLT">GLT</option>
-                                                    <option value="PROFIT">PROFIT</option>
-                                                    <option value="Líneas Familiares">Líneas Familiares</option>
-                                                    <option value="Diseño Logístico">Diseño Logístico</option>
                                                 </select>
                                                 <span className="field-error">{billingErrors.billingCompany}</span>
                                             </div>
@@ -1540,8 +1788,20 @@ export default function FormulariosSQF({ onBack }) {
                                                             {index > 0 && <button type="button" className="btn-remove-area" onClick={() => removeAreaBlock(area.id)}>✕ Eliminar</button>}
                                                         </div>
                                                         <div className="form-grid" style={{ gridTemplateColumns: '1fr 1.5fr 1fr', padding: 0 }}>
-                                                            <div className="form-group"><label className="form-label required">Centro</label><input type="text" className="form-input" value={area.centro} onChange={(e) => updateArea(area.id, 'centro', e.target.value)} /></div>
-                                                            <div className="form-group"><label className="form-label required">Concepto</label><input type="text" className="form-input" value={area.concepto} onChange={(e) => updateArea(area.id, 'concepto', e.target.value)} /></div>
+                                                            <div className="form-group">
+                                                                <label className="form-label required">Centro</label>
+                                                                <select className="form-input form-select" value={area.centro} onChange={(e) => updateArea(area.id, 'centro', e.target.value)}>
+                                                                    <option value="">-- Seleccionar --</option>
+                                                                    {Object.keys(BILLING_CENTERS).map(c => <option key={c} value={c}>{c}</option>)}
+                                                                </select>
+                                                            </div>
+                                                            <div className="form-group">
+                                                                <label className="form-label required">Concepto</label>
+                                                                <select className="form-input form-select" value={area.concepto} onChange={(e) => updateArea(area.id, 'concepto', e.target.value)} disabled={!area.centro}>
+                                                                    <option value="">-- Seleccionar --</option>
+                                                                    {(BILLING_CENTERS[area.centro] || []).map(c => <option key={c.code} value={c.label}>{c.label}</option>)}
+                                                                </select>
+                                                            </div>
                                                             <div className="form-group"><label className="form-label required">Valor</label><div className="input-currency-wrapper"><span className="currency-prefix">$</span><input type="text" className="form-input currency-input" value={area.valor} onChange={(e) => updateArea(area.id, 'valor', formatCurrency(e.target.value))} /></div></div>
                                                         </div>
                                                     </div>
@@ -1586,7 +1846,7 @@ export default function FormulariosSQF({ onBack }) {
                 </section>
 
                 {/* ========== SECTION: AUDITORÍA ========== */}
-                <section className={`content-section ${activeSection === 'auditor' ? 'active' : ''}`}>
+                <section className={`content-section ${activeSection === 'auditor' && canSee('auditor') ? 'active' : ''}`}>
                     <div className="section-header">
                         <div>
                             <h1 className="section-title">Panel de Control de Auditoría</h1>

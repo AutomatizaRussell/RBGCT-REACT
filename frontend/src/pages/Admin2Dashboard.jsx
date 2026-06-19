@@ -34,6 +34,8 @@ import {
   getSolicitudesCert,
   atenderSolicitudCert,
   getCertPermisosBackend,
+  getSugerencias,
+  recibirSugerencia,
 } from '../lib/api';
 
 import UserTable from '../components/users/UserTable';
@@ -47,6 +49,7 @@ import FormulariosSQF from '../pages/FormulariosSQF';
 import AutoGestion from '../components/users/AutoGestion';
 import CertificadoSection from '../components/admin2/CertificadoSection';
 import GeminiChat from '../components/admin2/GeminiChat';
+import SugerenciasChat from '../components/common/SugerenciasChat';
 import StatCard from '../components/ui/StatCard';
 import RecentUserRow from '../components/ui/RecentUserRow';
 import ActionButton from '../components/ui/ActionButton';
@@ -70,6 +73,7 @@ const Admin2Dashboard = () => {
   const [showAlertasModal, setShowAlertasModal] = useState(false);
   const [solicitudesCert, setSolicitudesCert] = useState([]);
   const [solicitudesCertCount, setSolicitudesCertCount] = useState(0);
+  const [sugerenciasPend, setSugerenciasPend] = useState([]);
   const [prefillCert, setPrefillCert] = useState(null);
   const [concurrentUsers, setConcurrentUsers] = useState(0);
   const [taskStats, setTaskStats] = useState({ pending: 0, inProgress: 0, completed: 0, total: 0 });
@@ -141,10 +145,12 @@ const Admin2Dashboard = () => {
   const fetchAllActivity = useCallback(async () => {
     try {
       setLoading(true);
-      const [actividad, alertasResponse] = await Promise.all([
+      const [actividad, alertasResponse, sugerenciasResponse] = await Promise.all([
         getActividadReciente(),
         getAlertasRecuperacion(),
+        getSugerencias({ pendientes: 1 }).catch(() => ({ sugerencias: [] })),
       ]);
+      setSugerenciasPend(sugerenciasResponse?.sugerencias || []);
       const alertasList = alertasResponse?.alertas || [];
       setAlertasRecuperacion(alertasList);
       setAlertasCount(alertasResponse?.total || alertasList.length);
@@ -653,7 +659,7 @@ const Admin2Dashboard = () => {
               <button
                 type="button"
                 onClick={() =>
-                  (alertasCount > 0 || (puedeExpedirCert && solicitudesCertCount > 0)) &&
+                  (alertasCount > 0 || (puedeExpedirCert && solicitudesCertCount > 0) || sugerenciasPend.length > 0) &&
                   setShowAlertasModal(true)
                 }
                 className="relative rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-[#001871]"
@@ -661,9 +667,9 @@ const Admin2Dashboard = () => {
               >
                 <Bell size={18} />
 
-                {(alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0)) > 0 && (
+                {(alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0) + sugerenciasPend.length) > 0 && (
                   <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white">
-                    {alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0)}
+                    {alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0) + sugerenciasPend.length}
                   </span>
                 )}
               </button>
@@ -686,8 +692,18 @@ const Admin2Dashboard = () => {
         onAceptarCert={handleAceptarSolicitudCert}
         onRechazarCert={handleRechazarSolicitudCert}
         showCertTab={puedeExpedirCert}
+        sugerencias={sugerenciasPend}
+        onRecibirSugerencia={async (id) => {
+          try {
+            await recibirSugerencia(id);
+            setSugerenciasPend(prev => prev.filter(s => s.id !== id));
+          } catch (err) {
+            console.error('Error marcando sugerencia recibida:', err);
+          }
+        }}
       />
       <GeminiChat />
+      <SugerenciasChat desplazado />
     </div>
   );
 };
@@ -712,7 +728,7 @@ const KpiCard = ({ label, value, sub, icon, iconBg, iconColor, accent, highlight
   </div>
 );
 
-const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEliminar, solicitudesCert, onAceptarCert, onRechazarCert, showCertTab }) => {
+const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEliminar, solicitudesCert, onAceptarCert, onRechazarCert, showCertTab, sugerencias = [], onRecibirSugerencia }) => {
   const [tab, setTab] = useState('alertas');
   if (!isOpen) return null;
 
@@ -746,6 +762,11 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
               {solicitudesCert.length > 0 && <span className="px-1.5 py-0.5 bg-[#001871]/10 text-[#001871] rounded-full text-[9px] font-black">{solicitudesCert.length}</span>}
             </button>
           )}
+          <button onClick={() => setTab('sugerencias')}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${tab === 'sugerencias' ? 'border-[#00a9ce] text-[#00a9ce]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+            <ClipboardList size={13} /> Sugerencias
+            {sugerencias.length > 0 && <span className="px-1.5 py-0.5 bg-cyan-100 text-cyan-700 rounded-full text-[9px] font-black">{sugerencias.length}</span>}
+          </button>
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[55vh]">
@@ -854,6 +875,44 @@ const AlertasModal = ({ isOpen, onClose, alertas, onViewDetail, onAtender, onEli
                     </div>
                   );
                 })}
+              </div>
+            )
+          )}
+
+          {/* Tab: Sugerencias de empleados */}
+          {tab === 'sugerencias' && (
+            sugerencias.length === 0 ? (
+              <div className="text-center py-10">
+                <ClipboardList size={48} className="mx-auto text-slate-300 mb-4" />
+                <p className="text-slate-500">No hay sugerencias pendientes</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {sugerencias.map(s => (
+                  <div key={s.id} className="p-4 rounded-2xl border border-cyan-100 bg-cyan-50/40">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#00a9ce] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        {s.empleado?.nombre?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-[#001871] text-sm">{s.empleado?.nombre || '—'}</p>
+                        <p className="text-xs text-slate-500">{s.empleado?.correo || ''}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          {new Date(s.fecha_envio).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-3 px-3 py-2 bg-white border border-slate-100 rounded-xl text-sm text-slate-700 whitespace-pre-wrap break-words">
+                      {s.sugerencia}
+                    </p>
+                    <div className="mt-3 flex">
+                      <button onClick={() => onRecibirSugerencia?.(s.id)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white text-xs font-bold rounded-xl hover:bg-emerald-600 transition-colors ml-auto">
+                        <CheckCircle size={13} /> Marcar recibida
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )
           )}

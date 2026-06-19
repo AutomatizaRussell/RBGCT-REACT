@@ -241,6 +241,11 @@ export const updateEmpleado = (id, data) => fetchApi(`/empleados/${id}/`, {
   body: JSON.stringify(data),
 });
 
+export const actualizarMiContacto = (data) => fetchApi('/mi-contacto/', {
+  method: 'PATCH',
+  body: JSON.stringify(data),
+});
+
 export const cambiarEstadoEmpleado = (id, estado) =>
   fetchApi(`/empleados/${id}/cambiar_estado/`, {
     method: 'POST',
@@ -422,6 +427,25 @@ export const habilitarEdicionMasivaSuperAdmin = (adminEmail, adminPassword, habi
     method: 'POST',
     body: JSON.stringify({ admin_email: adminEmail, admin_password: adminPassword, habilitar }),
   });
+
+// ── SUGERENCIAS DE EMPLEADOS ─────────────────────────────────────────────────
+
+export const enviarSugerencia = (sugerencia) =>
+  fetchApi('/sugerencias/', { method: 'POST', body: JSON.stringify({ sugerencia }) });
+
+export const getMisSugerencias = () => fetchApi('/sugerencias/mias/');
+
+export const confirmarSugerenciaVista = (id) =>
+  fetchApi(`/sugerencias/${id}/vista/`, { method: 'POST' });
+
+// Admin: listado (filtros: { empleado_id, pendientes })
+export const getSugerencias = (params = {}) => {
+  const q = new URLSearchParams(params).toString();
+  return fetchApi(`/sugerencias/listado/${q ? `?${q}` : ''}`);
+};
+
+export const recibirSugerencia = (id) =>
+  fetchApi(`/sugerencias/${id}/recibir/`, { method: 'POST' });
 
 // ── ACTIVIDAD ─────────────────────────────────────────────────────────────────
 

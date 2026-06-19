@@ -221,3 +221,73 @@ class RecuperacionPasswordTests(APITestCase):
         res = self.client.post('/api/recuperar-password/', {'email': 'noexiste@rbcol.co'})
         self.assertEqual(res.status_code, 200)
         self.assertFalse(res.data['enviado'])
+
+
+@override_settings(CACHES=TEST_CACHE)
+class SugerenciasTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.empleado = crear_empleado('sugiere@rbcol.co', primer_login=False)
+        self.otro = crear_empleado('otro@rbcol.co', primer_login=False)
+        self.admin_emp = crear_empleado('adminemp@rbcol.co', primer_login=False, id_permisos=1)
+
+    def _token(self, email):
+        res = self.client.post('/api/login/', {'email': email, 'password': PASSWORD})
+        return res.data['accessToken']
+
+    def _auth(self, email):
+        return {'HTTP_AUTHORIZATION': f'Bearer {self._token(email)}'}
+
+    def test_flujo_completo(self):
+        # 1. Empleado envía
+        res = self.client.post('/api/sugerencias/', {'sugerencia': 'Mejorar la cafetera'},
+                               **self._auth('sugiere@rbcol.co'))
+        self.assertEqual(res.status_code, 201, res.data)
+        sug_id = res.data['id']
+
+        # 2. Sin token no se puede enviar
+        res = self.client.post('/api/sugerencias/', {'sugerencia': 'x'})
+        self.assertEqual(res.status_code, 401)
+
+        # 3. Empleado normal NO puede ver el listado admin
+        res = self.client.get('/api/sugerencias/listado/', **self._auth('otro@rbcol.co'))
+        self.assertEqual(res.status_code, 403)
+
+        # 4. Admin (id_permisos=1) ve la pendiente en su campanita
+        res = self.client.get('/api/sugerencias/listado/?pendientes=1', **self._auth('adminemp@rbcol.co'))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.data['sugerencias']), 1)
+        self.assertEqual(res.data['sugerencias'][0]['empleado']['correo'], 'sugiere@rbcol.co')
+
+        # 5. Admin marca recibida
+        res = self.client.post(f'/api/sugerencias/{sug_id}/recibir/', **self._auth('adminemp@rbcol.co'))
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.data['recibida'])
+
+        # 6. Ya no aparece como pendiente
+        res = self.client.get('/api/sugerencias/listado/?pendientes=1', **self._auth('adminemp@rbcol.co'))
+        self.assertEqual(len(res.data['sugerencias']), 0)
+
+        # 7. El emisor ve la confirmación (recibida, no vista) en mias
+        res = self.client.get('/api/sugerencias/mias/', **self._auth('sugiere@rbcol.co'))
+        mia = res.data['sugerencias'][0]
+        self.assertTrue(mia['recibida'])
+        self.assertFalse(mia['confirmacion_vista'])
+
+        # 8. Otro empleado NO puede marcar la confirmación ajena
+        res = self.client.post(f'/api/sugerencias/{sug_id}/vista/', **self._auth('otro@rbcol.co'))
+        self.assertEqual(res.status_code, 403)
+
+        # 9. El emisor descarta la confirmación de su campanita
+        res = self.client.post(f'/api/sugerencias/{sug_id}/vista/', **self._auth('sugiere@rbcol.co'))
+        self.assertEqual(res.status_code, 200)
+
+        # 10. Historial por empleado (ficha de colaborador)
+        res = self.client.get(f'/api/sugerencias/listado/?empleado_id={self.empleado.id_empleado}',
+                              **self._auth('adminemp@rbcol.co'))
+        self.assertEqual(len(res.data['sugerencias']), 1)
+
+    def test_sugerencia_vacia_rechazada(self):
+        res = self.client.post('/api/sugerencias/', {'sugerencia': '   '},
+                               **self._auth('sugiere@rbcol.co'))
+        self.assertEqual(res.status_code, 400)

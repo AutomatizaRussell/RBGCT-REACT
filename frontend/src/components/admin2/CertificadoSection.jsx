@@ -56,6 +56,17 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
   const [emailDestino, setEmailDestino] = useState('');
   const [enviando, setEnviando]         = useState(false);
   const [envioStatus, setEnvioStatus]   = useState(null);
+  const [modoManual, setModoManual]     = useState(false);
+  const [datosManual, setDatosManual]   = useState({
+    nombre_completo: '',
+    tipo_documento: 'C.C.',
+    numero_documento: '',
+    lugar_expedicion: '',
+    fecha_expedicion: '',
+    cargo: '',
+    fecha_ingreso: '',
+    nombre_area: '',
+  });
 
   const [form, setForm] = useState({
     fecha: hoy(),
@@ -67,6 +78,8 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     salario: '',
     auxilio_transporte: 'No',
     ingresos_adicionales: '',
+    incluir_actividades: 'No',
+    actividades: '',
     nombre_empresa: 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S',
     nit_empresa: '900.930.391-1',
     firmante_nombre: 'PAOLA ANDREA AGUILAR TAMAYO',
@@ -93,6 +106,8 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
       salario: prefill.salario || '',
       auxilio_transporte: prefill.auxilio_transporte || 'No',
       ingresos_adicionales: prefill.ingresos_adicionales || '',
+      incluir_actividades: prefill.actividades ? 'Sí' : 'No',
+      actividades: prefill.actividades || '',
     }));
     if (prefill.id_empleado) {
       const emp = empleados.find(e => String(e.id_empleado) === String(prefill.id_empleado));
@@ -105,11 +120,13 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     if (onPrefillUsed) onPrefillUsed();
   }, [prefill, empleados, onPrefillUsed]);
 
-  const SELECT_FIELDS = ['incluir_salario', 'auxilio_transporte', 'tipo_contrato'];
+  const SELECT_FIELDS = ['incluir_salario', 'auxilio_transporte', 'tipo_contrato', 'incluir_actividades'];
+  // Campos de texto libre que no se fuerzan a mayúsculas (van como frases)
+  const NO_UPPER_FIELDS = ['actividades'];
   const handleChange = (e) =>
     setForm(prev => ({
       ...prev,
-      [e.target.name]: SELECT_FIELDS.includes(e.target.name)
+      [e.target.name]: SELECT_FIELDS.includes(e.target.name) || NO_UPPER_FIELDS.includes(e.target.name)
         ? e.target.value
         : e.target.value.toUpperCase(),
     }));
@@ -138,13 +155,32 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
   const empleadosFiltrados = empleados.filter(e => e.estado === 'ACTIVA').filter(e => !areaFiltro || e.nombre_area === areaFiltro);
 
   const emp = seleccionado;
-  const nombreEmp = emp?.nombre_completo || '[NOMBRE COMPLETO DEL EMPLEADO]';
-  const tipoDoc = emp?.tipo_documento || 'C.C.';
-  const numDoc = emp?.numero_documento || '[NÚMERO]';
-  const cargo = emp?.nombre_cargo ? limpiarCargo(emp.nombre_cargo) : '[CARGO]';
-  const fechaIngreso = emp?.fecha_ingreso
-    ? new Date(emp.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
-    : '[FECHA]';
+  const nombreEmp = modoManual
+    ? (datosManual.nombre_completo || '[NOMBRE COMPLETO DEL EMPLEADO]')
+    : (emp?.nombre_completo || '[NOMBRE COMPLETO DEL EMPLEADO]');
+  const tipoDoc = modoManual ? datosManual.tipo_documento : (emp?.tipo_documento || 'C.C.');
+  const numDoc  = modoManual ? (datosManual.numero_documento || '[NÚMERO]') : (emp?.numero_documento || '[NÚMERO]');
+  const cargo   = modoManual
+    ? (datosManual.cargo ? datosManual.cargo.toUpperCase() : '[CARGO]')
+    : (emp?.nombre_cargo ? limpiarCargo(emp.nombre_cargo) : '[CARGO]');
+  const fechaIngreso = modoManual
+    ? (datosManual.fecha_ingreso
+        ? new Date(datosManual.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
+        : '[FECHA]')
+    : (emp?.fecha_ingreso
+        ? new Date(emp.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
+        : '[FECHA]');
+  const areaEmp = modoManual ? datosManual.nombre_area : (emp?.nombre_area || '');
+
+  const lugarExpedicion = modoManual
+    ? (datosManual.lugar_expedicion || '')
+    : (emp?.lugar_expedicion || '');
+
+  const fechaExpedicion = (() => {
+    const raw = modoManual ? datosManual.fecha_expedicion : emp?.fecha_expedicion;
+    if (!raw) return '';
+    return new Date(raw + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+  })();
 
   const handlePrint = () => window.print();
 
@@ -262,6 +298,8 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         nombre_empleado:      nombreEmp,
         tipo_documento:       tipoDoc,
         numero_documento:     numDoc,
+        lugar_expedicion:     lugarExpedicion || '',
+        fecha_expedicion:     fechaExpedicion || '',
         cargo,
         fecha_ingreso:        fechaIngreso,
         destinatario:         form.destinatario,
@@ -273,6 +311,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
         salario:              form.salario,
         auxilio_transporte:   form.auxilio_transporte,
         ingresos_adicionales: form.ingresos_adicionales,
+        actividades:          form.incluir_actividades === 'Sí' ? form.actividades : '',
         fecha:                form.fecha,
         consecutivo:          form.consecutivo,
         firmante_nombre:      form.firmante_nombre,
@@ -349,6 +388,27 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
              display: none !important;
            }
          }
+
+         /* ── Ajuste visual del panel de previsualización (solo pantalla) ──
+            La hoja es tamaño carta fijo (816px) con márgenes calibrados a la
+            plantilla. Con container queries + zoom se reduce proporcionalmente
+            (texto, plantilla y milímetros por igual) para caber en el panel,
+            sin tocar nada de la lógica ni la impresión. */
+         .cert-panel {
+           container-type: inline-size;
+         }
+         @container (max-width: 900px) { .cert-panel .certificado-preview { zoom: 0.95; } }
+         @container (max-width: 850px) { .cert-panel .certificado-preview { zoom: 0.90; } }
+         @container (max-width: 800px) { .cert-panel .certificado-preview { zoom: 0.85; } }
+         @container (max-width: 750px) { .cert-panel .certificado-preview { zoom: 0.80; } }
+         @container (max-width: 700px) { .cert-panel .certificado-preview { zoom: 0.75; } }
+         @container (max-width: 650px) { .cert-panel .certificado-preview { zoom: 0.70; } }
+         @container (max-width: 600px) { .cert-panel .certificado-preview { zoom: 0.64; } }
+         @container (max-width: 550px) { .cert-panel .certificado-preview { zoom: 0.58; } }
+         @container (max-width: 500px) { .cert-panel .certificado-preview { zoom: 0.53; } }
+         @container (max-width: 450px) { .cert-panel .certificado-preview { zoom: 0.47; } }
+         @container (max-width: 400px) { .cert-panel .certificado-preview { zoom: 0.42; } }
+         @container (max-width: 350px) { .cert-panel .certificado-preview { zoom: 0.37; } }
       `}</style>
 
       <div className="flex gap-6 h-full no-print bg-slate-50 p-6 overflow-hidden">
@@ -360,16 +420,95 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
           </div>
 
           <Section icon={<User size={14}/>} title="Empleado">
-            {loadingEmp ? <div className="animate-pulse text-xs">Cargando nómina...</div> : (
+            <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => setModoManual(false)}
+                className={`flex-1 py-1.5 transition-colors ${!modoManual ? 'bg-[#001871] text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+              >
+                Seleccionar
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoManual(true)}
+                className={`flex-1 py-1.5 transition-colors ${modoManual ? 'bg-[#001871] text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+              >
+                Datos manuales
+              </button>
+            </div>
+
+            {!modoManual ? (
+              loadingEmp ? <div className="animate-pulse text-xs">Cargando nómina...</div> : (
+                <div className="space-y-3">
+                  <select value={areaFiltro} onChange={e => setAreaFiltro(e.target.value)} className="input-modern bg-slate-50">
+                    <option value="">— Todas las áreas —</option>
+                    {areas.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                  <select onChange={handleEmpleado} value={emp?.id_empleado || ''} className="input-modern">
+                    <option value="">— Seleccionar empleado —</option>
+                    {empleadosFiltrados.map(e => <option key={e.id_empleado} value={e.id_empleado}>{e.nombre_completo}</option>)}
+                  </select>
+                </div>
+              )
+            ) : (
               <div className="space-y-3">
-                <select value={areaFiltro} onChange={e => setAreaFiltro(e.target.value)} className="input-modern bg-slate-50">
-                  <option value="">— Todas las áreas —</option>
-                  {areas.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
-                <select onChange={handleEmpleado} value={emp?.id_empleado || ''} className="input-modern">
-                  <option value="">— Seleccionar empleado —</option>
-                  {empleadosFiltrados.map(e => <option key={e.id_empleado} value={e.id_empleado}>{e.nombre_completo}</option>)}
-                </select>
+                <Field
+                  label="Nombre completo"
+                  value={datosManual.nombre_completo}
+                  onChange={e => setDatosManual(p => ({ ...p, nombre_completo: e.target.value }))}
+                  placeholder="JUAN PÉREZ GÓMEZ"
+                />
+                <div className="flex gap-2">
+                  <div className="space-y-1 flex-shrink-0" style={{ width: '90px' }}>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Tipo doc.</label>
+                    <select
+                      value={datosManual.tipo_documento}
+                      onChange={e => setDatosManual(p => ({ ...p, tipo_documento: e.target.value }))}
+                      className="input-modern"
+                    >
+                      <option value="C.C.">C.C.</option>
+                      <option value="C.E.">C.E.</option>
+                      <option value="Pasaporte">Pasaporte</option>
+                      <option value="NIT">NIT</option>
+                    </select>
+                  </div>
+                  <Field
+                    label="Número de documento"
+                    value={datosManual.numero_documento}
+                    onChange={e => setDatosManual(p => ({ ...p, numero_documento: e.target.value }))}
+                    placeholder="1234567890"
+                  />
+                </div>
+                <Field
+                  label="Lugar de expedición"
+                  value={datosManual.lugar_expedicion}
+                  onChange={e => setDatosManual(p => ({ ...p, lugar_expedicion: e.target.value }))}
+                  placeholder="Medellín, Antioquia"
+                />
+                <Field
+                  label="Fecha de expedición"
+                  type="date"
+                  value={datosManual.fecha_expedicion}
+                  onChange={e => setDatosManual(p => ({ ...p, fecha_expedicion: e.target.value }))}
+                />
+                <Field
+                  label="Cargo"
+                  value={datosManual.cargo}
+                  onChange={e => setDatosManual(p => ({ ...p, cargo: e.target.value }))}
+                  placeholder="ANALISTA CONTABLE"
+                />
+                <Field
+                  label="Área"
+                  value={datosManual.nombre_area}
+                  onChange={e => setDatosManual(p => ({ ...p, nombre_area: e.target.value }))}
+                  placeholder="CONTABILIDAD"
+                />
+                <Field
+                  label="Fecha de ingreso"
+                  type="date"
+                  value={datosManual.fecha_ingreso}
+                  onChange={e => setDatosManual(p => ({ ...p, fecha_ingreso: e.target.value }))}
+                />
               </div>
             )}
           </Section>
@@ -402,11 +541,26 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
               </FieldSelect>
             </div>
             {form.incluir_salario === 'Sí' && <Field label="Monto Salarial" name="salario" value={form.salario} onChange={handleChange} onBlur={handleSalarioBlur} />}
+            <FieldSelect label="Actividades que realiza" name="incluir_actividades" value={form.incluir_actividades} onChange={handleChange}>
+              <option value="No">No</option>
+              <option value="Sí">Sí</option>
+            </FieldSelect>
+            {form.incluir_actividades === 'Sí' && (
+              <FieldTextarea
+                label="Actividades que realiza"
+                name="actividades"
+                value={form.actividades}
+                onChange={handleChange}
+                rows={5}
+                placeholder={'Una actividad por línea. Ej:\nBrindar apoyo en la revisión de los impuestos de las empresas.\nCompletar la prueba analítica preliminar.'}
+              />
+            )}
           </Section>
 
           <Section title="Responsable de Firma">
             <Field label="Nombre del Firmante" name="firmante_nombre" value={form.firmante_nombre} onChange={handleChange} />
             <Field label="Cargo del Firmante" name="firmante_cargo" value={form.firmante_cargo} onChange={handleChange} />
+            <Field label="C.C. del Firmante" name="firmante_cc" value={form.firmante_cc} onChange={handleChange} placeholder="Ej. 21468161" />
           </Section>
 
           <Section title="Enviar por correo">
@@ -441,15 +595,15 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
           </button>
         </div>
 
-        {/* PANEL PREVISUALIZACIÓN */}
-        <div className="flex-1 bg-white rounded-3xl shadow-2xl overflow-y-auto p-12 flex justify-center border border-slate-200">
-          <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
+        {/* PANEL PREVISUALIZACIÓN — sin caja de fondo: la hoja flota con su sombra */}
+        <div className="cert-panel flex-1 overflow-y-auto p-2 lg:p-4 flex justify-center items-start">
+          <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={areaEmp} lugarExpedicion={lugarExpedicion} fechaExpedicion={fechaExpedicion} />
         </div>
       </div>
 
       {/* VERSIÓN IMPRESIÓN */}
       <div className="hidden solo-print">
-        <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={emp?.nombre_area || ''} />
+        <Certificado form={form} nombreEmp={nombreEmp} tipoDoc={tipoDoc} numDoc={numDoc} cargo={cargo} fechaIngreso={fechaIngreso} area={areaEmp} lugarExpedicion={lugarExpedicion} fechaExpedicion={fechaExpedicion} />
       </div>
     </>
   );
@@ -466,11 +620,13 @@ const parseSalario = (val) => {
 const toTitleCase = (str) =>
   (str || '').toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, area }) => {
+const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, area, lugarExpedicion, fechaExpedicion }) => {
   const empresa     = form.nombre_empresa || 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S';
   const salarioText = parseSalario(form.salario);
-  const sans        = 'Arial, Helvetica, sans-serif';
-  const serif       = '"Times New Roman", Times, serif';
+  // Tipografía uniforme del documento: Verdana en todo el cuerpo;
+  // solo la firma conserva la letra cursiva.
+  const sans        = 'Verdana, Geneva, sans-serif';
+  const serif       = 'Verdana, Geneva, sans-serif';
   const script      = '"Dancing Script", cursive';
   const sn = (s) => ({ fontFamily: sans, ...s });
   const sr = (s) => ({ fontFamily: serif, ...s });
@@ -517,7 +673,9 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
         {/* Párrafo principal */}
         <p style={sr({ textAlign: 'justify', margin: '0 0 14pt' })}>
           Certificamos que el/la señor(a) <strong>{(nombreEmp || '').toUpperCase()}</strong>,
-          identificado(a) con {tipoDoc === 'C.C.' ? 'cédula de ciudadanía' : tipoDoc === 'C.E.' ? 'cédula de extranjería' : tipoDoc} No <strong>{numDoc}</strong>,
+          identificado(a) con {tipoDoc === 'C.C.' ? 'cédula de ciudadanía' : tipoDoc === 'C.E.' ? 'cédula de extranjería' : tipoDoc} No <strong>{numDoc}</strong>
+          {lugarExpedicion ? <> de <strong>{lugarExpedicion.toUpperCase()}</strong></> : ''}
+          {fechaExpedicion ? <> expedida el <strong>{fechaExpedicion}</strong></> : ''},
           labora en <strong>{empresa}</strong>
           {form.nit_empresa ? <> con Nit. <strong>{form.nit_empresa}</strong></> : ''},
           desde el <strong>{fechaIngreso}</strong>, con contrato a{' '}
@@ -535,6 +693,27 @@ const Certificado = ({ form, nombreEmp, tipoDoc, numDoc, cargo, fechaIngreso, ar
             <p style={sr({ textAlign: 'justify', margin: '0 0 24pt' })}>
               {partes.map((p, i) => <span key={i}>{i > 0 ? ' ' : ''}{p}</span>)}.
             </p>
+          );
+        })()}
+
+        {/* Actividades que realiza: solo si se marcó "Sí" y hay contenido */}
+        {form.incluir_actividades === 'Sí' && (() => {
+          const items = (form.actividades || '')
+            .split('\n')
+            .map(l => l.replace(/^[\s•·*-]+/, '').trim())
+            .filter(Boolean);
+          if (items.length === 0) return null;
+          return (
+            <div style={{ margin: '0 0 24pt' }}>
+              <p style={sr({ textAlign: 'justify', margin: '0 0 6pt' })}>
+                Dentro de las actividades que realiza se encuentran:
+              </p>
+              <ul style={sr({ margin: 0, paddingLeft: '6mm', listStyleType: 'disc', textAlign: 'justify' })}>
+                {items.map((item, i) => (
+                  <li key={i} style={{ marginBottom: '3pt' }}>{item}</li>
+                ))}
+              </ul>
+            </div>
           );
         })()}
 
@@ -577,6 +756,13 @@ const Field = ({ label, ...props }) => (
   <div className="space-y-1">
     <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">{label}</label>
     <input {...props} className="input-modern" />
+  </div>
+);
+
+const FieldTextarea = ({ label, ...props }) => (
+  <div className="space-y-1">
+    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">{label}</label>
+    <textarea {...props} className="input-modern" />
   </div>
 );
 

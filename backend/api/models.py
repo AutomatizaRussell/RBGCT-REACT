@@ -114,6 +114,18 @@ class Persona(models.Model):
         ('PA', 'Pasaporte'),
         ('TI', 'Tarjeta de Identidad'),
     ]
+    ESTADO_CIVIL_CHOICES = [
+        ('S', 'Soltero/a'),
+        ('C', 'Casado/a'),
+        ('UL', 'Unión Libre'),
+        ('D', 'Divorciado/a'),
+        ('V', 'Viudo/a'),
+    ]
+    TIPO_VIVIENDA_CHOICES = [
+        ('propia', 'Propia'),
+        ('arrendada', 'Arrendada'),
+        ('familiar', 'Familiar'),
+    ]
 
     id_persona = models.AutoField(primary_key=True)
     primer_nombre = models.CharField(max_length=100)
@@ -123,9 +135,22 @@ class Persona(models.Model):
     apodo = models.CharField(max_length=50, blank=True, null=True, help_text="Nombre como desea ser llamado/a")
     tipo_documento = models.CharField(max_length=2, choices=TIPO_DOC_CHOICES, default='CC')
     numero_documento = models.CharField(max_length=30, blank=True, null=True, unique=True)
+    lugar_expedicion = models.CharField(max_length=150, blank=True, null=True)
+    fecha_expedicion = models.DateField(blank=True, null=True)
     fecha_nacimiento = models.DateField(blank=True, null=True)
+    ciudad_nacimiento = models.CharField(max_length=150, blank=True, null=True)
+    departamento_nacimiento = models.CharField(max_length=150, blank=True, null=True)
+    pais_nacimiento = models.CharField(max_length=100, blank=True, null=True, default='Colombia')
+    nacionalidad = models.CharField(max_length=100, blank=True, null=True, default='Colombiana')
     sexo = models.CharField(max_length=1, choices=SEXO_CHOICES, blank=True, null=True)
     tipo_sangre = models.CharField(max_length=3, choices=SANGRE_CHOICES, blank=True, null=True)
+    estado_civil = models.CharField(max_length=2, choices=ESTADO_CIVIL_CHOICES, blank=True, null=True)
+    estrato_socioeconomico = models.PositiveSmallIntegerField(blank=True, null=True)
+    tipo_vivienda = models.CharField(max_length=10, choices=TIPO_VIVIENDA_CHOICES, blank=True, null=True)
+    tiene_discapacidad = models.BooleanField(default=False)
+    descripcion_discapacidad = models.TextField(blank=True, null=True)
+    tiene_hijos = models.BooleanField(default=False)
+    numero_hijos = models.PositiveSmallIntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -205,7 +230,20 @@ class DatosEmpleado(models.Model):
     primer_login = models.BooleanField(default=True)
     datos_completados = models.BooleanField(default=False)
     permitir_edicion_datos = models.BooleanField(default=False)
-    acceso_formularios_sqf = models.BooleanField(default=False)
+    # Permisos por sección del Formulario SQF (el acceso general al formulario
+    # se deriva: tiene acceso si al menos una sección está activa)
+    acceso_sqf_clientes = models.BooleanField(default=False)
+    acceso_sqf_contratos = models.BooleanField(default=False)
+    acceso_sqf_facturacion = models.BooleanField(default=False)
+    acceso_sqf_auditoria = models.BooleanField(default=False)
+
+    @property
+    def acceso_formularios_sqf(self):
+        """Compatibilidad: acceso general al formulario SQF (alguna sección activa)."""
+        return bool(
+            self.acceso_sqf_clientes or self.acceso_sqf_contratos
+            or self.acceso_sqf_facturacion or self.acceso_sqf_auditoria
+        )
     ultima_actividad = models.DateTimeField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -514,6 +552,35 @@ class ReglamentoItem(models.Model):
 
     def __str__(self):
         return self.titulo
+
+
+class SugerenciaEmpleado(models.Model):
+    """Sugerencias, dudas o problemas enviados por cualquier empleado.
+
+    Flujo: el empleado envía → aparece en la campanita de los admin →
+    un admin marca "recibido" → el empleado ve la confirmación en la suya.
+    """
+    id = models.AutoField(primary_key=True)
+    empleado = models.ForeignKey(DatosEmpleado, on_delete=models.CASCADE,
+                                 db_column='id_empleado', related_name='sugerencias')
+    sugerencia = models.TextField()
+    fecha_envio = models.DateTimeField(auto_now_add=True)
+    recibida = models.BooleanField(default=False)
+    fecha_recibida = models.DateTimeField(null=True, blank=True)
+    # La confirmación deja de mostrarse en la campanita del empleado al verla.
+    confirmacion_vista = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'sugerencias_empleado'
+        managed = True
+        ordering = ['-fecha_envio']
+        indexes = [
+            models.Index(fields=['recibida', 'fecha_envio'], name='sugerencia_recibida_idx'),
+            models.Index(fields=['empleado', 'fecha_envio'], name='sugerencia_empleado_idx'),
+        ]
+
+    def __str__(self):
+        return f"Sugerencia {self.id} - {self.empleado}"
 
 
 class Alerta(models.Model):
