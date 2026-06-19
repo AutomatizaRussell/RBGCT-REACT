@@ -6,12 +6,12 @@
 
 - **Dominio producción:** `conecta.rbgct.cloud`
 - **Correo:** AUTOMATIZACIONMEDELLIN@rbcol.co
-- **Rama activa:** `ui/redesign-rb` (migración UI a estilo corporativo Russell Bedford)
+- **Rama activa:** `main` (rama de producción — migración UI corporativa completada y mergeada)
 
 ### Despliegue real (IMPORTANTE)
 - Producción corre en **Coolify** en esta VPS: contenedores `*-hqso6bdpvt7izvvlu2fq541t-*` (db, backend, frontend, nginx, redis). Traefik (`coolify-proxy`) enruta `conecta.rbgct.cloud` → nginx del stack Coolify.
 - El stack manual `rbgct-*-prod` (docker-compose) está **detenido y obsoleto** — no recibe tráfico. No usarlo ni confundir sus volúmenes/BD con los de Coolify.
-- Coolify construye desde la rama `ui/redesign-rb`; el deploy **no** se dispara automáticamente con `git push` (lanzarlo manualmente desde la UI de Coolify).
+- Coolify construye desde la rama `main`; el deploy **no** se dispara automáticamente con `git push` (lanzarlo manualmente desde la UI de Coolify).
 - Proxy: Traefik (TLS) → nginx interno (`nginx/nginx-proxy.conf`) → Django/React. En `location /api/` los `proxy_set_header` se repiten explícitamente (definir uno anula la herencia del bloque `server` — no eliminarlos). `settings.py` añade `conecta.rbgct.cloud` a `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` como blindaje aunque el env de Coolify no lo incluya.
 - Ojo: tras cambiar la conf del nginx interno en caliente, usar `docker restart` del contenedor nginx (un `nginx -s reload` dejó conexiones colgadas con Traefik y produjo 504s).
 - **Causa raíz de 504s intermitentes (resuelta jun 2026):** los servicios quedan en DOS redes (la del compose `gct-network-prod` y la de Coolify `hqso6...`); Traefik solo está en la de Coolify y a veces elegía la IP de la otra → timeout/504. Fijado con la label `traefik.docker.network=hqso6bdpvt7izvvlu2fq541t` en el servicio nginx del compose. No quitar esa label ni la red de Coolify.
@@ -526,18 +526,12 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ---
 
-## Contexto Actual (Rama `ui/redesign-rb`)
+## Contexto Actual (Rama `main`)
 
-El proyecto está en transición: **migración UI al estilo corporativo Russell Bedford**.
+La migración UI al estilo corporativo Russell Bedford está completada y mergeada en `main`. Coolify apunta a `main` para producción.
 
-Cambios recientes (últimos 8 commits):
-- Integración logo RB en SidebarShell
-- Refactor Topbar (4-color stripe, layout mejorado)
-- Tokens visuales centralizados (`brand.js`)
-- Estilo Sidebar consistente con RB palette
-- Mejoras en StatCard y UserCard
-
-**Trabajo siguiente:** Finalizar migración de todos los componentes al nuevo design system.
+Trabajo en curso:
+- Ajustes y correcciones post-migración (nombres de empresas, NITs en certificados, etc.)
 
 ---
 
@@ -582,6 +576,6 @@ Este `CLAUDE.md` es la **fuente de verdad** para cualquier agente que ayude en e
 
 ---
 
-**Última actualización:** 2026-06-09  
-**Rama:** `ui/redesign-rb`  
-**Estado:** En migración UI corporativa
+**Última actualización:** 2026-06-19  
+**Rama:** `main`  
+**Estado:** Producción activa
