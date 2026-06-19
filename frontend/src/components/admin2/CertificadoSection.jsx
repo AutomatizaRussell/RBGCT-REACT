@@ -80,7 +80,7 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
     ingresos_adicionales: '',
     incluir_actividades: 'No',
     actividades: '',
-    nombre_empresa: 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S',
+    nombre_empresa: 'GESTIÓN LEGAL Y TRIBUTARIA GLT S.A.S',
     nit_empresa: '900.930.391-1',
     firmante_nombre: 'PAOLA ANDREA AGUILAR TAMAYO',
     firmante_cc: '21468161',
@@ -141,8 +141,8 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
 
   const handleEmpresaSelect = (e) => {
     const v = e.target.value;
-    if (v === 'GLT') setForm(prev => ({ ...prev, nombre_empresa: 'GLT GESTIÓN LEGAL Y TRIBUTARIA S.A.S', nit_empresa: '900.930.391-1' }));
-    else if (v === 'GCT') setForm(prev => ({ ...prev, nombre_empresa: 'GCT RUSSELL BEDFORD', nit_empresa: '900.930.391-1' }));
+    if (v === 'GLT') setForm(prev => ({ ...prev, nombre_empresa: 'GESTIÓN LEGAL Y TRIBUTARIA GLT S.A.S', nit_empresa: '900.930.391-1' }));
+    else if (v === 'GCT') setForm(prev => ({ ...prev, nombre_empresa: 'RUSSELL BEDFORD GCT S.A.S', nit_empresa: '811.044.406-8' }));
   };
 
   const handleEmpleado = (e) => {
@@ -518,8 +518,8 @@ const CertificadoSection = ({ prefill = null, onPrefillUsed }) => {
             <Field label="Consecutivo" name="consecutivo" value={form.consecutivo} onChange={handleChange} placeholder="AD-26-XXX" />
             <Field label="Destinatario" name="destinatario" value={form.destinatario} onChange={handleChange} />
             <FieldSelect label="Empresa Emisora" name="emp_selector" onChange={handleEmpresaSelect}>
-                <option value="GLT">GLT GESTIÓN LEGAL</option>
-                <option value="GCT">GCT RUSSELL BEDFORD</option>
+                <option value="GLT">GESTIÓN LEGAL GLT</option>
+                <option value="GCT">RUSSELL BEDFORD GCT</option>
             </FieldSelect>
           </Section>
 
