@@ -57,8 +57,9 @@ const BILLING_DESCRIPTIONS = [
     { name: 'Revisoría Fiscal', code: 'REV-007' },
     { name: 'Asesoría Administrativa', code: 'ASE-008' },
     { name: 'Servicios de Outsourcing', code: 'OUT-009' },
+    { name: 'Servicios Legales', code: 'SLG-010' },
     { name: 'Otros Servicios', code: 'OTR-010' }
-];
+]; 
 
 const CONTRACT_ROLES = [
     'Socio',
@@ -96,7 +97,8 @@ export default function FormulariosSQF({ onBack }) {
     const navigate = useNavigate();
     const { user, empleadoData, isSuperAdmin, isAdmin } = useAuth();
 
-    // Secciones visibles: admins ven todo; empleados según sus flags por sección.
+    // Secciones visibles: admins ven todo; empleados 
+    //  sus flags por sección.
     // Fallback legacy: localStorage anterior al despliegue sin los flags nuevos
     // pero con acceso general (se corrige solo cuando AuthContext sincroniza).
     const legacyAccess = Boolean(empleadoData?.acceso_formularios_sqf)
@@ -158,6 +160,7 @@ export default function FormulariosSQF({ onBack }) {
     const [serviceType, setServiceType] = useState('');
     const [billingValorMes, setBillingValorMes] = useState('');
     const [billingValorProyecto, setBillingValorProyecto] = useState('');
+    const [billingMonthType, setBillingMonthType] = useState('');
     const [origin, setOrigin] = useState('');
     const [originRef, setOriginRef] = useState('');
     const [billingCloser, setBillingCloser] = useState('');
@@ -644,7 +647,7 @@ export default function FormulariosSQF({ onBack }) {
         setBillingClientName(''); setBillingCompany(''); setSaleType(''); setCrossSalePerson('');
         setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations(''); setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
         setServiceType(''); setBillingValorMes(''); setBillingValorProyecto('');
-        setOrigin(''); setOriginRef(''); setBillingCloser('');
+        setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType('');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '' }]);
         setBillingErrors({}); setNcErrors({});
     };
@@ -688,6 +691,7 @@ export default function FormulariosSQF({ onBack }) {
         setBillingCloser(contract?.manager || '');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val }]);
         setBillingReference('');
+        setBillingMonthType('');
 
         showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
     };
@@ -752,6 +756,8 @@ export default function FormulariosSQF({ onBack }) {
             items_json: JSON.stringify(parsedItems),
             origin, originRef: ['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) ? originRef.toUpperCase() : '',
             closer: billingCloser.toUpperCase(),
+            mes_tipo: billingMonthType,
+            mesCorrienteOVencido: billingMonthType,
             areas: JSON.stringify(billingAreas.map(a => ({ ...a, centro: a.centro.toUpperCase(), concepto: a.concepto.toUpperCase(), valor: parseInt(String(a.valor).replace(/\D/g, ''), 10) }))),
             createdAt: new Date().toISOString(),
             ...getLoggedUserMeta(),
@@ -795,6 +801,8 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('origin', payload.origin);
             datatableForm.append('origin_ref', payload.originRef);
             datatableForm.append('closer', payload.closer);
+            datatableForm.append('mes_tipo', payload.mes_tipo);
+            datatableForm.append('mes_corriente_o_vencido', payload.mesCorrienteOVencido);
             datatableForm.append('areas', payload.areas);
             datatableForm.append('reference', payload.reference);
             datatableForm.append('referencia', payload.referencia);
@@ -1304,7 +1312,7 @@ export default function FormulariosSQF({ onBack }) {
                                                 <div><strong>✔ Cliente Encontrado:</strong> <br/> {nitLookupResult.client?.name || ''}</div>
                                                 <button type="button" className="btn-primary" style={{ width: '100%', borderRadius: '6px', padding: '12px', fontWeight: '600' }} onClick={() => startContractForClient(nitLookupResult.client)}>Generar Contrato</button>
                                             </div>
-                                        </div>
+                     . text, !exclu                   </div>
                                     )}
                                     {nitLookupResult?.type === 'error' && (
                                         <div className="lookup-result error">
@@ -1694,6 +1702,14 @@ export default function FormulariosSQF({ onBack }) {
                                                     <option value="GLT">GLT</option>
                                                 </select>
                                                 <span className="field-error">{billingErrors.billingCompany}</span>
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">Mes corriente o vencido</label>
+                                                <select className="form-input form-select" value={billingMonthType} onChange={(e) => setBillingMonthType(e.target.value)}>
+                                                    <option value="">Seleccione...</option>
+                                                    <option value="MES CORRIENTE">MES CORRIENTE</option>
+                                                    <option value="MES VENCIDO">MES VENCIDO</option>
+                                                </select>
                                             </div>
                                             <div className="form-group">
                                                 <label className="form-label required">Tipo de Venta</label>
