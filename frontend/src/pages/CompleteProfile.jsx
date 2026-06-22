@@ -483,19 +483,6 @@ const CompleteProfile = () => {
 
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            <Calendar size={12} /> Fecha de Ingreso
-          </label>
-          <input
-            type="date"
-            name="fecha_ingreso"
-            value={formData.fecha_ingreso}
-            onChange={handleChange}
-            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
             <User size={12} /> Sexo
           </label>
           <select

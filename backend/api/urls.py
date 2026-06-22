@@ -52,6 +52,9 @@ urlpatterns = [
     path('ping/', views.ping_actividad, name='ping_actividad'),
     path('mi-contacto/', views.actualizar_mi_contacto, name='actualizar_mi_contacto'),
     path('mi-persona/', views.actualizar_mi_persona, name='actualizar_mi_persona'),
+    path('mi-organigrama/', views.mi_organigrama, name='mi_organigrama'),
+    path('mis-academicos/', views.mis_academicos, name='mis_academicos'),
+    path('mis-academicos/<int:pk>/', views.mis_academicos_detalle, name='mis_academicos_detalle'),
     # Health check para watchdog e infraestructura (público, sin auth)
     path('health/', views.health_check, name='health_check'),
     # Sugerencias de empleados

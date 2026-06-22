@@ -24,6 +24,7 @@ from .models import (
     Curso, CursoContenido, CursoHistorial, Alerta, N8nLog, ApiKey,
     EntidadEPS, EntidadAFP, EntidadARL, CajaCompensacion,
     Contrato, AfiliacionSeguridadSocial, ContratoRenovacion,
+    DatosAcademicos,
 )
 from .jwt_utils import generate_tokens, decode_token, build_superadmin_payload, build_empleado_payload, jwt_required
 from .permissions import IsSuperAdminUser, IsAdminOrSuperAdmin
@@ -457,6 +458,7 @@ from .serializers import (
     ReglamentoItemSerializer, CursoSerializer, CursoContenidoSerializer, CursoHistorialSerializer, N8nLogSerializer, ApiKeySerializer,
     EntidadEPSSerializer, EntidadAFPSerializer, EntidadARLSerializer, CajaCompensacionSerializer,
     ContratoSerializer, AfiliacionSeguridadSocialSerializer, ContratoRenovacionSerializer,
+    DatosAcademicosSerializer,
 )
 
 # Endpoint de Login - PÚBLICO
@@ -1028,6 +1030,7 @@ class DatosEmpleadoViewSet(viewsets.ModelViewSet):
                 )
         
         # Preparar datos para el serializer
+        logger.info('[EMPLEADO UPDATE] PATCH id=%s user=%s is_own=%s', instance.id_empleado, getattr(request.user, 'id_empleado', getattr(request.user, 'id', '?')), is_own_profile)
         data = request.data.copy()
         
         # Si está usando permiso de edición y es el propio usuario, revocar después de actualizar (UN SOLO USO)
@@ -1038,6 +1041,8 @@ class DatosEmpleadoViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=data, partial=partial)
         
         if not serializer.is_valid():
+            logger.error('[EMPLEADO UPDATE] Validation errors for id=%s: %s', instance.id_empleado, serializer.errors)
+            logger.error('[EMPLEADO UPDATE] Incoming data keys: %s', list(data.keys()))
             return Response(
                 {'error': 'Datos inválidos', 'detalles': serializer.errors},
                 status=status.HTTP_400_BAD_REQUEST
@@ -2242,23 +2247,32 @@ def actualizar_mi_persona(request):
         'estrato_socioeconomico', 'tipo_vivienda',
         'tiene_discapacidad', 'descripcion_discapacidad',
         'tiene_hijos', 'numero_hijos',
+        'tiene_vehiculo', 'tipo_vehiculo', 'placa_vehiculo',
     ]
 
     persona = empleado.persona
     for campo in campos_persona:
         if campo in request.data:
             valor = request.data[campo]
-            if campo in ('tiene_discapacidad', 'tiene_hijos'):
+            if campo in ('tiene_discapacidad', 'tiene_hijos', 'tiene_vehiculo'):
                 setattr(persona, campo, bool(valor))
             elif campo in ('estrato_socioeconomico', 'numero_hijos'):
                 setattr(persona, campo, int(valor) if valor not in ('', None) else None)
+            elif campo == 'placa_vehiculo':
+                setattr(persona, campo, valor.upper() if valor else None)
             else:
                 setattr(persona, campo, valor or None)
     persona.save()
 
+    empleado_update_fields = ['datos_persona_completados']
     empleado.datos_persona_completados = True
-    empleado.permitir_edicion_datos = False
-    empleado.save(update_fields=['datos_persona_completados', 'permitir_edicion_datos'])
+
+    if 'fecha_ingreso' in request.data:
+        valor = request.data['fecha_ingreso']
+        empleado.fecha_ingreso = valor or None
+        empleado_update_fields.append('fecha_ingreso')
+
+    empleado.save(update_fields=empleado_update_fields)
 
     return Response({'ok': True})
 
@@ -4591,3 +4605,133 @@ def recibir_sugerencia(request, sugerencia_id):
         s.save(update_fields=['recibida', 'fecha_recibida'])
         logger.info(f"[SUGERENCIAS] Sugerencia {s.id} marcada como recibida")
     return Response(_sugerencia_a_dict(s, incluir_empleado=True))
+
+
+# ── Organigrama ──────────────────────────────────────────────────────────────
+
+def _nivel_cargo(nombre):
+    n = (nombre or '').upper()
+    if 'SOCIO' in n:                         return 0
+    if 'GERENTE' in n:                       return 1
+    if 'LÍDER' in n or 'LIDER' in n or 'SEMI' in n: return 3
+    if 'SENIOR' in n:                        return 2
+    if 'ANALISTA' in n or 'ASISTENTE' in n:  return 4
+    return 99
+
+_NIVEL_LABEL = {0: 'Socio', 1: 'Gerente Asociado', 2: 'Senior', 3: 'Líder de equipo', 4: 'Analista'}
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def mi_organigrama(request):
+    """Devuelve la cadena jerárquica del empleado autenticado dentro de su área."""
+    if not _es_empleado(request.user):
+        return Response({'error': 'Solo empleados'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        yo = DatosEmpleado.objects.select_related('persona', 'area', 'cargo').get(
+            id_empleado=request.user.id_empleado
+        )
+    except DatosEmpleado.DoesNotExist:
+        return Response({'error': 'Empleado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    mi_nivel = _nivel_cargo(yo.cargo.nombre_cargo if yo.cargo else '')
+    mi_area_id = yo.area_id
+
+    todos = DatosEmpleado.objects.filter(estado='ACTIVA').select_related('persona', 'cargo', 'area')
+
+    niveles = {}
+    for e in todos:
+        if not e.cargo or not e.persona:
+            continue
+        niv = _nivel_cargo(e.cargo.nombre_cargo)
+        if niv == 99:
+            continue
+        # Socio es transversal; los demás deben ser del mismo área
+        if niv != 0 and e.area_id != mi_area_id:
+            continue
+        niveles.setdefault(niv, []).append({
+            'id': e.id_empleado,
+            'nombre': e.persona.nombre_completo,
+            'cargo': e.cargo.nombre_cargo,
+            'es_yo': e.id_empleado == yo.id_empleado,
+        })
+
+    cadena = [
+        {'nivel': niv, 'label': _NIVEL_LABEL.get(niv, 'Otro'), 'personas': personas}
+        for niv, personas in sorted(niveles.items())
+    ]
+
+    return Response({
+        'area': yo.area.nombre_area if yo.area else None,
+        'mi_nivel': mi_nivel,
+        'mi_nivel_label': _NIVEL_LABEL.get(mi_nivel, 'Otro'),
+        'cadena': cadena,
+    })
+
+
+# ── Datos Académicos ──────────────────────────────────────────────────────────
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def mis_academicos(request):
+    """GET: lista los estudios del empleado autenticado. POST: agrega uno nuevo."""
+    if not _es_empleado(request.user):
+        return Response({'error': 'Solo empleados pueden usar este endpoint'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        empleado = DatosEmpleado.objects.get(id_empleado=request.user.id_empleado)
+    except DatosEmpleado.DoesNotExist:
+        return Response({'error': 'Empleado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    persona = empleado.persona
+
+    if request.method == 'GET':
+        registros = DatosAcademicos.objects.filter(persona=persona)
+        serializer = DatosAcademicosSerializer(registros, many=True)
+        return Response(serializer.data)
+
+    # POST — crear nuevo registro
+    serializer = DatosAcademicosSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer.save(persona=persona)
+
+    if not empleado.datos_academicos_completados:
+        empleado.datos_academicos_completados = True
+        empleado.save(update_fields=['datos_academicos_completados'])
+
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def mis_academicos_detalle(request, pk):
+    """PATCH: edita un estudio. DELETE: lo elimina. Solo el propio empleado."""
+    if not _es_empleado(request.user):
+        return Response({'error': 'Solo empleados pueden usar este endpoint'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        empleado = DatosEmpleado.objects.get(id_empleado=request.user.id_empleado)
+    except DatosEmpleado.DoesNotExist:
+        return Response({'error': 'Empleado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        registro = DatosAcademicos.objects.get(pk=pk, persona=empleado.persona)
+    except DatosAcademicos.DoesNotExist:
+        return Response({'error': 'Registro no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'DELETE':
+        registro.delete()
+        quedan = DatosAcademicos.objects.filter(persona=empleado.persona).exists()
+        if not quedan and empleado.datos_academicos_completados:
+            empleado.datos_academicos_completados = False
+            empleado.save(update_fields=['datos_academicos_completados'])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = DatosAcademicosSerializer(registro, data=request.data, partial=True)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.save()
+    return Response(serializer.data)

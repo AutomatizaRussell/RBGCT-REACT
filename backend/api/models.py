@@ -126,6 +126,11 @@ class Persona(models.Model):
         ('arrendada', 'Arrendada'),
         ('familiar', 'Familiar'),
     ]
+    TIPO_VEHICULO_CHOICES = [
+        ('moto', 'Moto'),
+        ('carro', 'Carro'),
+        ('ambos', 'Moto y Carro'),
+    ]
 
     id_persona = models.AutoField(primary_key=True)
     primer_nombre = models.CharField(max_length=100)
@@ -151,6 +156,9 @@ class Persona(models.Model):
     descripcion_discapacidad = models.TextField(blank=True, null=True)
     tiene_hijos = models.BooleanField(default=False)
     numero_hijos = models.PositiveSmallIntegerField(blank=True, null=True)
+    tiene_vehiculo = models.BooleanField(default=False)
+    tipo_vehiculo = models.CharField(max_length=10, choices=TIPO_VEHICULO_CHOICES, blank=True, null=True)
+    placa_vehiculo = models.CharField(max_length=20, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -230,6 +238,7 @@ class DatosEmpleado(models.Model):
     primer_login = models.BooleanField(default=True)
     datos_completados = models.BooleanField(default=False)
     datos_persona_completados = models.BooleanField(default=False)
+    datos_academicos_completados = models.BooleanField(default=False)
     permitir_edicion_datos = models.BooleanField(default=False)
     # Permisos por sección del Formulario SQF (el acceso general al formulario
     # se deriva: tiene acceso si al menos una sección está activa)
@@ -885,3 +894,45 @@ class ApiKey(models.Model):
         self.last_used_at = timezone.now()
         self.uso_count += 1
         self.save(update_fields=['last_used_at', 'uso_count'])
+
+
+class DatosAcademicos(models.Model):
+    """Historial académico/educativo de una persona. Relación 1-a-muchos con Persona."""
+
+    NIVEL_CHOICES = [
+        ('bachiller', 'Bachiller'),
+        ('tecnico', 'Técnico'),
+        ('tecnologo', 'Tecnólogo'),
+        ('profesional', 'Profesional'),
+        ('especializacion', 'Especialización'),
+        ('maestria', 'Maestría'),
+        ('doctorado', 'Doctorado'),
+        ('otro', 'Otro'),
+    ]
+
+    persona = models.ForeignKey(Persona, on_delete=models.CASCADE, related_name='academicos')
+    nivel_educativo = models.CharField(max_length=20, choices=NIVEL_CHOICES)
+    titulo_obtenido = models.CharField(max_length=255)
+    institucion = models.CharField(max_length=255)
+    ciudad_institucion = models.CharField(max_length=150, blank=True, null=True)
+    fecha_inicio = models.DateField(blank=True, null=True)
+    fecha_graduacion = models.DateField(blank=True, null=True)
+    en_curso = models.BooleanField(default=False)
+    graduado = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'datos_academicos'
+        managed = True
+        ordering = ['-fecha_graduacion', '-fecha_inicio']
+
+    def __str__(self):
+        return f"{self.nivel_educativo} — {self.titulo_obtenido} ({self.persona})"
+
+    def save(self, *args, **kwargs):
+        for field in ('titulo_obtenido', 'institucion', 'ciudad_institucion'):
+            v = getattr(self, field, None)
+            if v:
+                setattr(self, field, v.upper())
+        super().save(*args, **kwargs)
