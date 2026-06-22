@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   UserCircle, Mail, Building2, Briefcase, CalendarDays, Phone,
   MapPin, Shield, RefreshCw, Edit3, Save, X, Heart, User, Hash,
@@ -33,6 +33,7 @@ const UserProfile = () => {
   const [savingPersona, setSavingPersona] = useState(false);
   const [personaStatus, setPersonaStatus] = useState(null);
   const [formPersona, setFormPersona] = useState({});
+  const seccionPersonaRef = useRef(null);
 
   useEffect(() => {
     if (empleadoData?.id_empleado) fetchEmpleado();
@@ -111,6 +112,11 @@ const UserProfile = () => {
     }
   };
 
+  const irACompletarDatos = () => {
+    setEditandoPersona(true);
+    setTimeout(() => seccionPersonaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  };
+
   const camposPersonaVacios = empleado ? [
     empleado.sexo, empleado.tipo_sangre, empleado.estado_civil,
     empleado.ciudad_nacimiento, empleado.estrato_socioeconomico, empleado.tipo_vivienda,
@@ -145,18 +151,29 @@ const UserProfile = () => {
           <p className="text-xs text-slate-500 mt-0.5">Gestiona tu información de contacto</p>
         </div>
         {!editando ? (
-          empleadoData?.permitir_edicion_datos ? (
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => window.location.href = '/completar-perfil'}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold uppercase hover:bg-indigo-100 transition-colors"
+              onClick={irACompletarDatos}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold uppercase hover:bg-amber-100 transition-colors"
             >
-              <Edit3 size={14} /> Editar
+              <ClipboardList size={14} /> Completar datos
+              {camposPersonaVacios > 0 && (
+                <span className="w-4 h-4 bg-amber-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{camposPersonaVacios}</span>
+              )}
             </button>
-          ) : (
-            <div className="text-xs text-slate-400">
-              <span className="px-3 py-1 bg-slate-100 rounded-lg">Edición bloqueada - Contacta al administrador</span>
-            </div>
-          )
+            {empleadoData?.permitir_edicion_datos ? (
+              <button
+                onClick={() => window.location.href = '/completar-perfil'}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold uppercase hover:bg-indigo-100 transition-colors"
+              >
+                <Edit3 size={14} /> Editar
+              </button>
+            ) : (
+              <div className="text-xs text-slate-400">
+                <span className="px-3 py-1 bg-slate-100 rounded-lg">Edición bloqueada - Contacta al administrador</span>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="flex gap-2">
             <button
@@ -291,7 +308,7 @@ const UserProfile = () => {
         </div>
 
         {/* ── Termina de llenar tus datos ── */}
-        <div className={`bg-white rounded-2xl border-2 p-6 shadow-sm col-span-1 md:col-span-2 ${camposPersonaVacios > 0 ? 'border-amber-300' : 'border-emerald-200'}`}>
+        <div ref={seccionPersonaRef} className={`bg-white rounded-2xl border-2 p-6 shadow-sm col-span-1 md:col-span-2 ${camposPersonaVacios > 0 ? 'border-amber-300' : 'border-emerald-200'}`}>
           <div className="flex items-center justify-between mb-5">
             <h4 className="text-sm font-bold text-[#001871] flex items-center gap-2">
               <ClipboardList size={16} className="text-indigo-600" /> Termina de llenar tus datos
