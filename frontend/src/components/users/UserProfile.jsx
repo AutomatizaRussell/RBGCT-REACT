@@ -101,7 +101,12 @@ const UserProfile = () => {
     try {
       setSavingPersona(true);
       await actualizarMiPersona(formPersona);
-      setEmpleado(prev => ({ ...prev, ...formPersona }));
+      setEmpleado(prev => ({
+        ...prev,
+        ...formPersona,
+        datos_persona_completados: true,
+        permitir_edicion_datos: false,
+      }));
       setEditandoPersona(false);
       setPersonaStatus('ok');
     } catch {
@@ -116,6 +121,10 @@ const UserProfile = () => {
     setEditandoPersona(true);
     setTimeout(() => seccionPersonaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   };
+
+  const personaCompletada = empleado?.datos_persona_completados ?? false;
+  const puedeEditarPersona = empleado?.permitir_edicion_datos ?? false;
+  const mostrarFormPersona = !personaCompletada || puedeEditarPersona;
 
   const camposPersonaVacios = empleado ? [
     empleado.sexo, empleado.tipo_sangre, empleado.estado_civil,
@@ -152,15 +161,17 @@ const UserProfile = () => {
         </div>
         {!editando ? (
           <div className="flex items-center gap-2">
-            <button
-              onClick={irACompletarDatos}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold uppercase hover:bg-amber-100 transition-colors"
-            >
-              <ClipboardList size={14} /> Completar datos
-              {camposPersonaVacios > 0 && (
-                <span className="w-4 h-4 bg-amber-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{camposPersonaVacios}</span>
-              )}
-            </button>
+            {mostrarFormPersona && (
+              <button
+                onClick={irACompletarDatos}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold uppercase hover:bg-amber-100 transition-colors"
+              >
+                <ClipboardList size={14} /> {personaCompletada ? 'Editar datos' : 'Completar datos'}
+                {!personaCompletada && camposPersonaVacios > 0 && (
+                  <span className="w-4 h-4 bg-amber-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{camposPersonaVacios}</span>
+                )}
+              </button>
+            )}
             {empleadoData?.permitir_edicion_datos ? (
               <button
                 onClick={() => window.location.href = '/completar-perfil'}
@@ -307,8 +318,8 @@ const UserProfile = () => {
           )}
         </div>
 
-        {/* ── Termina de llenar tus datos ── */}
-        <div ref={seccionPersonaRef} className={`bg-white rounded-2xl border-2 p-6 shadow-sm col-span-1 md:col-span-2 ${camposPersonaVacios > 0 ? 'border-amber-300' : 'border-emerald-200'}`}>
+        {/* ── Termina de llenar tus datos (solo visible si no completado o admin habilitó edición) ── */}
+        {mostrarFormPersona && <div ref={seccionPersonaRef} className={`bg-white rounded-2xl border-2 p-6 shadow-sm col-span-1 md:col-span-2 ${!personaCompletada ? 'border-amber-300' : 'border-indigo-200'}`}>
           <div className="flex items-center justify-between mb-5">
             <h4 className="text-sm font-bold text-[#001871] flex items-center gap-2">
               <ClipboardList size={16} className="text-indigo-600" /> Termina de llenar tus datos
@@ -318,9 +329,11 @@ const UserProfile = () => {
               }
             </h4>
             {!editandoPersona ? (
-              <button onClick={() => setEditandoPersona(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold uppercase hover:bg-indigo-100 transition-colors">
-                <Edit3 size={14}/> Editar
-              </button>
+              puedeEditarPersona && (
+                <button onClick={() => setEditandoPersona(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold uppercase hover:bg-indigo-100 transition-colors">
+                  <Edit3 size={14}/> Editar
+                </button>
+              )
             ) : (
               <div className="flex gap-2">
                 <button onClick={handleGuardarPersona} disabled={savingPersona} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold uppercase hover:bg-emerald-100 transition-colors disabled:opacity-50">
@@ -396,7 +409,7 @@ const UserProfile = () => {
               }
             />
           </div>
-        </div>
+        </div>}
 
         {/* Contacto de emergencia */}
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">

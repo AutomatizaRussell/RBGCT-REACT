@@ -2256,6 +2256,10 @@ def actualizar_mi_persona(request):
                 setattr(persona, campo, valor or None)
     persona.save()
 
+    empleado.datos_persona_completados = True
+    empleado.permitir_edicion_datos = False
+    empleado.save(update_fields=['datos_persona_completados', 'permitir_edicion_datos'])
+
     return Response({'ok': True})
 
 

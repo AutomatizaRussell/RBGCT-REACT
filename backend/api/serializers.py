@@ -132,7 +132,7 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
             'correo_corporativo', 'area', 'cargo', 'area_id', 'cargo_id',
             'nombre_area', 'nombre_cargo', 'fecha_ingreso', 'fecha_retiro', 'estado',
             # Acceso
-            'id_permisos', 'permitir_edicion_datos', 'acceso_formularios_sqf',
+            'id_permisos', 'permitir_edicion_datos', 'datos_persona_completados', 'acceso_formularios_sqf',
             'acceso_sqf_clientes', 'acceso_sqf_contratos',
             'acceso_sqf_facturacion', 'acceso_sqf_auditoria',
             # Auditoría

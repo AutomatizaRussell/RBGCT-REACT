@@ -229,6 +229,7 @@ class DatosEmpleado(models.Model):
     password_hash = models.CharField(max_length=255, blank=True, null=True)
     primer_login = models.BooleanField(default=True)
     datos_completados = models.BooleanField(default=False)
+    datos_persona_completados = models.BooleanField(default=False)
     permitir_edicion_datos = models.BooleanField(default=False)
     # Permisos por sección del Formulario SQF (el acceso general al formulario
     # se deriva: tiene acceso si al menos una sección está activa)
