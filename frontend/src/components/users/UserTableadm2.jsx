@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Edit2, Trash2, Mail, AlertTriangle, X, Check, Loader2, Search, Calendar, Briefcase, Activity } from 'lucide-react';
-import { fetchApi } from '../../lib/api.js';
+import { fetchApi, getAllAreas, getAllCargos } from '../../lib/api.js';
 
 const UserTable = () => {
   const [users, setUsers] = useState([]);
@@ -8,7 +8,11 @@ const UserTable = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [updating, setUpdating] = useState(false); // Estado necesario para el feedback del botón
+  const [updating, setUpdating] = useState(false);
+  const [areas, setAreas] = useState([]);
+  const [cargos, setCargos] = useState([]);
+  const [selAreaId, setSelAreaId] = useState('');
+  const [selCargoId, setSelCargoId] = useState('');
 
   const fetchUsers = async () => {
     try {
@@ -27,17 +31,19 @@ const UserTable = () => {
         fecha_ingreso: emp.fecha_ingreso,
         estado: emp.estado,
         datos_personales: {
-          id_cc: emp.documento,
+          id_cc: emp.numero_documento,
           nom_empleado: emp.primer_nombre,
           ape_empleado: emp.primer_apellido,
           telefono: emp.telefono,
-          rh: emp.rh,
-          genero: emp.genero,
+          rh: emp.tipo_sangre,
+          genero: emp.sexo,
           direccion: emp.direccion
         },
         administracion: {
-          id_rev: emp.area?.id_area,
-          nom_area: emp.area?.nombre_area,
+          area_id: emp.area_id,
+          nom_area: emp.nombre_area,
+          cargo_id: emp.cargo_id,
+          nom_cargo: emp.nombre_cargo,
           salario: emp.salario
         }
       }));
@@ -52,7 +58,17 @@ const UserTable = () => {
 
   useEffect(() => {
     fetchUsers();
+    getAllAreas().then(data => setAreas(Array.isArray(data) ? data : [])).catch(() => {});
+    getAllCargos().then(data => setCargos(Array.isArray(data) ? data : [])).catch(() => {});
   }, []);
+
+  // Inicializar selects controlados cuando se abre el modal de edición
+  useEffect(() => {
+    if (editingUser) {
+      setSelAreaId(editingUser.administracion?.area_id?.toString() || '');
+      setSelCargoId(editingUser.administracion?.cargo_id?.toString() || '');
+    }
+  }, [editingUser?.id_empleado]);
 
   const handleDelete = async (id) => {
     try {
@@ -71,34 +87,37 @@ const UserTable = () => {
     }
   };
 
-  // Función handleUpdate añadida para que el formulario funcione
   const handleUpdate = async (e) => {
     e.preventDefault();
     setUpdating(true);
     const formData = new FormData(e.target);
     const form = Object.fromEntries(formData);
 
+    const payload = {
+      primer_nombre: form.nom_empleado,
+      primer_apellido: form.ape_empleado,
+      telefono: form.telefono || null,
+      tipo_sangre: form.rh || null,
+      sexo: form.genero || null,
+      correo_corporativo: form.correo_corporativo,
+      estado: form.estado,
+      ...(selAreaId ? { area: parseInt(selAreaId, 10) } : {}),
+      ...(selCargoId ? { cargo: parseInt(selCargoId, 10) } : {}),
+      ...(form.fecha_ingreso ? { fecha_ingreso: form.fecha_ingreso } : {}),
+    };
+
     try {
-      const response = await fetchApi(`/empleados/${editingUser.id_empleado}/`, {
+      await fetchApi(`/empleados/${editingUser.id_empleado}/`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          primer_nombre: form.nom_empleado,
-          primer_apellido: form.ape_empleado,
-          telefono: form.telefono,
-          rh: form.rh,
-          genero: form.genero,
-          correo_corporativo: form.correo_corporativo,
-          estado: form.estado
-        })
+        body: JSON.stringify(payload),
       });
 
-      if (response.error) throw new Error(response.error);
-
-      await fetchUsers();
+      await fetchUsers(true);
       setEditingUser(null);
     } catch (error) {
-      alert("Error al actualizar: " + error.message);
+      console.error('Error guardando perfil:', error);
+      alert('Error al guardar: ' + error.message);
     } finally {
       setUpdating(false);
     }
@@ -282,7 +301,7 @@ const UserTable = () => {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Estado Contrato</label>
                     <select name="estado" defaultValue={editingUser.estado} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none">
-                      <option value="ACTIVO">ACTIVO</option>
+                      <option value="ACTIVA">ACTIVA</option>
                       <option value="INACTIVO">INACTIVO</option>
                     </select>
                   </div>
@@ -290,7 +309,35 @@ const UserTable = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Área / Departamento</label>
-                    <input name="nom_area" type="text" defaultValue={editingUser.administracion?.nom_area} className="w-full p-4 bg-slate-100 border border-slate-100 rounded-2xl text-sm cursor-not-allowed" readOnly />
+                    <select
+                      value={selAreaId}
+                      onChange={e => setSelAreaId(e.target.value)}
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:border-purple-200"
+                    >
+                      <option value="">Sin área</option>
+                      {areas.map(a => (
+                        <option key={a.id_area} value={String(a.id_area)}>{a.nombre_area}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Cargo</label>
+                    <select
+                      value={selCargoId}
+                      onChange={e => setSelCargoId(e.target.value)}
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:border-purple-200"
+                    >
+                      <option value="">Sin cargo</option>
+                      {cargos.map(c => (
+                        <option key={c.id_cargo} value={String(c.id_cargo)}>{c.nombre_cargo}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Fecha de Ingreso</label>
+                    <input name="fecha_ingreso" type="date" defaultValue={editingUser.fecha_ingreso || ''} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:border-purple-200" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Salario Mensual</label>

@@ -194,10 +194,42 @@ const UserTable = () => {
     setCertPermEdit(certPermisosBackend.includes(String(user.id_empleado)));
   };
 
+  const buildEmpleadoPayload = (form) => {
+    const payload = { ...form };
+
+    // El serializer espera 'area' y 'cargo' (no area_id/cargo_id)
+    if (payload.area_id !== undefined) {
+      payload.area = payload.area_id ? parseInt(payload.area_id, 10) : null;
+      delete payload.area_id;
+    }
+    if (payload.cargo_id !== undefined) {
+      payload.cargo = payload.cargo_id ? parseInt(payload.cargo_id, 10) : null;
+      delete payload.cargo_id;
+    }
+
+    const intFields = ['id_permisos'];
+    const dateFields = ['fecha_nacimiento', 'fecha_ingreso'];
+    const optionalText = ['sexo', 'tipo_sangre'];
+
+    intFields.forEach((key) => {
+      const v = payload[key];
+      if (v === '' || v === undefined) payload[key] = null;
+      else payload[key] = parseInt(v, 10);
+    });
+    dateFields.forEach((key) => {
+      if (payload[key] === '') payload[key] = null;
+    });
+    optionalText.forEach((key) => {
+      if (payload[key] === '') payload[key] = null;
+    });
+    return payload;
+  };
+
   const handleSaveEdit = async () => {
     try {
       setUpdating(true);
-      await updateEmpleado(editingUser.id_empleado, editFormData);
+      const payload = buildEmpleadoPayload(editFormData);
+      await updateEmpleado(editingUser.id_empleado, payload);
       invalidate('empleados');
 
       // Seguridad: solo SuperAdmin puede modificar permisos de certificados.
@@ -209,10 +241,11 @@ const UserTable = () => {
         );
       }
 
-      await fetchUsers();
+      await fetchUsers(true);
       setEditingUser(null);
       alert('Perfil actualizado correctamente');
     } catch (error) {
+      console.error('Error guardando perfil:', error);
       alert('Error guardando cambios: ' + error.message);
     } finally {
       setUpdating(false);
@@ -221,7 +254,10 @@ const UserTable = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setEditFormData(prev => ({ ...prev, [name]: value }));
+    const parsed = ['area_id', 'cargo_id', 'id_permisos'].includes(name)
+      ? (value === '' ? null : parseInt(value, 10))
+      : value;
+    setEditFormData(prev => ({ ...prev, [name]: parsed }));
   };
 
   // Función para cambiar contraseña (solo SuperAdmin)

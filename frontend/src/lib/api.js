@@ -237,7 +237,7 @@ export const createEmpleado = (data) => fetchApi('/empleados/', {
 });
 
 export const updateEmpleado = (id, data) => fetchApi(`/empleados/${id}/`, {
-  method: 'PUT',
+  method: 'PATCH',
   body: JSON.stringify(data),
 });
 
@@ -249,6 +249,20 @@ export const actualizarMiContacto = (data) => fetchApi('/mi-contacto/', {
 export const actualizarMiPersona = (data) => fetchApi('/mi-persona/', {
   method: 'PATCH',
   body: JSON.stringify(data),
+});
+
+export const getMiOrganigrama = () => fetchApi('/mi-organigrama/');
+export const getMisAcademicos = () => fetchApi('/mis-academicos/');
+export const crearDatoAcademico = (data) => fetchApi('/mis-academicos/', {
+  method: 'POST',
+  body: JSON.stringify(data),
+});
+export const actualizarDatoAcademico = (id, data) => fetchApi(`/mis-academicos/${id}/`, {
+  method: 'PATCH',
+  body: JSON.stringify(data),
+});
+export const eliminarDatoAcademico = (id) => fetchApi(`/mis-academicos/${id}/`, {
+  method: 'DELETE',
 });
 
 export const cambiarEstadoEmpleado = (id, estado) =>

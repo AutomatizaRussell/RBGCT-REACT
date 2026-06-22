@@ -6,6 +6,7 @@ from .models import (
     Curso, CursoContenido, CursoHistorial, N8nLog, ApiKey,
     EntidadEPS, EntidadAFP, EntidadARL, CajaCompensacion,
     Contrato, AfiliacionSeguridadSocial, ContratoRenovacion,
+    DatosAcademicos,
 )
 
 
@@ -43,6 +44,7 @@ class PersonaSerializer(serializers.ModelSerializer):
             'estado_civil', 'estrato_socioeconomico', 'tipo_vivienda',
             'tiene_discapacidad', 'descripcion_discapacidad',
             'tiene_hijos', 'numero_hijos',
+            'tiene_vehiculo', 'tipo_vehiculo', 'placa_vehiculo',
         ]
 
 
@@ -60,6 +62,28 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
     Serializer de empleado con respuesta aplanada (backward-compatible).
     Recibe y devuelve campos personales/contacto directamente junto a los laborales.
     """
+
+    _FLAT_PERSONA_FIELDS = (
+        'primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido', 'apodo',
+        'tipo_documento', 'numero_documento', 'lugar_expedicion', 'fecha_expedicion',
+        'fecha_nacimiento', 'ciudad_nacimiento', 'departamento_nacimiento',
+        'pais_nacimiento', 'nacionalidad',
+        'sexo', 'tipo_sangre', 'estado_civil',
+        'estrato_socioeconomico', 'tipo_vivienda',
+        'tiene_discapacidad', 'descripcion_discapacidad',
+        'tiene_hijos', 'numero_hijos',
+        'tiene_vehiculo', 'tipo_vehiculo', 'placa_vehiculo',
+    )
+    _FLAT_CONTACTO_FIELDS = (
+        'correo_personal', 'telefono', 'direccion',
+        'telefono_emergencia', 'nombre_contacto_emergencia', 'parentesco_emergencia',
+    )
+    _EMPTY_TO_NONE_FIELDS = frozenset({
+        'fecha_nacimiento', 'fecha_ingreso', 'fecha_expedicion', 'fecha_retiro',
+        'sexo', 'tipo_sangre', 'estado_civil', 'tipo_documento',
+        'area_id', 'cargo_id', 'correo_personal', 'telefono', 'direccion',
+        'telefono_emergencia', 'nombre_contacto_emergencia', 'parentesco_emergencia',
+    })
 
     # Campos calculados de relaciones laborales
     nombre_area = serializers.CharField(source='area.nombre_area', read_only=True)
@@ -87,6 +111,9 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
     descripcion_discapacidad = serializers.SerializerMethodField()
     tiene_hijos = serializers.SerializerMethodField()
     numero_hijos = serializers.SerializerMethodField()
+    tiene_vehiculo = serializers.SerializerMethodField()
+    tipo_vehiculo = serializers.SerializerMethodField()
+    placa_vehiculo = serializers.SerializerMethodField()
     tipo_documento = serializers.SerializerMethodField()
     numero_documento = serializers.SerializerMethodField()
     lugar_expedicion = serializers.SerializerMethodField()
@@ -124,6 +151,8 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
             'tiene_discapacidad', 'descripcion_discapacidad',
             # Persona — familia
             'tiene_hijos', 'numero_hijos',
+            # Persona — vehículo
+            'tiene_vehiculo', 'tipo_vehiculo', 'placa_vehiculo',
             # Contacto
             'correo_personal', 'telefono', 'direccion',
             # Emergencia
@@ -132,7 +161,7 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
             'correo_corporativo', 'area', 'cargo', 'area_id', 'cargo_id',
             'nombre_area', 'nombre_cargo', 'fecha_ingreso', 'fecha_retiro', 'estado',
             # Acceso
-            'id_permisos', 'permitir_edicion_datos', 'datos_persona_completados', 'acceso_formularios_sqf',
+            'id_permisos', 'permitir_edicion_datos', 'datos_persona_completados', 'datos_academicos_completados', 'acceso_formularios_sqf',
             'acceso_sqf_clientes', 'acceso_sqf_contratos',
             'acceso_sqf_facturacion', 'acceso_sqf_auditoria',
             # Auditoría
@@ -172,6 +201,9 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
     def get_descripcion_discapacidad(self, obj):return self._p(obj, 'descripcion_discapacidad')
     def get_tiene_hijos(self, obj):            return self._p(obj, 'tiene_hijos')
     def get_numero_hijos(self, obj):           return self._p(obj, 'numero_hijos')
+    def get_tiene_vehiculo(self, obj):         return self._p(obj, 'tiene_vehiculo')
+    def get_tipo_vehiculo(self, obj):          return self._p(obj, 'tipo_vehiculo')
+    def get_placa_vehiculo(self, obj):         return self._p(obj, 'placa_vehiculo')
     def get_nombre_completo(self, obj):        return self._p(obj, 'nombre_completo')
 
     # Métodos get_ para DatosContacto
@@ -199,6 +231,35 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
         c = obj._contacto()
         return c.parentesco_emergencia if c else None
 
+    def _normalize_incoming_value(self, key, value):
+        if value == '':
+            return None
+        if key in ('area_id', 'cargo_id', 'id_permisos', 'numero_hijos') and value is not None:
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return value
+        return value
+
+    def to_internal_value(self, data):
+        """
+        Los campos aplanados de persona/contacto son SerializerMethodField (solo lectura
+        en DRF) pero deben aceptarse en PATCH/PUT. Los reinyectamos en validated_data.
+        """
+        if isinstance(data, dict):
+            data = data.copy()
+            for key, value in list(data.items()):
+                data[key] = self._normalize_incoming_value(key, value)
+            flat_extra = {
+                key: data[key]
+                for key in self._FLAT_PERSONA_FIELDS + self._FLAT_CONTACTO_FIELDS
+                if key in data
+            }
+            validated = super().to_internal_value(data)
+            validated.update(flat_extra)
+            return validated
+        return super().to_internal_value(data)
+
     def _split_data(self, validated_data):
         """Separa los datos validados en persona, contacto y empleado."""
         persona_data = validated_data.pop('persona', {})
@@ -211,6 +272,7 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
             'estrato_socioeconomico', 'tipo_vivienda',
             'tiene_discapacidad', 'descripcion_discapacidad',
             'tiene_hijos', 'numero_hijos',
+            'tiene_vehiculo', 'tipo_vehiculo', 'placa_vehiculo',
         ]
         for k in persona_fields:
             if k in validated_data:
@@ -473,3 +535,15 @@ class AfiliacionSeguridadSocialSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['updated_at']
+
+
+class DatosAcademicosSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DatosAcademicos
+        fields = [
+            'id', 'nivel_educativo', 'titulo_obtenido', 'institucion',
+            'ciudad_institucion', 'fecha_inicio', 'fecha_graduacion',
+            'en_curso', 'graduado', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
