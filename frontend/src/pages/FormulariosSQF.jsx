@@ -161,6 +161,7 @@ export default function FormulariosSQF({ onBack }) {
     const [billingValorMes, setBillingValorMes] = useState('');
     const [billingValorProyecto, setBillingValorProyecto] = useState('');
     const [billingMonthType, setBillingMonthType] = useState('');
+    const [billingSellerDocument, setBillingSellerDocument] = useState('');
     const [origin, setOrigin] = useState('');
     const [originRef, setOriginRef] = useState('');
     const [billingCloser, setBillingCloser] = useState('');
@@ -647,7 +648,7 @@ export default function FormulariosSQF({ onBack }) {
         setBillingClientName(''); setBillingCompany(''); setSaleType(''); setCrossSalePerson('');
         setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations(''); setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
         setServiceType(''); setBillingValorMes(''); setBillingValorProyecto('');
-        setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType('');
+        setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType(''); setBillingSellerDocument('');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '' }]);
         setBillingErrors({}); setNcErrors({});
     };
@@ -692,6 +693,7 @@ export default function FormulariosSQF({ onBack }) {
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val }]);
         setBillingReference('');
         setBillingMonthType('');
+        setBillingSellerDocument('');
 
         showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
     };
@@ -758,6 +760,8 @@ export default function FormulariosSQF({ onBack }) {
             closer: billingCloser.toUpperCase(),
             mes_tipo: billingMonthType,
             mesCorrienteOVencido: billingMonthType,
+            identificacion_vendedor: billingSellerDocument,
+            sellerDocument: billingSellerDocument,
             areas: JSON.stringify(billingAreas.map(a => ({ ...a, centro: a.centro.toUpperCase(), concepto: a.concepto.toUpperCase(), valor: parseInt(String(a.valor).replace(/\D/g, ''), 10) }))),
             createdAt: new Date().toISOString(),
             ...getLoggedUserMeta(),
@@ -803,6 +807,7 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('closer', payload.closer);
             datatableForm.append('mes_tipo', payload.mes_tipo);
             datatableForm.append('mes_corriente_o_vencido', payload.mesCorrienteOVencido);
+            datatableForm.append('identificacion_vendedor', payload.identificacion_vendedor);
             datatableForm.append('areas', payload.areas);
             datatableForm.append('reference', payload.reference);
             datatableForm.append('referencia', payload.referencia);
@@ -1780,6 +1785,10 @@ export default function FormulariosSQF({ onBack }) {
                                                 </div>
                                             )}
 
+                                            <div className="form-group">
+                                                <label className="form-label">Identificación del Vendedor</label>
+                                                <input type="text" className="form-input" placeholder="Ej: 1234567890" value={billingSellerDocument} onChange={(e) => setBillingSellerDocument(e.target.value)} />
+                                            </div>
                                             <div className="form-group full-width">
                                                 <label className="form-label required">Persona Encargada del Cierre de Negocio</label>
                                                 <input type="text" className="form-input" value={billingCloser} onChange={(e) => setBillingCloser(e.target.value)} />
