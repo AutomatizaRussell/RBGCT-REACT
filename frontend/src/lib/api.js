@@ -246,6 +246,11 @@ export const actualizarMiContacto = (data) => fetchApi('/mi-contacto/', {
   body: JSON.stringify(data),
 });
 
+export const actualizarMiPersona = (data) => fetchApi('/mi-persona/', {
+  method: 'PATCH',
+  body: JSON.stringify(data),
+});
+
 export const cambiarEstadoEmpleado = (id, estado) =>
   fetchApi(`/empleados/${id}/cambiar_estado/`, {
     method: 'POST',

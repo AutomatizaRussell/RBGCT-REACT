@@ -51,6 +51,7 @@ urlpatterns = [
     # Mantener sesión activa (heartbeat)
     path('ping/', views.ping_actividad, name='ping_actividad'),
     path('mi-contacto/', views.actualizar_mi_contacto, name='actualizar_mi_contacto'),
+    path('mi-persona/', views.actualizar_mi_persona, name='actualizar_mi_persona'),
     # Health check para watchdog e infraestructura (público, sin auth)
     path('health/', views.health_check, name='health_check'),
     # Sugerencias de empleados

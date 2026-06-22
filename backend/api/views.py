@@ -2226,6 +2226,41 @@ def health_check(request):
 
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
+def actualizar_mi_persona(request):
+    """Permite al empleado actualizar sus datos personales (Persona model)."""
+    if not _es_empleado(request.user):
+        return Response({'error': 'Solo empleados pueden usar este endpoint'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        empleado = DatosEmpleado.objects.get(id_empleado=request.user.id_empleado)
+    except DatosEmpleado.DoesNotExist:
+        return Response({'error': 'Empleado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    campos_persona = [
+        'apodo', 'sexo', 'tipo_sangre', 'estado_civil',
+        'ciudad_nacimiento', 'departamento_nacimiento', 'pais_nacimiento', 'nacionalidad',
+        'estrato_socioeconomico', 'tipo_vivienda',
+        'tiene_discapacidad', 'descripcion_discapacidad',
+        'tiene_hijos', 'numero_hijos',
+    ]
+
+    persona = empleado.persona
+    for campo in campos_persona:
+        if campo in request.data:
+            valor = request.data[campo]
+            if campo in ('tiene_discapacidad', 'tiene_hijos'):
+                setattr(persona, campo, bool(valor))
+            elif campo in ('estrato_socioeconomico', 'numero_hijos'):
+                setattr(persona, campo, int(valor) if valor not in ('', None) else None)
+            else:
+                setattr(persona, campo, valor or None)
+    persona.save()
+
+    return Response({'ok': True})
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
 def actualizar_mi_contacto(request):
     """Permite al empleado autenticado actualizar sus propios datos de contacto."""
     if not _es_empleado(request.user):
