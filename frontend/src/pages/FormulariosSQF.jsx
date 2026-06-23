@@ -1787,7 +1787,7 @@ export default function FormulariosSQF({ onBack }) {
 
                                             <div className="form-group">
                                                 <label className="form-label">Identificación del Vendedor</label>
-                                                <input type="text" className="form-input" placeholder="Ej: 1234567890" value={billingSellerDocument} onChange={(e) => setBillingSellerDocument(e.target.value)} />
+                                                <input type="text" inputMode="numeric" className="form-input" placeholder="Ej: 1234567890" value={billingSellerDocument} onChange={(e) => setBillingSellerDocument(e.target.value.replace(/\D/g, ''))} />
                                             </div>
                                             <div className="form-group full-width">
                                                 <label className="form-label required">Persona Encargada del Cierre de Negocio</label>
