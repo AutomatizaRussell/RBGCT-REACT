@@ -50,10 +50,12 @@ if "%1%"=="prod" (
     echo %YELLOW%Iniciando ambiente de PRODUCCIÓN%NC%
     if not exist .env.prod (
         echo %RED%✗ .env.prod no existe%NC%
+        echo Crea uno desde .env.production.example y vuelve a intentar.
         exit /b 1
     )
-    docker-compose -f docker-compose.prod.yml up -d
+    docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
     echo %GREEN%✓ Contenedores iniciados en producción%NC%
+    docker-compose --env-file .env.prod -f docker-compose.prod.yml ps
     exit /b 0
 )
 

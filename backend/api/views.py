@@ -24,7 +24,7 @@ from .models import (
     Curso, CursoContenido, CursoHistorial, Alerta, N8nLog, ApiKey,
     EntidadEPS, EntidadAFP, EntidadARL, CajaCompensacion,
     Contrato, AfiliacionSeguridadSocial, ContratoRenovacion,
-    DatosAcademicos,
+    DatosAcademicos, MovimientoLaboral,
 )
 from .jwt_utils import generate_tokens, decode_token, build_superadmin_payload, build_empleado_payload, jwt_required
 from .permissions import IsSuperAdminUser, IsAdminOrSuperAdmin
@@ -458,7 +458,7 @@ from .serializers import (
     ReglamentoItemSerializer, CursoSerializer, CursoContenidoSerializer, CursoHistorialSerializer, N8nLogSerializer, ApiKeySerializer,
     EntidadEPSSerializer, EntidadAFPSerializer, EntidadARLSerializer, CajaCompensacionSerializer,
     ContratoSerializer, AfiliacionSeguridadSocialSerializer, ContratoRenovacionSerializer,
-    DatosAcademicosSerializer,
+    DatosAcademicosSerializer, MovimientoLaboralSerializer,
 )
 
 # Endpoint de Login - PÚBLICO
@@ -1123,6 +1123,14 @@ class DatosEmpleadoViewSet(viewsets.ModelViewSet):
     def inactivos(self, request):
         empleados = DatosEmpleado.objects.filter(estado='INACTIVO')
         serializer = self.get_serializer(empleados, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='historial')
+    def historial(self, request, pk=None):
+        """Retorna el historial de movimientos laborales del empleado, ordenado del más reciente al más antiguo."""
+        empleado = self.get_object()
+        movimientos = MovimientoLaboral.objects.filter(empleado=empleado).order_by('-fecha_movimiento', '-created_at')
+        serializer = MovimientoLaboralSerializer(movimientos, many=True)
         return Response(serializer.data)
 
 

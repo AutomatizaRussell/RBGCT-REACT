@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
+from django.db.models.signals import pre_save, post_save
+from django.dispatch import receiver
+from django.utils import timezone
 import uuid
 
 
@@ -936,3 +939,171 @@ class DatosAcademicos(models.Model):
             if v:
                 setattr(self, field, v.upper())
         super().save(*args, **kwargs)
+
+
+# ============================================================================
+# TRAZABILIDAD LABORAL
+# ============================================================================
+
+class MovimientoLaboral(models.Model):
+    TIPO_CHOICES = [
+        ('INGRESO',          'Ingreso'),
+        ('CAMBIO_CARGO',     'Cambio de Cargo'),
+        ('TRASLADO',         'Traslado de Área'),
+        ('AJUSTE_SALARIAL',  'Ajuste Salarial'),
+        ('CAMBIO_CONTRATO',  'Cambio de Tipo de Contrato'),
+        ('CAMBIO_MODALIDAD', 'Cambio de Modalidad'),
+        ('RETIRO',           'Retiro'),
+        ('REINTEGRO',        'Reintegro'),
+        ('NUEVO_CONTRATO',   'Nuevo Contrato'),
+        ('RENOVACION',       'Renovación de Contrato'),
+    ]
+
+    empleado         = models.ForeignKey(DatosEmpleado, on_delete=models.CASCADE, related_name='movimientos')
+    tipo             = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    campo            = models.CharField(max_length=50)
+    valor_anterior   = models.CharField(max_length=500, blank=True, null=True)
+    valor_nuevo      = models.CharField(max_length=500, blank=True, null=True)
+    fecha_movimiento = models.DateField()
+    observaciones    = models.TextField(blank=True, null=True)
+    created_at       = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'movimiento_laboral'
+        ordering = ['-fecha_movimiento', '-created_at']
+
+    def __str__(self):
+        return f"{self.empleado} — {self.tipo} ({self.fecha_movimiento})"
+
+
+# ─── Signals: captura estado anterior ────────────────────────────────────────
+
+@receiver(pre_save, sender=DatosEmpleado)
+def _capturar_prev_empleado(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            prev = DatosEmpleado.objects.get(pk=instance.pk)
+            instance._prev_area_id  = prev.area_id
+            instance._prev_cargo_id = prev.cargo_id
+            instance._prev_estado   = prev.estado
+        except DatosEmpleado.DoesNotExist:
+            instance._prev_area_id = instance._prev_cargo_id = instance._prev_estado = None
+    else:
+        instance._prev_area_id = instance._prev_cargo_id = instance._prev_estado = None
+
+
+@receiver(post_save, sender=DatosEmpleado)
+def _registrar_movimiento_empleado(sender, instance, created, **kwargs):
+    hoy = timezone.now().date()
+
+    if created:
+        MovimientoLaboral.objects.create(
+            empleado=instance,
+            tipo='INGRESO',
+            campo='ingreso',
+            valor_anterior=None,
+            valor_nuevo=str(instance.fecha_ingreso or hoy),
+            fecha_movimiento=instance.fecha_ingreso or hoy,
+            observaciones='Ingreso al sistema',
+        )
+        return
+
+    prev_area_id  = getattr(instance, '_prev_area_id',  None)
+    prev_cargo_id = getattr(instance, '_prev_cargo_id', None)
+    prev_estado   = getattr(instance, '_prev_estado',   None)
+
+    if prev_area_id is not None and prev_area_id != instance.area_id:
+        anterior = DatosArea.objects.filter(pk=prev_area_id).values_list('nombre_area', flat=True).first() or str(prev_area_id)
+        nuevo    = instance.area.nombre_area if instance.area else 'Sin área'
+        MovimientoLaboral.objects.create(
+            empleado=instance, tipo='TRASLADO', campo='area',
+            valor_anterior=anterior, valor_nuevo=nuevo, fecha_movimiento=hoy,
+        )
+
+    if prev_cargo_id is not None and prev_cargo_id != instance.cargo_id:
+        anterior = DatosCargo.objects.filter(pk=prev_cargo_id).values_list('nombre_cargo', flat=True).first() or str(prev_cargo_id)
+        nuevo    = instance.cargo.nombre_cargo if instance.cargo else 'Sin cargo'
+        MovimientoLaboral.objects.create(
+            empleado=instance, tipo='CAMBIO_CARGO', campo='cargo',
+            valor_anterior=anterior, valor_nuevo=nuevo, fecha_movimiento=hoy,
+        )
+
+    if prev_estado is not None and prev_estado != instance.estado:
+        tipo = 'RETIRO' if instance.estado == 'INACTIVO' else 'REINTEGRO'
+        MovimientoLaboral.objects.create(
+            empleado=instance, tipo=tipo, campo='estado',
+            valor_anterior=prev_estado, valor_nuevo=instance.estado, fecha_movimiento=hoy,
+        )
+
+
+@receiver(pre_save, sender=Contrato)
+def _capturar_prev_contrato(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            prev = Contrato.objects.get(pk=instance.pk)
+            instance._prev_salario       = prev.salario
+            instance._prev_modalidad     = prev.modalidad
+            instance._prev_tipo_contrato = prev.tipo_contrato
+        except Contrato.DoesNotExist:
+            instance._prev_salario = instance._prev_modalidad = instance._prev_tipo_contrato = None
+    else:
+        instance._prev_salario = instance._prev_modalidad = instance._prev_tipo_contrato = None
+
+
+@receiver(post_save, sender=Contrato)
+def _registrar_movimiento_contrato(sender, instance, created, **kwargs):
+    hoy = timezone.now().date()
+
+    if created:
+        MovimientoLaboral.objects.create(
+            empleado=instance.empleado,
+            tipo='NUEVO_CONTRATO',
+            campo='contrato',
+            valor_anterior=None,
+            valor_nuevo=instance.get_tipo_contrato_display(),
+            fecha_movimiento=instance.fecha_inicio or hoy,
+            observaciones=f'Salario: ${instance.salario:,.0f} | {instance.get_modalidad_display()}',
+        )
+        return
+
+    prev_salario       = getattr(instance, '_prev_salario',       None)
+    prev_modalidad     = getattr(instance, '_prev_modalidad',     None)
+    prev_tipo_contrato = getattr(instance, '_prev_tipo_contrato', None)
+
+    if prev_salario is not None and prev_salario != instance.salario:
+        MovimientoLaboral.objects.create(
+            empleado=instance.empleado, tipo='AJUSTE_SALARIAL', campo='salario',
+            valor_anterior=f'${prev_salario:,.0f}', valor_nuevo=f'${instance.salario:,.0f}',
+            fecha_movimiento=hoy,
+        )
+
+    if prev_modalidad is not None and prev_modalidad != instance.modalidad:
+        MovimientoLaboral.objects.create(
+            empleado=instance.empleado, tipo='CAMBIO_MODALIDAD', campo='modalidad',
+            valor_anterior=prev_modalidad, valor_nuevo=instance.modalidad,
+            fecha_movimiento=hoy,
+        )
+
+    if prev_tipo_contrato is not None and prev_tipo_contrato != instance.tipo_contrato:
+        MovimientoLaboral.objects.create(
+            empleado=instance.empleado, tipo='CAMBIO_CONTRATO', campo='tipo_contrato',
+            valor_anterior=prev_tipo_contrato, valor_nuevo=instance.tipo_contrato,
+            fecha_movimiento=hoy,
+        )
+
+
+@receiver(post_save, sender=ContratoRenovacion)
+def _registrar_renovacion(sender, instance, created, **kwargs):
+    if not created:
+        return
+    hoy = timezone.now().date()
+    obs = f'Nuevo salario: ${instance.nuevo_salario:,.0f}' if instance.nuevo_salario else None
+    MovimientoLaboral.objects.create(
+        empleado=instance.contrato.empleado,
+        tipo='RENOVACION',
+        campo='contrato',
+        valor_anterior=str(instance.contrato.fecha_fin) if instance.contrato.fecha_fin else None,
+        valor_nuevo=str(instance.nueva_fecha_fin) if instance.nueva_fecha_fin else None,
+        fecha_movimiento=instance.fecha_renovacion or hoy,
+        observaciones=obs,
+    )

@@ -6,7 +6,7 @@ from .models import (
     Curso, CursoContenido, CursoHistorial, N8nLog, ApiKey,
     EntidadEPS, EntidadAFP, EntidadARL, CajaCompensacion,
     Contrato, AfiliacionSeguridadSocial, ContratoRenovacion,
-    DatosAcademicos,
+    DatosAcademicos, MovimientoLaboral,
 )
 
 
@@ -546,4 +546,17 @@ class DatosAcademicosSerializer(serializers.ModelSerializer):
             'en_curso', 'graduado', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class MovimientoLaboralSerializer(serializers.ModelSerializer):
+    tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
+
+    class Meta:
+        model = MovimientoLaboral
+        fields = [
+            'id', 'tipo', 'tipo_display', 'campo',
+            'valor_anterior', 'valor_nuevo',
+            'fecha_movimiento', 'observaciones', 'created_at',
+        ]
+        read_only_fields = ['id', 'created_at']
 

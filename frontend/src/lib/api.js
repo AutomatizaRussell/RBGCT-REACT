@@ -252,6 +252,7 @@ export const actualizarMiPersona = (data) => fetchApi('/mi-persona/', {
 });
 
 export const getMiOrganigrama = () => fetchApi('/mi-organigrama/');
+export const getHistorialEmpleado = (id) => fetchApi(`/empleados/${id}/historial/`);
 export const getMisAcademicos = () => fetchApi('/mis-academicos/');
 export const crearDatoAcademico = (data) => fetchApi('/mis-academicos/', {
   method: 'POST',

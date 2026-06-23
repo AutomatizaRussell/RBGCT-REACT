@@ -3,12 +3,12 @@ import {
   UserCircle, Mail, Building2, Briefcase, CalendarDays, Phone,
   MapPin, Shield, RefreshCw, Edit3, Save, X, Heart, User, Hash,
   ClipboardList, CheckCircle2, AlertCircle, FileText, Lock, GraduationCap, Plus, Trash2,
-  Network,
+  Network, History, ArrowRightLeft, TrendingUp, DollarSign, FileSignature, ToggleLeft, LogIn, LogOut,
 } from 'lucide-react';
 import {
   getEmpleadoById, actualizarMiContacto, actualizarMiPersona,
   getMisAcademicos, crearDatoAcademico, actualizarDatoAcademico, eliminarDatoAcademico,
-  getMiOrganigrama,
+  getMiOrganigrama, getHistorialEmpleado,
 } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -60,6 +60,7 @@ const UserProfile = () => {
   const [academicoStatus, setAcademicoStatus] = useState(null);
   const [editandoAcademico, setEditandoAcademico] = useState(null); // id del registro en edición, o 'nuevo'
   const [formAcademico, setFormAcademico] = useState({});
+  const [historial, setHistorial] = useState([]);
   const seccionPersonaRef = useRef(null);
   const seccionIdentidadRef = useRef(null);
   const seccionAcademicosRef = useRef(null);
@@ -72,11 +73,13 @@ const UserProfile = () => {
   const fetchEmpleado = async () => {
     try {
       setLoading(true);
-      const [data, academicosData] = await Promise.all([
+      const [data, academicosData, historialData] = await Promise.all([
         getEmpleadoById(empleadoData.id_empleado),
         getMisAcademicos(),
+        getHistorialEmpleado(empleadoData.id_empleado),
       ]);
       setAcademicos(Array.isArray(academicosData) ? academicosData : []);
+      setHistorial(Array.isArray(historialData) ? historialData : []);
       setEmpleado(data);
       setForm({
         telefono: data?.telefono || '',
@@ -844,6 +847,27 @@ const UserProfile = () => {
           )}
         </div>
 
+        {/* ── Historial Laboral ── */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm col-span-1 md:col-span-2">
+          <h4 className="text-sm font-bold text-[#001871] mb-5 flex items-center gap-2">
+            <History size={16} className="text-[#001871]" /> Historial Laboral
+          </h4>
+          {historial.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-6">
+              Aún no hay movimientos registrados.
+            </p>
+          ) : (
+            <div className="relative">
+              <div className="absolute left-[19px] top-0 bottom-0 w-px bg-slate-200" />
+              <div className="space-y-4">
+                {historial.map((mov) => (
+                  <MovimientoItem key={mov.id} mov={mov} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Contacto de emergencia */}
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
           <h4 className="text-sm font-bold text-[#001871] mb-5 flex items-center gap-2">
@@ -1022,6 +1046,65 @@ const OrganigramaModal = ({ data, loading, onClose }) => (
     </div>
   </div>
 );
+
+const MOVIMIENTO_CONFIG = {
+  INGRESO:          { color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500', Icon: LogIn,         label: 'Ingreso' },
+  CAMBIO_CARGO:     { color: 'bg-[#001871]/10 text-[#001871]',  dot: 'bg-[#001871]',   Icon: TrendingUp,    label: 'Cambio de Cargo' },
+  TRASLADO:         { color: 'bg-[#981d97]/10 text-[#981d97]',  dot: 'bg-[#981d97]',   Icon: ArrowRightLeft,label: 'Traslado de Área' },
+  AJUSTE_SALARIAL:  { color: 'bg-amber-100 text-amber-700',     dot: 'bg-amber-500',    Icon: DollarSign,    label: 'Ajuste Salarial' },
+  CAMBIO_CONTRATO:  { color: 'bg-slate-100 text-slate-700',     dot: 'bg-slate-500',    Icon: FileSignature, label: 'Cambio de Contrato' },
+  CAMBIO_MODALIDAD: { color: 'bg-[#00a9ce]/10 text-[#00a9ce]', dot: 'bg-[#00a9ce]',   Icon: ToggleLeft,    label: 'Cambio de Modalidad' },
+  NUEVO_CONTRATO:   { color: 'bg-indigo-100 text-indigo-700',   dot: 'bg-indigo-500',   Icon: FileText,      label: 'Nuevo Contrato' },
+  RENOVACION:       { color: 'bg-[#00bfb3]/10 text-[#00bfb3]', dot: 'bg-[#00bfb3]',   Icon: RefreshCw,     label: 'Renovación' },
+  RETIRO:           { color: 'bg-red-100 text-red-700',         dot: 'bg-red-500',      Icon: LogOut,        label: 'Retiro' },
+  REINTEGRO:        { color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500',  Icon: LogIn,         label: 'Reintegro' },
+};
+
+const MODALIDAD_LABELS = { presencial: 'Presencial', remoto: 'Remoto', hibrido: 'Híbrido' };
+const CONTRATO_LABELS  = {
+  termino_fijo: 'Término Fijo', termino_indefinido: 'Término Indefinido',
+  obra_labor: 'Obra o Labor', prestacion_servicios: 'Prestación de Servicios', aprendizaje: 'Aprendizaje',
+};
+
+const formatMovValue = (campo, valor) => {
+  if (!valor || valor === 'None' || valor === 'null') return '—';
+  if (campo === 'modalidad') return MODALIDAD_LABELS[valor] || valor;
+  if (campo === 'tipo_contrato') return CONTRATO_LABELS[valor] || valor;
+  return valor;
+};
+
+const MovimientoItem = ({ mov }) => {
+  const cfg = MOVIMIENTO_CONFIG[mov.tipo] || { color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400', Icon: History, label: mov.tipo };
+  const { Icon } = cfg;
+  const fecha = mov.fecha_movimiento
+    ? new Date(`${mov.fecha_movimiento}T00:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
+  return (
+    <div className="flex gap-4 relative pl-1">
+      <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center z-10 ${cfg.color}`}>
+        <Icon size={15} />
+      </div>
+      <div className="flex-1 pb-2">
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.color}`}>{cfg.label}</span>
+          <span className="text-[10px] text-slate-400">{fecha}</span>
+        </div>
+        {mov.valor_anterior && mov.valor_nuevo ? (
+          <p className="text-xs text-slate-600">
+            <span className="text-slate-400 line-through mr-1">{formatMovValue(mov.campo, mov.valor_anterior)}</span>
+            <span className="text-slate-300 mx-1">→</span>
+            <span className="font-semibold text-slate-700">{formatMovValue(mov.campo, mov.valor_nuevo)}</span>
+          </p>
+        ) : mov.valor_nuevo ? (
+          <p className="text-xs font-semibold text-slate-700">{formatMovValue(mov.campo, mov.valor_nuevo)}</p>
+        ) : null}
+        {mov.observaciones && (
+          <p className="text-[11px] text-slate-400 mt-0.5">{mov.observaciones}</p>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const FormAcademico = ({ form, onChange, onGuardar, onCancelar, saving }) => {
   const set = (field, value) => onChange(prev => ({ ...prev, [field]: value }));

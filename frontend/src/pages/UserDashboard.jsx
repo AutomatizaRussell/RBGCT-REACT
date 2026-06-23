@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   X,
   CalendarDays,
+  Briefcase,
 } from 'lucide-react'
 
 import { UserSidebar } from '../components/layout/UserSidebar'
@@ -21,7 +22,8 @@ import Topbar from '../components/layout/Topbar'
 import { useAuth } from '../hooks/useAuth'
 import { getTareasByEmpleado, getMisSugerencias, confirmarSugerenciaVista } from '../lib/api'
 import UtilidadesSection from '../components/admin2/UtilidadesSection'
-import FormulariosSQF from './FormulariosSQF'
+import FormulariosSQF from '../components/features/FormulariosSQF/FormulariosSQF'
+import VacantesResumen from '../components/features/vacantes/VacantesResumen'
 import SugerenciasChat from '../components/common/SugerenciasChat'
 
 const UserDashboard = () => {
@@ -401,6 +403,11 @@ const UserDashboard = () => {
                   <div className="mt-5 space-y-2">
                     {[
                       {
+                        label: 'Vacantes',
+                        icon: <Briefcase size={15} strokeWidth={1.75} />,
+                        external: '/vacantes',
+                      },
+                      {
                         label: 'Auto gestión',
                         icon: <ClipboardList size={15} strokeWidth={1.75} />,
                         tab: 'tasks',
@@ -426,9 +433,13 @@ const UserDashboard = () => {
                       },
                     ].map((action) => (
                       <button
-                        key={action.tab}
+                        key={action.tab || action.label}
                         type="button"
                         onClick={() => {
+                          if (action.external) {
+                            window.open(action.external, '_blank', 'noopener')
+                            return
+                          }
                           setActiveTab(action.tab)
                           navigate(action.path)
                         }}
@@ -449,6 +460,8 @@ const UserDashboard = () => {
                   </div>
                 </div>
               </div>
+
+              <VacantesResumen />
             </div>
           ) : isUtilidades ? (
             <div className="mx-auto max-w-6xl animate-in fade-in duration-500">

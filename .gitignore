@@ -15,6 +15,7 @@ node_modules/
 dist/
 dist-ssr/
 *.local
+.vite/
 
 # =========================
 # Python / Django
@@ -36,14 +37,20 @@ backend/media/
 # Environment variables
 # =========================
 .env
-frontend/.env
-backend/.env
-backend/.env.docker
+.env.local
+.env.prod
 .env.docker
 .env.production
+.env.*.local
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+backend/.env
+backend/.env.save
+backend/.env.docker
 backend/.env.local
+backend/.env.prod
 backend/.env.production
-
 # =========================
 # Editor / OS
 # =========================

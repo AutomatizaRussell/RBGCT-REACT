@@ -79,7 +79,7 @@ case "$1" in
     prod)
         print_header "Iniciando ambiente de PRODUCCIÓN"
         if [ ! -f ".env.prod" ]; then
-            print_error ".env.prod no existe. Crea uno basado en .env.production.example"
+            print_error ".env.prod no existe. Crea uno con las variables documentadas en CLAUDE.md"
             exit 1
         fi
         docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
