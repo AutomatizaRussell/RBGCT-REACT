@@ -48,41 +48,18 @@ const calculateBusinessDaysDate = (startDate, businessDays) => {
 };
 
 const BILLING_DESCRIPTIONS = [
-  { name: '25% RADICACIÓN SALDO A FAVOR IVA BIM 02 2026', code: '76' },
-  { name: '50% SOLICITUD SALDO A FAVOR DE RENTA AÑO 2025', code: '70' },
-  { name: 'ACCOUNTING FEES', code: '38' },
-  { name: 'ACEPTACIÓN DE FACTURAS', code: '26' },
-  { name: 'ACEPTACIÓN DE FACTURAS', code: '43' },
-  { name: 'AFILIACIONES', code: '30' },
-  { name: 'ASESORÍA CONSULTORÍA ORGANIZACIONAL', code: '46' },
-  { name: 'ASESORÍA DE NÓMINA', code: '5' },
-  { name: 'ASESORÍA LEGAL PERMANENTE', code: '29' },
-  { name: 'AUDITORÍA FINANCIERA CORTE 30 ABRIL 2026', code: '71' },
-  { name: 'CONTABILIDAD ADMINISTRATIVA', code: '40' },
-  { name: 'ELABORACIÓN DOCUMENTOS ELECTRÓNICOS Y FACTURAS DE VENTAS ELECTRÓNICAS', code: '37' },
-  { name: 'ELABORACIÓN REPORTES FINANCIEROS ADICIONALES', code: '35' },
-  { name: 'EXÁMENES MÉDICOS', code: '31' },
-  { name: 'HONORARIOS CONTABILIDAD HUDSON INVERSIONES', code: '47' },
-  { name: 'HONORARIOS CONTABILIDAD INVERSIONES OREGON', code: '48' },
-  { name: 'HONORARIOS CONTABILIDAD INVERSIONES PORTOVENTO', code: '49' },
-  { name: 'HONORARIOS CONTABILIDAD INVERSIONES RB', code: '10' },
-  { name: 'HONORARIOS CONTABILIDAD INVERSIONES VESTA', code: '50' },
-  { name: 'HONORARIOS DE AUDITORÍA EXTERNA', code: '33' },
-  { name: 'HONORARIOS DE CONTABILIDAD', code: '44' },
-  { name: 'HONORARIOS DE REVISORÍA FISCAL', code: '45' },
-  { name: 'HONORARIOS DECLARACIÓN DE RENTA', code: '51' },
-  { name: 'HONORARIOS MEDIOS MAGNÉTICOS', code: '52' },
-  { name: 'HONORARIOS SG-SST', code: '41' },
-  { name: 'INHOUSE CONTABLE Y TRIBUTARIO', code: '28' },
-  { name: 'OFICIAL DE CUMPLIMIENTO', code: '39' },
-  { name: 'OUTSOURCING CONTABLE Y TRIBUTARIO', code: '36' },
-  { name: 'OUTSOURCING FINANCIERO', code: '27' },
-  { name: 'SERVICIO CONTABLE', code: '53' },
-  { name: 'TESORERÍA', code: '42' },
-  { name: 'TESORERÍA Y FACTURACIÓN', code: '32' },
-  { name: 'USO DE LICENCIA', code: '34' }
-];
- 
+    { name: 'Auditoría Financiera', code: 'AUD-001' },
+    { name: 'Asesoría Fiscal', code: 'ASE-002' },
+    { name: 'Asesoría Laboral', code: 'ASE-003' },
+    { name: 'Asesoría Contable', code: 'ASE-004' },
+    { name: 'Consultoría Empresarial', code: 'CON-005' },
+    { name: 'Auditoría de Nómina', code: 'AUD-006' },
+    { name: 'Revisoría Fiscal', code: 'REV-007' },
+    { name: 'Asesoría Administrativa', code: 'ASE-008' },
+    { name: 'Servicios de Outsourcing', code: 'OUT-009' },
+    { name: 'Servicios Legales', code: 'SLG-010' },
+    { name: 'Otros Servicios', code: 'OTR-010' }
+]; 
 
 const CONTRACT_ROLES = [
     'Socio',
