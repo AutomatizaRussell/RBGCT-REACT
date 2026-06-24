@@ -714,6 +714,8 @@ export default function FormulariosSQF({ onBack }) {
         if (serviceType === 'Proyecto' && !billingValorProyecto.trim()) { errors.billingValorProyecto = 'Requerido'; isValid = false; }
         if (!origin) { errors.origin = 'Requerido'; isValid = false; }
         if (['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) && !originRef.trim()) { showToastMsg('error', 'Campo Faltante', 'Especifique el nombre del referente.'); isValid = false; }
+        if (!billingMonthType) { errors.billingMonthType = 'Requerido'; isValid = false; }
+        if (!billingSellerDocument.trim()) { errors.billingSellerDocument = 'Requerido'; isValid = false; }
         if (!billingCloser.trim()) { errors.billingCloser = 'Requerido'; isValid = false; }
 
         billingAreas.forEach(area => {
@@ -1709,12 +1711,13 @@ export default function FormulariosSQF({ onBack }) {
                                                 <span className="field-error">{billingErrors.billingCompany}</span>
                                             </div>
                                             <div className="form-group">
-                                                <label className="form-label">Mes corriente o vencido</label>
+                                                <label className="form-label required">Mes corriente o vencido</label>
                                                 <select className="form-input form-select" value={billingMonthType} onChange={(e) => setBillingMonthType(e.target.value)}>
                                                     <option value="">Seleccione...</option>
                                                     <option value="MES CORRIENTE">MES CORRIENTE</option>
                                                     <option value="MES VENCIDO">MES VENCIDO</option>
                                                 </select>
+                                                <span className="field-error">{billingErrors.billingMonthType}</span>
                                             </div>
                                             <div className="form-group">
                                                 <label className="form-label required">Tipo de Venta</label>
@@ -1786,8 +1789,9 @@ export default function FormulariosSQF({ onBack }) {
                                             )}
 
                                             <div className="form-group">
-                                                <label className="form-label">Identificación del Vendedor</label>
+                                                <label className="form-label required">Identificación del Vendedor</label>
                                                 <input type="text" inputMode="numeric" className="form-input" placeholder="Ej: 1234567890" value={billingSellerDocument} onChange={(e) => setBillingSellerDocument(e.target.value.replace(/\D/g, ''))} />
+                                                <span className="field-error">{billingErrors.billingSellerDocument}</span>
                                             </div>
                                             <div className="form-group full-width">
                                                 <label className="form-label required">Persona Encargada del Cierre de Negocio</label>
