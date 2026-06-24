@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
-import { Trash2, Shield, ShieldCheck, UserX, UserCheck, X, Check, Loader2, Search, Mail, Calendar, Hash, Briefcase, Info, AlertTriangle, Activity, Edit3, Save, UserPlus, Lock, KeyRound, FileSpreadsheet, Download, MessageSquareText, CheckCheck } from 'lucide-react';
-import { updateEmpleado, cambiarEstadoEmpleado, deleteEmpleado, actualizarPasswordEmpleado, getCertPermisosBackend, setCertPermisoBackend, getSugerencias } from '../../lib/api';
+import { Trash2, Shield, ShieldCheck, UserX, UserCheck, X, Check, Loader2, Search, Mail, Calendar, Hash, Briefcase, Info, AlertTriangle, Activity, Edit3, Save, UserPlus, Lock, KeyRound, FileSpreadsheet, Download, MessageSquareText, CheckCheck, History, ArrowRight, TrendingUp, DollarSign, FileText, RefreshCw } from 'lucide-react';
+import { updateEmpleado, cambiarEstadoEmpleado, deleteEmpleado, actualizarPasswordEmpleado, getCertPermisosBackend, setCertPermisoBackend, getSugerencias, getHistorialEmpleado } from '../../lib/api';
 import { exportEmpleadosCSV, exportEmpleadosXLSX } from '../../lib/exportEmpleados';
 import RoleModal from './RoleModal';
 import AuthContext from '../../context/AuthContext';
@@ -51,6 +51,36 @@ const UserTable = () => {
   // Historial de sugerencias del colaborador (modal sobre la ficha)
   const [sugerenciasUser, setSugerenciasUser] = useState(null);
   const [loadingSugerencias, setLoadingSugerencias] = useState(false);
+
+  // Historial laboral del colaborador
+  const [historialUser, setHistorialUser] = useState(null);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
+
+  const MOV_CFG = {
+    INGRESO:          { label: 'Ingreso',             color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500', Icon: UserCheck },
+    CAMBIO_CARGO:     { label: 'Cambio de Cargo',     color: 'bg-blue-100 text-blue-700',       dot: 'bg-blue-500',    Icon: Briefcase },
+    TRASLADO:         { label: 'Traslado de Área',    color: 'bg-violet-100 text-violet-700',   dot: 'bg-violet-500',  Icon: ArrowRight },
+    AJUSTE_SALARIAL:  { label: 'Ajuste Salarial',     color: 'bg-amber-100 text-amber-700',     dot: 'bg-amber-500',   Icon: DollarSign },
+    CAMBIO_CONTRATO:  { label: 'Cambio de Contrato',  color: 'bg-cyan-100 text-cyan-700',       dot: 'bg-cyan-500',    Icon: FileText },
+    CAMBIO_MODALIDAD: { label: 'Cambio de Modalidad', color: 'bg-slate-100 text-slate-700',     dot: 'bg-slate-400',   Icon: RefreshCw },
+    RETIRO:           { label: 'Retiro',              color: 'bg-red-100 text-red-700',         dot: 'bg-red-500',     Icon: UserX },
+    REINTEGRO:        { label: 'Reintegro',           color: 'bg-teal-100 text-teal-700',       dot: 'bg-teal-500',    Icon: UserCheck },
+    NUEVO_CONTRATO:   { label: 'Nuevo Contrato',      color: 'bg-indigo-100 text-indigo-700',   dot: 'bg-indigo-500',  Icon: FileText },
+    RENOVACION:       { label: 'Renovación',          color: 'bg-orange-100 text-orange-700',   dot: 'bg-orange-500',  Icon: TrendingUp },
+  };
+
+  const abrirHistorial = async (user) => {
+    setLoadingHistorial(true);
+    setHistorialUser({ user, lista: [] });
+    try {
+      const data = await getHistorialEmpleado(user.id_empleado);
+      setHistorialUser({ user, lista: Array.isArray(data) ? data : [] });
+    } catch (e) {
+      setHistorialUser({ user, lista: [], error: true });
+    } finally {
+      setLoadingHistorial(false);
+    }
+  };
 
   const abrirSugerencias = async (user) => {
     setLoadingSugerencias(true);
@@ -553,14 +583,22 @@ const UserTable = () => {
               <DetailItem icon={<Mail size={16}/>} label="Email" value={selectedUser.correo_corporativo} />
               <DetailItem icon={<Shield size={16}/>} label="UUID Autenticación" value={selectedUser.auth_id} colSpan />
             </div>
-            <div className="bg-slate-50 p-6 flex justify-between items-center gap-3">
+            <div className="bg-slate-50 p-6 flex flex-wrap justify-between items-center gap-3">
               {(isSuperAdmin || isAdmin) && (
-                <button
-                  onClick={() => abrirSugerencias(selectedUser)}
-                  className="flex items-center gap-2 px-5 py-3 bg-[#00a9ce] text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform hover:bg-[#0090b0]"
-                >
-                  <MessageSquareText size={14} /> Sugerencias
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => abrirSugerencias(selectedUser)}
+                    className="flex items-center gap-2 px-5 py-3 bg-[#00a9ce] text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform hover:bg-[#0090b0]"
+                  >
+                    <MessageSquareText size={14} /> Sugerencias
+                  </button>
+                  <button
+                    onClick={() => abrirHistorial(selectedUser)}
+                    className="flex items-center gap-2 px-5 py-3 bg-[#981d97] text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform hover:bg-[#7a1679]"
+                  >
+                    <History size={14} /> Historial
+                  </button>
+                </div>
               )}
               <button onClick={() => setSelectedUser(null)} className="px-8 py-3 bg-[#001871] text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform ml-auto">Cerrar Ficha</button>
             </div>
@@ -611,6 +649,77 @@ const UserTable = () => {
             </div>
             <div className="p-4 border-t border-slate-100 bg-white flex-shrink-0">
               <button onClick={() => setSugerenciasUser(null)} className="w-full py-2.5 bg-[#001871] text-white rounded-xl font-semibold text-sm hover:bg-[#003366] transition-colors">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Historial laboral del colaborador */}
+      {historialUser && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setHistorialUser(null)}></div>
+          <div className="relative z-10 bg-white rounded-3xl w-full max-w-xl max-h-[80vh] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="bg-[#981d97] px-6 py-4 text-white flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <History size={18} />
+                <div className="min-w-0">
+                  <p className="font-bold text-sm truncate">Historial de {historialUser.user.primer_nombre} {historialUser.user.primer_apellido}</p>
+                  <p className="text-[11px] text-purple-200 truncate">{historialUser.user.correo_corporativo}</p>
+                </div>
+              </div>
+              <button onClick={() => setHistorialUser(null)} className="p-2 hover:bg-white/20 rounded-xl transition-colors shrink-0"><X size={18} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 bg-slate-50">
+              {loadingHistorial ? (
+                <div className="flex justify-center py-12"><Loader2 size={22} className="animate-spin text-[#981d97]" /></div>
+              ) : historialUser.lista.length === 0 ? (
+                <div className="text-center py-12">
+                  <History size={40} className="mx-auto text-slate-300 mb-3" />
+                  <p className="text-sm text-slate-500">{historialUser.error ? 'No se pudo cargar el historial' : 'Este colaborador no tiene movimientos registrados'}</p>
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="absolute left-[19px] top-0 bottom-0 w-px bg-slate-200" />
+                  <div className="space-y-4">
+                    {historialUser.lista.map(mov => {
+                      const cfg = MOV_CFG[mov.tipo] || { label: mov.tipo, color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400', Icon: History };
+                      const { Icon } = cfg;
+                      const fecha = mov.fecha_movimiento
+                        ? new Date(`${mov.fecha_movimiento}T00:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : '—';
+                      return (
+                        <div key={mov.id} className="flex gap-4 relative pl-1">
+                          <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.color}`}>
+                            <Icon size={14} />
+                          </div>
+                          <div className="flex-1 min-w-0 bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+                            <div className="flex items-start justify-between gap-2">
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full ${cfg.color}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                {cfg.label}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium shrink-0">{fecha}</span>
+                            </div>
+                            {(mov.valor_anterior || mov.valor_nuevo) && (
+                              <div className="flex items-center gap-2 mt-2 text-xs">
+                                {mov.valor_anterior && <span className="text-slate-400 line-through">{mov.valor_anterior}</span>}
+                                {mov.valor_anterior && mov.valor_nuevo && <ArrowRight size={12} className="text-slate-300 flex-shrink-0" />}
+                                {mov.valor_nuevo && <span className="font-semibold text-slate-700">{mov.valor_nuevo}</span>}
+                              </div>
+                            )}
+                            {mov.observaciones && (
+                              <p className="text-[11px] text-slate-400 mt-1.5">{mov.observaciones}</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-slate-100 bg-white flex-shrink-0">
+              <button onClick={() => setHistorialUser(null)} className="w-full py-2.5 bg-[#001871] text-white rounded-xl font-semibold text-sm hover:bg-[#003366] transition-colors">Cerrar</button>
             </div>
           </div>
         </div>

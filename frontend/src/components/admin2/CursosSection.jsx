@@ -2,12 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import {
   BookMarked, Plus, ChevronDown, ChevronRight, Trash2, Pencil,
   Video, FileText, Link, ClipboardList, Type,
-  Upload, X, Check, GripVertical, PlayCircle
+  Upload, X, Check, GripVertical, PlayCircle, Bell, BellOff, CheckCheck
 } from 'lucide-react';
 import {
   getAllCursos, createCurso, updateCurso, deleteCurso,
   createCursoContenido, deleteCursoContenido,
+  getNotificacionesCursos, marcarNotificacionCursoLeida, marcarTodasNotificacionesCursosLeidas,
 } from '../../lib/api';
+import CuestionarioBuilder from '../features/cursos/CuestionarioBuilder';
 
 const TIPO_CONFIG = {
   youtube:      { label: 'Video YouTube',   icon: <PlayCircle size={14} className="text-red-500"/>,    color: 'bg-red-50 border-red-100' },
@@ -25,8 +27,10 @@ export default function CursosSection() {
   const [showNuevoCurso, setShowNuevoCurso] = useState(false);
   const [nuevoCurso, setNuevoCurso] = useState({ nombre: '', descripcion: '' });
   const [editingCurso, setEditingCurso] = useState(null);
-  const [showAddContenido, setShowAddContenido] = useState(null); // cursoId
+  const [showAddContenido, setShowAddContenido] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [notificaciones, setNotificaciones] = useState([]);
+  const [showNotif, setShowNotif] = useState(false);
 
   const fetchCursos = async () => {
     try {
@@ -39,7 +43,26 @@ export default function CursosSection() {
     }
   };
 
-  useEffect(() => { fetchCursos(); }, []);
+  const fetchNotificaciones = async () => {
+    try {
+      const data = await getNotificacionesCursos();
+      setNotificaciones(Array.isArray(data) ? data : []);
+    } catch { /* no es encargado, ignorar */ }
+  };
+
+  useEffect(() => { fetchCursos(); fetchNotificaciones(); }, []);
+
+  const handleMarcarLeida = async (id) => {
+    await marcarNotificacionCursoLeida(id);
+    setNotificaciones(prev => prev.map(n => n.id === id ? { ...n, leida: true } : n));
+  };
+
+  const handleMarcarTodasLeidas = async () => {
+    await marcarTodasNotificacionesCursosLeidas();
+    setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })));
+  };
+
+  const noLeidas = notificaciones.filter(n => !n.leida).length;
 
   const handleCrearCurso = async () => {
     if (!nuevoCurso.nombre.trim()) return;
@@ -100,12 +123,72 @@ export default function CursosSection() {
             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">{cursos.length} curso{cursos.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
-        <button
-          onClick={() => { setShowNuevoCurso(true); setEditingCurso(null); }}
-          className="flex items-center gap-2 px-4 py-2 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
-        >
-          <Plus size={13}/> Nuevo Curso
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Campana de notificaciones (solo visible si es encargado) */}
+          {(notificaciones.length > 0 || noLeidas > 0) && (
+            <div className="relative">
+              <button
+                onClick={() => setShowNotif(v => !v)}
+                className={`relative p-2 rounded-xl border transition-all ${
+                  noLeidas > 0
+                    ? 'bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100'
+                    : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100'
+                }`}
+                title="Notificaciones de cursos"
+              >
+                <Bell size={16}/>
+                {noLeidas > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                    {noLeidas > 9 ? '9+' : noLeidas}
+                  </span>
+                )}
+              </button>
+
+              {showNotif && (
+                <div className="absolute right-0 top-10 w-80 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
+                    <p className="text-xs font-bold text-slate-700 uppercase tracking-widest">Cursos completados</p>
+                    {noLeidas > 0 && (
+                      <button onClick={handleMarcarTodasLeidas} className="text-[10px] font-bold text-purple-600 hover:text-purple-700 flex items-center gap-1">
+                        <CheckCheck size={11}/> Marcar todas
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
+                    {notificaciones.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-6">Sin notificaciones</p>
+                    ) : notificaciones.map(n => (
+                      <div
+                        key={n.id}
+                        className={`px-4 py-3 text-xs transition-colors ${n.leida ? 'opacity-50' : 'bg-amber-50/40'}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-[#001871]">{n.nombre_empleado}</p>
+                            <p className="text-slate-500 mt-0.5">completó <span className="font-bold">{n.nombre_curso}</span></p>
+                            <p className="text-slate-400 text-[10px] mt-1">{new Date(n.fecha).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                          </div>
+                          {!n.leida && (
+                            <button onClick={() => handleMarcarLeida(n.id)} className="text-slate-400 hover:text-emerald-500 mt-0.5 flex-shrink-0" title="Marcar leída">
+                              <Check size={13}/>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <button
+            onClick={() => { setShowNuevoCurso(true); setEditingCurso(null); }}
+            className="flex items-center gap-2 px-4 py-2 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
+          >
+            <Plus size={13}/> Nuevo Curso
+          </button>
+        </div>
       </div>
 
       {/* Form nuevo curso */}
@@ -234,6 +317,27 @@ export default function CursosSection() {
                             {item.contenido && item.tipo !== 'cuestionario' && (
                               <p className="text-[10px] text-slate-500 mt-1 line-clamp-2">{item.contenido}</p>
                             )}
+                            {item.contenido && item.tipo === 'cuestionario' && (() => {
+                              try {
+                                const q = JSON.parse(item.contenido);
+                                const total = q.preguntas?.length || 0;
+                                const autogradables = (q.preguntas || []).filter(p => p.tipo !== 'texto_libre').length;
+                                return (
+                                  <div className="mt-1.5 flex flex-wrap gap-2 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5">
+                                    <span>{total} pregunta{total !== 1 ? 's' : ''}</span>
+                                    <span className="text-amber-300">·</span>
+                                    <span>{autogradables} autocalificable{autogradables !== 1 ? 's' : ''}</span>
+                                    <span className="text-amber-300">·</span>
+                                    <span>Aprobación: {q.puntaje_aprobacion ?? 70}%</span>
+                                    {item.max_intentos > 0 && (
+                                      <><span className="text-amber-300">·</span><span>{item.max_intentos} intento{item.max_intentos !== 1 ? 's' : ''} máx.</span></>
+                                    )}
+                                  </div>
+                                );
+                              } catch {
+                                return <div className="mt-1 text-[10px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1">Cuestionario guardado</div>;
+                              }
+                            })()}
                           </div>
                           <button onClick={() => handleEliminarContenido(item.id, curso.id)}
                             className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0">
@@ -275,14 +379,15 @@ export default function CursosSection() {
 
 function AddContenidoForm({ cursoId, onDone, onCancel }) {
   const [tipo, setTipo] = useState('youtube');
-  const [form, setForm] = useState({ titulo: '', descripcion: '', url: '', contenido: '' });
+  const [form, setForm] = useState({ titulo: '', descripcion: '', url: '', contenido: '', max_intentos: 3 });
   const [archivo, setArchivo] = useState(null);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef();
 
   const needsUrl = ['youtube', 'enlace'].includes(tipo);
   const needsFile = ['video', 'documento'].includes(tipo);
-  const needsContenido = ['texto', 'cuestionario'].includes(tipo);
+  const needsContenido = tipo === 'texto';
+  const needsBuilder = tipo === 'cuestionario';
 
   const handleSubmit = async () => {
     if (!form.titulo.trim()) return;
@@ -303,7 +408,8 @@ function AddContenidoForm({ cursoId, onDone, onCancel }) {
           titulo: form.titulo,
           descripcion: form.descripcion,
           url: needsUrl ? form.url : null,
-          contenido: needsContenido ? form.contenido : null,
+          contenido: (needsContenido || needsBuilder) ? form.contenido || null : null,
+          max_intentos: needsBuilder ? Number(form.max_intentos) || 0 : 0,
         });
       }
       onDone();
@@ -374,9 +480,31 @@ function AddContenidoForm({ cursoId, onDone, onCancel }) {
         <textarea
           value={form.contenido}
           onChange={e => setForm(p => ({ ...p, contenido: e.target.value }))}
-          placeholder={tipo === 'cuestionario' ? 'Escribe las preguntas del cuestionario...' : 'Contenido del artículo...'}
+          placeholder="Contenido del artículo..."
           rows={4}
           className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-400 resize-none"
+        />
+      )}
+
+      {needsBuilder && (
+        <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+          <ClipboardList size={14} className="text-amber-500 flex-shrink-0"/>
+          <label className="text-xs font-bold text-slate-600 flex-shrink-0">Intentos permitidos:</label>
+          <input
+            type="number"
+            min={0} max={99}
+            value={form.max_intentos}
+            onChange={e => setForm(p => ({ ...p, max_intentos: e.target.value }))}
+            className="w-16 px-2 py-1 text-sm font-bold text-center bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-400"
+          />
+          <span className="text-[10px] text-slate-400">(0 = sin límite)</span>
+        </div>
+      )}
+
+      {needsBuilder && (
+        <CuestionarioBuilder
+          value={form.contenido}
+          onChange={val => setForm(p => ({ ...p, contenido: val }))}
         />
       )}
 

@@ -73,14 +73,18 @@ const UserProfile = () => {
   const fetchEmpleado = async () => {
     try {
       setLoading(true);
-      const [data, academicosData, historialData] = await Promise.all([
-        getEmpleadoById(empleadoData.id_empleado),
+      // Primero cargamos el perfil (crítico). Si falla, mostramos error.
+      const data = await getEmpleadoById(empleadoData.id_empleado);
+      setEmpleado(data);
+      // Datos secundarios: fallan silenciosamente para no bloquear el perfil
+      const [academicosResult, historialResult] = await Promise.allSettled([
         getMisAcademicos(),
         getHistorialEmpleado(empleadoData.id_empleado),
       ]);
+      const academicosData = academicosResult.status === 'fulfilled' ? academicosResult.value : [];
+      const historialData  = historialResult.status  === 'fulfilled' ? historialResult.value  : [];
       setAcademicos(Array.isArray(academicosData) ? academicosData : []);
       setHistorial(Array.isArray(historialData) ? historialData : []);
-      setEmpleado(data);
       setForm({
         telefono: data?.telefono || '',
         correo_personal: data?.correo_personal || '',
@@ -329,9 +333,46 @@ const UserProfile = () => {
     </div>
   );
 
+  // Cuenta de sistema (superadmin de plataforma) — no tiene ficha de empleado
+  if (!empleadoData?.id_empleado) return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="bg-gradient-to-br from-[#001871] to-slate-800 rounded-3xl p-8 text-white shadow-xl">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+          <div className="w-24 h-24 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
+            <Shield size={40} className="text-white/80" />
+          </div>
+          <div className="flex-1 text-center md:text-left">
+            <h2 className="text-2xl font-bold mb-1">
+              {empleadoData?.nombre
+                ? `${empleadoData.nombre} ${empleadoData.apellido || ''}`.trim()
+                : 'Administrador del Sistema'}
+            </h2>
+            <p className="text-slate-300 text-sm mb-4">{empleadoData?.email || ''}</p>
+            <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-lg text-xs font-medium flex items-center gap-1 w-fit mx-auto md:mx-0">
+              <Shield size={10} /> Super Administrador · Cuenta de Sistema
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm flex items-center gap-3">
+        <AlertCircle size={18} className="text-amber-500 flex-shrink-0" />
+        <p className="text-sm text-slate-600">
+          La cuenta de sistema no tiene ficha de empleado. Los perfiles de empleado corresponden a los colaboradores registrados en la plataforma.
+        </p>
+      </div>
+    </div>
+  );
+
   if (!empleado) return (
-    <div className="flex items-center justify-center h-64">
-      <p className="text-sm text-slate-500">No se encontró información del perfil.</p>
+    <div className="flex flex-col items-center justify-center h-64 gap-3 text-center px-4">
+      <AlertCircle size={32} className="text-amber-400" />
+      <p className="text-sm font-semibold text-slate-600">No se pudo cargar el perfil.</p>
+      <button
+        onClick={fetchEmpleado}
+        className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold uppercase hover:bg-slate-200 transition-colors"
+      >
+        <RefreshCw size={13} /> Reintentar
+      </button>
     </div>
   );
 
@@ -387,32 +428,8 @@ const UserProfile = () => {
                 <Edit3 size={14} /> Editar identidad
               </button>
             )}
-            {puedeEditarPersona && (
-              <button
-                onClick={() => setEditando(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold uppercase hover:bg-slate-200 transition-colors"
-              >
-                <Edit3 size={14} /> Editar contacto
-              </button>
-            )}
           </div>
-        ) : (
-          <div className="flex gap-2">
-            <button
-              onClick={handleGuardar}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold uppercase hover:bg-emerald-100 transition-colors disabled:opacity-50"
-            >
-              <Save size={14} /> {saving ? 'Guardando...' : 'Guardar'}
-            </button>
-            <button
-              onClick={() => setEditando(false)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold uppercase hover:bg-slate-200 transition-colors"
-            >
-              <X size={14} /> Cancelar
-            </button>
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/* Card principal */}
@@ -591,10 +608,40 @@ const UserProfile = () => {
         </div>
 
         {/* Información de contacto (editable) */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-          <h4 className="text-sm font-bold text-[#001871] mb-5 flex items-center gap-2">
-            <User size={16} className="text-indigo-600" /> Información de Contacto
-          </h4>
+        <div className={`bg-white rounded-2xl border-2 p-6 shadow-sm ${puedeEditarPersona ? 'border-indigo-200' : 'border-slate-100'}`}>
+          <div className="flex items-center justify-between mb-5">
+            <h4 className="text-sm font-bold text-[#001871] flex items-center gap-2">
+              <User size={16} className="text-indigo-600" /> Información de Contacto
+              {puedeEditarPersona && !editando && (
+                <span className="ml-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">Edición habilitada</span>
+              )}
+            </h4>
+            {puedeEditarPersona && !editando && (
+              <button
+                onClick={() => setEditando(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold uppercase hover:bg-indigo-100 transition-colors"
+              >
+                <Edit3 size={14} /> Editar
+              </button>
+            )}
+            {editando && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleGuardar}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold uppercase hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                >
+                  <Save size={14} /> {saving ? 'Guardando...' : 'Guardar'}
+                </button>
+                <button
+                  onClick={() => setEditando(false)}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold uppercase hover:bg-slate-200 transition-colors"
+                >
+                  <X size={14} /> Cancelar
+                </button>
+              </div>
+            )}
+          </div>
           <div className="space-y-4">
             <EditableRow
               icon={<Phone size={16} />}
@@ -627,9 +674,9 @@ const UserProfile = () => {
               placeholder="Ej: Calle 123 # 45-67"
             />
           </div>
-          {editando && (
-            <p className="text-[10px] text-slate-400 mt-4">
-              * Puedes actualizar teléfono, correo personal y dirección libremente.
+          {!puedeEditarPersona && (
+            <p className="mt-4 text-[10px] text-slate-400">
+              Para actualizar tu información de contacto, contacta al administrador.
             </p>
           )}
         </div>
@@ -869,10 +916,40 @@ const UserProfile = () => {
         </div>
 
         {/* Contacto de emergencia */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-          <h4 className="text-sm font-bold text-[#001871] mb-5 flex items-center gap-2">
-            <Heart size={16} className="text-rose-500" /> Contacto de Emergencia
-          </h4>
+        <div className={`bg-white rounded-2xl border-2 p-6 shadow-sm ${puedeEditarPersona ? 'border-indigo-200' : 'border-slate-100'}`}>
+          <div className="flex items-center justify-between mb-5">
+            <h4 className="text-sm font-bold text-[#001871] flex items-center gap-2">
+              <Heart size={16} className="text-rose-500" /> Contacto de Emergencia
+              {puedeEditarPersona && !editando && (
+                <span className="ml-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">Edición habilitada</span>
+              )}
+            </h4>
+            {puedeEditarPersona && !editando && (
+              <button
+                onClick={() => setEditando(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold uppercase hover:bg-indigo-100 transition-colors"
+              >
+                <Edit3 size={14} /> Editar
+              </button>
+            )}
+            {editando && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleGuardar}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold uppercase hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                >
+                  <Save size={14} /> {saving ? 'Guardando...' : 'Guardar'}
+                </button>
+                <button
+                  onClick={() => setEditando(false)}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold uppercase hover:bg-slate-200 transition-colors"
+                >
+                  <X size={14} /> Cancelar
+                </button>
+              </div>
+            )}
+          </div>
           <div className="space-y-4">
             <EditableRow
               icon={<User size={16} />}
@@ -905,6 +982,11 @@ const UserProfile = () => {
               placeholder="Ej. Madre, Esposo, Hermano..."
             />
           </div>
+          {!puedeEditarPersona && (
+            <p className="mt-4 text-[10px] text-slate-400">
+              Para actualizar el contacto de emergencia, contacta al administrador.
+            </p>
+          )}
         </div>
       </div>
     </div>

@@ -13,6 +13,7 @@ router.register(r'reglamento', views.ReglamentoItemViewSet)
 router.register(r'cursos', views.CursoViewSet)
 router.register(r'curso-contenido', views.CursoContenidoViewSet)
 router.register(r'curso-historial', views.CursoHistorialViewSet)
+router.register(r'notificaciones-cursos', views.NotificacionCursoViewSet, basename='notificaciones-cursos')
 router.register(r'n8n-logs', views.N8nLogViewSet)
 router.register(r'api-keys', views.ApiKeyViewSet)
 # Módulo Contratos
@@ -38,6 +39,7 @@ urlpatterns = [
     path('crear-usuario/', views.crear_usuario_superadmin, name='crear_usuario'),
     path('completar-datos/', views.completar_datos_empleado, name='completar_datos'),
     path('habilitar-edicion/', views.habilitar_edicion_datos, name='habilitar_edicion'),
+    path('toggle-encargado-cursos/', views.toggle_encargado_cursos, name='toggle_encargado_cursos'),
     path('habilitar-edicion-masiva/', views.habilitar_edicion_masiva_superadmin, name='habilitar_edicion_masiva'),
     # Verificación de email con código
     path('enviar-codigo/', views.enviar_codigo_verificacion, name='enviar_codigo'),

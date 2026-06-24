@@ -24,7 +24,8 @@ from .models import (
     Curso, CursoContenido, CursoHistorial, Alerta, N8nLog, ApiKey,
     EntidadEPS, EntidadAFP, EntidadARL, CajaCompensacion,
     Contrato, AfiliacionSeguridadSocial, ContratoRenovacion,
-    DatosAcademicos, MovimientoLaboral,
+    DatosAcademicos, MovimientoLaboral, CursoProgreso, CuestionarioIntento,
+    NotificacionCurso,
 )
 from .jwt_utils import generate_tokens, decode_token, build_superadmin_payload, build_empleado_payload, jwt_required
 from .permissions import IsSuperAdminUser, IsAdminOrSuperAdmin
@@ -458,7 +459,8 @@ from .serializers import (
     ReglamentoItemSerializer, CursoSerializer, CursoContenidoSerializer, CursoHistorialSerializer, N8nLogSerializer, ApiKeySerializer,
     EntidadEPSSerializer, EntidadAFPSerializer, EntidadARLSerializer, CajaCompensacionSerializer,
     ContratoSerializer, AfiliacionSeguridadSocialSerializer, ContratoRenovacionSerializer,
-    DatosAcademicosSerializer, MovimientoLaboralSerializer,
+    DatosAcademicosSerializer, MovimientoLaboralSerializer, CursoProgresoSerializer,
+    CuestionarioIntentoSerializer, NotificacionCursoSerializer,
 )
 
 # Endpoint de Login - PÚBLICO
@@ -1409,6 +1411,10 @@ class CursoViewSet(viewsets.ModelViewSet):
     queryset = Curso.objects.all().order_by('orden')
     serializer_class = CursoSerializer
 
+    def perform_create(self, serializer):
+        creado_por = self.request.user if _es_empleado(self.request.user) else None
+        serializer.save(creado_por=creado_por)
+
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
         if not data.get('orden'):
@@ -1456,6 +1462,68 @@ class CursoViewSet(viewsets.ModelViewSet):
         )
         return super().destroy(request, *args, **kwargs)
 
+    @action(detail=True, methods=['get'], url_path='mi-progreso')
+    def mi_progreso(self, request, pk=None):
+        """IDs de contenidos completados por el empleado autenticado en este curso."""
+        if not _es_empleado(request.user):
+            return Response({'completados': []})
+        completados = CursoProgreso.objects.filter(
+            empleado=request.user, curso_id=pk
+        ).values_list('contenido_id', flat=True)
+        return Response({'completados': list(completados)})
+
+    @action(detail=True, methods=['post'], url_path='marcar-progreso')
+    def marcar_progreso(self, request, pk=None):
+        """Marca o desmarca un contenido como completado. Body: {contenido_id: int}"""
+        if not _es_empleado(request.user):
+            return Response({'error': 'Solo empleados pueden marcar progreso.'}, status=400)
+        contenido_id = request.data.get('contenido_id')
+        if not contenido_id:
+            return Response({'error': 'contenido_id requerido.'}, status=400)
+        try:
+            contenido = CursoContenido.objects.get(pk=contenido_id, curso_id=pk)
+        except CursoContenido.DoesNotExist:
+            return Response({'error': 'Contenido no encontrado en este curso.'}, status=404)
+        progreso, created = CursoProgreso.objects.get_or_create(
+            empleado=request.user, contenido=contenido,
+            defaults={'curso_id': pk}
+        )
+        if not created:
+            progreso.delete()
+            return Response({'completado': False})
+
+        # Verificar si el curso quedó 100% completado
+        total_items = CursoContenido.objects.filter(curso_id=pk).count()
+        completed_items = CursoProgreso.objects.filter(
+            empleado=request.user, curso_id=pk
+        ).count()
+        curso_completado = total_items > 0 and completed_items >= total_items
+        if curso_completado:
+            curso_obj = self.get_object()
+            destinatarios = set()
+
+            # Encargados de cursos
+            for enc in DatosEmpleado.objects.filter(es_encargado_cursos=True, estado='ACTIVA').exclude(id_empleado=request.user.id_empleado):
+                destinatarios.add(enc.id_empleado)
+
+            # Creador del curso (si es DatosEmpleado y no es quien completó)
+            if curso_obj.creado_por_id and curso_obj.creado_por_id != request.user.id_empleado:
+                destinatarios.add(curso_obj.creado_por_id)
+
+            for dest_id in destinatarios:
+                try:
+                    dest = DatosEmpleado.objects.get(pk=dest_id)
+                    NotificacionCurso.objects.get_or_create(
+                        destinatario=dest,
+                        empleado=request.user,
+                        curso=curso_obj,
+                        defaults={'leida': False},
+                    )
+                except DatosEmpleado.DoesNotExist:
+                    pass
+
+        return Response({'completado': True, 'curso_completado': curso_completado})
+
 
 class CursoHistorialViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = CursoHistorial.objects.all()
@@ -1472,6 +1540,44 @@ class CursoHistorialViewSet(viewsets.ReadOnlyModelViewSet):
         except (ValueError, TypeError):
             limit = 100
         return qs[:limit]
+
+
+class NotificacionCursoViewSet(viewsets.ModelViewSet):
+    """Notificaciones de curso completado para encargados de cursos."""
+    serializer_class = NotificacionCursoSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        if not _es_empleado(self.request.user):
+            return NotificacionCurso.objects.none()
+        return NotificacionCurso.objects.filter(
+            destinatario=self.request.user
+        ).select_related('empleado__persona', 'curso')
+
+    @action(detail=False, methods=['post'], url_path='marcar-todas-leidas')
+    def marcar_todas_leidas(self, request):
+        NotificacionCurso.objects.filter(
+            destinatario=request.user, leida=False
+        ).update(leida=True)
+        return Response({'ok': True})
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminOrSuperAdmin])
+def toggle_encargado_cursos(request):
+    """Admin o SuperAdmin activa/desactiva el permiso de encargado de cursos."""
+    id_empleado = request.data.get('id_empleado')
+    valor = request.data.get('valor')
+    if id_empleado is None or valor is None:
+        return Response({'error': 'id_empleado y valor son requeridos.'}, status=400)
+    try:
+        empleado = DatosEmpleado.objects.get(pk=id_empleado)
+    except DatosEmpleado.DoesNotExist:
+        return Response({'error': 'Empleado no encontrado.'}, status=404)
+    empleado.es_encargado_cursos = bool(valor)
+    empleado.save(update_fields=['es_encargado_cursos'])
+    return Response({'id_empleado': id_empleado, 'es_encargado_cursos': empleado.es_encargado_cursos})
 
 
 class N8nLogViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1613,6 +1719,134 @@ class CursoContenidoViewSet(viewsets.ModelViewSet):
             usuario_nombre=get_usuario_nombre(request.user)
         )
         return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'], url_path='enviar-respuestas')
+    def enviar_respuestas(self, request, pk=None):
+        """Empleado envía sus respuestas. Calcula puntaje y guarda el intento."""
+        if not _es_empleado(request.user):
+            return Response({'error': 'Solo empleados pueden responder cuestionarios.'}, status=400)
+        contenido = self.get_object()
+        if contenido.tipo != 'cuestionario':
+            return Response({'error': 'Este contenido no es un cuestionario.'}, status=400)
+
+        # Verificar límite de intentos
+        if contenido.max_intentos > 0:
+            intentos_usados = CuestionarioIntento.objects.filter(
+                empleado=request.user, contenido=contenido
+            ).count()
+            if intentos_usados >= contenido.max_intentos:
+                return Response({
+                    'error': f'Has alcanzado el límite de {contenido.max_intentos} intento(s) permitido(s).',
+                    'max_intentos': contenido.max_intentos,
+                    'intentos_usados': intentos_usados,
+                }, status=400)
+
+        import json as _json
+        try:
+            estructura = _json.loads(contenido.contenido or '{}')
+        except (ValueError, TypeError):
+            return Response({'error': 'Cuestionario mal formado.'}, status=400)
+
+        preguntas = estructura.get('preguntas', [])
+        puntaje_aprobacion = float(estructura.get('puntaje_aprobacion', 70))
+        respuestas_enviadas = request.data.get('respuestas', {})
+        tiempo = request.data.get('tiempo_segundos')
+
+        total_autogradable = 0
+        correctas = 0
+        for p in preguntas:
+            if p.get('tipo') == 'texto_libre':
+                continue
+            total_autogradable += 1
+            enviada = respuestas_enviadas.get(p['id'])
+            correcta = p.get('correcta')
+            if p.get('tipo') == 'multiple':
+                if enviada is not None and int(enviada) == int(correcta):
+                    correctas += 1
+            elif p.get('tipo') == 'verdadero_falso':
+                if str(enviada).lower() == str(correcta).lower():
+                    correctas += 1
+
+        puntaje = (correctas / total_autogradable * 100) if total_autogradable > 0 else 100.0
+        aprobado = puntaje >= puntaje_aprobacion
+
+        num_intento = CuestionarioIntento.objects.filter(
+            empleado=request.user, contenido=contenido
+        ).count() + 1
+
+        intento = CuestionarioIntento.objects.create(
+            empleado=request.user,
+            contenido=contenido,
+            curso=contenido.curso,
+            respuestas=respuestas_enviadas,
+            puntaje=round(puntaje, 2),
+            aprobado=aprobado,
+            num_intento=num_intento,
+            tiempo_segundos=tiempo,
+        )
+
+        # Marcar automáticamente como completado si: aprobó O agotó los intentos
+        es_ultimo_intento = contenido.max_intentos > 0 and num_intento >= contenido.max_intentos
+        if aprobado or es_ultimo_intento:
+            CursoProgreso.objects.get_or_create(
+                empleado=request.user,
+                contenido=contenido,
+                defaults={'curso': contenido.curso},
+            )
+            # Verificar si el curso quedó 100% completo y notificar
+            curso_obj = contenido.curso
+            total_items = CursoContenido.objects.filter(curso=curso_obj).count()
+            completed_items = CursoProgreso.objects.filter(
+                empleado=request.user, curso=curso_obj
+            ).count()
+            if total_items > 0 and completed_items >= total_items:
+                destinatarios = set()
+                for enc in DatosEmpleado.objects.filter(es_encargado_cursos=True, estado='ACTIVA').exclude(id_empleado=request.user.id_empleado):
+                    destinatarios.add(enc.id_empleado)
+                if curso_obj.creado_por_id and curso_obj.creado_por_id != request.user.id_empleado:
+                    destinatarios.add(curso_obj.creado_por_id)
+                for dest_id in destinatarios:
+                    try:
+                        dest = DatosEmpleado.objects.get(pk=dest_id)
+                        NotificacionCurso.objects.get_or_create(
+                            destinatario=dest,
+                            empleado=request.user,
+                            curso=curso_obj,
+                            defaults={'leida': False},
+                        )
+                    except DatosEmpleado.DoesNotExist:
+                        pass
+
+        return Response({
+            'puntaje': intento.puntaje,
+            'aprobado': intento.aprobado,
+            'correctas': correctas,
+            'total_autogradable': total_autogradable,
+            'num_intento': intento.num_intento,
+            'puntaje_aprobacion': puntaje_aprobacion,
+            'marcado_completado': aprobado or es_ultimo_intento,
+        }, status=201)
+
+    @action(detail=True, methods=['get'], url_path='mis-intentos')
+    def mis_intentos(self, request, pk=None):
+        """Empleado ve sus propios intentos en este cuestionario."""
+        if not _es_empleado(request.user):
+            return Response([])
+        intentos = CuestionarioIntento.objects.filter(
+            empleado=request.user, contenido_id=pk
+        ).order_by('-fecha_intento')
+        return Response(CuestionarioIntentoSerializer(intentos, many=True).data)
+
+    @action(detail=True, methods=['get'], url_path='resultados')
+    def resultados(self, request, pk=None):
+        """Admin/editor ve los resultados de todos los empleados en este cuestionario."""
+        if not (_es_superadmin(request.user) or
+                (_es_empleado(request.user) and int(getattr(request.user, 'id_permisos', 3)) <= 2)):
+            return Response({'error': 'Sin permisos.'}, status=403)
+        intentos = CuestionarioIntento.objects.filter(contenido_id=pk).select_related(
+            'empleado__persona'
+        ).order_by('empleado', '-fecha_intento')
+        return Response(CuestionarioIntentoSerializer(intentos, many=True).data)
 
 
 # ============================================================================

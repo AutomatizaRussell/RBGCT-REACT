@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Edit2, Trash2, Mail, AlertTriangle, X, Check, Loader2, Search, Calendar, Briefcase, Activity } from 'lucide-react';
-import { fetchApi, getAllAreas, getAllCargos } from '../../lib/api.js';
+import { Edit2, Trash2, Mail, AlertTriangle, X, Check, Loader2, Search, Calendar, Briefcase, Activity, History, ArrowRight, ArrowLeft, TrendingUp, UserCheck, UserX, RefreshCw, FileText, DollarSign, BookOpen } from 'lucide-react';
+import { fetchApi, getAllAreas, getAllCargos, getHistorialEmpleado, toggleEncargadoCursos } from '../../lib/api.js';
 
 const UserTable = () => {
   const [users, setUsers] = useState([]);
@@ -13,6 +13,9 @@ const UserTable = () => {
   const [cargos, setCargos] = useState([]);
   const [selAreaId, setSelAreaId] = useState('');
   const [selCargoId, setSelCargoId] = useState('');
+  const [modalTab, setModalTab] = useState('info');
+  const [historial, setHistorial] = useState([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -30,6 +33,7 @@ const UserTable = () => {
         correo_corporativo: emp.correo_corporativo,
         fecha_ingreso: emp.fecha_ingreso,
         estado: emp.estado,
+        es_encargado_cursos: emp.es_encargado_cursos || false,
         datos_personales: {
           id_cc: emp.numero_documento,
           nom_empleado: emp.primer_nombre,
@@ -67,8 +71,24 @@ const UserTable = () => {
     if (editingUser) {
       setSelAreaId(editingUser.administracion?.area_id?.toString() || '');
       setSelCargoId(editingUser.administracion?.cargo_id?.toString() || '');
+      setModalTab('info');
+      setHistorial([]);
     }
   }, [editingUser?.id_empleado]);
+
+  const handleTabHistorial = async () => {
+    setModalTab('historial');
+    if (historial.length > 0) return;
+    setLoadingHistorial(true);
+    try {
+      const data = await getHistorialEmpleado(editingUser.id_empleado);
+      setHistorial(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingHistorial(false);
+    }
+  };
 
   const handleDelete = async (id) => {
     try {
@@ -123,6 +143,18 @@ const UserTable = () => {
     }
   };
 
+  const handleToggleEncargado = async (user) => {
+    const nuevoValor = !user.es_encargado_cursos;
+    try {
+      await toggleEncargadoCursos(user.id_empleado, nuevoValor);
+      setUsers(prev => prev.map(u =>
+        u.id_empleado === user.id_empleado ? { ...u, es_encargado_cursos: nuevoValor } : u
+      ));
+    } catch (err) {
+      alert('Error al actualizar permiso: ' + err.message);
+    }
+  };
+
   const filteredUsers = users.filter((user) => {
     const term = searchTerm.toLowerCase();
     const personal = user.datos_personales;
@@ -136,6 +168,19 @@ const UserTable = () => {
       personal?.id_cc?.toString().includes(term)
     );
   });
+
+  const MOV_CFG = {
+    INGRESO:          { label: 'Ingreso',               color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500', Icon: UserCheck },
+    CAMBIO_CARGO:     { label: 'Cambio de Cargo',       color: 'bg-blue-100 text-blue-700',       dot: 'bg-blue-500',    Icon: Briefcase },
+    TRASLADO:         { label: 'Traslado de Área',      color: 'bg-violet-100 text-violet-700',   dot: 'bg-violet-500',  Icon: ArrowRight },
+    AJUSTE_SALARIAL:  { label: 'Ajuste Salarial',       color: 'bg-amber-100 text-amber-700',     dot: 'bg-amber-500',   Icon: DollarSign },
+    CAMBIO_CONTRATO:  { label: 'Cambio de Contrato',    color: 'bg-cyan-100 text-cyan-700',       dot: 'bg-cyan-500',    Icon: FileText },
+    CAMBIO_MODALIDAD: { label: 'Cambio de Modalidad',   color: 'bg-slate-100 text-slate-700',     dot: 'bg-slate-400',   Icon: RefreshCw },
+    RETIRO:           { label: 'Retiro',                color: 'bg-red-100 text-red-700',         dot: 'bg-red-500',     Icon: UserX },
+    REINTEGRO:        { label: 'Reintegro',             color: 'bg-teal-100 text-teal-700',       dot: 'bg-teal-500',    Icon: UserCheck },
+    NUEVO_CONTRATO:   { label: 'Nuevo Contrato',        color: 'bg-indigo-100 text-indigo-700',   dot: 'bg-indigo-500',  Icon: FileText },
+    RENOVACION:       { label: 'Renovación',            color: 'bg-orange-100 text-orange-700',   dot: 'bg-orange-500',  Icon: TrendingUp },
+  };
 
   if (loading) {
     return (
@@ -222,6 +267,17 @@ const UserTable = () => {
                 </td>
                 <td className="px-4 sm:px-8 py-4 sm:py-6">
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleToggleEncargado(user)}
+                      title={user.es_encargado_cursos ? 'Quitar encargado de cursos' : 'Asignar como encargado de cursos'}
+                      className={`p-2 rounded-lg transition-colors ${
+                        user.es_encargado_cursos
+                          ? 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+                          : 'text-slate-300 hover:bg-purple-50 hover:text-purple-400'
+                      }`}
+                    >
+                      <BookOpen size={14} />
+                    </button>
                     <button onClick={() => setEditingUser(user)} className="p-2 hover:bg-blue-50 hover:text-blue-600 text-slate-400 rounded-lg transition-colors">
                       <Edit2 size={14} />
                     </button>
@@ -253,6 +309,92 @@ const UserTable = () => {
                 <X size={20} />
               </button>
             </div>
+
+            {/* TABS */}
+            <div className="flex border-b border-slate-100 px-8 bg-white">
+              <button
+                type="button"
+                onClick={() => setModalTab('info')}
+                className={`px-4 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 -mb-px ${
+                  modalTab === 'info'
+                    ? 'border-[#001871] text-[#001871]'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                Información
+              </button>
+              <button
+                type="button"
+                onClick={handleTabHistorial}
+                className={`flex items-center gap-1.5 px-4 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 -mb-px ${
+                  modalTab === 'historial'
+                    ? 'border-[#001871] text-[#001871]'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                <History size={12}/> Historial Laboral
+              </button>
+            </div>
+
+            {modalTab === 'historial' ? (
+              <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                {loadingHistorial ? (
+                  <div className="flex items-center justify-center py-16 text-slate-400">
+                    <Loader2 size={24} className="animate-spin mr-2"/> Cargando historial...
+                  </div>
+                ) : historial.length === 0 ? (
+                  <div className="text-center py-16 text-slate-400">
+                    <History size={32} className="mx-auto mb-3 text-slate-200"/>
+                    <p className="text-sm">Sin movimientos registrados aún.</p>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="absolute left-[19px] top-0 bottom-0 w-px bg-slate-100"/>
+                    <div className="space-y-4">
+                      {historial.map(mov => {
+                        const cfg = MOV_CFG[mov.tipo] || { label: mov.tipo, color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400', Icon: History };
+                        const { Icon } = cfg;
+                        const fecha = mov.fecha_movimiento
+                          ? new Date(`${mov.fecha_movimiento}T00:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : '—';
+                        return (
+                          <div key={mov.id} className="flex gap-4 relative pl-1">
+                            <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.color}`}>
+                              <Icon size={14}/>
+                            </div>
+                            <div className="flex-1 min-w-0 bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+                              <div className="flex items-start justify-between gap-2">
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-full ${cfg.color}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`}/>
+                                  {cfg.label}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium shrink-0">{fecha}</span>
+                              </div>
+                              {(mov.valor_anterior || mov.valor_nuevo) && (
+                                <div className="flex items-center gap-2 mt-2 text-xs">
+                                  {mov.valor_anterior && (
+                                    <span className="text-slate-400 line-through">{mov.valor_anterior}</span>
+                                  )}
+                                  {mov.valor_anterior && mov.valor_nuevo && (
+                                    <ArrowRight size={12} className="text-slate-300 flex-shrink-0"/>
+                                  )}
+                                  {mov.valor_nuevo && (
+                                    <span className="font-semibold text-slate-700">{mov.valor_nuevo}</span>
+                                  )}
+                                </div>
+                              )}
+                              {mov.observaciones && (
+                                <p className="text-[11px] text-slate-400 mt-1.5">{mov.observaciones}</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
 
             <form className="p-4 sm:p-8 space-y-6 sm:space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar" onSubmit={handleUpdate}>
               <div className="space-y-4">
@@ -360,6 +502,7 @@ const UserTable = () => {
                 </button>
               </div>
             </form>
+            )}
           </div>
         </div>
       )}

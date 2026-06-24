@@ -93,6 +93,12 @@ services:
     volumes:
       - media_volume_prod:/app/media
       - static_volume_prod:/app/staticfiles
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:8000/api/health/ || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     depends_on:
       db:
         condition: service_healthy

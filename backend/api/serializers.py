@@ -6,7 +6,8 @@ from .models import (
     Curso, CursoContenido, CursoHistorial, N8nLog, ApiKey,
     EntidadEPS, EntidadAFP, EntidadARL, CajaCompensacion,
     Contrato, AfiliacionSeguridadSocial, ContratoRenovacion,
-    DatosAcademicos, MovimientoLaboral,
+    DatosAcademicos, MovimientoLaboral, CursoProgreso, CuestionarioIntento,
+    NotificacionCurso,
 )
 
 
@@ -164,6 +165,7 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
             'id_permisos', 'permitir_edicion_datos', 'datos_persona_completados', 'datos_academicos_completados', 'acceso_formularios_sqf',
             'acceso_sqf_clientes', 'acceso_sqf_contratos',
             'acceso_sqf_facturacion', 'acceso_sqf_auditoria',
+            'es_encargado_cursos',
             # Auditoría
             'created_at', 'updated_at',
         ]
@@ -373,7 +375,7 @@ class CursoContenidoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CursoContenido
-        fields = ['id', 'curso', 'tipo', 'titulo', 'descripcion', 'url', 'contenido', 'archivo', 'archivo_url', 'orden', 'created_at']
+        fields = ['id', 'curso', 'tipo', 'titulo', 'descripcion', 'url', 'contenido', 'archivo', 'archivo_url', 'orden', 'max_intentos', 'created_at']
 
     def get_archivo_url(self, obj):
         if obj.archivo:
@@ -389,6 +391,7 @@ class CursoSerializer(serializers.ModelSerializer):
     total_contenidos = serializers.SerializerMethodField()
     nombre_area = serializers.CharField(source='area.nombre_area', read_only=True)
     nombre_empleado = serializers.CharField(source='empleado_asignado.persona.nombre_completo', read_only=True)
+    nombre_creador = serializers.SerializerMethodField()
     area_id = serializers.IntegerField(allow_null=True, required=False)
     empleado_asignado_id = serializers.IntegerField(allow_null=True, required=False)
 
@@ -397,12 +400,22 @@ class CursoSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'nombre', 'descripcion', 'orden', 'activo', 'visibilidad',
             'area', 'area_id', 'empleado_asignado', 'empleado_asignado_id',
-            'nombre_area', 'nombre_empleado', 'contenidos', 'total_contenidos',
+            'nombre_area', 'nombre_empleado', 'creado_por', 'nombre_creador',
+            'contenidos', 'total_contenidos',
             'created_at', 'updated_at',
         ]
+        read_only_fields = ['creado_por']
 
     def get_total_contenidos(self, obj):
         return obj.contenidos.count()
+
+    def get_nombre_creador(self, obj):
+        if not obj.creado_por:
+            return None
+        try:
+            return obj.creado_por.persona.nombre_completo
+        except Exception:
+            return obj.creado_por.correo_corporativo
 
 
 class CursoHistorialSerializer(serializers.ModelSerializer):
@@ -560,3 +573,48 @@ class MovimientoLaboralSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at']
 
+
+class CursoProgresoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CursoProgreso
+        fields = ['id', 'empleado', 'curso', 'contenido', 'fecha_completado']
+        read_only_fields = ['id', 'fecha_completado']
+
+
+class CuestionarioIntentoSerializer(serializers.ModelSerializer):
+    nombre_empleado = serializers.SerializerMethodField()
+    correo_empleado = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CuestionarioIntento
+        fields = [
+            'id', 'empleado', 'nombre_empleado', 'correo_empleado',
+            'contenido', 'curso', 'respuestas', 'puntaje', 'aprobado',
+            'num_intento', 'tiempo_segundos', 'fecha_intento',
+        ]
+        read_only_fields = ['id', 'fecha_intento']
+
+    def get_nombre_empleado(self, obj):
+        try:
+            return obj.empleado.persona.nombre_completo
+        except Exception:
+            return ''
+
+    def get_correo_empleado(self, obj):
+        return obj.empleado.correo_corporativo
+
+
+class NotificacionCursoSerializer(serializers.ModelSerializer):
+    nombre_empleado = serializers.SerializerMethodField()
+    nombre_curso = serializers.CharField(source='curso.nombre', read_only=True)
+
+    class Meta:
+        model = NotificacionCurso
+        fields = ['id', 'empleado', 'nombre_empleado', 'curso', 'nombre_curso', 'leida', 'fecha']
+        read_only_fields = ['id', 'fecha']
+
+    def get_nombre_empleado(self, obj):
+        try:
+            return obj.empleado.persona.nombre_completo
+        except Exception:
+            return obj.empleado.correo_corporativo

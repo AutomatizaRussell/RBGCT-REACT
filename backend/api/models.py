@@ -249,6 +249,8 @@ class DatosEmpleado(models.Model):
     acceso_sqf_contratos = models.BooleanField(default=False)
     acceso_sqf_facturacion = models.BooleanField(default=False)
     acceso_sqf_auditoria = models.BooleanField(default=False)
+    # Permiso especial: encargado de seguimiento de cursos
+    es_encargado_cursos = models.BooleanField(default=False)
 
     @property
     def acceso_formularios_sqf(self):
@@ -486,6 +488,11 @@ class Curso(models.Model):
         db_column='empleado_asignado_id', blank=True, null=True,
         related_name='cursos_asignados'
     )
+    creado_por = models.ForeignKey(
+        DatosEmpleado, on_delete=models.SET_NULL,
+        db_column='creado_por_id', blank=True, null=True,
+        related_name='cursos_creados'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -538,6 +545,7 @@ class CursoContenido(models.Model):
     contenido = models.TextField(blank=True, null=True)
     archivo = models.FileField(upload_to='cursos/', blank=True, null=True)
     orden = models.IntegerField(default=0)
+    max_intentos = models.PositiveIntegerField(default=0)  # 0 = sin límite
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -547,6 +555,65 @@ class CursoContenido(models.Model):
 
     def __str__(self):
         return f"{self.curso.nombre} — {self.titulo}"
+
+
+class CursoProgreso(models.Model):
+    """Marca que un empleado completó un ítem de contenido de un curso."""
+
+    empleado  = models.ForeignKey(DatosEmpleado, on_delete=models.CASCADE, related_name='progresos_cursos')
+    curso     = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='progresos')
+    contenido = models.ForeignKey(CursoContenido, on_delete=models.CASCADE, related_name='progresos')
+    fecha_completado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'curso_progreso'
+        unique_together = [('empleado', 'contenido')]
+        ordering = ['-fecha_completado']
+
+    def __str__(self):
+        return f"{self.empleado} — {self.contenido.titulo}"
+
+
+class CuestionarioIntento(models.Model):
+    """Respuestas de un empleado a un cuestionario de curso."""
+
+    empleado        = models.ForeignKey(DatosEmpleado, on_delete=models.CASCADE, related_name='intentos_cuestionarios')
+    contenido       = models.ForeignKey(CursoContenido, on_delete=models.CASCADE, related_name='intentos')
+    curso           = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='intentos_cuestionarios')
+    respuestas      = models.JSONField(default=dict)
+    puntaje         = models.FloatField()
+    aprobado        = models.BooleanField()
+    num_intento     = models.PositiveIntegerField(default=1)
+    tiempo_segundos = models.PositiveIntegerField(null=True, blank=True)
+    fecha_intento   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'cuestionario_intento'
+        ordering = ['-fecha_intento']
+
+    def __str__(self):
+        return f"{self.empleado} — intento {self.num_intento} — {self.puntaje:.1f}%"
+
+
+class NotificacionCurso(models.Model):
+    """Aviso al encargado de cursos cuando un empleado completa un curso."""
+    destinatario = models.ForeignKey(
+        DatosEmpleado, on_delete=models.CASCADE, related_name='notificaciones_cursos'
+    )
+    empleado = models.ForeignKey(
+        DatosEmpleado, on_delete=models.CASCADE, related_name='cursos_completados_notif'
+    )
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='notificaciones')
+    leida = models.BooleanField(default=False)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'notificacion_curso'
+        ordering = ['-fecha']
+        unique_together = [('destinatario', 'empleado', 'curso')]
+
+    def __str__(self):
+        return f"→ {self.destinatario} | {self.empleado} completó {self.curso}"
 
 
 class ReglamentoItem(models.Model):

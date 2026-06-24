@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FormulariosSQF.css';
-import { useAuth } from '../../../hooks/useAuth';
-import { fetchApi } from '../../../lib/api';
+import { useAuth } from '../hooks/useAuth';
+import { fetchApi } from '../lib/api';
 
 const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',
@@ -48,17 +48,41 @@ const calculateBusinessDaysDate = (startDate, businessDays) => {
 };
 
 const BILLING_DESCRIPTIONS = [
-    { name: 'Auditoría Financiera', code: 'AUD-001' },
-    { name: 'Asesoría Fiscal', code: 'ASE-002' },
-    { name: 'Asesoría Laboral', code: 'ASE-003' },
-    { name: 'Asesoría Contable', code: 'ASE-004' },
-    { name: 'Consultoría Empresarial', code: 'CON-005' },
-    { name: 'Auditoría de Nómina', code: 'AUD-006' },
-    { name: 'Revisoría Fiscal', code: 'REV-007' },
-    { name: 'Asesoría Administrativa', code: 'ASE-008' },
-    { name: 'Servicios de Outsourcing', code: 'OUT-009' },
-    { name: 'Otros Servicios', code: 'OTR-010' }
+  { name: '25% RADICACIÓN SALDO A FAVOR IVA BIM 02 2026', code: '76' },
+  { name: '50% SOLICITUD SALDO A FAVOR DE RENTA AÑO 2025', code: '70' },
+  { name: 'ACCOUNTING FEES', code: '38' },
+  { name: 'ACEPTACIÓN DE FACTURAS', code: '26' },
+  { name: 'ACEPTACIÓN DE FACTURAS', code: '43' },
+  { name: 'AFILIACIONES', code: '30' },
+  { name: 'ASESORÍA CONSULTORÍA ORGANIZACIONAL', code: '46' },
+  { name: 'ASESORÍA DE NÓMINA', code: '5' },
+  { name: 'ASESORÍA LEGAL PERMANENTE', code: '29' },
+  { name: 'AUDITORÍA FINANCIERA CORTE 30 ABRIL 2026', code: '71' },
+  { name: 'CONTABILIDAD ADMINISTRATIVA', code: '40' },
+  { name: 'ELABORACIÓN DOCUMENTOS ELECTRÓNICOS Y FACTURAS DE VENTAS ELECTRÓNICAS', code: '37' },
+  { name: 'ELABORACIÓN REPORTES FINANCIEROS ADICIONALES', code: '35' },
+  { name: 'EXÁMENES MÉDICOS', code: '31' },
+  { name: 'HONORARIOS CONTABILIDAD HUDSON INVERSIONES', code: '47' },
+  { name: 'HONORARIOS CONTABILIDAD INVERSIONES OREGON', code: '48' },
+  { name: 'HONORARIOS CONTABILIDAD INVERSIONES PORTOVENTO', code: '49' },
+  { name: 'HONORARIOS CONTABILIDAD INVERSIONES RB', code: '10' },
+  { name: 'HONORARIOS CONTABILIDAD INVERSIONES VESTA', code: '50' },
+  { name: 'HONORARIOS DE AUDITORÍA EXTERNA', code: '33' },
+  { name: 'HONORARIOS DE CONTABILIDAD', code: '44' },
+  { name: 'HONORARIOS DE REVISORÍA FISCAL', code: '45' },
+  { name: 'HONORARIOS DECLARACIÓN DE RENTA', code: '51' },
+  { name: 'HONORARIOS MEDIOS MAGNÉTICOS', code: '52' },
+  { name: 'HONORARIOS SG-SST', code: '41' },
+  { name: 'INHOUSE CONTABLE Y TRIBUTARIO', code: '28' },
+  { name: 'OFICIAL DE CUMPLIMIENTO', code: '39' },
+  { name: 'OUTSOURCING CONTABLE Y TRIBUTARIO', code: '36' },
+  { name: 'OUTSOURCING FINANCIERO', code: '27' },
+  { name: 'SERVICIO CONTABLE', code: '53' },
+  { name: 'TESORERÍA', code: '42' },
+  { name: 'TESORERÍA Y FACTURACIÓN', code: '32' },
+  { name: 'USO DE LICENCIA', code: '34' }
 ];
+ 
 
 const CONTRACT_ROLES = [
     'Socio',
@@ -96,7 +120,8 @@ export default function FormulariosSQF({ onBack }) {
     const navigate = useNavigate();
     const { user, empleadoData, isSuperAdmin, isAdmin } = useAuth();
 
-    // Secciones visibles: admins ven todo; empleados según sus flags por sección.
+    // Secciones visibles: admins ven todo; empleados 
+    //  sus flags por sección.
     // Fallback legacy: localStorage anterior al despliegue sin los flags nuevos
     // pero con acceso general (se corrige solo cuando AuthContext sincroniza).
     const legacyAccess = Boolean(empleadoData?.acceso_formularios_sqf)
@@ -158,6 +183,8 @@ export default function FormulariosSQF({ onBack }) {
     const [serviceType, setServiceType] = useState('');
     const [billingValorMes, setBillingValorMes] = useState('');
     const [billingValorProyecto, setBillingValorProyecto] = useState('');
+    const [billingMonthType, setBillingMonthType] = useState('');
+    const [billingSellerDocument, setBillingSellerDocument] = useState('');
     const [origin, setOrigin] = useState('');
     const [originRef, setOriginRef] = useState('');
     const [billingCloser, setBillingCloser] = useState('');
@@ -644,7 +671,7 @@ export default function FormulariosSQF({ onBack }) {
         setBillingClientName(''); setBillingCompany(''); setSaleType(''); setCrossSalePerson('');
         setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations(''); setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
         setServiceType(''); setBillingValorMes(''); setBillingValorProyecto('');
-        setOrigin(''); setOriginRef(''); setBillingCloser('');
+        setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType(''); setBillingSellerDocument('');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '' }]);
         setBillingErrors({}); setNcErrors({});
     };
@@ -688,6 +715,8 @@ export default function FormulariosSQF({ onBack }) {
         setBillingCloser(contract?.manager || '');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val }]);
         setBillingReference('');
+        setBillingMonthType('');
+        setBillingSellerDocument('');
 
         showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
     };
@@ -752,6 +781,10 @@ export default function FormulariosSQF({ onBack }) {
             items_json: JSON.stringify(parsedItems),
             origin, originRef: ['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) ? originRef.toUpperCase() : '',
             closer: billingCloser.toUpperCase(),
+            mes_tipo: billingMonthType,
+            mesCorrienteOVencido: billingMonthType,
+            identificacion_vendedor: billingSellerDocument,
+            sellerDocument: billingSellerDocument,
             areas: JSON.stringify(billingAreas.map(a => ({ ...a, centro: a.centro.toUpperCase(), concepto: a.concepto.toUpperCase(), valor: parseInt(String(a.valor).replace(/\D/g, ''), 10) }))),
             createdAt: new Date().toISOString(),
             ...getLoggedUserMeta(),
@@ -795,6 +828,9 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('origin', payload.origin);
             datatableForm.append('origin_ref', payload.originRef);
             datatableForm.append('closer', payload.closer);
+            datatableForm.append('mes_tipo', payload.mes_tipo);
+            datatableForm.append('mes_corriente_o_vencido', payload.mesCorrienteOVencido);
+            datatableForm.append('identificacion_vendedor', payload.identificacion_vendedor);
             datatableForm.append('areas', payload.areas);
             datatableForm.append('reference', payload.reference);
             datatableForm.append('referencia', payload.referencia);
@@ -1304,7 +1340,7 @@ export default function FormulariosSQF({ onBack }) {
                                                 <div><strong>✔ Cliente Encontrado:</strong> <br/> {nitLookupResult.client?.name || ''}</div>
                                                 <button type="button" className="btn-primary" style={{ width: '100%', borderRadius: '6px', padding: '12px', fontWeight: '600' }} onClick={() => startContractForClient(nitLookupResult.client)}>Generar Contrato</button>
                                             </div>
-                                        </div>
+                     . text, !exclu                   </div>
                                     )}
                                     {nitLookupResult?.type === 'error' && (
                                         <div className="lookup-result error">
@@ -1696,6 +1732,14 @@ export default function FormulariosSQF({ onBack }) {
                                                 <span className="field-error">{billingErrors.billingCompany}</span>
                                             </div>
                                             <div className="form-group">
+                                                <label className="form-label">Mes corriente o vencido</label>
+                                                <select className="form-input form-select" value={billingMonthType} onChange={(e) => setBillingMonthType(e.target.value)}>
+                                                    <option value="">Seleccione...</option>
+                                                    <option value="MES CORRIENTE">MES CORRIENTE</option>
+                                                    <option value="MES VENCIDO">MES VENCIDO</option>
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
                                                 <label className="form-label required">Tipo de Venta</label>
                                                 <select className="form-input form-select" value={saleType} onChange={(e) => setSaleType(e.target.value)}>
                                                     <option value="">Seleccione...</option>
@@ -1764,6 +1808,10 @@ export default function FormulariosSQF({ onBack }) {
                                                 </div>
                                             )}
 
+                                            <div className="form-group">
+                                                <label className="form-label">Identificación del Vendedor</label>
+                                                <input type="text" inputMode="numeric" className="form-input" placeholder="Ej: 1234567890" value={billingSellerDocument} onChange={(e) => setBillingSellerDocument(e.target.value.replace(/\D/g, ''))} />
+                                            </div>
                                             <div className="form-group full-width">
                                                 <label className="form-label required">Persona Encargada del Cierre de Negocio</label>
                                                 <input type="text" className="form-input" value={billingCloser} onChange={(e) => setBillingCloser(e.target.value)} />
