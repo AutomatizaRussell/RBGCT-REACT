@@ -48,18 +48,40 @@ const calculateBusinessDaysDate = (startDate, businessDays) => {
 };
 
 const BILLING_DESCRIPTIONS = [
-    { name: 'Auditoría Financiera', code: 'AUD-001' },
-    { name: 'Asesoría Fiscal', code: 'ASE-002' },
-    { name: 'Asesoría Laboral', code: 'ASE-003' },
-    { name: 'Asesoría Contable', code: 'ASE-004' },
-    { name: 'Consultoría Empresarial', code: 'CON-005' },
-    { name: 'Auditoría de Nómina', code: 'AUD-006' },
-    { name: 'Revisoría Fiscal', code: 'REV-007' },
-    { name: 'Asesoría Administrativa', code: 'ASE-008' },
-    { name: 'Servicios de Outsourcing', code: 'OUT-009' },
-    { name: 'Servicios Legales', code: 'SLG-010' },
-    { name: 'Otros Servicios', code: 'OTR-010' }
-]; 
+  { code: '5', name: 'ASESORÍA DE NÓMINA' },
+  { code: '10', name: 'HONORARIOS CONTABILIDAD INVERSIONES RB' },
+  { code: '26', name: 'ACEPTACIÓN DE FACTURAS' },
+  { code: '27', name: 'OUTSOURCING FINANCIERO' },
+  { code: '28', name: 'INHOUSE CONTABLE Y TRIBUTARIO' },
+  { code: '29', name: 'ASESORÍA LEGAL PERMANENTE' },
+  { code: '30', name: 'AFILIACIONES' },
+  { code: '31', name: 'EXÁMENES MÉDICOS' },
+  { code: '32', name: 'TESORERÍA Y FACTURACIÓN' },
+  { code: '33', name: 'HONORARIOS DE AUDITORÍA EXTERNA' },
+  { code: '34', name: 'USO DE LICENCIA' },
+  { code: '35', name: 'ELABORACIÓN REPORTES FINANCIEROS ADICIONALES' },
+  { code: '36', name: 'OUTSOURCING CONTABLE Y TRIBUTARIO' },
+  { code: '37', name: 'ELABORACIÓN DOCUMENTOS ELECTRÓNICOS Y FACTURAS DE VENTAS ELECTRÓNICAS' },
+  { code: '38', name: 'ACCOUNTING FEES' },
+  { code: '39', name: 'OFICIAL DE CUMPLIMIENTO' },
+  { code: '40', name: 'CONTABILIDAD ADMINISTRATIVA' },
+  { code: '41', name: 'HONORARIOS SG-SST' },
+  { code: '42', name: 'TESORERÍA' },
+  { code: '43', name: 'ACEPTACIÓN DE FACTURAS' },
+  { code: '44', name: 'HONORARIOS DE CONTABILIDAD' },
+  { code: '45', name: 'HONORARIOS DE REVISORÍA FISCAL' },
+  { code: '46', name: 'ASESORÍA CONSULTORÍA ORGANIZACIONAL' },
+  { code: '47', name: 'HONORARIOS CONTABILIDAD HUDSON INVERSIONES' },
+  { code: '48', name: 'HONORARIOS CONTABILIDAD INVERSIONES OREGON' },
+  { code: '49', name: 'HONORARIOS CONTABILIDAD INVERSIONES PORTOVENTO' },
+  { code: '50', name: 'HONORARIOS CONTABILIDAD INVERSIONES VESTA' },
+  { code: '51', name: 'HONORARIOS DECLARACIÓN DE RENTA' },
+  { code: '52', name: 'HONORARIOS MEDIOS MAGNÉTICOS' },
+  { code: '53', name: 'SERVICIO CONTABLE' },
+  { code: '70', name: '50% SOLICITUD SALDO A FAVOR DE RENTA AÑO 2025' },
+  { code: '71', name: 'AUDITORÍA FINANCIERA CORTE 30 ABRIL 2026' },
+  { code: '76', name: '25% RADICACIÓN SALDO A FAVOR IVA BIM 02 2026' }
+];
 
 const CONTRACT_ROLES = [
     'Socio',
