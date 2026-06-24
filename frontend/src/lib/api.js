@@ -237,7 +237,7 @@ export const createEmpleado = (data) => fetchApi('/empleados/', {
 });
 
 export const updateEmpleado = (id, data) => fetchApi(`/empleados/${id}/`, {
-  method: 'PUT',
+  method: 'PATCH',
   body: JSON.stringify(data),
 });
 
@@ -249,6 +249,32 @@ export const actualizarMiContacto = (data) => fetchApi('/mi-contacto/', {
 export const actualizarMiPersona = (data) => fetchApi('/mi-persona/', {
   method: 'PATCH',
   body: JSON.stringify(data),
+});
+
+export const getMiOrganigrama = () => fetchApi('/mi-organigrama/');
+export const getHistorialEmpleado = (id) => fetchApi(`/empleados/${id}/historial/`);
+export const getMiProgresoCurso = (cursoId) => fetchApi(`/cursos/${cursoId}/mi-progreso/`);
+export const marcarProgresoCurso = (cursoId, contenidoId) => fetchApi(`/cursos/${cursoId}/marcar-progreso/`, {
+  method: 'POST',
+  body: JSON.stringify({ contenido_id: contenidoId }),
+});
+export const enviarRespuestasCuestionario = (contenidoId, data) => fetchApi(`/curso-contenido/${contenidoId}/enviar-respuestas/`, {
+  method: 'POST',
+  body: JSON.stringify(data),
+});
+export const getMisIntentosCuestionario = (contenidoId) => fetchApi(`/curso-contenido/${contenidoId}/mis-intentos/`);
+export const getResultadosCuestionario  = (contenidoId) => fetchApi(`/curso-contenido/${contenidoId}/resultados/`);
+export const getMisAcademicos = () => fetchApi('/mis-academicos/');
+export const crearDatoAcademico = (data) => fetchApi('/mis-academicos/', {
+  method: 'POST',
+  body: JSON.stringify(data),
+});
+export const actualizarDatoAcademico = (id, data) => fetchApi(`/mis-academicos/${id}/`, {
+  method: 'PATCH',
+  body: JSON.stringify(data),
+});
+export const eliminarDatoAcademico = (id) => fetchApi(`/mis-academicos/${id}/`, {
+  method: 'DELETE',
 });
 
 export const cambiarEstadoEmpleado = (id, estado) =>
@@ -371,6 +397,20 @@ export const updateCursoContenido = (id, data) => fetchApi(`/curso-contenido/${i
 export const deleteCursoContenido = (id) => fetchApi(`/curso-contenido/${id}/`, { method: 'DELETE' });
 
 export const getCursoHistorial = (limit = 100) => fetchApi(`/curso-historial/?limit=${limit}`);
+
+export const getNotificacionesCursos = () => fetchApi('/notificaciones-cursos/');
+export const marcarNotificacionCursoLeida = (id) => fetchApi(`/notificaciones-cursos/${id}/`, {
+  method: 'PATCH',
+  body: JSON.stringify({ leida: true }),
+});
+export const marcarTodasNotificacionesCursosLeidas = () => fetchApi('/notificaciones-cursos/marcar-todas-leidas/', {
+  method: 'POST',
+  body: JSON.stringify({}),
+});
+export const toggleEncargadoCursos = (idEmpleado, valor) => fetchApi('/toggle-encargado-cursos/', {
+  method: 'POST',
+  body: JSON.stringify({ id_empleado: idEmpleado, valor }),
+});
 
 // ── REGLAMENTO ────────────────────────────────────────────────────────────────
 

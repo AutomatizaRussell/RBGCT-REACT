@@ -10,6 +10,7 @@ import {
   FileText,
   Building2,
   ClipboardList,
+  Briefcase,
 } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
@@ -60,6 +61,7 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
         { tab: 'autogestion', label: 'Auto Gestión', icon: ClipboardList },
         { tab: 'contratos', label: 'Gestión Personas', icon: FileText },
         { tab: 'clientes', label: 'Clientes', icon: Building2 },
+        { tab: 'vacantes', label: 'Portal de Vacantes', icon: Briefcase },
         { tab: 'herramientas', label: 'Herramientas', icon: Wrench },
       ],
     },

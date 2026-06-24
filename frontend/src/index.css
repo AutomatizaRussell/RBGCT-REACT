@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* Colores del Portal de Vacantes (mismos del proyecto intranet-russell).
+   Generan utilidades bg-/text-/from-/ring-/border-/hover:/opacidad automáticamente. */
+@theme {
+  /* Portal público */
+  --color-brand-dark: #001871;
+  --color-brand-primary: #F26822;
+  --color-brand-teal: #528F70;
+  /* Panel admin */
+  --color-corporate-blue: #001871;
+  --color-corporate-light: #002bc2;
+  --color-corporate-bg: #F8F9FA;
+}
+
 :root {
   --rb-blue: #001871;
   --rb-light-blue: #00a9ce;

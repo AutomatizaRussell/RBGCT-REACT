@@ -18,10 +18,10 @@ cd GCT
 ### 2. Copiar archivo de configuración
 ```bash
 # Windows
-copy .env.docker .env
+copy backend\.env.example backend\.env
 
 # Linux/Mac
-cp .env.docker .env
+cp backend/.env.example backend/.env
 ```
 
 ### 3. Iniciar contenedores
@@ -236,7 +236,7 @@ cd /opt/gct
 
 ```bash
 # Crear .env.prod con valores reales
-cp .env.docker .env.prod
+cp .env.production.example .env.prod
 
 # Editar con valores de producción
 nano .env.prod
@@ -254,7 +254,7 @@ nano .env.prod
 deploy.sh prod
 
 # O directamente
-docker-compose -f docker-compose.prod.yml up -d
+docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
 ```
 
 ### 4. Configurar SSL con Let's Encrypt
@@ -411,3 +411,4 @@ Si tienes problemas:
 ---
 
 **Última actualización**: Mayo 2026
+

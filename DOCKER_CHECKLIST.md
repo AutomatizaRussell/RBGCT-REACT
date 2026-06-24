@@ -16,7 +16,7 @@
 - [x] `nginx/nginx.conf` - Dev reverse proxy
 - [x] `nginx/nginx-prod.conf` - Production con SSL
 - [x] `nginx/nginx-frontend.conf` - Frontend SPA routing
-- [x] `.env.docker` - Variables de ejemplo
+- [x] `.env.docker.example` - Variables de ejemplo Docker
 
 ### Scripts e Herramientas
 - [x] `deploy.sh` - Script bash (Linux/Mac)
@@ -43,7 +43,7 @@
    ```bash
    python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
    ```
-   - [ ] Reemplazar en `.env.docker`
+   - [ ] Reemplazar en `backend/.env` o `.env.prod`, segun el entorno
 
 3. **Configurar servicios externos**
    - [ ] Appwrite credentials
@@ -85,7 +85,7 @@
    ```bash
    bash deploy.sh prod
    # o
-   docker-compose -f docker-compose.prod.yml up -d
+   docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
    ```
 
 9. **Backup automático**
@@ -189,7 +189,7 @@ docker-compose up -d
 make dev
 
 # Producción
-docker-compose -f docker-compose.prod.yml up -d
+docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
 # o
 make prod
 ```

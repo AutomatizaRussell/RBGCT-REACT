@@ -13,6 +13,7 @@ router.register(r'reglamento', views.ReglamentoItemViewSet)
 router.register(r'cursos', views.CursoViewSet)
 router.register(r'curso-contenido', views.CursoContenidoViewSet)
 router.register(r'curso-historial', views.CursoHistorialViewSet)
+router.register(r'notificaciones-cursos', views.NotificacionCursoViewSet, basename='notificaciones-cursos')
 router.register(r'n8n-logs', views.N8nLogViewSet)
 router.register(r'api-keys', views.ApiKeyViewSet)
 # Módulo Contratos
@@ -38,6 +39,7 @@ urlpatterns = [
     path('crear-usuario/', views.crear_usuario_superadmin, name='crear_usuario'),
     path('completar-datos/', views.completar_datos_empleado, name='completar_datos'),
     path('habilitar-edicion/', views.habilitar_edicion_datos, name='habilitar_edicion'),
+    path('toggle-encargado-cursos/', views.toggle_encargado_cursos, name='toggle_encargado_cursos'),
     path('habilitar-edicion-masiva/', views.habilitar_edicion_masiva_superadmin, name='habilitar_edicion_masiva'),
     # Verificación de email con código
     path('enviar-codigo/', views.enviar_codigo_verificacion, name='enviar_codigo'),
@@ -52,6 +54,9 @@ urlpatterns = [
     path('ping/', views.ping_actividad, name='ping_actividad'),
     path('mi-contacto/', views.actualizar_mi_contacto, name='actualizar_mi_contacto'),
     path('mi-persona/', views.actualizar_mi_persona, name='actualizar_mi_persona'),
+    path('mi-organigrama/', views.mi_organigrama, name='mi_organigrama'),
+    path('mis-academicos/', views.mis_academicos, name='mis_academicos'),
+    path('mis-academicos/<int:pk>/', views.mis_academicos_detalle, name='mis_academicos_detalle'),
     # Health check para watchdog e infraestructura (público, sin auth)
     path('health/', views.health_check, name='health_check'),
     # Sugerencias de empleados

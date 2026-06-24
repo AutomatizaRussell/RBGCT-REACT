@@ -11,7 +11,7 @@
 ```bash
 git clone <tu-repo>
 cd GCT
-copy .env.docker .env
+copy backend\.env.example backend\.env
 ```
 
 ### 2. Iniciar contenedores

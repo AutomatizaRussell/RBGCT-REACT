@@ -466,7 +466,7 @@ git clone <repo>
 cd /home/gct
 
 # .env dev
-cp .env.docker .env
+cp backend/.env.example backend/.env
 
 # Docker compose
 docker-compose up -d

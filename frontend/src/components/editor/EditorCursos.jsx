@@ -10,6 +10,7 @@ import {
   createCursoContenido, deleteCursoContenido,
   getAllAreas, getAllEmpleados,
 } from '../../lib/api';
+import CuestionarioBuilder from '../features/cursos/CuestionarioBuilder';
 
 const TIPO_CONFIG = {
   youtube:      { label: 'Video YouTube',   icon: PlayCircle, color: 'text-red-500',    bg: 'bg-red-50',    border: 'border-red-100',    badge: 'bg-red-100 text-red-700' },
@@ -492,11 +493,27 @@ export default function EditorCursos() {
                               </div>
                             )}
 
-                            {item.contenido && item.tipo === 'cuestionario' && (
-                              <div className="mt-2 p-3 bg-amber-50/60 rounded-lg border border-amber-100">
-                                <p className="text-xs text-amber-800 whitespace-pre-wrap line-clamp-4">{item.contenido}</p>
-                              </div>
-                            )}
+                            {item.contenido && item.tipo === 'cuestionario' && (() => {
+                              try {
+                                const q = JSON.parse(item.contenido);
+                                const total = q.preguntas?.length || 0;
+                                const autogradables = (q.preguntas || []).filter(p => p.tipo !== 'texto_libre').length;
+                                return (
+                                  <div className="mt-2 p-3 bg-amber-50/60 rounded-lg border border-amber-100 flex flex-wrap gap-3 text-[11px] font-semibold text-amber-800">
+                                    <span>{total} pregunta{total !== 1 ? 's' : ''}</span>
+                                    <span className="text-amber-400">·</span>
+                                    <span>{autogradables} autocalificable{autogradables !== 1 ? 's' : ''}</span>
+                                    <span className="text-amber-400">·</span>
+                                    <span>Aprobación: {q.puntaje_aprobacion ?? 70}%</span>
+                                    {item.max_intentos > 0 && (
+                                      <><span className="text-amber-400">·</span><span>{item.max_intentos} intento{item.max_intentos !== 1 ? 's' : ''} máx.</span></>
+                                    )}
+                                  </div>
+                                );
+                              } catch {
+                                return <div className="mt-2 p-3 bg-amber-50/60 rounded-lg border border-amber-100 text-xs text-amber-700">Cuestionario guardado</div>;
+                              }
+                            })()}
                           </div>
                           <button
                             onClick={() => handleEliminarContenido(item.id)}
@@ -547,14 +564,15 @@ export default function EditorCursos() {
 
 function AddContenidoForm({ cursoId, onDone, onCancel }) {
   const [tipo, setTipo] = useState('documento');
-  const [form, setForm] = useState({ titulo: '', descripcion: '', url: '', contenido: '' });
+  const [form, setForm] = useState({ titulo: '', descripcion: '', url: '', contenido: '', max_intentos: 3 });
   const [archivo, setArchivo] = useState(null);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef();
 
   const needsUrl = ['youtube', 'enlace'].includes(tipo);
   const needsFile = ['video', 'documento'].includes(tipo);
-  const needsContenido = ['texto', 'cuestionario'].includes(tipo);
+  const needsContenido = tipo === 'texto';
+  const needsBuilder = tipo === 'cuestionario';
 
   const handleSubmit = async () => {
     if (!form.titulo.trim()) {
@@ -578,7 +596,8 @@ function AddContenidoForm({ cursoId, onDone, onCancel }) {
           titulo: form.titulo.trim(),
           descripcion: form.descripcion.trim(),
           url: needsUrl ? form.url.trim() || null : null,
-          contenido: needsContenido ? form.contenido.trim() || null : null,
+          contenido: (needsContenido || needsBuilder) ? form.contenido || null : null,
+          max_intentos: needsBuilder ? Number(form.max_intentos) || 0 : 0,
         });
       }
       setForm({ titulo: '', descripcion: '', url: '', contenido: '' });
@@ -693,9 +712,33 @@ function AddContenidoForm({ cursoId, onDone, onCancel }) {
           <textarea
             value={form.contenido}
             onChange={e => setForm(p => ({ ...p, contenido: e.target.value }))}
-            placeholder={tipo === 'cuestionario' ? 'Escribe las preguntas del cuestionario...' : 'Escribe el contenido del artículo...'}
+            placeholder="Escribe el contenido del artículo..."
             rows={5}
             className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-50 resize-none transition-all"
+          />
+        )}
+
+        {/* Intentos máximos (solo para cuestionarios) */}
+        {needsBuilder && (
+          <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <ClipboardList size={14} className="text-amber-500 flex-shrink-0"/>
+            <label className="text-xs font-bold text-slate-600 flex-shrink-0">Intentos permitidos:</label>
+            <input
+              type="number"
+              min={0} max={99}
+              value={form.max_intentos}
+              onChange={e => setForm(p => ({ ...p, max_intentos: e.target.value }))}
+              className="w-16 px-2 py-1.5 text-sm font-bold text-center bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-400"
+            />
+            <span className="text-[10px] text-slate-400">(0 = sin límite)</span>
+          </div>
+        )}
+
+        {/* Builder de cuestionario */}
+        {needsBuilder && (
+          <CuestionarioBuilder
+            value={form.contenido}
+            onChange={val => setForm(p => ({ ...p, contenido: val }))}
           />
         )}
       </div>

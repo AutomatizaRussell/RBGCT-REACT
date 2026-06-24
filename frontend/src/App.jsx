@@ -15,6 +15,7 @@ const Admin2Dashboard = lazy(() => import('./pages/Admin2Dashboard'));
 const UserDashboard = lazy(() => import('./pages/UserDashboard'));
 const EditorDashboard = lazy(() => import('./pages/EditorDashboard'));
 const GestorPDFPage = lazy(() => import('./pages/GestorPDFPage'));
+const PortalVacantes = lazy(() => import('./components/features/vacantes/PortalVacantes'));
 
 const UserTable = lazy(() => import('./components/users/UserTable'));
 const CreateUserPage = lazy(() => import('./components/users/CreateUserPage'));
@@ -63,6 +64,9 @@ function App() {
 
             {/* 2.5. VERIFICACIÓN DE CÓDIGO - Primer login */}
             <Route path="/verify-code" element={<VerifyCode />} />
+
+            {/* Portal de Vacantes - Público (candidatos externos, sin login) */}
+            <Route path="/vacantes" element={<PortalVacantes />} />
 
             {/* 3. RUTA DE SUPER ADMINISTRADOR (Control Total) */}
             <Route

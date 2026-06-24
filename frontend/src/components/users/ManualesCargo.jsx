@@ -2,30 +2,41 @@ import { useState, useEffect } from 'react';
 import {
   BookOpen, PlayCircle, FileText, ExternalLink, Download,
   ChevronDown, ChevronRight, RefreshCw, Link2, HelpCircle,
-  AlignLeft, Search
+  AlignLeft, Search, CheckCircle2, Circle, Loader2, Lock,
 } from 'lucide-react';
-import { getAllCursos, getContenidosByCurso } from '../../lib/api';
+import { getAllCursos, getContenidosByCurso, getMiProgresoCurso, marcarProgresoCurso } from '../../lib/api';
+import CuestionarioViewer from '../features/cursos/CuestionarioViewer';
 
 const TIPO_CONFIG = {
-  youtube:      { icon: <PlayCircle size={15}/>,  label: 'YouTube',     color: 'text-red-600',    bg: 'bg-red-50 border-red-100' },
-  video:        { icon: <PlayCircle size={15}/>,  label: 'Video',       color: 'text-blue-600',   bg: 'bg-blue-50 border-blue-100' },
-  documento:    { icon: <FileText size={15}/>,    label: 'Documento',   color: 'text-amber-600',  bg: 'bg-amber-50 border-amber-100' },
-  texto:        { icon: <AlignLeft size={15}/>,   label: 'Texto',       color: 'text-slate-600',  bg: 'bg-slate-100 border-slate-200' },
-  enlace:       { icon: <Link2 size={15}/>,       label: 'Enlace',      color: 'text-violet-600', bg: 'bg-violet-50 border-violet-100' },
+  youtube:      { icon: <PlayCircle size={15}/>,  label: 'YouTube',      color: 'text-red-600',    bg: 'bg-red-50 border-red-100' },
+  video:        { icon: <PlayCircle size={15}/>,  label: 'Video',        color: 'text-blue-600',   bg: 'bg-blue-50 border-blue-100' },
+  documento:    { icon: <FileText size={15}/>,    label: 'Documento',    color: 'text-amber-600',  bg: 'bg-amber-50 border-amber-100' },
+  texto:        { icon: <AlignLeft size={15}/>,   label: 'Texto',        color: 'text-slate-600',  bg: 'bg-slate-100 border-slate-200' },
+  enlace:       { icon: <Link2 size={15}/>,       label: 'Enlace',       color: 'text-violet-600', bg: 'bg-violet-50 border-violet-100' },
   cuestionario: { icon: <HelpCircle size={15}/>,  label: 'Cuestionario', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-100' },
 };
 
 const CursoCard = ({ curso }) => {
   const [open, setOpen] = useState(false);
   const [contenidos, setContenidos] = useState([]);
+  const [completados, setCompletados] = useState(new Set());
   const [loadingC, setLoadingC] = useState(false);
+  const [toggling, setToggling] = useState(null);
+  // ID del cuestionario que está expandido (solo uno a la vez)
+  const [expandedCuestionario, setExpandedCuestionario] = useState(null);
+  // IDs de cuestionarios con intentos agotados
+  const [agotados, setAgotados] = useState(new Set());
 
   const toggle = async () => {
     if (!open && contenidos.length === 0) {
       setLoadingC(true);
       try {
-        const data = await getContenidosByCurso(curso.id);
-        setContenidos(Array.isArray(data) ? data : (data?.results || []));
+        const [cData, pData] = await Promise.all([
+          getContenidosByCurso(curso.id),
+          getMiProgresoCurso(curso.id),
+        ]);
+        setContenidos(Array.isArray(cData) ? cData : (cData?.results || []));
+        setCompletados(new Set(pData?.completados || []));
       } catch (e) {
         console.error(e);
       } finally {
@@ -34,6 +45,42 @@ const CursoCard = ({ curso }) => {
     }
     setOpen(o => !o);
   };
+
+  const handleToggleCompletado = async (contenidoId) => {
+    if (toggling) return;
+    setToggling(contenidoId);
+    try {
+      const res = await marcarProgresoCurso(curso.id, contenidoId);
+      setCompletados(prev => {
+        const next = new Set(prev);
+        res.completado ? next.add(contenidoId) : next.delete(contenidoId);
+        return next;
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setToggling(null);
+    }
+  };
+
+  const handleToggleCuestionario = (contenidoId) => {
+    // No abrir si está agotado
+    if (agotados.has(contenidoId)) return;
+    setExpandedCuestionario(prev => prev === contenidoId ? null : contenidoId);
+  };
+
+  const handleAgotado = (contenidoId) => {
+    setAgotados(prev => new Set([...prev, contenidoId]));
+    setExpandedCuestionario(prev => prev === contenidoId ? null : prev);
+  };
+
+  const handleCompletado = (contenidoId) => {
+    setCompletados(prev => new Set([...prev, contenidoId]));
+  };
+
+  const total = contenidos.length;
+  const hechos = contenidos.filter(c => completados.has(c.id)).length;
+  const pct = total > 0 ? Math.round((hechos / total) * 100) : 0;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -51,9 +98,22 @@ const CursoCard = ({ curso }) => {
           </div>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:block">
-            {curso.total_contenidos || 0} recursos
-          </span>
+          {open && total > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden hidden sm:block">
+                <div
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-bold text-slate-400">{hechos}/{total}</span>
+            </div>
+          )}
+          {!open && (
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:block">
+              {curso.total_contenidos || 0} recursos
+            </span>
+          )}
           {open
             ? <ChevronDown size={16} className="text-slate-400"/>
             : <ChevronRight size={16} className="text-slate-400"/>
@@ -76,33 +136,127 @@ const CursoCard = ({ curso }) => {
               {contenidos.map(c => {
                 const cfg = TIPO_CONFIG[c.tipo] || TIPO_CONFIG.texto;
                 const url = c.url || c.archivo_url;
+                const hecho = completados.has(c.id);
+                const isToggling = toggling === c.id;
+                const esCuestionario = c.tipo === 'cuestionario';
+                const cuestionarioAgotado = esCuestionario && agotados.has(c.id);
+                const cuestionarioExpandido = esCuestionario && expandedCuestionario === c.id;
+
                 return (
-                  <div key={c.id} className="flex items-start gap-4 px-5 py-4">
-                    <div className={`flex-shrink-0 p-2 rounded-lg border ${cfg.bg}`}>
-                      <span className={cfg.color}>{cfg.icon}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-[#001871]">{c.titulo}</p>
-                      {c.descripcion && (
-                        <p className="text-[11px] text-slate-400 mt-0.5">{c.descripcion}</p>
-                      )}
-                      {(c.tipo === 'texto' || c.tipo === 'cuestionario') && c.contenido && (
-                        <div className={`mt-2 p-3 rounded-xl text-xs text-slate-600 whitespace-pre-line leading-relaxed ${
-                          c.tipo === 'cuestionario' ? 'bg-white border border-emerald-100' : 'bg-white border border-slate-100'
-                        }`}>
-                          {c.contenido}
-                        </div>
-                      )}
-                    </div>
-                    {url && c.tipo !== 'texto' && c.tipo !== 'cuestionario' && (
-                      <a href={url} target="_blank" rel="noopener noreferrer"
-                        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-[#001871] text-white rounded-xl text-[10px] font-bold uppercase hover:bg-slate-800 transition-all">
-                        {c.tipo === 'documento' || c.tipo === 'video'
-                          ? <><Download size={11}/> Descargar</>
-                          : <><ExternalLink size={11}/> {c.tipo === 'youtube' ? 'Ver video' : 'Abrir'}</>
+                  <div
+                    key={c.id}
+                    className={`px-5 py-4 transition-colors ${
+                      cuestionarioAgotado
+                        ? 'bg-slate-50 opacity-60'
+                        : hecho
+                          ? 'bg-emerald-50/40'
+                          : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      {/* Checkbox de completado (no para cuestionarios) */}
+                      <button
+                        onClick={() => !esCuestionario && handleToggleCompletado(c.id)}
+                        disabled={isToggling || esCuestionario}
+                        className={`flex-shrink-0 mt-0.5 transition-colors ${
+                          esCuestionario
+                            ? 'cursor-default opacity-30'
+                            : 'text-slate-300 hover:text-emerald-500 disabled:opacity-50'
+                        }`}
+                        title={esCuestionario ? 'El progreso lo registra el cuestionario' : (hecho ? 'Marcar como pendiente' : 'Marcar como completado')}
+                      >
+                        {isToggling
+                          ? <Loader2 size={18} className="animate-spin text-emerald-400"/>
+                          : hecho
+                            ? <CheckCircle2 size={18} className="text-emerald-500"/>
+                            : <Circle size={18}/>
                         }
-                      </a>
-                    )}
+                      </button>
+
+                      {/* Icono de tipo */}
+                      <div className={`flex-shrink-0 p-2 rounded-lg border ${cuestionarioAgotado ? 'bg-slate-100 border-slate-200' : cfg.bg}`}>
+                        {cuestionarioAgotado
+                          ? <Lock size={15} className="text-slate-400"/>
+                          : <span className={cfg.color}>{cfg.icon}</span>
+                        }
+                      </div>
+
+                      {/* Contenido */}
+                      <div className="flex-1 min-w-0">
+                        {/* Título — clic abre cuestionario */}
+                        {esCuestionario ? (
+                          <button
+                            onClick={() => handleToggleCuestionario(c.id)}
+                            disabled={cuestionarioAgotado}
+                            className={`text-left w-full group flex items-center gap-2 ${
+                              cuestionarioAgotado
+                                ? 'cursor-default'
+                                : 'hover:text-indigo-600'
+                            }`}
+                          >
+                            <span className={`text-sm font-semibold ${
+                              cuestionarioAgotado
+                                ? 'text-slate-400 line-through'
+                                : hecho
+                                  ? 'text-emerald-700'
+                                  : 'text-[#001871]'
+                            }`}>
+                              {c.titulo}
+                            </span>
+                            {!cuestionarioAgotado && (
+                              cuestionarioExpandido
+                                ? <ChevronDown size={14} className="text-slate-400 flex-shrink-0"/>
+                                : <ChevronRight size={14} className="text-slate-400 flex-shrink-0"/>
+                            )}
+                            {cuestionarioAgotado && (
+                              <span className="text-[10px] font-bold text-slate-400 bg-slate-200 px-2 py-0.5 rounded-md">Límite alcanzado</span>
+                            )}
+                            {!cuestionarioAgotado && c.max_intentos > 0 && (
+                              <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-md">
+                                {c.max_intentos} intento{c.max_intentos !== 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </button>
+                        ) : (
+                          <p className={`text-sm font-semibold ${hecho ? 'text-slate-400 line-through' : 'text-[#001871]'}`}>
+                            {c.titulo}
+                          </p>
+                        )}
+
+                        {c.descripcion && (
+                          <p className="text-[11px] text-slate-400 mt-0.5">{c.descripcion}</p>
+                        )}
+
+                        {/* Texto inline */}
+                        {c.tipo === 'texto' && c.contenido && (
+                          <div className="mt-2 p-3 rounded-xl text-xs text-slate-600 whitespace-pre-line leading-relaxed bg-white border border-slate-100">
+                            {c.contenido}
+                          </div>
+                        )}
+
+                        {/* Cuestionario — solo si está expandido y no agotado */}
+                        {esCuestionario && cuestionarioExpandido && !cuestionarioAgotado && (
+                          <div className="mt-3">
+                            <CuestionarioViewer
+                              contenido={c}
+                              onAgotado={() => handleAgotado(c.id)}
+                              onCompletado={handleCompletado}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Botón de descarga/enlace */}
+                      {url && c.tipo !== 'texto' && !esCuestionario && (
+                        <a href={url} target="_blank" rel="noopener noreferrer"
+                          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-[#001871] text-white rounded-xl text-[10px] font-bold uppercase hover:bg-slate-800 transition-all">
+                          {c.tipo === 'documento' || c.tipo === 'video'
+                            ? <><Download size={11}/> Descargar</>
+                            : <><ExternalLink size={11}/> {c.tipo === 'youtube' ? 'Ver video' : 'Abrir'}</>
+                          }
+                        </a>
+                      )}
+                    </div>
                   </div>
                 );
               })}

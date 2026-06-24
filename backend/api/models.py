@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
+from django.db.models.signals import pre_save, post_save
+from django.dispatch import receiver
+from django.utils import timezone
 import uuid
 
 
@@ -126,6 +129,11 @@ class Persona(models.Model):
         ('arrendada', 'Arrendada'),
         ('familiar', 'Familiar'),
     ]
+    TIPO_VEHICULO_CHOICES = [
+        ('moto', 'Moto'),
+        ('carro', 'Carro'),
+        ('ambos', 'Moto y Carro'),
+    ]
 
     id_persona = models.AutoField(primary_key=True)
     primer_nombre = models.CharField(max_length=100)
@@ -151,6 +159,9 @@ class Persona(models.Model):
     descripcion_discapacidad = models.TextField(blank=True, null=True)
     tiene_hijos = models.BooleanField(default=False)
     numero_hijos = models.PositiveSmallIntegerField(blank=True, null=True)
+    tiene_vehiculo = models.BooleanField(default=False)
+    tipo_vehiculo = models.CharField(max_length=10, choices=TIPO_VEHICULO_CHOICES, blank=True, null=True)
+    placa_vehiculo = models.CharField(max_length=20, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -230,6 +241,7 @@ class DatosEmpleado(models.Model):
     primer_login = models.BooleanField(default=True)
     datos_completados = models.BooleanField(default=False)
     datos_persona_completados = models.BooleanField(default=False)
+    datos_academicos_completados = models.BooleanField(default=False)
     permitir_edicion_datos = models.BooleanField(default=False)
     # Permisos por sección del Formulario SQF (el acceso general al formulario
     # se deriva: tiene acceso si al menos una sección está activa)
@@ -237,6 +249,8 @@ class DatosEmpleado(models.Model):
     acceso_sqf_contratos = models.BooleanField(default=False)
     acceso_sqf_facturacion = models.BooleanField(default=False)
     acceso_sqf_auditoria = models.BooleanField(default=False)
+    # Permiso especial: encargado de seguimiento de cursos
+    es_encargado_cursos = models.BooleanField(default=False)
 
     @property
     def acceso_formularios_sqf(self):
@@ -474,6 +488,11 @@ class Curso(models.Model):
         db_column='empleado_asignado_id', blank=True, null=True,
         related_name='cursos_asignados'
     )
+    creado_por = models.ForeignKey(
+        DatosEmpleado, on_delete=models.SET_NULL,
+        db_column='creado_por_id', blank=True, null=True,
+        related_name='cursos_creados'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -526,6 +545,7 @@ class CursoContenido(models.Model):
     contenido = models.TextField(blank=True, null=True)
     archivo = models.FileField(upload_to='cursos/', blank=True, null=True)
     orden = models.IntegerField(default=0)
+    max_intentos = models.PositiveIntegerField(default=0)  # 0 = sin límite
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -535,6 +555,65 @@ class CursoContenido(models.Model):
 
     def __str__(self):
         return f"{self.curso.nombre} — {self.titulo}"
+
+
+class CursoProgreso(models.Model):
+    """Marca que un empleado completó un ítem de contenido de un curso."""
+
+    empleado  = models.ForeignKey(DatosEmpleado, on_delete=models.CASCADE, related_name='progresos_cursos')
+    curso     = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='progresos')
+    contenido = models.ForeignKey(CursoContenido, on_delete=models.CASCADE, related_name='progresos')
+    fecha_completado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'curso_progreso'
+        unique_together = [('empleado', 'contenido')]
+        ordering = ['-fecha_completado']
+
+    def __str__(self):
+        return f"{self.empleado} — {self.contenido.titulo}"
+
+
+class CuestionarioIntento(models.Model):
+    """Respuestas de un empleado a un cuestionario de curso."""
+
+    empleado        = models.ForeignKey(DatosEmpleado, on_delete=models.CASCADE, related_name='intentos_cuestionarios')
+    contenido       = models.ForeignKey(CursoContenido, on_delete=models.CASCADE, related_name='intentos')
+    curso           = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='intentos_cuestionarios')
+    respuestas      = models.JSONField(default=dict)
+    puntaje         = models.FloatField()
+    aprobado        = models.BooleanField()
+    num_intento     = models.PositiveIntegerField(default=1)
+    tiempo_segundos = models.PositiveIntegerField(null=True, blank=True)
+    fecha_intento   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'cuestionario_intento'
+        ordering = ['-fecha_intento']
+
+    def __str__(self):
+        return f"{self.empleado} — intento {self.num_intento} — {self.puntaje:.1f}%"
+
+
+class NotificacionCurso(models.Model):
+    """Aviso al encargado de cursos cuando un empleado completa un curso."""
+    destinatario = models.ForeignKey(
+        DatosEmpleado, on_delete=models.CASCADE, related_name='notificaciones_cursos'
+    )
+    empleado = models.ForeignKey(
+        DatosEmpleado, on_delete=models.CASCADE, related_name='cursos_completados_notif'
+    )
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='notificaciones')
+    leida = models.BooleanField(default=False)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'notificacion_curso'
+        ordering = ['-fecha']
+        unique_together = [('destinatario', 'empleado', 'curso')]
+
+    def __str__(self):
+        return f"→ {self.destinatario} | {self.empleado} completó {self.curso}"
 
 
 class ReglamentoItem(models.Model):
@@ -885,3 +964,213 @@ class ApiKey(models.Model):
         self.last_used_at = timezone.now()
         self.uso_count += 1
         self.save(update_fields=['last_used_at', 'uso_count'])
+
+
+class DatosAcademicos(models.Model):
+    """Historial académico/educativo de una persona. Relación 1-a-muchos con Persona."""
+
+    NIVEL_CHOICES = [
+        ('bachiller', 'Bachiller'),
+        ('tecnico', 'Técnico'),
+        ('tecnologo', 'Tecnólogo'),
+        ('profesional', 'Profesional'),
+        ('especializacion', 'Especialización'),
+        ('maestria', 'Maestría'),
+        ('doctorado', 'Doctorado'),
+        ('otro', 'Otro'),
+    ]
+
+    persona = models.ForeignKey(Persona, on_delete=models.CASCADE, related_name='academicos')
+    nivel_educativo = models.CharField(max_length=20, choices=NIVEL_CHOICES)
+    titulo_obtenido = models.CharField(max_length=255)
+    institucion = models.CharField(max_length=255)
+    ciudad_institucion = models.CharField(max_length=150, blank=True, null=True)
+    fecha_inicio = models.DateField(blank=True, null=True)
+    fecha_graduacion = models.DateField(blank=True, null=True)
+    en_curso = models.BooleanField(default=False)
+    graduado = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'datos_academicos'
+        managed = True
+        ordering = ['-fecha_graduacion', '-fecha_inicio']
+
+    def __str__(self):
+        return f"{self.nivel_educativo} — {self.titulo_obtenido} ({self.persona})"
+
+    def save(self, *args, **kwargs):
+        for field in ('titulo_obtenido', 'institucion', 'ciudad_institucion'):
+            v = getattr(self, field, None)
+            if v:
+                setattr(self, field, v.upper())
+        super().save(*args, **kwargs)
+
+
+# ============================================================================
+# TRAZABILIDAD LABORAL
+# ============================================================================
+
+class MovimientoLaboral(models.Model):
+    TIPO_CHOICES = [
+        ('INGRESO',          'Ingreso'),
+        ('CAMBIO_CARGO',     'Cambio de Cargo'),
+        ('TRASLADO',         'Traslado de Área'),
+        ('AJUSTE_SALARIAL',  'Ajuste Salarial'),
+        ('CAMBIO_CONTRATO',  'Cambio de Tipo de Contrato'),
+        ('CAMBIO_MODALIDAD', 'Cambio de Modalidad'),
+        ('RETIRO',           'Retiro'),
+        ('REINTEGRO',        'Reintegro'),
+        ('NUEVO_CONTRATO',   'Nuevo Contrato'),
+        ('RENOVACION',       'Renovación de Contrato'),
+    ]
+
+    empleado         = models.ForeignKey(DatosEmpleado, on_delete=models.CASCADE, related_name='movimientos')
+    tipo             = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    campo            = models.CharField(max_length=50)
+    valor_anterior   = models.CharField(max_length=500, blank=True, null=True)
+    valor_nuevo      = models.CharField(max_length=500, blank=True, null=True)
+    fecha_movimiento = models.DateField()
+    observaciones    = models.TextField(blank=True, null=True)
+    created_at       = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'movimiento_laboral'
+        ordering = ['-fecha_movimiento', '-created_at']
+
+    def __str__(self):
+        return f"{self.empleado} — {self.tipo} ({self.fecha_movimiento})"
+
+
+# ─── Signals: captura estado anterior ────────────────────────────────────────
+
+@receiver(pre_save, sender=DatosEmpleado)
+def _capturar_prev_empleado(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            prev = DatosEmpleado.objects.get(pk=instance.pk)
+            instance._prev_area_id  = prev.area_id
+            instance._prev_cargo_id = prev.cargo_id
+            instance._prev_estado   = prev.estado
+        except DatosEmpleado.DoesNotExist:
+            instance._prev_area_id = instance._prev_cargo_id = instance._prev_estado = None
+    else:
+        instance._prev_area_id = instance._prev_cargo_id = instance._prev_estado = None
+
+
+@receiver(post_save, sender=DatosEmpleado)
+def _registrar_movimiento_empleado(sender, instance, created, **kwargs):
+    hoy = timezone.now().date()
+
+    if created:
+        MovimientoLaboral.objects.create(
+            empleado=instance,
+            tipo='INGRESO',
+            campo='ingreso',
+            valor_anterior=None,
+            valor_nuevo=str(instance.fecha_ingreso or hoy),
+            fecha_movimiento=instance.fecha_ingreso or hoy,
+            observaciones='Ingreso al sistema',
+        )
+        return
+
+    prev_area_id  = getattr(instance, '_prev_area_id',  None)
+    prev_cargo_id = getattr(instance, '_prev_cargo_id', None)
+    prev_estado   = getattr(instance, '_prev_estado',   None)
+
+    if prev_area_id is not None and prev_area_id != instance.area_id:
+        anterior = DatosArea.objects.filter(pk=prev_area_id).values_list('nombre_area', flat=True).first() or str(prev_area_id)
+        nuevo    = instance.area.nombre_area if instance.area else 'Sin área'
+        MovimientoLaboral.objects.create(
+            empleado=instance, tipo='TRASLADO', campo='area',
+            valor_anterior=anterior, valor_nuevo=nuevo, fecha_movimiento=hoy,
+        )
+
+    if prev_cargo_id is not None and prev_cargo_id != instance.cargo_id:
+        anterior = DatosCargo.objects.filter(pk=prev_cargo_id).values_list('nombre_cargo', flat=True).first() or str(prev_cargo_id)
+        nuevo    = instance.cargo.nombre_cargo if instance.cargo else 'Sin cargo'
+        MovimientoLaboral.objects.create(
+            empleado=instance, tipo='CAMBIO_CARGO', campo='cargo',
+            valor_anterior=anterior, valor_nuevo=nuevo, fecha_movimiento=hoy,
+        )
+
+    if prev_estado is not None and prev_estado != instance.estado:
+        tipo = 'RETIRO' if instance.estado == 'INACTIVO' else 'REINTEGRO'
+        MovimientoLaboral.objects.create(
+            empleado=instance, tipo=tipo, campo='estado',
+            valor_anterior=prev_estado, valor_nuevo=instance.estado, fecha_movimiento=hoy,
+        )
+
+
+@receiver(pre_save, sender=Contrato)
+def _capturar_prev_contrato(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            prev = Contrato.objects.get(pk=instance.pk)
+            instance._prev_salario       = prev.salario
+            instance._prev_modalidad     = prev.modalidad
+            instance._prev_tipo_contrato = prev.tipo_contrato
+        except Contrato.DoesNotExist:
+            instance._prev_salario = instance._prev_modalidad = instance._prev_tipo_contrato = None
+    else:
+        instance._prev_salario = instance._prev_modalidad = instance._prev_tipo_contrato = None
+
+
+@receiver(post_save, sender=Contrato)
+def _registrar_movimiento_contrato(sender, instance, created, **kwargs):
+    hoy = timezone.now().date()
+
+    if created:
+        MovimientoLaboral.objects.create(
+            empleado=instance.empleado,
+            tipo='NUEVO_CONTRATO',
+            campo='contrato',
+            valor_anterior=None,
+            valor_nuevo=instance.get_tipo_contrato_display(),
+            fecha_movimiento=instance.fecha_inicio or hoy,
+            observaciones=f'Salario: ${instance.salario:,.0f} | {instance.get_modalidad_display()}',
+        )
+        return
+
+    prev_salario       = getattr(instance, '_prev_salario',       None)
+    prev_modalidad     = getattr(instance, '_prev_modalidad',     None)
+    prev_tipo_contrato = getattr(instance, '_prev_tipo_contrato', None)
+
+    if prev_salario is not None and prev_salario != instance.salario:
+        MovimientoLaboral.objects.create(
+            empleado=instance.empleado, tipo='AJUSTE_SALARIAL', campo='salario',
+            valor_anterior=f'${prev_salario:,.0f}', valor_nuevo=f'${instance.salario:,.0f}',
+            fecha_movimiento=hoy,
+        )
+
+    if prev_modalidad is not None and prev_modalidad != instance.modalidad:
+        MovimientoLaboral.objects.create(
+            empleado=instance.empleado, tipo='CAMBIO_MODALIDAD', campo='modalidad',
+            valor_anterior=prev_modalidad, valor_nuevo=instance.modalidad,
+            fecha_movimiento=hoy,
+        )
+
+    if prev_tipo_contrato is not None and prev_tipo_contrato != instance.tipo_contrato:
+        MovimientoLaboral.objects.create(
+            empleado=instance.empleado, tipo='CAMBIO_CONTRATO', campo='tipo_contrato',
+            valor_anterior=prev_tipo_contrato, valor_nuevo=instance.tipo_contrato,
+            fecha_movimiento=hoy,
+        )
+
+
+@receiver(post_save, sender=ContratoRenovacion)
+def _registrar_renovacion(sender, instance, created, **kwargs):
+    if not created:
+        return
+    hoy = timezone.now().date()
+    obs = f'Nuevo salario: ${instance.nuevo_salario:,.0f}' if instance.nuevo_salario else None
+    MovimientoLaboral.objects.create(
+        empleado=instance.contrato.empleado,
+        tipo='RENOVACION',
+        campo='contrato',
+        valor_anterior=str(instance.contrato.fecha_fin) if instance.contrato.fecha_fin else None,
+        valor_nuevo=str(instance.nueva_fecha_fin) if instance.nueva_fecha_fin else None,
+        fecha_movimiento=instance.fecha_renovacion or hoy,
+        observaciones=obs,
+    )

@@ -92,35 +92,43 @@ const TaskDetailModal = ({ tarea, onClose, onActualizar }) => {
             </div>
           )}
 
-          {/* Cambiar estado */}
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5">Cambiar estado</p>
-            <div className="grid grid-cols-3 gap-2">
-              {ESTADOS.map(e => (
-                <button
-                  key={e.value}
-                  onClick={() => cambiar(e.value)}
-                  disabled={saving || tarea.estado === e.value}
-                  className={`py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border-2 transition-all ${
-                    tarea.estado === e.value ? e.active : e.idle + ' hover:opacity-80'
-                  } disabled:cursor-default`}
-                >
-                  {saving && tarea.estado !== e.value ? '...' : e.label}
-                </button>
-              ))}
+          {/* Cambiar estado — bloqueado si ya está completada */}
+          {tarea.estado === 'completada' ? (
+            <div className="flex items-center gap-3 px-4 py-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
+              <CheckCircle2 size={20} className="text-emerald-500 flex-shrink-0"/>
+              <div>
+                <p className="text-sm font-black text-emerald-700">Tarea completada</p>
+                <p className="text-[11px] text-emerald-600 mt-0.5">Esta tarea ya fue marcada como completada y no puede modificarse.</p>
+              </div>
             </div>
-          </div>
-
-          {/* Botón grande completar */}
-          {tarea.estado !== 'completada' && (
-            <button
-              onClick={() => cambiar('completada')}
-              disabled={saving}
-              className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-emerald-600 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-100"
-            >
-              <CheckCircle2 size={18}/>
-              {saving ? 'Guardando...' : 'Marcar como Completada'}
-            </button>
+          ) : (
+            <>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5">Cambiar estado</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {ESTADOS.filter(e => e.value !== 'completada').map(e => (
+                    <button
+                      key={e.value}
+                      onClick={() => cambiar(e.value)}
+                      disabled={saving || tarea.estado === e.value}
+                      className={`py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider border-2 transition-all ${
+                        tarea.estado === e.value ? e.active : e.idle + ' hover:opacity-80'
+                      } disabled:cursor-default`}
+                    >
+                      {saving && tarea.estado !== e.value ? '...' : e.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={() => cambiar('completada')}
+                disabled={saving}
+                className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-emerald-600 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-100"
+              >
+                <CheckCircle2 size={18}/>
+                {saving ? 'Guardando...' : 'Marcar como Completada'}
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -418,11 +426,11 @@ const AutoGestion = () => {
             return (
               <div
                 key={tarea.id}
-                onClick={() => setSelectedTask(tarea)}
-                className={`bg-white rounded-2xl border shadow-sm px-5 py-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition-all group ${
-                  vencida ? 'border-red-100 bg-red-50/20 hover:bg-red-50/40' :
-                  tarea.estado === 'completada' ? 'border-slate-100 opacity-70' :
-                  'border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/10'
+                onClick={() => tarea.estado !== 'completada' && setSelectedTask(tarea)}
+                className={`bg-white rounded-2xl border shadow-sm px-5 py-4 flex items-center gap-4 transition-all group ${
+                  vencida ? 'border-red-100 bg-red-50/20 hover:bg-red-50/40 cursor-pointer hover:shadow-md' :
+                  tarea.estado === 'completada' ? 'border-slate-100 opacity-60 cursor-default' :
+                  'border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/10 cursor-pointer hover:shadow-md'
                 }`}
               >
                 {/* Icono estado */}
