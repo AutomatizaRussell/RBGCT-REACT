@@ -1412,7 +1412,27 @@ export default function FormulariosSQF({ onBack }) {
                                     </div>
                                     <div className="form-group full-width">
                                         <label className="form-label required">Gerente a Cargo (Administrador del Cliente)</label>
-                                        <input type="text" name="manager" className="form-input" defaultValue={selectedClientForContract?.contactName || ''} />
+                                        <select name="manager" className="form-input form-select" defaultValue="">
+                                          <option value="">-- Seleccionar gerente --</option>
+                                          <option>David López Castaño</option>
+                                          <option>Sara López Castaño</option>
+                                          <option>Nelson Eduardo Giraldo</option>
+                                          <option>Zulima López Arango</option>
+                                          <option>Erica Maria Vergara</option>
+                                          <option>Sandra Milena Pineda</option>
+                                          <option>Esneider López Caicedo</option>
+                                          <option>Karol viviana osorio Cuartas</option>
+                                          <option>Juan Guillermo Castaño Jimenez</option>
+                                          <option>Francy Milena Rico Areiza</option>
+                                          <option>Norbey Granada Grajales</option>
+                                          <option>Jose Felipe López Méndez</option>
+                                          <option>Daniel Vélez Mesa</option>
+                                          <option>Verónica Sánchez Fernández</option>
+                                          <option>Paula Jimena Tejeiro Cardenas</option>
+                                          <option>Manuel Alejandro Ramirez Carrasquilla</option>
+                                          <option>Mayra Alejandra Jaramillo Velásquez</option>
+                                          <option>Raúl Bernando Acosta Zapata</option>
+                                        </select>
                                         <span className="field-error">{contractErrors.manager}</span>
                                     </div>
                                     <div className="form-group full-width">
