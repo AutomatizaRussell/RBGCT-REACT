@@ -58,6 +58,9 @@ const BILLING_DESCRIPTIONS = [
     { name: 'Asesoría Administrativa', code: 'ASE-008' },
     { name: 'Servicios de Outsourcing', code: 'OUT-009' },
     { name: 'Servicios Legales', code: 'SLG-010' },
+    { name: 'Valoración de empresas', code: 'VAL-011' },
+    { name: 'Dictamen Pericial', code: 'DIP-012' },
+    { name: 'Auditoría Forense', code: 'AUF-013' },
     { name: 'Otros Servicios', code: 'OTR-010' }
 ]; 
 
@@ -1411,7 +1414,7 @@ export default function FormulariosSQF({ onBack }) {
                                         <span className="field-error">{contractErrors.value}</span>
                                     </div>
                                     <div className="form-group full-width">
-                                        <label className="form-label required">Gerente a Cargo (Administrador del Cliente)</label>
+                                        <label className="form-label required">Gerente a Cargo</label>
                                         <select name="manager" className="form-input form-select" defaultValue="">
                                           <option value="">-- Seleccionar gerente --</option>
                                           <option>David López Castaño</option>
