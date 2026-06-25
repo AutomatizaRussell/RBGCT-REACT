@@ -10,21 +10,21 @@ import VerifyCode from './pages/VerifyCode';
 
 // Dashboards y secciones pesadas: lazy por ruta para no cargar
 // recharts/jspdf/xlsx/pdfjs en el bundle inicial del login.
+const SuperAdminDashboard = lazy(() => import('./pages/SuperAdminDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
-const Admin2Dashboard = lazy(() => import('./pages/Admin2Dashboard'));
-const UserDashboard = lazy(() => import('./pages/UserDashboard'));
+const EmpleadoDashboard = lazy(() => import('./pages/EmpleadoDashboard'));
 const EditorDashboard = lazy(() => import('./pages/EditorDashboard'));
-const GestorPDFPage = lazy(() => import('./pages/GestorPDFPage'));
+const GestorPDFPage = lazy(() => import('./components/herramientas/GestorPDFPage'));
 const PortalVacantes = lazy(() => import('./components/features/vacantes/PortalVacantes'));
 
-const UserTable = lazy(() => import('./components/users/UserTable'));
-const CreateUserPage = lazy(() => import('./components/users/CreateUserPage'));
-const AutoGestion = lazy(() => import('./components/users/AutoGestion'));
-const UserProfile = lazy(() => import('./components/users/UserProfile'));
-const ManualesCargo = lazy(() => import('./components/users/ManualesCargo'));
-const ComunicadosInternos = lazy(() => import('./components/users/ComunicadosInternos'));
-const MisClientes = lazy(() => import('./components/users/MisClientes'));
-const MisClienteDetalle = lazy(() => import('./components/users/MisClienteDetalle'));
+const UserTable = lazy(() => import('./components/empleados/gestion/UserTable'));
+const CreateUserPage = lazy(() => import('./components/empleados/gestion/CreateUserPage'));
+const AutoGestion = lazy(() => import('./components/empleados/portal/AutoGestion'));
+const UserProfile = lazy(() => import('./components/empleados/portal/UserProfile'));
+const ManualesCargo = lazy(() => import('./components/empleados/portal/ManualesCargo'));
+const ComunicadosInternos = lazy(() => import('./components/empleados/portal/ComunicadosInternos'));
+const MisClientes = lazy(() => import('./components/empleados/portal/MisClientes'));
+const MisClienteDetalle = lazy(() => import('./components/empleados/portal/MisClienteDetalle'));
 const EditorCursos = lazy(() => import('./components/editor/EditorCursos'));
 const EditorHistorial = lazy(() => import('./components/editor/EditorHistorial'));
 
@@ -70,9 +70,22 @@ function App() {
 
             {/* 3. RUTA DE SUPER ADMINISTRADOR (Control Total) */}
             <Route
-              path="/admin"
+              path="/superadmin"
               element={
                 <ProtectedRoute allowedRoles={['superadmin']}>
+                  <SuperAdminDashboard />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<UserTable />} />
+              <Route path="usuarios/nuevo" element={<CreateUserPage />} />
+            </Route>
+
+            {/* 4. RUTA DE ADMINISTRADOR (Gestión Operativa) */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                   <AdminDashboard />
                 </ProtectedRoute>
               }
@@ -81,22 +94,9 @@ function App() {
               <Route path="usuarios/nuevo" element={<CreateUserPage />} />
             </Route>
 
-            {/* 3. RUTA DE ADMINISTRADOR NORMAL (Gestión Operativa) */}
+            {/* Herramientas standalone para admin (sin shell del dashboard) */}
             <Route
-              path="/admin2"
-              element={
-                <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
-                  <Admin2Dashboard />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<UserTable />} />
-              <Route path="usuarios/nuevo" element={<CreateUserPage />} />
-            </Route>
-
-            {/* Herramientas standalone para admin2 (sin shell del dashboard) */}
-            <Route
-              path="/admin2/gestor-pdf"
+              path="/admin/gestor-pdf"
               element={
                 <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                   <GestorPDFPage />
@@ -122,12 +122,12 @@ function App() {
               <Route path="perfil" element={<UserProfile />} />
             </Route>
 
-            {/* 5. RUTA DE EMPLEADO (Portal Usuario) */}
+            {/* 6. RUTA DE EMPLEADO (Portal) */}
             <Route
               path="/app"
               element={
                 <ProtectedRoute allowedRoles={['superadmin', 'admin', 'editor', 'usuario']}>
-                  <UserDashboard />
+                  <EmpleadoDashboard />
                 </ProtectedRoute>
               }
             >

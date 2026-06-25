@@ -81,7 +81,7 @@ const Login = () => {
       return;
     }
     if (isAuthenticated && userRole) {
-      const routes = { superadmin: '/admin', admin: '/admin2', editor: '/editor' };
+      const routes = { superadmin: '/superadmin', admin: '/admin', editor: '/editor' };
       navigate(routes[userRole] || '/app', { replace: true });
     }
   }, [isAuthenticated, userRole, navigate, needsProfileCompletion]);

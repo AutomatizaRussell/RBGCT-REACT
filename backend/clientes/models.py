@@ -1,5 +1,5 @@
 from django.db import models
-from rbgct.appwrite_storage import AppwriteFileStorage
+from rbgct.sharepoint_storage import SharePointN8nStorage
 
 
 # ── Choices ───────────────────────────────────────────────────────────────────
@@ -220,7 +220,7 @@ class DocumentoCliente(models.Model):
     empresa         = models.ForeignKey(EmpresaCliente, on_delete=models.CASCADE, related_name='documentos')
     tipo            = models.CharField(max_length=20, choices=TIPO_DOCUMENTO_CHOICES)
     nombre          = models.CharField(max_length=200)
-    archivo         = models.FileField(upload_to='clientes/documentos/', storage=AppwriteFileStorage())
+    archivo         = models.FileField(upload_to='clientes/documentos/', storage=SharePointN8nStorage(), max_length=500)
     fecha_documento = models.DateField(blank=True, null=True)
     vigente         = models.BooleanField(default=True)
     subido_por      = models.ForeignKey(

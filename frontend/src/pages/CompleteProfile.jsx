@@ -117,8 +117,8 @@ const CompleteProfile = () => {
       // Redirigir al dashboard correspondiente
       const role = localStorage.getItem('gct_role');
       switch (role) {
-        case 'superadmin': navigate('/admin'); break;
-        case 'admin': navigate('/admin2'); break;
+        case 'superadmin': navigate('/superadmin'); break;
+        case 'admin': navigate('/admin'); break;
         case 'editor': navigate('/editor'); break;
         default: navigate('/app');
       }
@@ -162,6 +162,22 @@ const CompleteProfile = () => {
     if (!formData.cargo_id) {
       setError('Debe seleccionar un cargo');
       return;
+    }
+
+    // Validar fechas: el año debe tener exactamente 4 dígitos
+    const camposFecha = [
+      { campo: 'fecha_nacimiento', label: 'Fecha de nacimiento' },
+      { campo: 'fecha_expedicion', label: 'Fecha de expedición' },
+      { campo: 'fecha_ingreso',    label: 'Fecha de ingreso' },
+    ];
+    for (const { campo, label } of camposFecha) {
+      const val = formData[campo];
+      if (!val) continue;
+      const anio = parseInt(val.split('-')[0], 10);
+      if (isNaN(anio) || anio < 1900 || anio > new Date().getFullYear() + 1) {
+        setError(`${label}: el año "${anio}" no es válido. Asegúrate de ingresar 4 dígitos (ej: 1990).`);
+        return;
+      }
     }
 
     setSaving(true);
@@ -218,8 +234,8 @@ const CompleteProfile = () => {
       // Redirigir al dashboard
       const role = localStorage.getItem('gct_role');
       switch (role) {
-        case 'superadmin': navigate('/admin'); break;
-        case 'admin': navigate('/admin2'); break;
+        case 'superadmin': navigate('/superadmin'); break;
+        case 'admin': navigate('/admin'); break;
         case 'editor': navigate('/editor'); break;
         default: navigate('/app');
       }
@@ -690,8 +706,8 @@ const CompleteProfile = () => {
               onClick={() => {
                 const role = localStorage.getItem('gct_role');
                 switch (role) {
-                  case 'superadmin': navigate('/admin'); break;
-                  case 'admin': navigate('/admin2'); break;
+                  case 'superadmin': navigate('/superadmin'); break;
+                  case 'admin': navigate('/admin'); break;
                   case 'editor': navigate('/editor'); break;
                   default: navigate('/app');
                 }

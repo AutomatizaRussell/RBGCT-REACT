@@ -12,7 +12,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import TaskDashboard from '../components/tasks/TaskDashboard'
-import UtilidadesSection from '../components/admin2/UtilidadesSection'
+import UtilidadesSection from '../components/herramientas/UtilidadesSection'
 import { getAllCursos, getCursoHistorial } from '../lib/api'
 import StatCard from '../components/ui/StatCard'
 import ActionButton from '../components/ui/ActionButton'

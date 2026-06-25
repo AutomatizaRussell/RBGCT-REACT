@@ -194,19 +194,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'api.SuperAdmin'
 
 # =============================================================================
-# APPWRITE
+# SHAREPOINT (via n8n)
 # =============================================================================
 
-APPWRITE_ENDPOINT = os.getenv(
-    'APPWRITE_ENDPOINT',
-    'https://nyc.cloud.appwrite.io/v1'
+N8N_SHAREPOINT_WEBHOOK = os.getenv(
+    'N8N_SHAREPOINT_WEBHOOK',
+    'https://n8n.rbgct.cloud/webhook/subir-archivo-intranet'
 )
 
-APPWRITE_PROJECT_ID = os.getenv('APPWRITE_PROJECT_ID', '')
+N8N_SHAREPOINT_DOWNLOAD_WEBHOOK = os.getenv(
+    'N8N_SHAREPOINT_DOWNLOAD_WEBHOOK',
+    'https://n8n.rbgct.cloud/webhook/obtener-archivo-intranet'
+)
 
-APPWRITE_BUCKET_ID = os.getenv('APPWRITE_BUCKET_ID', '')
-
-APPWRITE_API_KEY = os.getenv('APPWRITE_API_KEY', '')
+SHAREPOINT_BASE_URL = os.getenv('SHAREPOINT_BASE_URL', 'https://dsasas.sharepoint.com')
 
 # =============================================================================
 # EMAIL
@@ -308,6 +309,10 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': os.getenv('DRF_THROTTLE_ANON', '30/min'),
         'user': os.getenv('DRF_THROTTLE_USER', '300/min'),
+        'login': os.getenv('DRF_THROTTLE_LOGIN', '10/min'),
+        'enviar_codigo': os.getenv('DRF_THROTTLE_ENVIAR_CODIGO', '5/hour'),
+        'verificar_codigo': os.getenv('DRF_THROTTLE_VERIFICAR_CODIGO', '20/hour'),
+        'recuperacion_password': os.getenv('DRF_THROTTLE_RECUPERACION', '3/hour'),
     },
 
     'DEFAULT_RENDERER_CLASSES': [

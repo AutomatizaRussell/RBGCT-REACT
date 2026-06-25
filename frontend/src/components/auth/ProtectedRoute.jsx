@@ -4,8 +4,8 @@ import { Loader2 } from 'lucide-react';
 
 const getDefaultRoute = (role) => {
   switch (role) {
-    case 'superadmin': return '/admin';
-    case 'admin': return '/admin2';
+    case 'superadmin': return '/superadmin';
+    case 'admin': return '/admin';
     case 'editor': return '/editor';
     case 'usuario': return '/app';
     default: return '/';

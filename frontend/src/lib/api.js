@@ -29,23 +29,38 @@ const parseResponseBody = async (response) => {
 
 // ── Token management ──────────────────────────────────────────────────────────
 
+// Acceso seguro a storage: Edge con Tracking Prevention puede bloquear localStorage
+const _safeStorage = (() => {
+  let _ls = null;
+  const _ss = sessionStorage;
+  try { localStorage.setItem('_gct_test', '1'); localStorage.removeItem('_gct_test'); _ls = localStorage; }
+  catch { _ls = null; }
+  return {
+    get: (key) => { try { return (_ls || _ss).getItem(key); } catch { return _ss.getItem(key); } },
+    set: (key, val) => { try { (_ls || _ss).setItem(key, val); } catch { _ss.setItem(key, val); } },
+    remove: (key) => {
+      try { if (_ls) _ls.removeItem(key); } catch {}
+      try { _ss.removeItem(key); } catch {}
+    },
+  };
+})();
+
 export const tokenStorage = {
-  _store: () => localStorage.getItem('gct_remember') === 'false' ? sessionStorage : localStorage,
-  getAccess: () => tokenStorage._store().getItem('gct_access_token'),
-  getRefresh: () => tokenStorage._store().getItem('gct_refresh_token'),
+  _store: () => {
+    try { return _safeStorage.get('gct_remember') === 'false' ? sessionStorage : (localStorage || sessionStorage); }
+    catch { return sessionStorage; }
+  },
+  getAccess: () => _safeStorage.get('gct_access_token'),
+  getRefresh: () => _safeStorage.get('gct_refresh_token'),
   set: (accessToken, refreshToken, remember) => {
-    if (remember !== undefined) {
-      localStorage.setItem('gct_remember', remember ? 'true' : 'false');
-    }
-    const store = tokenStorage._store();
-    store.setItem('gct_access_token', accessToken);
-    if (refreshToken) store.setItem('gct_refresh_token', refreshToken);
+    if (remember !== undefined) _safeStorage.set('gct_remember', remember ? 'true' : 'false');
+    _safeStorage.set('gct_access_token', accessToken);
+    if (refreshToken) _safeStorage.set('gct_refresh_token', refreshToken);
   },
   clear: () => {
-    localStorage.removeItem('gct_access_token');
-    localStorage.removeItem('gct_refresh_token');
-    sessionStorage.removeItem('gct_access_token');
-    sessionStorage.removeItem('gct_refresh_token');
+    _safeStorage.remove('gct_access_token');
+    _safeStorage.remove('gct_refresh_token');
+    _safeStorage.remove('gct_remember');
   },
 };
 
@@ -265,14 +280,24 @@ export const enviarRespuestasCuestionario = (contenidoId, data) => fetchApi(`/cu
 export const getMisIntentosCuestionario = (contenidoId) => fetchApi(`/curso-contenido/${contenidoId}/mis-intentos/`);
 export const getResultadosCuestionario  = (contenidoId) => fetchApi(`/curso-contenido/${contenidoId}/resultados/`);
 export const getMisAcademicos = () => fetchApi('/mis-academicos/');
-export const crearDatoAcademico = (data) => fetchApi('/mis-academicos/', {
-  method: 'POST',
-  body: JSON.stringify(data),
-});
-export const actualizarDatoAcademico = (id, data) => fetchApi(`/mis-academicos/${id}/`, {
-  method: 'PATCH',
-  body: JSON.stringify(data),
-});
+export const crearDatoAcademico = (data, diploma = null) => {
+  if (diploma) {
+    const fd = new FormData();
+    Object.entries(data).forEach(([k, v]) => v != null && fd.append(k, String(v)));
+    fd.append('diploma', diploma);
+    return fetchApi('/mis-academicos/', { method: 'POST', body: fd });
+  }
+  return fetchApi('/mis-academicos/', { method: 'POST', body: JSON.stringify(data) });
+};
+export const actualizarDatoAcademico = (id, data, diploma = null) => {
+  if (diploma) {
+    const fd = new FormData();
+    Object.entries(data).forEach(([k, v]) => v != null && fd.append(k, String(v)));
+    fd.append('diploma', diploma);
+    return fetchApi(`/mis-academicos/${id}/`, { method: 'PATCH', body: fd });
+  }
+  return fetchApi(`/mis-academicos/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+};
 export const eliminarDatoAcademico = (id) => fetchApi(`/mis-academicos/${id}/`, {
   method: 'DELETE',
 });
@@ -523,10 +548,38 @@ export const getN8nLogs = (statusFilter, limit = 50) => {
 export const n8nProxyStatus = () =>
   fetchApi('/n8n-proxy/?action=status', { timeoutMs: 8000 });
 
+export const getClientesSQF = () =>
+  fetchApi('/n8n-proxy/?action=clientes_sqf', { timeoutMs: 15000 });
+
 export const n8nProxyExecutions = (statusFilter, limit = 50) => {
   const params = new URLSearchParams({ action: 'executions', limit });
   if (statusFilter && statusFilter !== 'ALL') params.set('status', statusFilter);
   return fetchApi(`/n8n-proxy/?${params}`, { timeoutMs: 10000 });
+};
+
+// ── INTRANET (SharePoint vía n8n) ────────────────────────────────────────────
+
+/**
+ * Descarga un archivo de SharePoint a través del proxy n8n autenticado.
+ * @param {'contratos'|'reglamento'|'clientes'|'cursos'|'datos_academicos'} tipo
+ * @param {string} archivo  Nombre exacto del archivo en SharePoint (ej: "contrato.pdf")
+ * @returns {Promise<Blob>}
+ */
+export const descargarArchivoIntranet = async (tipo, archivo) => {
+  const accessToken = tokenStorage.getAccess();
+  const r = await fetch(`${API_URL}/descargar-archivo/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify({ tipo, archivo }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.error || `Error ${r.status} al descargar archivo`);
+  }
+  return r.blob();
 };
 
 // ── MARKITDOWN ──────────────────────────────────────────────────────────────
@@ -579,6 +632,43 @@ export const getEntidadesEPS  = () => fetchApi('/entidades-eps/?activas=true');
 export const getEntidadesAFP  = () => fetchApi('/entidades-afp/?activas=true');
 export const getEntidadesARL  = () => fetchApi('/entidades-arl/?activas=true');
 export const getCajasCompensacion = () => fetchApi('/cajas-compensacion/?activas=true');
+
+// Admin: académicos de cualquier empleado
+export const getAcademicosEmpleado = (empleadoId) =>
+  fetchApi(`/empleados/${empleadoId}/academicos/`);
+
+export const crearAcademicoEmpleado = (empleadoId, data, diplomaFile) => {
+  const fd = new FormData();
+  Object.entries(data).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '') fd.append(k, v); });
+  if (diplomaFile) fd.append('diploma', diplomaFile);
+  const accessToken = tokenStorage.getAccess();
+  return fetch(`${API_URL}/empleados/${empleadoId}/academicos/`, {
+    method: 'POST',
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    body: fd,
+  }).then(async r => {
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(JSON.stringify(e)); }
+    return r.json();
+  });
+};
+
+export const actualizarAcademicoEmpleado = (empleadoId, pk, data, diplomaFile) => {
+  const fd = new FormData();
+  Object.entries(data).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '') fd.append(k, v); });
+  if (diplomaFile) fd.append('diploma', diplomaFile);
+  const accessToken = tokenStorage.getAccess();
+  return fetch(`${API_URL}/empleados/${empleadoId}/academicos/${pk}/`, {
+    method: 'PATCH',
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    body: fd,
+  }).then(async r => {
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(JSON.stringify(e)); }
+    return r.json();
+  });
+};
+
+export const eliminarAcademicoEmpleado = (empleadoId, pk) =>
+  fetchApi(`/empleados/${empleadoId}/academicos/${pk}/`, { method: 'DELETE' });
 
 export const getContratos = (params = {}) => {
   const q = new URLSearchParams();

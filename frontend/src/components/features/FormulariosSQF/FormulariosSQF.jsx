@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FormulariosSQF.css';
-import { useAuth } from '../hooks/useAuth';
-import { fetchApi } from '../lib/api';
+import { useAuth } from '../../../hooks/useAuth';
+import { fetchApi } from '../../../lib/api';
 
 const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',

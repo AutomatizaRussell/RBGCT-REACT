@@ -357,16 +357,7 @@ class ReglamentoItemSerializer(serializers.ModelSerializer):
 
     def get_archivo_url(self, obj):
         if obj.archivo:
-            # Always return relative URL to avoid hostname issues in production
-            url = obj.archivo.url
-            # Ensure it starts with / for relative URLs
-            if url and not url.startswith('http'):
-                return f'/{url.lstrip("/")}' if url else None
-            # If absolute URL, extract just the path
-            if url and url.startswith('http'):
-                from urllib.parse import urlparse
-                return urlparse(url).path
-            return url
+            return obj.archivo.url or None
         return None
 
 
@@ -551,14 +542,21 @@ class AfiliacionSeguridadSocialSerializer(serializers.ModelSerializer):
 
 
 class DatosAcademicosSerializer(serializers.ModelSerializer):
+    diploma_url = serializers.SerializerMethodField()
+
     class Meta:
         model = DatosAcademicos
         fields = [
             'id', 'nivel_educativo', 'titulo_obtenido', 'institucion',
             'ciudad_institucion', 'fecha_inicio', 'fecha_graduacion',
-            'en_curso', 'graduado', 'created_at', 'updated_at',
+            'en_curso', 'graduado', 'diploma', 'diploma_url', 'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'diploma_url', 'created_at', 'updated_at']
+
+    def get_diploma_url(self, obj):
+        if obj.diploma:
+            return obj.diploma.url
+        return None
 
 
 class MovimientoLaboralSerializer(serializers.ModelSerializer):

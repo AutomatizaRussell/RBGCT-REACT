@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from rbgct.sharepoint_storage import SharePointN8nStorage
 from django.contrib.auth.base_user import BaseUserManager
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
@@ -543,7 +544,7 @@ class CursoContenido(models.Model):
     descripcion = models.TextField(blank=True, default='')
     url = models.CharField(max_length=500, blank=True, null=True)
     contenido = models.TextField(blank=True, null=True)
-    archivo = models.FileField(upload_to='cursos/', blank=True, null=True)
+    archivo = models.FileField(upload_to='cursos/', blank=True, null=True, storage=SharePointN8nStorage(), max_length=500)
     orden = models.IntegerField(default=0)
     max_intentos = models.PositiveIntegerField(default=0)  # 0 = sin límite
     created_at = models.DateTimeField(auto_now_add=True)
@@ -620,7 +621,7 @@ class ReglamentoItem(models.Model):
     id = models.AutoField(primary_key=True)
     titulo = models.CharField(max_length=200)
     contenido = models.TextField(blank=True, default='')
-    archivo = models.FileField(upload_to='reglamento/', blank=True, null=True)
+    archivo = models.FileField(upload_to='reglamento/', blank=True, null=True, storage=SharePointN8nStorage(), max_length=500)
     orden = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -840,7 +841,7 @@ class Contrato(models.Model):
     jornada             = models.CharField(max_length=15, choices=JORNADA_CHOICES, default='completa')
     modalidad           = models.CharField(max_length=10, choices=MODALIDAD_CHOICES, default='presencial')
     lugar_trabajo       = models.CharField(max_length=200, blank=True, null=True)
-    pdf_contrato        = models.FileField(upload_to='contratos/', blank=True, null=True)
+    pdf_contrato        = models.FileField(upload_to='contratos/', blank=True, null=True, storage=SharePointN8nStorage(), max_length=500)
     fecha_firma         = models.DateField(blank=True, null=True)
     estado              = models.CharField(max_length=15, choices=ESTADO_CHOICES, default='ACTIVO')
     motivo_terminacion  = models.CharField(max_length=25, choices=MOTIVO_TERMINACION_CHOICES, blank=True, null=True)
@@ -912,7 +913,7 @@ class ContratoRenovacion(models.Model):
     fecha_renovacion= models.DateField()
     nueva_fecha_fin = models.DateField(blank=True, null=True)
     nuevo_salario   = models.DecimalField(max_digits=14, decimal_places=2, blank=True, null=True)
-    pdf_renovacion  = models.FileField(upload_to='contratos/renovaciones/', blank=True, null=True)
+    pdf_renovacion  = models.FileField(upload_to='contratos/renovaciones/', blank=True, null=True, storage=SharePointN8nStorage(), max_length=500)
     observaciones   = models.TextField(blank=True, null=True)
     created_at      = models.DateTimeField(auto_now_add=True)
 
@@ -989,6 +990,7 @@ class DatosAcademicos(models.Model):
     fecha_graduacion = models.DateField(blank=True, null=True)
     en_curso = models.BooleanField(default=False)
     graduado = models.BooleanField(default=True)
+    diploma = models.FileField(upload_to='datos_academicos/', blank=True, null=True, storage=SharePointN8nStorage(), max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -1024,6 +1026,8 @@ class MovimientoLaboral(models.Model):
         ('REINTEGRO',        'Reintegro'),
         ('NUEVO_CONTRATO',   'Nuevo Contrato'),
         ('RENOVACION',       'Renovación de Contrato'),
+        ('ASCENSO',          'Ascenso'),
+        ('DEGRADACION',      'Degradación'),
     ]
 
     empleado         = models.ForeignKey(DatosEmpleado, on_delete=models.CASCADE, related_name='movimientos')
@@ -1053,10 +1057,11 @@ def _capturar_prev_empleado(sender, instance, **kwargs):
             instance._prev_area_id  = prev.area_id
             instance._prev_cargo_id = prev.cargo_id
             instance._prev_estado   = prev.estado
+            instance._prev_permisos = prev.id_permisos
         except DatosEmpleado.DoesNotExist:
-            instance._prev_area_id = instance._prev_cargo_id = instance._prev_estado = None
+            instance._prev_area_id = instance._prev_cargo_id = instance._prev_estado = instance._prev_permisos = None
     else:
-        instance._prev_area_id = instance._prev_cargo_id = instance._prev_estado = None
+        instance._prev_area_id = instance._prev_cargo_id = instance._prev_estado = instance._prev_permisos = None
 
 
 @receiver(post_save, sender=DatosEmpleado)
@@ -1078,10 +1083,12 @@ def _registrar_movimiento_empleado(sender, instance, created, **kwargs):
     prev_area_id  = getattr(instance, '_prev_area_id',  None)
     prev_cargo_id = getattr(instance, '_prev_cargo_id', None)
     prev_estado   = getattr(instance, '_prev_estado',   None)
+    prev_permisos = getattr(instance, '_prev_permisos', None)
 
     if prev_area_id is not None and prev_area_id != instance.area_id:
         anterior = DatosArea.objects.filter(pk=prev_area_id).values_list('nombre_area', flat=True).first() or str(prev_area_id)
-        nuevo    = instance.area.nombre_area if instance.area else 'Sin área'
+        # Consulta directa por ID para evitar el objeto FK cacheado en memoria
+        nuevo    = DatosArea.objects.filter(pk=instance.area_id).values_list('nombre_area', flat=True).first() or 'Sin área'
         MovimientoLaboral.objects.create(
             empleado=instance, tipo='TRASLADO', campo='area',
             valor_anterior=anterior, valor_nuevo=nuevo, fecha_movimiento=hoy,
@@ -1089,7 +1096,8 @@ def _registrar_movimiento_empleado(sender, instance, created, **kwargs):
 
     if prev_cargo_id is not None and prev_cargo_id != instance.cargo_id:
         anterior = DatosCargo.objects.filter(pk=prev_cargo_id).values_list('nombre_cargo', flat=True).first() or str(prev_cargo_id)
-        nuevo    = instance.cargo.nombre_cargo if instance.cargo else 'Sin cargo'
+        # Consulta directa por ID para evitar el objeto FK cacheado en memoria
+        nuevo    = DatosCargo.objects.filter(pk=instance.cargo_id).values_list('nombre_cargo', flat=True).first() or 'Sin cargo'
         MovimientoLaboral.objects.create(
             empleado=instance, tipo='CAMBIO_CARGO', campo='cargo',
             valor_anterior=anterior, valor_nuevo=nuevo, fecha_movimiento=hoy,
@@ -1100,6 +1108,16 @@ def _registrar_movimiento_empleado(sender, instance, created, **kwargs):
         MovimientoLaboral.objects.create(
             empleado=instance, tipo=tipo, campo='estado',
             valor_anterior=prev_estado, valor_nuevo=instance.estado, fecha_movimiento=hoy,
+        )
+
+    if prev_permisos is not None and prev_permisos != instance.id_permisos:
+        permisos_map = {1: 'Administrador', 2: 'Editor', 3: 'Usuario'}
+        anterior = permisos_map.get(prev_permisos, str(prev_permisos))
+        nuevo    = permisos_map.get(instance.id_permisos, str(instance.id_permisos))
+        tipo     = 'ASCENSO' if instance.id_permisos < prev_permisos else 'DEGRADACION'
+        MovimientoLaboral.objects.create(
+            empleado=instance, tipo=tipo, campo='id_permisos',
+            valor_anterior=anterior, valor_nuevo=nuevo, fecha_movimiento=hoy,
         )
 
 
