@@ -48,21 +48,21 @@ const calculateBusinessDaysDate = (startDate, businessDays) => {
 };
 
 const BILLING_DESCRIPTIONS = [
-    { name: 'Auditoria Financiera', code: 'AUD-001' },
-    { name: 'Asesoria Fiscal', code: 'ASE-002' },
-    { name: 'Asesoria Laboral', code: 'ASE-003' },
-    { name: 'Asesoria Contable', code: 'ASE-004' },
-    { name: 'Consultoria Empresarial', code: 'CON-005' },
-    { name: 'Auditoria de Nomina', code: 'AUD-006' },
-    { name: 'Revisoria Fiscal', code: 'REV-007' },
-    { name: 'Asesoria Administrativa', code: 'ASE-008' },
-    { name: 'Servicios de Outsourcing', code: 'OUT-009' },
-    { name: 'Servicios Legales', code: 'SLG-010' },
-    { name: 'Valoracion de empresas', code: 'VAL-011' },
-    { name: 'Dictamen Pericial', code: 'DIP-012' },
-    { name: 'Auditoria Forense', code: 'AUF-013' },
-    { name: 'Otros Servicios', code: 'OTR-010' },
-    { name: 'Auditoria Externa', code: 'AUD-010' },
+  { name: 'Asesoria Administrativa', code: 'ASE-008' },
+  { name: 'Asesoria Contable', code: 'ASE-004' },
+  { name: 'Asesoria Fiscal', code: 'ASE-002' },
+  { name: 'Asesoria Laboral', code: 'ASE-003' },
+  { name: 'Auditoria de Nomina', code: 'AUD-006' },
+  { name: 'Auditoria Externa', code: 'AUD-010' },
+  { name: 'Auditoria Financiera', code: 'AUD-001' },
+  { name: 'Auditoria Forense', code: 'AUF-013' },
+  { name: 'Consultoria Empresarial', code: 'CON-005' },
+  { name: 'Dictamen Pericial', code: 'DIP-012' },
+  { name: 'Revisoria Fiscal', code: 'REV-007' },
+  { name: 'Servicios de Outsourcing', code: 'OUT-009' },
+  { name: 'Servicios Legales', code: 'SLG-010' },
+  { name: 'Valoracion de empresas', code: 'VAL-011' },
+  { name: 'Otros Servicios', code: 'OTR-010' }
 ]; 
 
 const CONTRACT_ROLES = [
