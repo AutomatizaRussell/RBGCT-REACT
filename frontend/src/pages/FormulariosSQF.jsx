@@ -48,12 +48,12 @@ const calculateBusinessDaysDate = (startDate, businessDays) => {
 };
 
 const BILLING_DESCRIPTIONS = [
-    { name: 'Auditoría Financiera', code: 'AUD-001' },
-    { name: 'Asesoría Fiscal', code: 'ASE-002' },
+    { name: 'Auditoria Financiera', code: 'AUD-001' },
+    { name: 'Asesoria Fiscal', code: 'ASE-002' },
     { name: 'Asesoría Laboral', code: 'ASE-003' },
     { name: 'Asesoría Contable', code: 'ASE-004' },
     { name: 'Consultoría Empresarial', code: 'CON-005' },
-    { name: 'Auditoría de Nómina', code: 'AUD-006' },
+    { name: 'Auditoría de Nomina', code: 'AUD-006' },
     { name: 'Revisoría Fiscal', code: 'REV-007' },
     { name: 'Asesoría Administrativa', code: 'ASE-008' },
     { name: 'Servicios de Outsourcing', code: 'OUT-009' },
@@ -61,7 +61,8 @@ const BILLING_DESCRIPTIONS = [
     { name: 'Valoración de empresas', code: 'VAL-011' },
     { name: 'Dictamen Pericial', code: 'DIP-012' },
     { name: 'Auditoría Forense', code: 'AUF-013' },
-    { name: 'Otros Servicios', code: 'OTR-010' }
+    { name: 'Otros Servicios', code: 'OTR-010' },
+    { name: 'Auditoria Externa', code: 'AUD-010' },
 ]; 
 
 const CONTRACT_ROLES = [
