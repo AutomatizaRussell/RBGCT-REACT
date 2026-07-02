@@ -61,8 +61,10 @@ const BILLING_DESCRIPTIONS = [
   { name: 'Revisoria Fiscal', code: 'REV-007' },
   { name: 'Servicios de Outsourcing', code: 'OUT-009' },
   { name: 'Servicios Legales', code: 'SLG-010' },
-  { name: 'Valoracion de empresas', code: 'VAL-011' },
-  { name: 'Otros Servicios', code: 'OTR-010' }
+  { name: 'Saldo a favor en renta', code: 'SFR-011' },
+  { name: 'saldo a favor en iva', code: 'OS-012' },
+  { name: 'Valoracion de empresas', code: 'VAL-013' },
+  { name: 'Otros Servicios', code: 'OTR-014' }
 ]; 
 
 const CONTRACT_ROLES = [
