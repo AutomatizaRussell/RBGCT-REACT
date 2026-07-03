@@ -48,23 +48,20 @@ const calculateBusinessDaysDate = (startDate, businessDays) => {
 };
 
 const BILLING_DESCRIPTIONS = [
-  { name: 'Asesoria Administrativa', code: 'ASE-008' },
-  { name: 'Asesoria Contable', code: 'ASE-004' },
-  { name: 'Asesoria Fiscal', code: 'ASE-002' },
-  { name: 'Asesoria Laboral', code: 'ASE-003' },
-  { name: 'Auditoria de Nomina', code: 'AUD-006' },
-  { name: 'Auditoria Externa', code: 'AUD-010' },
-  { name: 'Auditoria Financiera', code: 'AUD-001' },
-  { name: 'Auditoria Forense', code: 'AUF-013' },
-  { name: 'Consultoria Empresarial', code: 'CON-005' },
-  { name: 'Dictamen Pericial', code: 'DIP-012' },
-  { name: 'Revisoria Fiscal', code: 'REV-007' },
-  { name: 'Servicios de Outsourcing', code: 'OUT-009' },
-  { name: 'Servicios Legales', code: 'SLG-010' },
-  { name: 'Saldo a favor en renta', code: 'SFR-011' },
-  { name: 'saldo a favor en iva', code: 'OS-012' },
-  { name: 'Valoracion de empresas', code: 'VAL-013' },
-  { name: 'Otros Servicios', code: 'OTR-014' }
+    { name: 'Auditoría Financiera', code: 'AUD-001' },
+    { name: 'Asesoría Fiscal', code: 'ASE-002' },
+    { name: 'Asesoría Laboral', code: 'ASE-003' },
+    { name: 'Asesoría Contable', code: 'ASE-004' },
+    { name: 'Consultoría Empresarial', code: 'CON-005' },
+    { name: 'Auditoría de Nómina', code: 'AUD-006' },
+    { name: 'Revisoría Fiscal', code: 'REV-007' },
+    { name: 'Asesoría Administrativa', code: 'ASE-008' },
+    { name: 'Servicios de Outsourcing', code: 'OUT-009' },
+    { name: 'Servicios Legales', code: 'SLG-010' },
+    { name: 'Valoración de empresas', code: 'VAL-011' },
+    { name: 'Dictamen Pericianl', code: 'DIP-012' },
+    { name: 'Auditoría Forense', code: 'AUF-013' },
+    { name: 'Otros Servicios', code: 'OTR-010' }
 ]; 
 
 const CONTRACT_ROLES = [
@@ -324,6 +321,7 @@ export default function FormulariosSQF({ onBack }) {
                     id: c.id || generateId('CLI'),
                     clientType: c.clientType || (c.Tipodocumento === 'NIT' ? 'juridica' : 'natural'),
                     document: c.document || c.Documento || '',
+                    documentDv: c.documentDv || c.DV || c.Dv || c.DigitoVerificacion || '',
                     name: c.name || c.Nombre || '',
                     contactName: c.contactName || c.NombreContacto || '',
                     contactRole: c.contactRole || c.CargoContacto || '',
@@ -521,6 +519,12 @@ export default function FormulariosSQF({ onBack }) {
     // ==========================================
     // LÓGICA DE CONTRATOS Y MODAL NIT
     // ==========================================
+    const formatNitDv = (client) => {
+        const doc = client?.document || '';
+        const dv = client?.documentDv || '';
+        return dv ? `${doc}-${dv}` : doc;
+    };
+
     const triggerLookup = () => {
         if (!String(nitLookupValue).trim()) {
             setNitLookupResult({ type: 'empty' });
@@ -1095,7 +1099,10 @@ export default function FormulariosSQF({ onBack }) {
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label required">NIT Empresa / Documento</label>
-                                        <input type="text" name="document" className="form-input" placeholder="Ej: 900.123.456-7" />
+                                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
+                                            <input type="text" name="document" className="form-input" placeholder="Ej: 900.123.456" />
+                                            <input type="text" name="documentDv" className="form-input" placeholder="DV" maxLength="1" inputMode="numeric" />
+                                        </div>
                                         <span className="field-error">{clientErrors.document}</span>
                                     </div>
                                     <div className="form-group">
@@ -1381,7 +1388,7 @@ export default function FormulariosSQF({ onBack }) {
                                                             {dropdownClients.length > 0 ? dropdownClients.map(c => (
                                                                 <div key={c.id} className="client-dropdown-item" onClick={() => selectClientFromDropdown(c)}>
                                                                     <div style={{ fontWeight: 500 }}>{c?.name || ''}</div>
-                                                                    <div style={{ fontSize: '0.8rem', color: '#666' }}>NIT: {c?.document || ''}</div>
+                                                                    <div style={{ fontSize: '0.8rem', color: '#666' }}>NIT: {formatNitDv(c)}</div>
                                                                 </div>
                                                             )) : <div className="dropdown-empty">No se encontraron clientes</div>}
                                                         </div>
@@ -1393,7 +1400,7 @@ export default function FormulariosSQF({ onBack }) {
                                         {selectedClientForContract && (
                                             <div className="selected-client-badge">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="badge-avatar-icon"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                                                <span>{selectedClientForContract?.name} (NIT: {selectedClientForContract?.document})</span>
+                                                <span>{selectedClientForContract?.name} (NIT: {formatNitDv(selectedClientForContract)})</span>
                                                 <button type="button" className="badge-remove" onClick={() => setSelectedClientForContract(null)}>✕</button>
                                             </div>
                                         )}
@@ -1702,7 +1709,7 @@ export default function FormulariosSQF({ onBack }) {
                                                             >
                                                                 <option value="">Seleccione descripción...</option>
                                                                 {BILLING_DESCRIPTIONS.map((desc) => (
-                                                                    <option key={desc.code} value={desc.name}>{desc.name.toUpperCase()}</option>
+                                                                    <option key={desc.code} value={desc.name}>{desc.name}</option>
                                                                 ))}
                                                             </select>
                                                             <div className="input-currency-wrapper" style={{margin: 0}}>
