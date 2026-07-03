@@ -21,7 +21,27 @@ export default {
           'sans-serif'
         ],
       },
+      colors: {
+        brand: {
+          navy: '#001871',
+          lightBlue: '#00a9ce',
+          purple: '#981d97',
+          teal: '#00bfb3',
+          orange: '#ed8b00',
+          card: '#f8fafc',
+          text: '#1e293b',
+          border: '#dce3e8',
+        },
+      },
+      boxShadow: {
+        'rb-md': '0 8px 20px -6px rgba(0, 24, 113, 0.12)',
+      },
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms'),
+    require('@tailwindcss/typography'),
+    require('@tailwindcss/aspect-ratio'),
+  ],
 }
