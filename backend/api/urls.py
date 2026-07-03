@@ -33,8 +33,10 @@ from .views.cursos import (
     CursoContenidoViewSet,
     CursoHistorialViewSet,
     NotificacionCursoViewSet,
+    AsignacionFormacionViewSet,
     toggle_encargado_cursos,
 )
+from .views.onboarding import PlanOnboardingViewSet
 from .views.contratos import (
     EntidadEPSViewSet,
     EntidadAFPViewSet,
@@ -70,6 +72,7 @@ from .views.certificados import (
     get_cert_permisos,
     set_cert_permiso,
 )
+from .views.microsoft_auth import microsoft_auth_callback, microsoft_auth_url
 from .views.sugerencias import (
     crear_sugerencia,
     mis_sugerencias,
@@ -90,6 +93,8 @@ router.register(r'cursos', CursoViewSet)
 router.register(r'curso-contenido', CursoContenidoViewSet)
 router.register(r'curso-historial', CursoHistorialViewSet)
 router.register(r'notificaciones-cursos', NotificacionCursoViewSet, basename='notificaciones-cursos')
+router.register(r'asignaciones-formacion', AsignacionFormacionViewSet, basename='asignaciones-formacion')
+router.register(r'planes-onboarding', PlanOnboardingViewSet, basename='planes-onboarding')
 router.register(r'n8n-logs', N8nLogViewSet)
 router.register(r'api-keys', ApiKeyViewSet)
 router.register(r'entidades-eps',          EntidadEPSViewSet)
@@ -110,6 +115,8 @@ urlpatterns = [
     path('alertas-recuperacion/<int:alerta_id>/eliminar/', eliminar_alerta, name='eliminar_alerta'),
     # Router URLs
     path('', include(router.urls)),
+    path('auth/microsoft/url/', microsoft_auth_url, name='microsoft_auth_url'),
+    path('auth/microsoft/', microsoft_auth_callback, name='microsoft_auth'),
     path('login/', login_view, name='login'),
     path('crear-usuario/', crear_usuario_superadmin, name='crear_usuario'),
     path('completar-datos/', completar_datos_empleado, name='completar_datos'),

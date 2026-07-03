@@ -7,7 +7,7 @@ from .models import (
     EntidadEPS, EntidadAFP, EntidadARL, CajaCompensacion,
     Contrato, AfiliacionSeguridadSocial, ContratoRenovacion,
     DatosAcademicos, MovimientoLaboral, CursoProgreso, CuestionarioIntento,
-    NotificacionCurso,
+    NotificacionCurso, PlanOnboarding, PasoOnboarding, AsignacionOnboarding,
 )
 
 
@@ -314,19 +314,21 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
 
 
 class TareasCalendarioSerializer(serializers.ModelSerializer):
-    primer_nombre = serializers.SerializerMethodField()
-    primer_apellido = serializers.SerializerMethodField()
-    nombre_area = serializers.CharField(source='area.nombre_area', read_only=True, allow_null=True, required=False)
-    area_id = serializers.IntegerField(allow_null=True, required=False)
-    empleado_id = serializers.IntegerField(allow_null=True, required=False)
+    primer_nombre            = serializers.SerializerMethodField()
+    primer_apellido          = serializers.SerializerMethodField()
+    nombre_completo_empleado = serializers.SerializerMethodField()
+    nombre_area  = serializers.CharField(source='area.nombre_area', read_only=True, allow_null=True, required=False)
+    area_id      = serializers.IntegerField(allow_null=True, required=False)
+    empleado_id  = serializers.IntegerField(allow_null=True, required=False)
+    creado_por   = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = TareasCalendario
         fields = [
             'id', 'titulo', 'descripcion', 'area_id', 'empleado_id',
-            'nombre_area', 'primer_nombre', 'primer_apellido',
+            'nombre_area', 'primer_nombre', 'primer_apellido', 'nombre_completo_empleado',
             'prioridad', 'fecha_vencimiento', 'fecha_creacion',
-            'fecha_actualizacion', 'asignado_a', 'estado', 'creado_por',
+            'fecha_actualizacion', 'estado', 'creado_por',
         ]
 
     def get_primer_nombre(self, obj):
@@ -337,6 +339,12 @@ class TareasCalendarioSerializer(serializers.ModelSerializer):
     def get_primer_apellido(self, obj):
         if obj.empleado and obj.empleado.persona:
             return obj.empleado.persona.primer_apellido
+        return None
+
+    def get_nombre_completo_empleado(self, obj):
+        if obj.empleado and obj.empleado.persona:
+            p = obj.empleado.persona
+            return f"{p.primer_nombre} {p.primer_apellido}".strip()
         return None
 
 
@@ -363,6 +371,7 @@ class ReglamentoItemSerializer(serializers.ModelSerializer):
 
 class CursoContenidoSerializer(serializers.ModelSerializer):
     archivo_url = serializers.SerializerMethodField()
+    contenido   = serializers.SerializerMethodField()
 
     class Meta:
         model = CursoContenido
@@ -376,22 +385,51 @@ class CursoContenidoSerializer(serializers.ModelSerializer):
             return obj.archivo.url
         return None
 
+    def get_contenido(self, obj):
+        """Para cuestionarios: oculta 'correcta' de cada pregunta a empleados regulares."""
+        import json as _j
+        raw = obj.contenido
+        if obj.tipo != 'cuestionario' or not raw:
+            return raw
+        request = self.context.get('request')
+        if not request:
+            return raw
+        user = request.user
+        # SuperAdmin (sin id_permisos) y admin/editor (id_permisos <= 2) ven todo
+        permisos = getattr(user, 'id_permisos', None)
+        if permisos is None or int(permisos or 3) <= 2:
+            return raw
+        # Empleado regular: eliminar respuestas correctas
+        try:
+            data = _j.loads(raw)
+            for p in data.get('preguntas', []):
+                p.pop('correcta', None)
+            return _j.dumps(data)
+        except Exception:
+            return raw
+
 
 class CursoSerializer(serializers.ModelSerializer):
-    contenidos = CursoContenidoSerializer(many=True, read_only=True)
-    total_contenidos = serializers.SerializerMethodField()
-    nombre_area = serializers.CharField(source='area.nombre_area', read_only=True)
-    nombre_empleado = serializers.CharField(source='empleado_asignado.persona.nombre_completo', read_only=True)
-    nombre_creador = serializers.SerializerMethodField()
-    area_id = serializers.IntegerField(allow_null=True, required=False)
-    empleado_asignado_id = serializers.IntegerField(allow_null=True, required=False)
+    contenidos            = CursoContenidoSerializer(many=True, read_only=True)
+    total_contenidos      = serializers.SerializerMethodField()
+    nombre_empleado       = serializers.SerializerMethodField()
+    nombre_creador        = serializers.SerializerMethodField()
+    empleado_asignado_id  = serializers.IntegerField(allow_null=True, required=False)
+    nivel_cargo_label     = serializers.SerializerMethodField()
+    estado_disponibilidad = serializers.SerializerMethodField()
+    # M2M de áreas (múltiples)
+    area_ids              = serializers.SerializerMethodField()
+    nombres_areas         = serializers.SerializerMethodField()
 
     class Meta:
         model = Curso
         fields = [
-            'id', 'nombre', 'descripcion', 'orden', 'activo', 'visibilidad',
-            'area', 'area_id', 'empleado_asignado', 'empleado_asignado_id',
-            'nombre_area', 'nombre_empleado', 'creado_por', 'nombre_creador',
+            'id', 'tipo', 'nombre', 'descripcion', 'orden', 'activo', 'visibilidad',
+            'areas', 'area_ids', 'nombres_areas',
+            'empleado_asignado', 'empleado_asignado_id',
+            'nivel_cargo', 'nivel_cargo_label',
+            'nombre_empleado', 'creado_por', 'nombre_creador',
+            'fecha_inicio', 'fecha_fin', 'estado_disponibilidad',
             'contenidos', 'total_contenidos',
             'created_at', 'updated_at',
         ]
@@ -400,6 +438,14 @@ class CursoSerializer(serializers.ModelSerializer):
     def get_total_contenidos(self, obj):
         return obj.contenidos.count()
 
+    def get_nombre_empleado(self, obj):
+        if not obj.empleado_asignado:
+            return None
+        try:
+            return obj.empleado_asignado.persona.nombre_completo
+        except Exception:
+            return None
+
     def get_nombre_creador(self, obj):
         if not obj.creado_por:
             return None
@@ -407,6 +453,112 @@ class CursoSerializer(serializers.ModelSerializer):
             return obj.creado_por.persona.nombre_completo
         except Exception:
             return obj.creado_por.correo_corporativo
+
+    def get_area_ids(self, obj):
+        return list(obj.areas.values_list('id_area', flat=True))
+
+    def get_nombres_areas(self, obj):
+        return list(obj.areas.values_list('nombre_area', flat=True))
+
+    def get_nivel_cargo_label(self, obj):
+        labels = {0: 'Socio', 1: 'Gerente Asociado', 2: 'Senior', 3: 'Líder de equipo', 4: 'Analista'}
+        return labels.get(obj.nivel_cargo) if obj.nivel_cargo is not None else None
+
+    def get_estado_disponibilidad(self, obj):
+        from django.utils import timezone
+        today = timezone.now().date()
+        if not obj.fecha_inicio and not obj.fecha_fin:
+            return 'sin_plazo'
+        if obj.fecha_inicio and obj.fecha_inicio > today:
+            return 'proximo'
+        if obj.fecha_fin and obj.fecha_fin < today:
+            return 'expirado'
+        return 'disponible'
+
+
+class AsignacionFormacionSerializer(serializers.ModelSerializer):
+    nombre_empleado = serializers.SerializerMethodField()
+    nombre_curso    = serializers.CharField(source='curso.nombre', read_only=True)
+    tipo_curso      = serializers.CharField(source='curso.tipo', read_only=True)
+
+    class Meta:
+        from .models import AsignacionFormacion
+        model = AsignacionFormacion
+        fields = ['id', 'empleado', 'curso', 'asignado_por',
+                  'nombre_empleado', 'nombre_curso', 'tipo_curso',
+                  'fecha_asignacion']
+        read_only_fields = ['asignado_por', 'fecha_asignacion']
+
+    def get_nombre_empleado(self, obj):
+        try:
+            return obj.empleado.persona.nombre_completo
+        except Exception:
+            return obj.empleado.correo_corporativo
+
+
+class PasoOnboardingSerializer(serializers.ModelSerializer):
+    nombre_curso     = serializers.CharField(source='curso.nombre', read_only=True)
+    tipo_curso       = serializers.CharField(source='curso.tipo',   read_only=True)
+    total_contenidos = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PasoOnboarding
+        fields = ['id', 'curso', 'nombre_curso', 'tipo_curso', 'orden', 'dias_limite', 'total_contenidos']
+
+    def get_total_contenidos(self, obj):
+        return obj.curso.contenidos.count()
+
+
+class PlanOnboardingSerializer(serializers.ModelSerializer):
+    pasos             = PasoOnboardingSerializer(many=True, read_only=True)
+    nombre_area       = serializers.CharField(source='area.nombre_area', read_only=True)
+    nivel_cargo_label = serializers.SerializerMethodField()
+    nombre_creador    = serializers.SerializerMethodField()
+    total_pasos       = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PlanOnboarding
+        fields = [
+            'id', 'nombre', 'descripcion', 'activo',
+            'area', 'nombre_area',
+            'nivel_cargo', 'nivel_cargo_label',
+            'creado_por', 'nombre_creador',
+            'total_pasos', 'pasos',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['creado_por']
+
+    def get_nivel_cargo_label(self, obj):
+        labels = {0: 'Socio', 1: 'Gerente Asociado', 2: 'Senior', 3: 'Líder de equipo', 4: 'Analista'}
+        return labels.get(obj.nivel_cargo) if obj.nivel_cargo is not None else None
+
+    def get_nombre_creador(self, obj):
+        if not obj.creado_por:
+            return None
+        try:
+            return obj.creado_por.persona.nombre_completo
+        except Exception:
+            return obj.creado_por.correo_corporativo
+
+    def get_total_pasos(self, obj):
+        return obj.pasos.count()
+
+
+class AsignacionOnboardingSerializer(serializers.ModelSerializer):
+    nombre_empleado = serializers.SerializerMethodField()
+    nombre_plan     = serializers.CharField(source='plan.nombre', read_only=True)
+
+    class Meta:
+        model = AsignacionOnboarding
+        fields = ['id', 'empleado', 'plan', 'asignado_por',
+                  'nombre_empleado', 'nombre_plan', 'fecha_asignacion']
+        read_only_fields = ['asignado_por', 'fecha_asignacion']
+
+    def get_nombre_empleado(self, obj):
+        try:
+            return obj.empleado.persona.nombre_completo
+        except Exception:
+            return obj.empleado.correo_corporativo
 
 
 class CursoHistorialSerializer(serializers.ModelSerializer):
@@ -504,9 +656,13 @@ class ContratoSerializer(serializers.ModelSerializer):
         model = Contrato
         fields = [
             'id', 'empleado', 'nombre_empleado', 'nombre_area', 'nombre_cargo',
+            'numero_contrato',
             'tipo_contrato', 'tipo_contrato_display',
             'fecha_inicio', 'fecha_fin', 'periodo_prueba_dias',
-            'salario', 'tipo_salario', 'auxilio_transporte', 'forma_pago',
+            'salario', 'tipo_salario',
+            'auxilio_transporte', 'monto_auxilio_transporte',
+            'bonificaciones', 'descripcion_bonificaciones',
+            'forma_pago', 'horas_semanales',
             'jornada', 'modalidad', 'lugar_trabajo',
             'pdf_contrato', 'pdf_url', 'fecha_firma',
             'estado', 'estado_display', 'motivo_terminacion', 'fecha_terminacion',

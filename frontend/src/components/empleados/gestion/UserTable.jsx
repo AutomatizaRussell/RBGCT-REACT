@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback } from 'react';
+﻿import { useState, useEffect, useContext, useCallback } from 'react';
 import { Trash2, Shield, ShieldCheck, UserX, UserCheck, X, Check, Loader2, Search, Mail, Calendar, Hash, Briefcase, Info, AlertTriangle, Activity, Edit3, Save, UserPlus, Lock, KeyRound, FileSpreadsheet, Download, MessageSquareText, CheckCheck, History, ArrowRight, TrendingUp, DollarSign, FileText, RefreshCw, GraduationCap, HeartPulse, FileSignature, Plus, Trash } from 'lucide-react';
 import {
   updateEmpleado, cambiarEstadoEmpleado, deleteEmpleado, actualizarPasswordEmpleado,
@@ -327,6 +327,7 @@ const UserTable = () => {
       numero_hijos: user.numero_hijos ?? '',
       tiene_vehiculo: user.tiene_vehiculo || false,
       tipo_vehiculo: user.tipo_vehiculo || '',
+      placa_vehiculo: user.placa_vehiculo || '',
       // Contacto
       correo_corporativo: user.correo_corporativo || '',
       correo_personal: user.correo_personal || '',
@@ -905,31 +906,33 @@ const UserTable = () => {
             {/* Tabs */}
             <div className="flex border-b border-slate-200 bg-slate-50 flex-shrink-0 overflow-x-auto no-scrollbar">
               {[
-                { id: 'personal', label: 'Personal', icon: '👤' },
-                { id: 'contacto',  label: 'Contacto',  icon: '📞' },
-                { id: 'laboral',   label: 'Laboral',   icon: '🏢' },
-                { id: 'contrato',  label: 'Contrato',  icon: '📄' },
-                { id: 'ss',        label: 'Seg. Social', icon: '🏥' },
-                { id: 'academico', label: 'Académico', icon: '🎓' },
-                { id: 'sistema',   label: 'Sistema',   icon: '⚙️' },
-              ].map(tab => (
+                { id: 'personal',  label: 'Personal',    Icon: Mail },
+                { id: 'contacto',  label: 'Contacto',    Icon: Activity },
+                { id: 'laboral',   label: 'Laboral',     Icon: Briefcase },
+                { id: 'contrato',  label: 'Contrato',    Icon: FileSignature },
+                { id: 'ss',        label: 'Seg. Social', Icon: HeartPulse },
+                { id: 'academico', label: 'Académico',   Icon: GraduationCap },
+                { id: 'sistema',   label: 'Rol / Acceso', Icon: Shield },
+              ].map(({ id, label, Icon }) => (
                 <button
-                  key={tab.id}
-                  onClick={() => setActiveEditTab(tab.id)}
+                  key={id}
+                  onClick={() => setActiveEditTab(id)}
                   className={`flex items-center gap-1.5 px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors ${
-                    activeEditTab === tab.id
+                    activeEditTab === id
                       ? 'border-[#001871] text-[#001871] bg-white'
-                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                      : id === 'sistema'
+                        ? 'border-transparent text-[#981d97] hover:text-[#001871]'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
                   }`}
                 >
-                  <span>{tab.icon}</span>{tab.label}
+                  <Icon size={13} />{label}
                 </button>
               ))}
             </div>
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* ── TAB: PERSONAL ── */}
-              {activeEditTab === 'personal' && (
+              <div style={{display: activeEditTab === 'personal' ? '' : 'none'}}>
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-xs font-black text-[#001871] uppercase tracking-widest border-b border-slate-200 pb-2 mb-4">Nombres y Apellidos</h4>
@@ -1043,29 +1046,28 @@ const UserTable = () => {
                       <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
                         <input type="checkbox" name="tiene_hijos" checked={editFormData.tiene_hijos} onChange={e=>setEditFormData(p=>({...p,tiene_hijos:e.target.checked}))} className="w-4 h-4 text-[#001871] rounded"/>
                         <span className="text-sm font-medium text-slate-700">Tiene hijos</span>
-                        {editFormData.tiene_hijos && (
-                          <input type="number" name="numero_hijos" value={editFormData.numero_hijos} onChange={handleInputChange} min={0} max={20} className="ml-auto w-16 px-2 py-1 border border-slate-200 rounded-lg text-sm text-center" placeholder="#"/>
-                        )}
+                        <input type="number" name="numero_hijos" value={editFormData.numero_hijos} onChange={handleInputChange} min={0} max={20} style={{display: editFormData.tiene_hijos ? '' : 'none'}} className="ml-auto w-16 px-2 py-1 border border-slate-200 rounded-lg text-sm text-center" placeholder="#"/>
                       </label>
                       <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
                         <input type="checkbox" name="tiene_vehiculo" checked={editFormData.tiene_vehiculo} onChange={e=>setEditFormData(p=>({...p,tiene_vehiculo:e.target.checked}))} className="w-4 h-4 text-[#001871] rounded"/>
                         <span className="text-sm font-medium text-slate-700">Tiene vehículo</span>
-                        {editFormData.tiene_vehiculo && (
-                          <select name="tipo_vehiculo" value={editFormData.tipo_vehiculo} onChange={handleInputChange} className="ml-auto text-xs border border-slate-200 rounded-lg px-2 py-1">
+                        <div style={{display: editFormData.tiene_vehiculo ? '' : 'none'}} className="ml-auto flex gap-2">
+                          <select name="tipo_vehiculo" value={editFormData.tipo_vehiculo} onChange={handleInputChange} className="text-xs border border-slate-200 rounded-lg px-2 py-1">
                             <option value="">Tipo...</option>
                             <option value="moto">Moto</option>
                             <option value="carro">Carro</option>
                             <option value="ambos">Ambos</option>
                           </select>
-                        )}
+                          <input type="text" name="placa_vehiculo" value={editFormData.placa_vehiculo} onChange={handleInputChange} className="w-24 text-xs border border-slate-200 rounded-lg px-2 py-1 uppercase" placeholder="Placa"/>
+                        </div>
                       </label>
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* ── TAB: CONTACTO ── */}
-              {activeEditTab === 'contacto' && (
+              <div style={{display: activeEditTab === 'contacto' ? '' : 'none'}}>
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-xs font-black text-[#001871] uppercase tracking-widest border-b border-slate-200 pb-2 mb-4">Correos Electrónicos</h4>
@@ -1112,10 +1114,10 @@ const UserTable = () => {
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* ── TAB: LABORAL ── */}
-              {activeEditTab === 'laboral' && (
+              <div style={{display: activeEditTab === 'laboral' ? '' : 'none'}}>
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-xs font-black text-[#001871] uppercase tracking-widest border-b border-slate-200 pb-2 mb-4">Asignación Organizacional</h4>
@@ -1141,10 +1143,10 @@ const UserTable = () => {
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* ── TAB: CONTRATO ── */}
-              {activeEditTab === 'contrato' && (
+              <div style={{display: activeEditTab === 'contrato' ? '' : 'none'}}>
                 <div className="space-y-4">
                   {loadingContrato ? (
                     <div className="flex items-center justify-center py-16"><Loader2 size={28} className="animate-spin text-[#001871]"/></div>
@@ -1242,10 +1244,10 @@ const UserTable = () => {
                     </>
                   )}
                 </div>
-              )}
+              </div>
 
               {/* ── TAB: SEGURIDAD SOCIAL ── */}
-              {activeEditTab === 'ss' && (
+              <div style={{display: activeEditTab === 'ss' ? '' : 'none'}}>
                 <div className="space-y-6">
                   {loadingSS ? (
                     <div className="flex items-center justify-center py-16"><Loader2 size={28} className="animate-spin text-[#00bfb3]"/></div>
@@ -1302,10 +1304,10 @@ const UserTable = () => {
                     </>
                   )}
                 </div>
-              )}
+              </div>
 
               {/* ── TAB: ACADÉMICO ── */}
-              {activeEditTab === 'academico' && (
+              <div style={{display: activeEditTab === 'academico' ? '' : 'none'}}>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-black text-[#001871] uppercase tracking-widest">Formación Académica</h4>
@@ -1401,10 +1403,10 @@ const UserTable = () => {
                     </>
                   )}
                 </div>
-              )}
+              </div>
 
               {/* ── TAB: SISTEMA ── */}
-              {activeEditTab === 'sistema' && (
+              <div style={{display: activeEditTab === 'sistema' ? '' : 'none'}}>
                 <div className="space-y-5">
                   <div>
                     <h4 className="text-xs font-black text-[#001871] uppercase tracking-widest border-b border-slate-200 pb-2 mb-4">Rol y Estado</h4>
@@ -1484,7 +1486,7 @@ const UserTable = () => {
                     </div>
                   )}
                 </div>
-              )}
+              </div>
             </div>
             {/* Footer */}
             <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-between items-center flex-shrink-0">

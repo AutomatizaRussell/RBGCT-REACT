@@ -383,7 +383,8 @@ export const deleteCargo = (id) => fetchApi(`/cargos/${id}/`, { method: 'DELETE'
 
 // ── CURSOS ────────────────────────────────────────────────────────────────────
 
-export const getAllCursos = () => fetchApi('/cursos/');
+export const getAllCursos = (page = 1, pageSize = 50) =>
+  fetchApi(`/cursos/?page=${page}&page_size=${pageSize}`);
 
 export const createCurso = (data) => fetchApi('/cursos/', {
   method: 'POST',
@@ -436,6 +437,93 @@ export const toggleEncargadoCursos = (idEmpleado, valor) => fetchApi('/toggle-en
   method: 'POST',
   body: JSON.stringify({ id_empleado: idEmpleado, valor }),
 });
+
+export const getMiProgresoGlobal = () => fetchApi('/cursos/mi-progreso-global/');
+
+// ── Asignaciones de Formación (tabla de usuarios) ─────────────────────────────
+export const getCursosPorArea = (areaId) =>
+  fetchApi(`/cursos/por-area/?area_id=${areaId}`);
+
+export const getResumenAreaFormacion = (areaId) =>
+  fetchApi(`/asignaciones-formacion/resumen-area/?area_id=${areaId}`);
+
+export const toggleExclusionFormacion = (empleadoId, cursoId) =>
+  fetchApi('/asignaciones-formacion/toggle-exclusion/', {
+    method: 'POST',
+    body: JSON.stringify({ empleado_id: empleadoId, curso_id: cursoId }),
+  });
+
+export const toggleAsignacionFormacion = (empleadoId, cursoId) =>
+  fetchApi('/asignaciones-formacion/toggle/', {
+    method: 'POST',
+    body: JSON.stringify({ empleado_id: empleadoId, curso_id: cursoId }),
+  });
+
+export const batchAsignarFormacion = (cursoId, empleadoIds) =>
+  fetchApi('/asignaciones-formacion/batch-asignar/', {
+    method: 'POST',
+    body: JSON.stringify({ curso_id: cursoId, empleado_ids: empleadoIds }),
+  });
+
+export const reordenarCursos = (orden) => fetchApi('/cursos/reordenar/', {
+  method: 'POST',
+  body: JSON.stringify(orden),
+});
+
+export const reordenarContenidos = (orden) => fetchApi('/curso-contenido/reordenar/', {
+  method: 'POST',
+  body: JSON.stringify(orden),
+});
+
+// ── ONBOARDING ────────────────────────────────────────────────────────────────
+
+export const getAllPlanesOnboarding = () => fetchApi('/planes-onboarding/');
+
+export const createPlanOnboarding = (data) => fetchApi('/planes-onboarding/', {
+  method: 'POST',
+  body: JSON.stringify(data),
+});
+
+export const updatePlanOnboarding = (id, data) => fetchApi(`/planes-onboarding/${id}/`, {
+  method: 'PATCH',
+  body: JSON.stringify(data),
+});
+
+export const deletePlanOnboarding = (id) => fetchApi(`/planes-onboarding/${id}/`, { method: 'DELETE' });
+
+export const agregarPasoOnboarding = (planId, data) => fetchApi(`/planes-onboarding/${planId}/pasos/`, {
+  method: 'POST',
+  body: JSON.stringify(data),
+});
+
+export const eliminarPasoOnboarding = (planId, pasoId) =>
+  fetchApi(`/planes-onboarding/${planId}/pasos/${pasoId}/`, { method: 'DELETE' });
+
+export const reordenarPasosOnboarding = (planId, pasos) =>
+  fetchApi(`/planes-onboarding/${planId}/reordenar/`, {
+    method: 'POST',
+    body: JSON.stringify({ pasos }),
+  });
+
+export const getResumenAreaOnboarding = (areaId) =>
+  fetchApi(`/planes-onboarding/resumen-area/?area_id=${areaId}`);
+
+export const toggleAsignacionOnboarding = (empleadoId, planId) =>
+  fetchApi('/planes-onboarding/toggle/', {
+    method: 'POST',
+    body: JSON.stringify({ empleado_id: empleadoId, plan_id: planId }),
+  });
+
+export const batchAsignarOnboarding = (planId, empleadoIds) =>
+  fetchApi('/planes-onboarding/batch-asignar/', {
+    method: 'POST',
+    body: JSON.stringify({ plan_id: planId, empleado_ids: empleadoIds }),
+  });
+
+export const getMisOnboardings = () => fetchApi('/planes-onboarding/mis-planes/');
+
+export const exportarCalificaciones = (cursoId) =>
+  fetchApi(`/cursos/${cursoId}/exportar-calificaciones/`);
 
 // ── REGLAMENTO ────────────────────────────────────────────────────────────────
 
@@ -731,103 +819,68 @@ export const updateAfiliacionSS = (id, data) =>
 
 
 // ── CRM Clientes ──────────────────────────────────────────────────────────────
-
-const CRM_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/clientes`;
-
-async function fetchCrm(path, options = {}) {
-  const token = tokenStorage.getAccess();
-  const headers = { ...options.headers };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
-
-  const res = await fetch(`${CRM_URL}${path}`, { ...options, headers });
-
-  if (res.status === 401) {
-    try {
-      const newToken = await refreshAccessToken();
-      headers['Authorization'] = `Bearer ${newToken}`;
-      const retry = await fetch(`${CRM_URL}${path}`, { ...options, headers });
-      if (!retry.ok) throw new Error(await retry.text());
-      return retry.status === 204 ? null : retry.json();
-    } catch {
-      tokenStorage.clear();
-      window.location.href = '/login';
-      throw new Error('Sesión expirada');
-    }
-  }
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    const msg = body
-      ? (body.error || body.detail || body.message ||
-         (typeof body === 'object' ? Object.values(body).flat().join(' ') : null))
-      : null;
-    const err = new Error(msg || `Error ${res.status}`);
-    err.fieldErrors = (body && typeof body === 'object' && !body.error && !body.detail) ? body : null;
-    throw err;
-  }
-  return res.status === 204 ? null : res.json();
-}
+// Todas las llamadas CRM usan fetchApi con el prefijo /clientes/
+// para compartir el mismo manejo de tokens, retry y errores.
 
 export const getClientesStats = (params = {}) => {
   const q = new URLSearchParams(params).toString();
-  return fetchCrm(`/empresas/stats/${q ? '?' + q : ''}`);
+  return fetchApi(`/clientes/empresas/stats/${q ? '?' + q : ''}`);
 };
 
 export const getMisClientes = (empleadoId) => {
   const q = empleadoId ? `?empleado_id=${empleadoId}` : '';
-  return fetchCrm(`/empresas/mis_clientes/${q}`);
+  return fetchApi(`/clientes/empresas/mis_clientes/${q}`);
 };
 
 export const getEmpresas = (params = {}) => {
   const q = new URLSearchParams(params).toString();
-  return fetchCrm(`/empresas/${q ? '?' + q : ''}`);
+  return fetchApi(`/clientes/empresas/${q ? '?' + q : ''}`);
 };
 
-export const getEmpresa = (id) => fetchCrm(`/empresas/${id}/`);
+export const getEmpresa = (id) => fetchApi(`/clientes/empresas/${id}/`);
 
 export const createEmpresa = (data) =>
-  fetchCrm('/empresas/', { method: 'POST', body: JSON.stringify(data) });
+  fetchApi('/clientes/empresas/', { method: 'POST', body: JSON.stringify(data) });
 
 export const updateEmpresa = (id, data) =>
-  fetchCrm(`/empresas/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  fetchApi(`/clientes/empresas/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
 
 export const deleteEmpresa = (id) =>
-  fetchCrm(`/empresas/${id}/`, { method: 'DELETE' });
+  fetchApi(`/clientes/empresas/${id}/`, { method: 'DELETE' });
 
-export const getEmpresaPorAreas  = (id) => fetchCrm(`/empresas/${id}/por_areas/`);
-export const getEmpresaContactos = (id) => fetchCrm(`/empresas/${id}/contactos/`);
-export const getEmpresaServicios = (id) => fetchCrm(`/empresas/${id}/servicios/`);
-export const getEmpresaEquipo = (id) => fetchCrm(`/empresas/${id}/equipo/`);
-export const getEmpresaDocumentos = (id) => fetchCrm(`/empresas/${id}/documentos/`);
-export const getEmpresaBitacora = (id) => fetchCrm(`/empresas/${id}/bitacora/`);
+export const getEmpresaPorAreas  = (id) => fetchApi(`/clientes/empresas/${id}/por_areas/`);
+export const getEmpresaContactos = (id) => fetchApi(`/clientes/empresas/${id}/contactos/`);
+export const getEmpresaServicios = (id) => fetchApi(`/clientes/empresas/${id}/servicios/`);
+export const getEmpresaEquipo    = (id) => fetchApi(`/clientes/empresas/${id}/equipo/`);
+export const getEmpresaDocumentos = (id) => fetchApi(`/clientes/empresas/${id}/documentos/`);
+export const getEmpresaBitacora  = (id) => fetchApi(`/clientes/empresas/${id}/bitacora/`);
 
 export const createContacto = (data) =>
-  fetchCrm('/contactos/', { method: 'POST', body: JSON.stringify(data) });
+  fetchApi('/clientes/contactos/', { method: 'POST', body: JSON.stringify(data) });
 
 export const updateContacto = (id, data) =>
-  fetchCrm(`/contactos/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  fetchApi(`/clientes/contactos/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
 
 export const deleteContacto = (id) =>
-  fetchCrm(`/contactos/${id}/`, { method: 'DELETE' });
+  fetchApi(`/clientes/contactos/${id}/`, { method: 'DELETE' });
 
 export const createServicio = (data) =>
-  fetchCrm('/servicios/', { method: 'POST', body: JSON.stringify(data) });
+  fetchApi('/clientes/servicios/', { method: 'POST', body: JSON.stringify(data) });
 
 export const updateServicio = (id, data) =>
-  fetchCrm(`/servicios/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  fetchApi(`/clientes/servicios/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
 
 export const deleteServicio = (id) =>
-  fetchCrm(`/servicios/${id}/`, { method: 'DELETE' });
+  fetchApi(`/clientes/servicios/${id}/`, { method: 'DELETE' });
 
 export const createAsignacion = (data) =>
-  fetchCrm('/asignaciones/', { method: 'POST', body: JSON.stringify(data) });
+  fetchApi('/clientes/asignaciones/', { method: 'POST', body: JSON.stringify(data) });
 
 export const updateAsignacion = (id, data) =>
-  fetchCrm(`/asignaciones/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  fetchApi(`/clientes/asignaciones/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
 
 export const deleteAsignacion = (id) =>
-  fetchCrm(`/asignaciones/${id}/`, { method: 'DELETE' });
+  fetchApi(`/clientes/asignaciones/${id}/`, { method: 'DELETE' });
 
 export const createDocumentoCliente = (data) => {
   const formData = data instanceof FormData ? data : (() => {
@@ -835,20 +888,20 @@ export const createDocumentoCliente = (data) => {
     Object.entries(data).forEach(([k, v]) => v != null && fd.append(k, v));
     return fd;
   })();
-  return fetchCrm('/documentos/', { method: 'POST', body: formData });
+  return fetchApi('/clientes/documentos/', { method: 'POST', body: formData });
 };
 
 export const deleteDocumentoCliente = (id) =>
-  fetchCrm(`/documentos/${id}/`, { method: 'DELETE' });
+  fetchApi(`/clientes/documentos/${id}/`, { method: 'DELETE' });
 
 export const createBitacora = (data) =>
-  fetchCrm('/bitacora/', { method: 'POST', body: JSON.stringify(data) });
+  fetchApi('/clientes/bitacora/', { method: 'POST', body: JSON.stringify(data) });
 
 export const updateBitacora = (id, data) =>
-  fetchCrm(`/bitacora/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+  fetchApi(`/clientes/bitacora/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
 
 export const deleteBitacora = (id) =>
-  fetchCrm(`/bitacora/${id}/`, { method: 'DELETE' });
+  fetchApi(`/clientes/bitacora/${id}/`, { method: 'DELETE' });
 
 // ── CERTIFICADO DE EMPLEO ─────────────────────────────────────────────────
 export const enviarCertificadoEmpleo = (data) =>

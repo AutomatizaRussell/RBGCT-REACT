@@ -301,7 +301,7 @@ const AdminDashboard = () => {
 
   // --- LÓGICA DE RENDERIZADO ---
   const renderContent = () => {
-    if (location.pathname === '/admin/usuarios/nuevo') return <CreateUserPage />;
+    if (location.pathname === '/superadmin/usuarios/nuevo') return <CreateUserPage />;
 
     switch (activeTab) {
       case 'dashboard':
@@ -416,7 +416,7 @@ const AdminDashboard = () => {
   };
 
   const getHeaderTitle = () => {
-    if (location.pathname === '/admin/usuarios/nuevo') return 'Nuevo Registro';
+    if (location.pathname === '/superadmin/usuarios/nuevo') return 'Nuevo Registro';
     switch (activeTab) {
       case 'dashboard': return 'Panel General';
       case 'users': return 'Gestión de Personal';
@@ -456,7 +456,7 @@ const AdminDashboard = () => {
               {isSuperAdmin && activeTab === 'users' && (
                 <button
                   type="button"
-                  onClick={() => navigate('/admin/usuarios/nuevo')}
+                  onClick={() => navigate('/superadmin/usuarios/nuevo')}
                   className="flex items-center gap-2 rounded-xl bg-[#001871] px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800 lg:px-4 lg:text-sm"
                 >
                   <Plus size={16} />

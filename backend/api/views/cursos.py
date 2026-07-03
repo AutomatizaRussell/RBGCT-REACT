@@ -6,13 +6,15 @@ import logging
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from django.db import models as django_models
+from django.db.models import Q
 
-from ..models import Curso, CursoContenido, CursoHistorial, NotificacionCurso, DatosEmpleado, CursoProgreso, CuestionarioIntento
+from ..models import Curso, CursoContenido, CursoHistorial, NotificacionCurso, DatosEmpleado, CursoProgreso, CuestionarioIntento, AsignacionFormacion, ExclusionFormacion
 from ..serializers import (
     CursoSerializer, CursoContenidoSerializer, CursoHistorialSerializer, NotificacionCursoSerializer,
-    CuestionarioIntentoSerializer,
+    CuestionarioIntentoSerializer, AsignacionFormacionSerializer,
 )
 from ..permissions import IsAdminOrSuperAdmin
 from ._utils import get_usuario_nombre, _es_empleado, _es_superadmin
@@ -20,9 +22,82 @@ from ._utils import get_usuario_nombre, _es_empleado, _es_superadmin
 logger = logging.getLogger(__name__)
 
 
+class CursosPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 200
+
+
 class CursoViewSet(viewsets.ModelViewSet):
-    queryset = Curso.objects.all().order_by('orden')
+    queryset = Curso.objects.all()  # requerido por el router para inferir basename
     serializer_class = CursoSerializer
+    pagination_class = CursosPagination
+
+    def get_permissions(self):
+        write_actions = {'create', 'update', 'partial_update', 'destroy', 'reordenar', 'exportar_calificaciones'}
+        if self.action in write_actions:
+            return [IsAdminOrSuperAdmin()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        user = self.request.user
+        base = Curso.objects.all().order_by('orden').prefetch_related('contenidos')
+
+        if _es_superadmin(user):
+            return base
+
+        if _es_empleado(user):
+            permisos = int(getattr(user, 'id_permisos', 3) or 3)
+            if permisos <= 2:  # admin (1) o editor (2): ven todo
+                return base
+            # Empleado regular: filtrar por visibilidad y por fechas de disponibilidad
+            from django.utils import timezone
+            today = timezone.now().date()
+            qs = base.filter(activo=True)
+            area_id  = getattr(user, 'area_id', None)
+            # M2M: el empleado pertenece a alguna de las áreas del curso
+            area_q = Q(visibilidad='area', areas__id_area=area_id) if area_id else Q(pk__in=[])
+
+            # Nivel de cargo normalizado (igual que en el organigrama)
+            from ..views.empleados import _nivel_cargo
+            cargo_nombre = ''
+            try:
+                if user.cargo_id:
+                    from ..models import DatosCargo
+                    cargo_nombre = DatosCargo.objects.filter(pk=user.cargo_id).values_list('nombre_cargo', flat=True).first() or ''
+            except Exception:
+                pass
+            user_nivel = _nivel_cargo(cargo_nombre)
+            cargo_q = Q(visibilidad='cargo', nivel_cargo=user_nivel) if user_nivel != 99 else Q(pk__in=[])
+
+            # IDs de cursos asignados directamente a este empleado
+            asignados_ids = AsignacionFormacion.objects.filter(
+                empleado=user
+            ).values_list('curso_id', flat=True)
+
+            # IDs de cursos bloqueados explícitamente para este empleado
+            excluidos_ids = ExclusionFormacion.objects.filter(
+                empleado=user
+            ).values_list('curso_id', flat=True)
+
+            qs = qs.filter(
+                Q(visibilidad='todos') |
+                area_q |
+                cargo_q |
+                Q(visibilidad='persona', empleado_asignado=user) |
+                Q(id__in=asignados_ids)
+            ).exclude(
+                id__in=excluidos_ids  # quitar bloqueados explícitamente
+            ).distinct()
+            # Solo cursos dentro del plazo (inicio ≤ hoy ≤ fin)
+            qs = qs.filter(
+                Q(fecha_inicio__isnull=True) | Q(fecha_inicio__lte=today)
+            ).filter(
+                Q(fecha_fin__isnull=True) | Q(fecha_fin__gte=today)
+            )
+            return qs
+
+        return base
 
     def perform_create(self, serializer):
         creado_por = self.request.user if _es_empleado(self.request.user) else None
@@ -30,6 +105,11 @@ class CursoViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
+        area_ids = data.pop('area_ids', None) or data.pop('areas', None) or []
+        if isinstance(area_ids, str):
+            import json as _j
+            try: area_ids = _j.loads(area_ids)
+            except Exception: area_ids = []
         if not data.get('orden'):
             max_orden = Curso.objects.aggregate(django_models.Max('orden'))['orden__max'] or 0
             data['orden'] = max_orden + 1
@@ -37,7 +117,9 @@ class CursoViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         instance = serializer.instance
-        # Registrar en historial
+        if area_ids:
+            from ..models import DatosArea
+            instance.areas.set(DatosArea.objects.filter(id_area__in=area_ids))
         CursoHistorial.objects.create(
             curso=instance,
             curso_nombre=instance.nombre,
@@ -45,21 +127,33 @@ class CursoViewSet(viewsets.ModelViewSet):
             descripcion=f"Curso '{instance.nombre}' creado. Visibilidad: {instance.get_visibilidad_display()}",
             usuario_nombre=get_usuario_nombre(request.user)
         )
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(self.get_serializer(instance).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         old_name = instance.nombre
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        data = request.data.copy()
+        area_ids = data.pop('area_ids', None) or data.pop('areas', None)
+        if isinstance(area_ids, str):
+            import json as _j
+            try: area_ids = _j.loads(area_ids)
+            except Exception: area_ids = None
+        serializer = self.get_serializer(instance, data=data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+        if area_ids is not None:
+            from ..models import DatosArea
+            instance.areas.set(DatosArea.objects.filter(id_area__in=area_ids))
         instance.refresh_from_db()
+        plazo = ''
+        if instance.fecha_inicio or instance.fecha_fin:
+            plazo = f" Plazo: {instance.fecha_inicio or '∞'} → {instance.fecha_fin or '∞'}."
         CursoHistorial.objects.create(
             curso=instance,
             curso_nombre=instance.nombre,
             accion='editar',
-            descripcion=f"Curso '{old_name}' editado. Nuevo nombre: '{instance.nombre}'. Visibilidad: {instance.get_visibilidad_display()}",
+            descripcion=f"Curso '{old_name}' editado. Nuevo nombre: '{instance.nombre}'. Visibilidad: {instance.get_visibilidad_display()}.{plazo}",
             usuario_nombre=get_usuario_nombre(request.user)
         )
         return Response(serializer.data)
@@ -74,6 +168,118 @@ class CursoViewSet(viewsets.ModelViewSet):
             usuario_nombre=get_usuario_nombre(request.user)
         )
         return super().destroy(request, *args, **kwargs)
+
+    # ── Acciones extras ──────────────────────────────────────────────────────────
+
+    @action(detail=False, methods=['get'], url_path='por-area')
+    def por_area(self, request):
+        """Cursos/capacitaciones visibles en un área (para tabla de usuarios admin)."""
+        area_id = request.query_params.get('area_id')
+        if not area_id:
+            return Response({'error': 'area_id requerido.'}, status=400)
+        # Muestra cursos/capacitaciones visibles para esta área:
+        # - visibilidad='todos': aparece en todas las áreas
+        # - tiene esta área en su M2M (sin importar si es visibilidad area/cargo/persona)
+        qs = Curso.objects.filter(
+            Q(visibilidad='todos') |
+            Q(areas__id_area=area_id)
+        ).distinct().prefetch_related('areas', 'contenidos')
+        return Response(self.get_serializer(qs, many=True).data)
+
+    @action(detail=False, methods=['post'], url_path='reordenar')
+    def reordenar(self, request):
+        """Actualiza el orden de múltiples cursos. Body: [{id, orden}, ...]"""
+        items = request.data if isinstance(request.data, list) else request.data.get('orden', [])
+        for item in items:
+            try:
+                Curso.objects.filter(id=item['id']).update(orden=item['orden'])
+            except (KeyError, TypeError):
+                pass
+        return Response({'ok': True})
+
+    @action(detail=True, methods=['get'], url_path='exportar-calificaciones')
+    def exportar_calificaciones(self, request, pk=None):
+        """Admin/editor: retorna calificaciones de cuestionarios del curso para exportar."""
+        curso = self.get_object()
+        intentos = (
+            CuestionarioIntento.objects
+            .filter(curso=curso)
+            .select_related('empleado', 'empleado__persona', 'contenido')
+            .order_by('empleado', 'contenido', 'num_intento')
+        )
+        rows = []
+        for i in intentos:
+            persona = getattr(i.empleado, 'persona', None)
+            if persona:
+                nombre = f"{getattr(persona, 'primer_nombre', '')} {getattr(persona, 'primer_apellido', '')}".strip()
+            else:
+                nombre = getattr(i.empleado, 'correo_electronico', str(i.empleado.id_empleado))
+            rows.append({
+                'empleado': nombre,
+                'correo': getattr(i.empleado, 'correo_electronico', ''),
+                'cuestionario': i.contenido.titulo if i.contenido else '',
+                'puntaje': round(float(i.puntaje), 1),
+                'aprobado': 'Sí' if i.aprobado else 'No',
+                'num_intento': i.num_intento,
+                'tiempo_seg': i.tiempo_segundos or 0,
+                'fecha': i.fecha_intento.strftime('%Y-%m-%d %H:%M') if i.fecha_intento else '',
+            })
+        return Response({'curso': curso.nombre, 'intentos': rows})
+
+    @action(detail=False, methods=['get'], url_path='mi-progreso-global')
+    def mi_progreso_global(self, request):
+        """Devuelve progreso de todos los cursos del empleado + stats de gamificación."""
+        if not _es_empleado(request.user):
+            return Response({'por_curso': {}, 'stats': {}, 'quizzes': []})
+
+        from django.db.models import Count as DCount, Avg
+
+        # Contenidos completados por curso
+        progresos = CursoProgreso.objects.filter(
+            empleado=request.user
+        ).values('curso_id').annotate(completados=DCount('id'))
+        por_curso = {str(p['curso_id']): p['completados'] for p in progresos}
+
+        total_items_completados = sum(por_curso.values())
+
+        # Cursos accesibles con total de contenidos
+        cursos_qs = self.get_queryset().annotate(n_contenidos=DCount('contenidos'))
+        total_accesibles = cursos_qs.count()
+        cursos_completados = sum(
+            1 for c in cursos_qs
+            if c.n_contenidos > 0 and por_curso.get(str(c.id), 0) >= c.n_contenidos
+        )
+        cursos_iniciados = sum(
+            1 for c in cursos_qs if por_curso.get(str(c.id), 0) > 0
+        )
+
+        # Stats de cuestionarios
+        intentos_q = CuestionarioIntento.objects.filter(empleado=request.user)
+        total_intentos  = intentos_q.count()
+        aprobados       = intentos_q.filter(aprobado=True).count()
+        avg_puntaje     = intentos_q.aggregate(avg=Avg('puntaje'))['avg'] or 0
+
+        # Mejor puntaje por cuestionario (para logros)
+        mejores = list(
+            intentos_q.values('contenido_id').annotate(
+                mejor=DCount('id'),
+                aprobado_alguna=DCount('id', filter=django_models.Q(aprobado=True))
+            )
+        )
+        quizzes_aprobados = sum(1 for m in mejores if m['aprobado_alguna'] > 0)
+
+        return Response({
+            'por_curso': por_curso,
+            'stats': {
+                'cursos_accesibles':  total_accesibles,
+                'cursos_iniciados':   cursos_iniciados,
+                'cursos_completados': cursos_completados,
+                'items_completados':  total_items_completados,
+                'quizzes_aprobados':  quizzes_aprobados,
+                'total_intentos':     total_intentos,
+                'promedio_puntaje':   round(float(avg_puntaje), 1),
+            },
+        })
 
     @action(detail=True, methods=['get'], url_path='mi-progreso')
     def mi_progreso(self, request, pk=None):
@@ -105,31 +311,21 @@ class CursoViewSet(viewsets.ModelViewSet):
             progreso.delete()
             return Response({'completado': False})
 
-        # Verificar si el curso quedó 100% completado
         total_items = CursoContenido.objects.filter(curso_id=pk).count()
-        completed_items = CursoProgreso.objects.filter(
-            empleado=request.user, curso_id=pk
-        ).count()
+        completed_items = CursoProgreso.objects.filter(empleado=request.user, curso_id=pk).count()
         curso_completado = total_items > 0 and completed_items >= total_items
         if curso_completado:
             curso_obj = self.get_object()
             destinatarios = set()
-
-            # Encargados de cursos
             for enc in DatosEmpleado.objects.filter(es_encargado_cursos=True, estado='ACTIVA').exclude(id_empleado=request.user.id_empleado):
                 destinatarios.add(enc.id_empleado)
-
-            # Creador del curso (si es DatosEmpleado y no es quien completó)
             if curso_obj.creado_por_id and curso_obj.creado_por_id != request.user.id_empleado:
                 destinatarios.add(curso_obj.creado_por_id)
-
             for dest_id in destinatarios:
                 try:
                     dest = DatosEmpleado.objects.get(pk=dest_id)
                     NotificacionCurso.objects.get_or_create(
-                        destinatario=dest,
-                        empleado=request.user,
-                        curso=curso_obj,
+                        destinatario=dest, empleado=request.user, curso=curso_obj,
                         defaults={'leida': False},
                     )
                 except DatosEmpleado.DoesNotExist:
@@ -141,15 +337,15 @@ class CursoViewSet(viewsets.ModelViewSet):
 class CursoHistorialViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = CursoHistorial.objects.all()
     serializer_class = CursoHistorialSerializer
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
         qs = super().get_queryset()
         curso_id = self.request.query_params.get('curso_id')
         if curso_id:
             qs = qs.filter(curso_id=curso_id)
-        limit = self.request.query_params.get('limit', 100)
         try:
-            limit = int(limit)
+            limit = int(self.request.query_params.get('limit', 100))
         except (ValueError, TypeError):
             limit = 100
         return qs[:limit]
@@ -158,6 +354,12 @@ class CursoHistorialViewSet(viewsets.ReadOnlyModelViewSet):
 class CursoContenidoViewSet(viewsets.ModelViewSet):
     queryset = CursoContenido.objects.all().order_by('orden')
     serializer_class = CursoContenidoSerializer
+
+    def get_permissions(self):
+        write_actions = {'create', 'update', 'partial_update', 'destroy', 'reordenar'}
+        if self.action in write_actions:
+            return [IsAdminOrSuperAdmin()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -209,6 +411,17 @@ class CursoContenidoViewSet(viewsets.ModelViewSet):
         )
         return super().destroy(request, *args, **kwargs)
 
+    @action(detail=False, methods=['post'], url_path='reordenar')
+    def reordenar(self, request):
+        """Actualiza el orden de contenidos. Body: [{id, orden}, ...]"""
+        items = request.data if isinstance(request.data, list) else request.data.get('orden', [])
+        for item in items:
+            try:
+                CursoContenido.objects.filter(id=item['id']).update(orden=item['orden'])
+            except (KeyError, TypeError):
+                pass
+        return Response({'ok': True})
+
     @action(detail=True, methods=['post'], url_path='enviar-respuestas')
     def enviar_respuestas(self, request, pk=None):
         """Empleado envía sus respuestas. Calcula puntaje y guarda el intento."""
@@ -218,7 +431,6 @@ class CursoContenidoViewSet(viewsets.ModelViewSet):
         if contenido.tipo != 'cuestionario':
             return Response({'error': 'Este contenido no es un cuestionario.'}, status=400)
 
-        # Verificar límite de intentos
         if contenido.max_intentos > 0:
             intentos_usados = CuestionarioIntento.objects.filter(
                 empleado=request.user, contenido=contenido
@@ -274,7 +486,6 @@ class CursoContenidoViewSet(viewsets.ModelViewSet):
             tiempo_segundos=tiempo,
         )
 
-        # Marcar automáticamente como completado si: aprobó O agotó los intentos
         es_ultimo_intento = contenido.max_intentos > 0 and num_intento >= contenido.max_intentos
         if aprobado or es_ultimo_intento:
             CursoProgreso.objects.get_or_create(
@@ -282,12 +493,9 @@ class CursoContenidoViewSet(viewsets.ModelViewSet):
                 contenido=contenido,
                 defaults={'curso': contenido.curso},
             )
-            # Verificar si el curso quedó 100% completo y notificar
             curso_obj = contenido.curso
             total_items = CursoContenido.objects.filter(curso=curso_obj).count()
-            completed_items = CursoProgreso.objects.filter(
-                empleado=request.user, curso=curso_obj
-            ).count()
+            completed_items = CursoProgreso.objects.filter(empleado=request.user, curso=curso_obj).count()
             if total_items > 0 and completed_items >= total_items:
                 destinatarios = set()
                 for enc in DatosEmpleado.objects.filter(es_encargado_cursos=True, estado='ACTIVA').exclude(id_empleado=request.user.id_empleado):
@@ -298,13 +506,19 @@ class CursoContenidoViewSet(viewsets.ModelViewSet):
                     try:
                         dest = DatosEmpleado.objects.get(pk=dest_id)
                         NotificacionCurso.objects.get_or_create(
-                            destinatario=dest,
-                            empleado=request.user,
-                            curso=curso_obj,
+                            destinatario=dest, empleado=request.user, curso=curso_obj,
                             defaults={'leida': False},
                         )
                     except DatosEmpleado.DoesNotExist:
                         pass
+
+        # Incluir respuestas correctas en la respuesta POST (no en el GET) para que
+        # el frontend pueda mostrar la revisión sin exponer las claves antes del envío
+        respuestas_correctas = {
+            str(p['id']): p.get('correcta')
+            for p in preguntas
+            if p.get('tipo') != 'texto_libre'
+        }
 
         return Response({
             'puntaje': intento.puntaje,
@@ -314,6 +528,7 @@ class CursoContenidoViewSet(viewsets.ModelViewSet):
             'num_intento': intento.num_intento,
             'puntaje_aprobacion': puntaje_aprobacion,
             'marcado_completado': aprobado or es_ultimo_intento,
+            'respuestas_correctas': respuestas_correctas,
         }, status=201)
 
     @action(detail=True, methods=['get'], url_path='mis-intentos')
@@ -374,3 +589,124 @@ def toggle_encargado_cursos(request):
     empleado.es_encargado_cursos = bool(valor)
     empleado.save(update_fields=['es_encargado_cursos'])
     return Response({'id_empleado': id_empleado, 'es_encargado_cursos': empleado.es_encargado_cursos})
+
+
+class AsignacionFormacionViewSet(viewsets.ModelViewSet):
+    """CRUD de asignaciones individuales curso ↔ empleado."""
+    serializer_class = AsignacionFormacionSerializer
+    permission_classes = [IsAdminOrSuperAdmin]
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        qs = AsignacionFormacion.objects.select_related(
+            'empleado__persona', 'curso', 'asignado_por__persona'
+        )
+        curso_id    = self.request.query_params.get('curso_id')
+        empleado_id = self.request.query_params.get('empleado_id')
+        area_id     = self.request.query_params.get('area_id')
+        if curso_id:
+            qs = qs.filter(curso_id=curso_id)
+        if empleado_id:
+            qs = qs.filter(empleado_id=empleado_id)
+        if area_id:
+            qs = qs.filter(empleado__area_id=area_id)
+        return qs
+
+    def perform_create(self, serializer):
+        asignado_por = self.request.user if _es_empleado(self.request.user) else None
+        serializer.save(asignado_por=asignado_por)
+
+    @action(detail=False, methods=['post'], url_path='toggle')
+    def toggle(self, request):
+        """Alterna la asignación de un curso a un empleado. Body: {empleado_id, curso_id}"""
+        empleado_id = request.data.get('empleado_id')
+        curso_id    = request.data.get('curso_id')
+        if not empleado_id or not curso_id:
+            return Response({'error': 'empleado_id y curso_id requeridos.'}, status=400)
+        try:
+            emp   = DatosEmpleado.objects.get(pk=empleado_id)
+            curso = Curso.objects.get(pk=curso_id)
+        except (DatosEmpleado.DoesNotExist, Curso.DoesNotExist):
+            return Response({'error': 'Empleado o curso no encontrado.'}, status=404)
+
+        asignado_por = self.request.user if _es_empleado(self.request.user) else None
+        asig, created = AsignacionFormacion.objects.get_or_create(
+            empleado=emp, curso=curso,
+            defaults={'asignado_por': asignado_por}
+        )
+        if not created:
+            asig.delete()
+            return Response({'asignado': False, 'empleado_id': empleado_id, 'curso_id': curso_id})
+        return Response({'asignado': True, 'empleado_id': empleado_id, 'curso_id': curso_id, 'id': asig.id}, status=201)
+
+    @action(detail=False, methods=['post'], url_path='batch-asignar')
+    def batch_asignar(self, request):
+        """Asigna un curso a múltiples empleados. Body: {curso_id, empleado_ids: [...]}"""
+        curso_id     = request.data.get('curso_id')
+        empleado_ids = request.data.get('empleado_ids', [])
+        if not curso_id or not empleado_ids:
+            return Response({'error': 'curso_id y empleado_ids requeridos.'}, status=400)
+        try:
+            curso = Curso.objects.get(pk=curso_id)
+        except Curso.DoesNotExist:
+            return Response({'error': 'Curso no encontrado.'}, status=404)
+
+        asignado_por = self.request.user if _es_empleado(self.request.user) else None
+        creados = 0
+        for eid in empleado_ids:
+            _, created = AsignacionFormacion.objects.get_or_create(
+                empleado_id=eid, curso=curso,
+                defaults={'asignado_por': asignado_por}
+            )
+            if created:
+                creados += 1
+        return Response({'creados': creados, 'curso_id': curso_id})
+
+    @action(detail=False, methods=['get'], url_path='resumen-area')
+    def resumen_area(self, request):
+        """
+        Devuelve mapa de asignaciones Y exclusiones para un área.
+        Response: { asignaciones: {emp_id: [curso_id]}, exclusiones: {emp_id: [curso_id]} }
+        """
+        area_id = request.query_params.get('area_id')
+        if not area_id:
+            return Response({'error': 'area_id requerido.'}, status=400)
+
+        asigs = AsignacionFormacion.objects.filter(
+            empleado__area_id=area_id
+        ).values('empleado_id', 'curso_id', 'id')
+        mapa_asig = {}
+        for a in asigs:
+            mapa_asig.setdefault(str(a['empleado_id']), []).append(a['curso_id'])
+
+        excls = ExclusionFormacion.objects.filter(
+            empleado__area_id=area_id
+        ).values('empleado_id', 'curso_id')
+        mapa_excl = {}
+        for e in excls:
+            mapa_excl.setdefault(str(e['empleado_id']), []).append(e['curso_id'])
+
+        return Response({'asignaciones': mapa_asig, 'exclusiones': mapa_excl})
+
+    @action(detail=False, methods=['post'], url_path='toggle-exclusion')
+    def toggle_exclusion(self, request):
+        """Alterna el bloqueo de un curso para un empleado. Body: {empleado_id, curso_id}"""
+        empleado_id = request.data.get('empleado_id')
+        curso_id    = request.data.get('curso_id')
+        if not empleado_id or not curso_id:
+            return Response({'error': 'empleado_id y curso_id requeridos.'}, status=400)
+        try:
+            emp   = DatosEmpleado.objects.get(pk=empleado_id)
+            curso = Curso.objects.get(pk=curso_id)
+        except (DatosEmpleado.DoesNotExist, Curso.DoesNotExist):
+            return Response({'error': 'Empleado o curso no encontrado.'}, status=404)
+
+        excl_por = request.user if _es_empleado(request.user) else None
+        excl, created = ExclusionFormacion.objects.get_or_create(
+            empleado=emp, curso=curso,
+            defaults={'excluido_por': excl_por}
+        )
+        if not created:
+            excl.delete()
+            return Response({'bloqueado': False, 'empleado_id': empleado_id, 'curso_id': curso_id})
+        return Response({'bloqueado': True, 'empleado_id': empleado_id, 'curso_id': curso_id}, status=201)

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { ArrowLeft, Save, User, Mail, Shield, Briefcase, Loader2, Check, MapPin, Calendar } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
@@ -263,7 +263,7 @@ const CreateUserPage = () => {
         </div>
 
         {/* CUERPO FORMULARIO */}
-        <form className="p-4 sm:p-10 space-y-6 sm:space-y-8" onSubmit={handleSubmit}>
+        <form className="p-4 sm:p-10 space-y-6 sm:space-y-8" onSubmit={handleSubmit} autoComplete="off" translate="no">
           
           {/* OPCIÓN: CREAR CON DATOS COMPLETOS O MÍNIMOS */}
           <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
@@ -297,7 +297,7 @@ const CreateUserPage = () => {
                 type="email"
                 name="correo_corporativo"
                 value={formData.correo_corporativo}
-                onChange={handleChange}
+                onChange={handleChange} autoComplete="off"
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                 placeholder="usuario@russellbedford.com.co" 
               />
@@ -313,7 +313,7 @@ const CreateUserPage = () => {
                 type="password"
                 name="password"
                 value={formData.password}
-                onChange={handleChange}
+                onChange={handleChange} autoComplete="new-password"
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                 placeholder="Mínimo 6 caracteres" 
               />
@@ -329,7 +329,7 @@ const CreateUserPage = () => {
                 type="password"
                 name="confirmPassword"
                 value={formData.confirmPassword}
-                onChange={handleChange}
+                onChange={handleChange} autoComplete="new-password"
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                 placeholder="Repite la contraseña" 
               />
@@ -345,7 +345,7 @@ const CreateUserPage = () => {
                 type="password"
                 name="admin_password"
                 value={formData.admin_password}
-                onChange={handleChange}
+                onChange={handleChange} autoComplete="current-password"
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                 placeholder="Ingresa tu contraseña de SuperAdmin" 
               />
@@ -382,8 +382,7 @@ const CreateUserPage = () => {
           </div>
 
           {/* DATOS COMPLETOS - SOLO SI SE SELECCIONÓ */}
-          {formData.crearCompleto && (
-            <>
+          <div style={{ display: formData.crearCompleto ? '' : 'none' }}>
               <div className="pt-6 border-t border-slate-100">
                 <h4 className="text-sm font-bold text-[#001871] mb-6">Datos Personales Completos</h4>
                 
@@ -398,7 +397,7 @@ const CreateUserPage = () => {
                       type="text"
                       name="primer_nombre"
                       value={formData.primer_nombre}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. Juan" 
                     />
@@ -412,7 +411,7 @@ const CreateUserPage = () => {
                       type="text"
                       name="apodo"
                       value={formData.apodo}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. Juancho, JG, Stiben..." 
                     />
@@ -427,7 +426,7 @@ const CreateUserPage = () => {
                       type="text"
                       name="segundo_nombre"
                       value={formData.segundo_nombre}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. Carlos" 
                     />
@@ -443,7 +442,7 @@ const CreateUserPage = () => {
                       type="text"
                       name="primer_apellido"
                       value={formData.primer_apellido}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. García" 
                     />
@@ -457,7 +456,7 @@ const CreateUserPage = () => {
                       type="text"
                       name="segundo_apellido"
                       value={formData.segundo_apellido}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. López" 
                     />
@@ -472,7 +471,7 @@ const CreateUserPage = () => {
                       type="date"
                       name="fecha_ingreso"
                       value={formData.fecha_ingreso}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                     />
                   </div>
@@ -551,7 +550,7 @@ const CreateUserPage = () => {
                       type="tel"
                       name="telefono"
                       value={formData.telefono}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Ej. 300 123 4567" 
                     />
@@ -566,7 +565,7 @@ const CreateUserPage = () => {
                       type="text"
                       name="nombre_contacto_emergencia"
                       value={formData.nombre_contacto_emergencia}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                       placeholder="Ej. María García"
                     />
@@ -580,7 +579,7 @@ const CreateUserPage = () => {
                       type="tel"
                       name="telefono_emergencia"
                       value={formData.telefono_emergencia}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                       placeholder="Ej. 300 999 8888"
                     />
@@ -594,7 +593,7 @@ const CreateUserPage = () => {
                       type="text"
                       name="parentesco_emergencia"
                       value={formData.parentesco_emergencia}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                       placeholder="Ej. Madre, Esposo, Hermano..."
                     />
@@ -609,7 +608,7 @@ const CreateUserPage = () => {
                       type="date"
                       name="fecha_nacimiento"
                       value={formData.fecha_nacimiento}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                     />
                   </div>
@@ -623,7 +622,7 @@ const CreateUserPage = () => {
                       type="text"
                       name="lugar_expedicion"
                       value={formData.lugar_expedicion}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                       placeholder="Ej. Medellín, Antioquia"
                     />
@@ -638,7 +637,7 @@ const CreateUserPage = () => {
                       type="date"
                       name="fecha_expedicion"
                       value={formData.fecha_expedicion}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
                     />
                   </div>
@@ -652,7 +651,7 @@ const CreateUserPage = () => {
                       type="email"
                       name="correo_personal"
                       value={formData.correo_personal}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="personal@email.com" 
                     />
@@ -667,7 +666,7 @@ const CreateUserPage = () => {
                       type="text"
                       name="direccion"
                       value={formData.direccion}
-                      onChange={handleChange}
+                      onChange={handleChange} autoComplete="off"
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium" 
                       placeholder="Calle, número, ciudad..." 
                     />
@@ -725,8 +724,7 @@ const CreateUserPage = () => {
                   </div>
                 </div>
               </div>
-            </>
-          )}
+          </div>
 
           {/* ACCIONES FINAL */}
           <div className="flex justify-end items-center gap-6 pt-6 border-t border-slate-50">

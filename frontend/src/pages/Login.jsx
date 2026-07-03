@@ -71,6 +71,7 @@ const Login = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [msLoading, setMsLoading] = useState(false);
 
   const navigate = useNavigate();
   const { login, userRole, isAuthenticated } = useAuth();
@@ -160,6 +161,24 @@ const Login = () => {
       setRecoveryMessage({ type: 'error', text: err.message || 'Error al restablecer la contraseña.' });
     } finally {
       setRecoveryLoading(false);
+    }
+  };
+
+  const handleMicrosoftLogin = async () => {
+    setMsLoading(true);
+    setError('');
+    try {
+      const redirectUri = `${window.location.origin}/auth/microsoft/callback`;
+      const res = await fetch(`/api/auth/microsoft/url/?redirect_uri=${encodeURIComponent(redirectUri)}`);
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        setError(data.error || 'Login con Microsoft no está configurado aún.');
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setError('No se pudo conectar con el servidor. Intenta de nuevo.');
+      setMsLoading(false);
     }
   };
 
@@ -327,6 +346,33 @@ const Login = () => {
               )}
             </button>
           </form>
+
+          {/* Separador */}
+          <div className="flex items-center gap-3 my-6">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400 font-medium">o continúa con</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          {/* Botón Microsoft */}
+          <button
+            type="button"
+            onClick={handleMicrosoftLogin}
+            disabled={msLoading}
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 bg-white hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.99]"
+          >
+            {msLoading ? (
+              <Loader2 size={16} className="animate-spin text-gray-400" />
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="0" y="0" width="10" height="10" fill="#F25022"/>
+                <rect x="11" y="0" width="10" height="10" fill="#7FBA00"/>
+                <rect x="0" y="11" width="10" height="10" fill="#00A4EF"/>
+                <rect x="11" y="11" width="10" height="10" fill="#FFB900"/>
+              </svg>
+            )}
+            {msLoading ? 'Redirigiendo...' : 'Continuar con cuenta Microsoft'}
+          </button>
 
           <p className="text-center text-[11px] text-gray-300 mt-10">
             © 2026 Russell Bedford GCT · Todos los derechos reservados.

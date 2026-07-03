@@ -97,7 +97,7 @@ export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) =>
     {
       label: 'Recursos',
       items: [
-        { tab: 'cursos', label: 'Cursos', icon: PlayCircle, visible: tieneCursos },
+        { tab: 'cursos', label: 'Formación', icon: PlayCircle, visible: tieneCursos },
         { tab: 'reglamento', label: 'Reglamento', icon: BookOpen },
         { tab: 'utilidades', label: 'Herramientas', icon: Wrench },
       ],

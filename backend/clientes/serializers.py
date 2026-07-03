@@ -92,7 +92,7 @@ class EmpresaClienteSerializer(serializers.ModelSerializer):
 
     def get_equipo(self, obj):
         qs = obj.equipo.filter(activo=True).select_related('empleado__persona', 'empleado__cargo')
-        return AsignacionEquipoSerializer(qs, many=True).data
+        return AsignacionEquipoSerializer(qs, many=True, context=self.context).data
 
     class Meta:
         model = EmpresaCliente

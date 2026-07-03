@@ -64,7 +64,7 @@ export const EditorSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
     {
       label: 'Contenido',
       items: [
-        { tab: 'cursos', label: 'Cursos', icon: BookOpen },
+        { tab: 'cursos', label: 'Formación', icon: BookOpen },
         { tab: 'historial', label: 'Historial', icon: History },
       ],
     },

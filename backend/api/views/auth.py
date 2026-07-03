@@ -306,13 +306,6 @@ def completar_datos_empleado(request):
     if not empleado.primer_login and not empleado.permitir_edicion_datos:
         return Response({'error': 'No tienes permiso para editar tus datos'}, status=status.HTTP_403_FORBIDDEN)
 
-    # Verificar contraseña SOLO si NO es primer login (es edición posterior)
-    if not empleado.primer_login and empleado.permitir_edicion_datos:
-        if not password:
-            return Response({'error': 'Contraseña requerida para verificar identidad'}, status=status.HTTP_400_BAD_REQUEST)
-        if not empleado.password_hash or not bcrypt.checkpw(password.encode('utf-8'), empleado.password_hash.encode('utf-8')):
-            return Response({'error': 'Contraseña incorrecta'}, status=status.HTTP_401_UNAUTHORIZED)
-
     # Validar la nueva contraseña antes de tocar la base de datos
     nueva_password_solicitada = request.data.get('nueva_password')
     if empleado.primer_login and nueva_password_solicitada and len(nueva_password_solicitada) < 6:

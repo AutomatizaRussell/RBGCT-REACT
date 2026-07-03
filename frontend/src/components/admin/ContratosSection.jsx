@@ -45,6 +45,9 @@ const MOTIVOS_TERM   = [
   { value: 'mutuo_acuerdo',       label: 'Mutuo Acuerdo' },
   { value: 'vencimiento',         label: 'Vencimiento del Término' },
   { value: 'obra_terminada',      label: 'Terminación de la Obra' },
+  { value: 'muerte',              label: 'Fallecimiento del Trabajador' },
+  { value: 'incapacidad',         label: 'Incapacidad Permanente' },
+  { value: 'liquidacion_empresa', label: 'Liquidación de la Empresa' },
 ];
 const NIVEL_RIESGO   = ['I', 'II', 'III', 'IV', 'V'];
 
@@ -91,6 +94,13 @@ const Textarea = (props) => (
   <textarea {...props} rows={3} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 bg-white resize-none" />
 );
 
+const DetailRow = ({ label, value, highlight }) => (
+  <div className="flex justify-between items-start gap-2">
+    <span className="text-xs text-slate-500 shrink-0">{label}</span>
+    <span className={`text-xs text-right font-medium ${highlight ? 'text-[#001871] font-semibold' : 'text-slate-800'}`}>{value}</span>
+  </div>
+);
+
 // ── Formulario de Contrato ────────────────────────────────────────────────────
 
 const ContratoForm = ({ empleado, contrato, mode, onSaved, onCancel }) => {
@@ -103,6 +113,7 @@ const ContratoForm = ({ empleado, contrato, mode, onSaved, onCancel }) => {
     if (isTerm)  return { motivo_terminacion: '', fecha_terminacion: '', observaciones: '' };
     return {
       empleado: empleado.id_empleado,
+      numero_contrato: contrato?.numero_contrato || '',
       tipo_contrato: contrato?.tipo_contrato || 'termino_indefinido',
       fecha_inicio: contrato?.fecha_inicio || '',
       fecha_fin: contrato?.fecha_fin || '',
@@ -110,6 +121,10 @@ const ContratoForm = ({ empleado, contrato, mode, onSaved, onCancel }) => {
       salario: contrato?.salario || '',
       tipo_salario: contrato?.tipo_salario || 'ordinario',
       auxilio_transporte: contrato?.auxilio_transporte ?? true,
+      monto_auxilio_transporte: contrato?.monto_auxilio_transporte || '',
+      bonificaciones: contrato?.bonificaciones || '',
+      descripcion_bonificaciones: contrato?.descripcion_bonificaciones || '',
+      horas_semanales: contrato?.horas_semanales || '',
       forma_pago: contrato?.forma_pago || 'mensual',
       jornada: contrato?.jornada || 'completa',
       modalidad: contrato?.modalidad || 'presencial',
@@ -203,11 +218,28 @@ const ContratoForm = ({ empleado, contrato, mode, onSaved, onCancel }) => {
     </form>
   );
 
-  const needsFechaFin = ['termino_fijo', 'obra_labor', 'prestacion_servicios', 'aprendizaje'].includes(form.tipo_contrato);
+  const needsFechaFin      = ['termino_fijo', 'obra_labor', 'prestacion_servicios', 'aprendizaje'].includes(form.tipo_contrato);
+  const needsHorasSemanales = ['medio_tiempo', 'flexible', 'por_horas'].includes(form.jornada);
+
+  const SectionLabel = ({ children }) => (
+    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pt-1 pb-0.5 border-t border-slate-100 col-span-full mt-1">
+      {children}
+    </p>
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+
+      {/* ── Identificación del contrato ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <SectionLabel>Identificación</SectionLabel>
+        <Field label="N° / Referencia del contrato">
+          <Input
+            value={form.numero_contrato}
+            onChange={e => set('numero_contrato', e.target.value)}
+            placeholder="Ej: CT-2026-001"
+          />
+        </Field>
         <Field label="Tipo de contrato" required>
           <Select value={form.tipo_contrato} onChange={e => set('tipo_contrato', e.target.value)} required>
             {TIPO_CONTRATO.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -221,14 +253,19 @@ const ContratoForm = ({ empleado, contrato, mode, onSaved, onCancel }) => {
             <Input type="date" value={form.fecha_fin} onChange={e => set('fecha_fin', e.target.value)} required={needsFechaFin} />
           </Field>
         )}
+        <Field label="Fecha de firma">
+          <Input type="date" value={form.fecha_firma} onChange={e => set('fecha_firma', e.target.value)} />
+        </Field>
         <Field label="Período de prueba (días)">
           <Input type="number" value={form.periodo_prueba_dias} onChange={e => set('periodo_prueba_dias', e.target.value)} min={0} max={60} />
         </Field>
       </div>
 
-      <div className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Salario" required>
-          <Input type="number" value={form.salario} onChange={e => set('salario', e.target.value)} placeholder="Ej: 1800000" required />
+      {/* ── Compensación ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <SectionLabel>Compensación</SectionLabel>
+        <Field label="Salario base" required>
+          <Input type="number" value={form.salario} onChange={e => set('salario', e.target.value)} placeholder="Ej: 1800000" required min={0} />
         </Field>
         <Field label="Tipo de salario">
           <Select value={form.tipo_salario} onChange={e => set('tipo_salario', e.target.value)}>
@@ -246,28 +283,70 @@ const ContratoForm = ({ empleado, contrato, mode, onSaved, onCancel }) => {
             <option value="false">No aplica (integral o &gt;2 SMLMV)</option>
           </Select>
         </Field>
+        {form.auxilio_transporte && (
+          <Field label="Monto auxilio de transporte">
+            <Input
+              type="number"
+              value={form.monto_auxilio_transporte}
+              onChange={e => set('monto_auxilio_transporte', e.target.value)}
+              placeholder="Dejar vacío para usar valor legal"
+              min={0}
+            />
+          </Field>
+        )}
+        <Field label="Bonificaciones fijas (mensual)">
+          <Input
+            type="number"
+            value={form.bonificaciones}
+            onChange={e => set('bonificaciones', e.target.value)}
+            placeholder="Ej: 200000"
+            min={0}
+          />
+        </Field>
+        {form.bonificaciones && (
+          <Field label="Descripción de bonificaciones">
+            <Textarea
+              value={form.descripcion_bonificaciones}
+              onChange={e => set('descripcion_bonificaciones', e.target.value)}
+              placeholder="Ej: Rodamiento $100.000, Alimentación $100.000"
+            />
+          </Field>
+        )}
       </div>
 
-      <div className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* ── Jornada y lugar ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <SectionLabel>Jornada y lugar</SectionLabel>
         <Field label="Jornada">
           <Select value={form.jornada} onChange={e => set('jornada', e.target.value)}>
             {JORNADA.map(j => <option key={j.value} value={j.value}>{j.label}</option>)}
           </Select>
         </Field>
+        {needsHorasSemanales && (
+          <Field label="Horas semanales">
+            <Input
+              type="number"
+              value={form.horas_semanales}
+              onChange={e => set('horas_semanales', e.target.value)}
+              placeholder="Ej: 20"
+              min={1}
+              max={47}
+            />
+          </Field>
+        )}
         <Field label="Modalidad">
           <Select value={form.modalidad} onChange={e => set('modalidad', e.target.value)}>
             {MODALIDAD.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
           </Select>
         </Field>
-        <Field label="Lugar de trabajo" className="col-span-2">
+        <Field label="Lugar de trabajo">
           <Input value={form.lugar_trabajo} onChange={e => set('lugar_trabajo', e.target.value)} placeholder="Ciudad / Dirección" />
-        </Field>
-        <Field label="Fecha de firma">
-          <Input type="date" value={form.fecha_firma} onChange={e => set('fecha_firma', e.target.value)} />
         </Field>
       </div>
 
-      <div className="border-t border-slate-100 pt-4 space-y-3">
+      {/* ── Documentos y notas ── */}
+      <div className="grid grid-cols-1 gap-3">
+        <SectionLabel>Documentos y notas</SectionLabel>
         <Field label="PDF del contrato firmado">
           <input type="file" accept=".pdf" onChange={e => set('pdf_contrato', e.target.files[0])}
             className="text-sm text-slate-600 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 w-full" />
@@ -277,8 +356,8 @@ const ContratoForm = ({ empleado, contrato, mode, onSaved, onCancel }) => {
             </a>
           )}
         </Field>
-        <Field label="Observaciones">
-          <Textarea value={form.observaciones} onChange={e => set('observaciones', e.target.value)} placeholder="Cláusulas adicionales, notas..." />
+        <Field label="Observaciones / Cláusulas adicionales">
+          <Textarea value={form.observaciones} onChange={e => set('observaciones', e.target.value)} placeholder="Cláusulas adicionales, notas especiales..." />
         </Field>
       </div>
 
@@ -521,24 +600,66 @@ const EmpleadoPanel = ({ empleado, onClose, onRefresh }) => {
                 </div>
 
                 {/* Datos del contrato */}
-                <div className="bg-slate-50 rounded-xl p-4 space-y-3">
-                  {[
-                    ['Tipo',          contrato.tipo_contrato_display],
-                    ['Fecha inicio',  contrato.fecha_inicio],
-                    ['Fecha fin',     contrato.fecha_fin || 'Indefinido'],
-                    ['Salario',       `$${Number(contrato.salario).toLocaleString('es-CO')}`],
-                    ['Tipo salario',  contrato.tipo_salario === 'integral' ? 'Integral' : 'Ordinario'],
-                    ['Auxilio transp',contrato.auxilio_transporte ? 'Sí' : 'No'],
-                    ['Jornada',       contrato.jornada],
-                    ['Modalidad',     contrato.modalidad],
-                    ['Lugar trabajo', contrato.lugar_trabajo || '—'],
-                    ['Período prueba',`${contrato.periodo_prueba_dias} días`],
-                  ].map(([k, v]) => (
-                    <div key={k} className="flex justify-between text-sm">
-                      <span className="text-slate-500 text-xs">{k}</span>
-                      <span className="font-medium text-slate-800 text-xs text-right">{v}</span>
+                <div className="bg-slate-50 rounded-xl p-4 space-y-4">
+
+                  {/* Identificación */}
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Identificación</p>
+                    <div className="space-y-2">
+                      {contrato.numero_contrato && (
+                        <DetailRow label="N° Contrato" value={contrato.numero_contrato} />
+                      )}
+                      <DetailRow label="Tipo" value={contrato.tipo_contrato_display} />
+                      <DetailRow label="Fecha inicio" value={contrato.fecha_inicio} />
+                      <DetailRow label="Fecha fin" value={contrato.fecha_fin || 'Indefinido'} />
+                      {contrato.fecha_firma && <DetailRow label="Fecha firma" value={contrato.fecha_firma} />}
+                      <DetailRow label="Período prueba" value={`${contrato.periodo_prueba_dias} días`} />
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Compensación */}
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pt-3 border-t border-slate-200">Compensación</p>
+                    <div className="space-y-2">
+                      <DetailRow label="Salario base" value={`$${Number(contrato.salario).toLocaleString('es-CO')}`} highlight />
+                      <DetailRow label="Tipo salario" value={contrato.tipo_salario === 'integral' ? 'Integral' : 'Ordinario'} />
+                      <DetailRow label="Forma de pago" value={contrato.forma_pago} />
+                      <DetailRow
+                        label="Auxilio transporte"
+                        value={
+                          contrato.auxilio_transporte
+                            ? contrato.monto_auxilio_transporte
+                              ? `Sí — $${Number(contrato.monto_auxilio_transporte).toLocaleString('es-CO')}`
+                              : 'Sí (valor legal)'
+                            : 'No aplica'
+                        }
+                      />
+                      {contrato.bonificaciones && Number(contrato.bonificaciones) > 0 && (
+                        <>
+                          <DetailRow label="Bonificaciones" value={`$${Number(contrato.bonificaciones).toLocaleString('es-CO')}/mes`} highlight />
+                          {contrato.descripcion_bonificaciones && (
+                            <div className="text-xs text-slate-500 bg-white rounded-lg px-3 py-2 border border-slate-200">
+                              {contrato.descripcion_bonificaciones}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Jornada */}
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pt-3 border-t border-slate-200">Jornada y lugar</p>
+                    <div className="space-y-2">
+                      <DetailRow label="Jornada" value={contrato.jornada} />
+                      {contrato.horas_semanales && (
+                        <DetailRow label="Horas semanales" value={`${contrato.horas_semanales} h/sem`} />
+                      )}
+                      <DetailRow label="Modalidad" value={contrato.modalidad} />
+                      <DetailRow label="Lugar trabajo" value={contrato.lugar_trabajo || '—'} />
+                    </div>
+                  </div>
+
                 </div>
 
                 {contrato.pdf_url && (

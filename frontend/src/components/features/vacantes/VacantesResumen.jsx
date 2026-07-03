@@ -42,7 +42,7 @@ export default function VacantesResumen() {
                     onClick={abrirPortal}
                     className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 transition-colors hover:text-[#001871]"
                 >
-                    Ver portal <ExternalLink size={12} strokeWidth={2} />
+                    Ver vacantes <ExternalLink size={12} strokeWidth={2} />
                 </button>
             </div>
 

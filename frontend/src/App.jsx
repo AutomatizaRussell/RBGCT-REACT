@@ -1,5 +1,7 @@
-import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { fetchApi, tokenStorage } from './lib/api';
+import { useAuth } from './hooks/useAuth';
 import { AuthProvider } from './context/AuthContext';
 import { DataCacheProvider } from './context/DataCacheContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -21,11 +23,11 @@ const UserTable = lazy(() => import('./components/empleados/gestion/UserTable'))
 const CreateUserPage = lazy(() => import('./components/empleados/gestion/CreateUserPage'));
 const AutoGestion = lazy(() => import('./components/empleados/portal/AutoGestion'));
 const UserProfile = lazy(() => import('./components/empleados/portal/UserProfile'));
-const ManualesCargo = lazy(() => import('./components/empleados/portal/ManualesCargo'));
+const ManualesCargo = lazy(() => import('./components/formacion/portal/ManualesCargo'));
 const ComunicadosInternos = lazy(() => import('./components/empleados/portal/ComunicadosInternos'));
 const MisClientes = lazy(() => import('./components/empleados/portal/MisClientes'));
 const MisClienteDetalle = lazy(() => import('./components/empleados/portal/MisClienteDetalle'));
-const EditorCursos = lazy(() => import('./components/editor/EditorCursos'));
+const EditorCursos = lazy(() => import('./components/formacion/editor/EditorCursos'));
 const EditorHistorial = lazy(() => import('./components/editor/EditorHistorial'));
 
 // Fallback mientras carga el chunk de la ruta
@@ -35,6 +37,73 @@ const RouteLoader = () => (
   </div>
 );
 
+
+// --- CALLBACK MICROSOFT OAuth ---
+const MicrosoftCallback = () => {
+  const [status, setStatus] = useState('loading');
+  const [msg, setMsg] = useState('');
+  const nav = useNavigate();
+  const { setEmpleadoDataVerify } = useAuth();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const msError = params.get('error');
+
+    if (msError) { setStatus('error'); setMsg('Microsoft canceló la autenticación.'); return; }
+    if (!code)    { setStatus('error'); setMsg('No se recibió código de autorización.'); return; }
+
+    fetchApi('/auth/microsoft/', {
+      method: 'POST',
+      body: JSON.stringify({ code, redirect_uri: `${window.location.origin}/auth/microsoft/callback` }),
+    })
+      .then((res) => {
+        if (!res.access_token) {
+          setStatus('error');
+          setMsg(res.error || 'Tu cuenta de Microsoft no está registrada en GCT.');
+          return;
+        }
+
+        tokenStorage.set(res.access_token, res.refresh_token, true);
+
+        if (res.type === 'superadmin') {
+          const userData = { id: res.user.id, email: res.user.email, nombre: res.user.nombre, apellido: res.user.apellido || '' };
+          localStorage.setItem('gct_user', JSON.stringify(userData));
+          localStorage.setItem('gct_empleado', JSON.stringify({ ...res.user, id_permisos: 1 }));
+          localStorage.setItem('gct_role', 'superadmin');
+          nav('/superadmin', { replace: true });
+        } else {
+          setEmpleadoDataVerify(res.user, { accessToken: res.access_token, refreshToken: res.refresh_token });
+          localStorage.setItem('gct_primer_login', res.primer_login ? 'true' : 'false');
+          const routes = { admin: '/admin', editor: '/editor' };
+          nav(res.primer_login ? '/completar-perfil' : (routes[res.role] || '/app'), { replace: true });
+        }
+      })
+      .catch((err) => {
+        setStatus('error');
+        setMsg(err.message || 'Error al procesar el inicio de sesión.');
+      });
+  }, []);
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4">
+      {status === 'loading' && (
+        <>
+          <div className="w-10 h-10 border-4 border-[#001871]/20 border-t-[#001871] rounded-full animate-spin" />
+          <p className="text-sm text-slate-500">Verificando cuenta Microsoft...</p>
+        </>
+      )}
+      {status === 'error' && (
+        <div className="text-center max-w-sm px-6">
+          <p className="text-red-600 font-semibold mb-3">{msg}</p>
+          <button onClick={() => nav('/', { replace: true })} className="text-sm text-[#001871] underline">
+            Volver al inicio de sesión
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // --- COMPONENTES LOCALES / PLACEHOLDERS ---
 const WelcomeUser = () => (
@@ -64,6 +133,9 @@ function App() {
 
             {/* 2.5. VERIFICACIÓN DE CÓDIGO - Primer login */}
             <Route path="/verify-code" element={<VerifyCode />} />
+
+            {/* 2.6. CALLBACK MICROSOFT OAuth */}
+            <Route path="/auth/microsoft/callback" element={<MicrosoftCallback />} />
 
             {/* Portal de Vacantes - Público (candidatos externos, sin login) */}
             <Route path="/vacantes" element={<PortalVacantes />} />

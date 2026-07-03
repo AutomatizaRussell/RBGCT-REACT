@@ -11,6 +11,7 @@ import {
   Building2,
   ClipboardList,
   Briefcase,
+  GraduationCap,
 } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
@@ -62,6 +63,7 @@ export const AdminSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
         { tab: 'contratos', label: 'Gestión Personas', icon: FileText },
         { tab: 'clientes', label: 'Clientes', icon: Building2 },
         { tab: 'vacantes', label: 'Portal de Vacantes', icon: Briefcase },
+        { tab: 'cursos', label: 'Formación', icon: GraduationCap },
         { tab: 'herramientas', label: 'Herramientas', icon: Wrench },
       ],
     },

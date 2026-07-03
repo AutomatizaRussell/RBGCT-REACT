@@ -85,23 +85,6 @@ class DatosEmpleadoViewSet(viewsets.ModelViewSet):
             # Para SuperAdmin, comparar de otra forma o siempre permitir
             is_own_profile = False  # SuperAdmin nunca edita su propio perfil por este endpoint
 
-        # Si NO es primer login y tiene permitir_edicion_datos, y es el propio usuario
-        if not instance.primer_login and instance.permitir_edicion_datos and is_own_profile:
-            # El frontend envía 'password' (no 'current_password')
-            current_password = request.data.get('password')
-            if not current_password:
-                return Response(
-                    {'error': 'Debes proporcionar tu contraseña actual para actualizar los datos'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-
-            # Validar contraseña
-            if not (instance.password_hash and bcrypt.checkpw(current_password.encode('utf-8'), instance.password_hash.encode('utf-8'))):
-                return Response(
-                    {'error': 'Contraseña actual incorrecta'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-
         # Preparar datos para el serializer
         data = request.data.copy()
 
@@ -122,7 +105,7 @@ class DatosEmpleadoViewSet(viewsets.ModelViewSet):
 
         # Preparar respuesta con mensaje si se revocó el permiso
         response_data = serializer.data.copy()
-        if not instance.primer_login and request.data.get('password') and is_own_profile:
+        if not instance.primer_login and is_own_profile:
             response_data['mensaje'] = 'Datos actualizados exitosamente. El permiso de edición ha sido revocado. Contacta al administrador para futuras actualizaciones.'
 
         return Response(response_data)
@@ -222,13 +205,14 @@ def actualizar_mi_persona(request):
         'estrato_socioeconomico', 'tipo_vivienda',
         'tiene_discapacidad', 'descripcion_discapacidad',
         'tiene_hijos', 'numero_hijos',
+        'tiene_vehiculo', 'tipo_vehiculo', 'placa_vehiculo',
     ]
 
     persona = empleado.persona
     for campo in campos_persona:
         if campo in request.data:
             valor = request.data[campo]
-            if campo in ('tiene_discapacidad', 'tiene_hijos'):
+            if campo in ('tiene_discapacidad', 'tiene_hijos', 'tiene_vehiculo'):
                 setattr(persona, campo, bool(valor))
             elif campo in ('estrato_socioeconomico', 'numero_hijos'):
                 setattr(persona, campo, int(valor) if valor not in ('', None) else None)
@@ -236,9 +220,13 @@ def actualizar_mi_persona(request):
                 setattr(persona, campo, valor or None)
     persona.save()
 
+    empleado_update_fields = ['datos_persona_completados', 'permitir_edicion_datos']
     empleado.datos_persona_completados = True
     empleado.permitir_edicion_datos = False
-    empleado.save(update_fields=['datos_persona_completados', 'permitir_edicion_datos'])
+    if 'fecha_ingreso' in request.data:
+        empleado.fecha_ingreso = request.data['fecha_ingreso'] or None
+        empleado_update_fields.append('fecha_ingreso')
+    empleado.save(update_fields=empleado_update_fields)
 
     return Response({'ok': True})
 

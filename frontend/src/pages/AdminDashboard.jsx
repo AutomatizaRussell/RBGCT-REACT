@@ -42,7 +42,7 @@ import {
 import UserTable from '../components/empleados/gestion/UserTable';
 import UserProfile from '../components/empleados/portal/UserProfile';
 import TaskDashboard from '../components/tasks/TaskDashboard';
-import CursosSection from '../components/admin/CursosSection';
+import CursosAdmin from '../components/formacion/admin/CursosAdmin';
 import UtilidadesSection from '../components/herramientas/UtilidadesSection';
 import ContratosSection from '../components/admin/ContratosSection';
 import ClientesSection from '../components/admin/ClientesSection';
@@ -330,6 +330,12 @@ const Admin2Dashboard = () => {
         return (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
             <UserProfile />
+          </div>
+        );
+      case 'cursos':
+        return (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <CursosAdmin />
           </div>
         );
       case 'herramientas':
@@ -621,6 +627,7 @@ const Admin2Dashboard = () => {
       case 'clientes': return 'Clientes';
       case 'formularios-sqf': return 'Formulario creacion clientes/contratos';
       case 'vacantes': return 'Portal de Vacantes';
+      case 'cursos': return 'Formación';
       case 'herramientas': return 'Herramientas';
       case 'reglamento': return 'Reglamento Interno';
       case 'certificado': return 'Certificado de Empleo';
@@ -1073,7 +1080,6 @@ const HerramientasTab = () => {
 
   const SECCIONES = [
     { id: 'estructura', label: 'Estructura', icon: <Building2 size={14} /> },
-    { id: 'cursos', label: 'Cursos', icon: <Briefcase size={14} /> },
     { id: 'utilidades', label: 'Utilidades', icon: <Wrench size={14} /> },
   ];
 
@@ -1197,7 +1203,6 @@ const HerramientasTab = () => {
           </div>
       )}
 
-      {seccion === 'cursos' && <CursosSection />}
       {seccion === 'utilidades' && <UtilidadesSection />}
     </div>
   );

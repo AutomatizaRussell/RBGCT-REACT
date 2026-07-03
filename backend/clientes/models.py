@@ -158,7 +158,7 @@ class ContactoCliente(models.Model):
 class ServicioContratado(models.Model):
     empresa       = models.ForeignKey(EmpresaCliente, on_delete=models.CASCADE, related_name='servicios')
     area          = models.ForeignKey(
-        'api.DatosArea', on_delete=models.PROTECT,
+        'empleados.DatosArea', on_delete=models.PROTECT,
         related_name='servicios_clientes', null=True, blank=True
     )
     descripcion   = models.TextField(blank=True, null=True)
@@ -183,11 +183,11 @@ class ServicioContratado(models.Model):
 class AsignacionEquipo(models.Model):
     empresa      = models.ForeignKey(EmpresaCliente, on_delete=models.CASCADE, related_name='equipo')
     area         = models.ForeignKey(
-        'api.DatosArea', on_delete=models.PROTECT,
+        'empleados.DatosArea', on_delete=models.PROTECT,
         null=True, blank=True, related_name='asignaciones_clientes'
     )
     empleado     = models.ForeignKey(
-        'api.DatosEmpleado', on_delete=models.PROTECT,
+        'empleados.DatosEmpleado', on_delete=models.PROTECT,
         related_name='clientes_asignados'
     )
     servicio     = models.ForeignKey(
@@ -224,7 +224,7 @@ class DocumentoCliente(models.Model):
     fecha_documento = models.DateField(blank=True, null=True)
     vigente         = models.BooleanField(default=True)
     subido_por      = models.ForeignKey(
-        'api.DatosEmpleado', on_delete=models.SET_NULL,
+        'empleados.DatosEmpleado', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='documentos_clientes_subidos'
     )
     notas      = models.TextField(blank=True, null=True)
@@ -243,7 +243,7 @@ class BitacoraCliente(models.Model):
     tipo        = models.CharField(max_length=15, choices=TIPO_BITACORA_CHOICES)
     descripcion = models.TextField()
     empleado    = models.ForeignKey(
-        'api.DatosEmpleado', on_delete=models.SET_NULL,
+        'empleados.DatosEmpleado', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='bitacoras_registradas'
     )
     fecha      = models.DateTimeField()

@@ -47,7 +47,6 @@ const TaskManager = ({
     id_empleado: '',
     prioridad: 'media',
     fecha_vencimiento: '',
-    asignado_a: '',
     estado: 'pendiente'
   });
 
@@ -103,7 +102,6 @@ const TaskManager = ({
         id_empleado: selectedTask.empleado_id || '',
         prioridad: selectedTask.prioridad,
         fecha_vencimiento: selectedTask.fecha_vencimiento,
-        asignado_a: selectedTask.asignado_a || '',
         estado: selectedTask.estado
       });
       setShowForm(true);
@@ -136,12 +134,9 @@ const TaskManager = ({
         descripcion: formData.descripcion,
         area_id: formData.id_area || null,
         empleado_id: formData.id_empleado || null,
-        asignado_a: formData.asignado_a || null,
         prioridad: formData.prioridad,
         fecha_vencimiento: formData.fecha_vencimiento,
         estado: formData.estado || 'pendiente',
-        creado_por: user?.id,
-        fecha_creacion: new Date().toISOString()
       };
 
       if (editingTask) {
@@ -190,7 +185,6 @@ const TaskManager = ({
       id_empleado: '',
       prioridad: 'media',
       fecha_vencimiento: selectedDate ? selectedDate.toISOString().split('T')[0] : '',
-      asignado_a: '',
       estado: 'pendiente'
     });
     setEditingTask(null);
@@ -378,22 +372,14 @@ const TaskManager = ({
                   </label>
                   <select
                     value={formData.id_empleado}
-                    onChange={(e) => {
-                      const idEmpleado = e.target.value;
-                      const empleado = empleados.find(emp => emp.id_empleado.toString() === idEmpleado);
-                      setFormData({
-                        ...formData,
-                        id_empleado: idEmpleado ? parseInt(idEmpleado) : '',
-                        asignado_a: empleado ? empleado.correo_corporativo : ''
-                      });
-                    }}
+                    onChange={(e) => setFormData({ ...formData, id_empleado: e.target.value ? parseInt(e.target.value) : '' })}
                     disabled={loadingEmpleados}
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871] disabled:bg-slate-100"
                   >
                     <option value="">Tarea general del área</option>
                     {empleadosFiltrados.map(emp => (
                       <option key={emp.id_empleado} value={emp.id_empleado}>
-                        {emp.datos_personales?.nom_empleado} {emp.datos_personales?.ape_empleado} - {emp.correo_corporativo}
+                        {[emp.primer_nombre, emp.primer_apellido].filter(Boolean).join(' ') || emp.correo_corporativo}
                       </option>
                     ))}
                   </select>
@@ -472,7 +458,7 @@ const TaskManager = ({
                           {task.id_empleado ? (
                             <span className="flex items-center gap-1 text-indigo-600">
                               <Users size={12} />
-                              Asignada: {task.asignado_a || 'Empleado #' + task.id_empleado}
+                              Asignada: {task.nombre_completo_empleado || `Empleado #${task.id_empleado}`}
                             </span>
                           ) : (
                             <span className="flex items-center gap-1 text-slate-500">
@@ -496,7 +482,6 @@ const TaskManager = ({
                                   id_empleado: task.empleado_id || '',
                                   prioridad: task.prioridad,
                                   fecha_vencimiento: task.fecha_vencimiento,
-                                  asignado_a: task.asignado_a || '',
                                   estado: task.estado
                                 });
                                 setShowForm(true);

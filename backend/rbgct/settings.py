@@ -66,9 +66,16 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
 
-    # Local apps
-    'api',
+    # Local apps — modelos en sus propios schemas
+    'core',
+    'sistema',
+    'empleados',
+    'contratos',
+    'formacion',
+    'tareas',
     'clientes',
+    # Views / serializers / URLs (sin modelos propios)
+    'api',
 ]
 
 # =============================================================================
@@ -86,7 +93,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     # Custom
-    'api.middleware.JWTMiddleware',
+    'sistema.middleware.JWTMiddleware',
 ]
 
 # =============================================================================
@@ -191,7 +198,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'api.SuperAdmin'
+AUTH_USER_MODEL = 'sistema.SuperAdmin'
 
 # =============================================================================
 # SHAREPOINT (via n8n)
@@ -284,8 +291,8 @@ CORS_ALLOW_HEADERS = list(default_headers) + ['x-api-key']
 # =============================================================================
 
 default_authentication_classes = [
-    'api.authentication.JWTAuthentication',
-    'api.authentication.ApiKeyAuthentication',
+    'sistema.authentication.JWTAuthentication',
+    'sistema.authentication.ApiKeyAuthentication',
 ]
 
 # SessionAuthentication agrega validaciones y consultas extra; útil en desarrollo.
@@ -404,6 +411,11 @@ else:
 # =============================================================================
 # N8N
 # =============================================================================
+
+# ── Microsoft Azure AD OAuth ──────────────────────────────────────────────────
+AZURE_TENANT_ID     = os.getenv('AZURE_TENANT_ID', '')
+AZURE_CLIENT_ID     = os.getenv('AZURE_CLIENT_ID', '')
+AZURE_CLIENT_SECRET = os.getenv('AZURE_CLIENT_SECRET', '')
 
 N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL', '')
 

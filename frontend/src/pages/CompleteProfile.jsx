@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { User, Mail, Phone, Calendar, MapPin, Briefcase, Loader2, Check, ArrowRight } from 'lucide-react';
@@ -13,6 +13,7 @@ const CompleteProfile = () => {
   const [loadingAreas, setLoadingAreas] = useState(true);
   const [loadingCargos, setLoadingCargos] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [navigating, setNavigating] = useState(false);
   const [error, setError] = useState(null);
   const [step, setStep] = useState(1);
   const [hasUpdated, setHasUpdated] = useState(false); // Controla si ya se actualizó con el permiso
@@ -113,8 +114,10 @@ const CompleteProfile = () => {
   // Verificar si ya completó datos o tiene permiso para editar
   useEffect(() => {
     // Solo redirigir si datos_completados es true Y NO tiene permiso de edición
+    // Guard: si handleSubmit ya inició una navegación, no redirigir de nuevo
+    if (navigating) return;
     if (empleadoData?.datos_completados && !empleadoData?.permitir_edicion_datos) {
-      // Redirigir al dashboard correspondiente
+      setNavigating(true);
       const role = localStorage.getItem('gct_role');
       switch (role) {
         case 'superadmin': navigate('/superadmin'); break;
@@ -123,12 +126,31 @@ const CompleteProfile = () => {
         default: navigate('/app');
       }
     }
-  }, [empleadoData, navigate]);
+  }, [empleadoData, navigate, navigating]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+      // Resetear cargo cuando cambia el área para evitar cargos inválidos
+      ...(name === 'area_id' ? { cargo_id: '' } : {}),
+    }));
   };
+
+  const NIVELNES_REVISORIA = ['Semi-Senior', 'Asistente'];
+  const NIVELES_OTRAS      = ['Líder de Equipo', 'Analista'];
+
+  const areaSeleccionada = areas.find(a => String(a.id_area) === String(formData.area_id));
+  const esRevisoria = areaSeleccionada?.nombre_area
+    ?.toLowerCase().includes('revisoría') || false;
+
+  const filteredCargos = formData.area_id
+    ? cargos.filter(c => {
+        if (esRevisoria) return !NIVELES_OTRAS.some(n => c.nivel?.startsWith(n));
+        return !NIVELNES_REVISORIA.some(n => c.nivel?.startsWith(n));
+      })
+    : cargos;
 
   const handleNext = () => {
     // Validar paso 1
@@ -231,7 +253,8 @@ const CompleteProfile = () => {
         alert(result.mensaje);
       }
       
-      // Redirigir al dashboard
+      // Marcar navegación activa ANTES de navigate para que el useEffect no doble-navegue
+      setNavigating(true);
       const role = localStorage.getItem('gct_role');
       switch (role) {
         case 'superadmin': navigate('/superadmin'); break;
@@ -260,7 +283,7 @@ const CompleteProfile = () => {
             type="text"
             name="primer_nombre"
             value={formData.primer_nombre}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. Juan"
           />
@@ -274,7 +297,7 @@ const CompleteProfile = () => {
             type="text"
             name="segundo_nombre"
             value={formData.segundo_nombre}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. Carlos"
           />
@@ -289,7 +312,7 @@ const CompleteProfile = () => {
             type="text"
             name="primer_apellido"
             value={formData.primer_apellido}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. García"
           />
@@ -303,7 +326,7 @@ const CompleteProfile = () => {
             type="text"
             name="segundo_apellido"
             value={formData.segundo_apellido}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. López"
           />
@@ -317,7 +340,7 @@ const CompleteProfile = () => {
             type="text"
             name="apodo"
             value={formData.apodo}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. Juancho, JG, Stiben..."
           />
@@ -351,7 +374,7 @@ const CompleteProfile = () => {
             type="text"
             name="numero_documento"
             value={formData.numero_documento}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. 1234567890"
           />
@@ -365,7 +388,7 @@ const CompleteProfile = () => {
             type="text"
             name="lugar_expedicion"
             value={formData.lugar_expedicion}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. Medellín, Antioquia"
           />
@@ -379,7 +402,7 @@ const CompleteProfile = () => {
             type="date"
             name="fecha_expedicion"
             value={formData.fecha_expedicion}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
           />
         </div>
@@ -400,7 +423,7 @@ const CompleteProfile = () => {
             type="email"
             name="correo_personal"
             value={formData.correo_personal}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="personal@email.com"
           />
@@ -414,7 +437,7 @@ const CompleteProfile = () => {
             type="tel"
             name="telefono"
             value={formData.telefono}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. 300 123 4567"
           />
@@ -428,7 +451,7 @@ const CompleteProfile = () => {
             type="text"
             name="nombre_contacto_emergencia"
             value={formData.nombre_contacto_emergencia}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. María García"
           />
@@ -442,7 +465,7 @@ const CompleteProfile = () => {
             type="tel"
             name="telefono_emergencia"
             value={formData.telefono_emergencia}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. 300 999 8888"
           />
@@ -456,7 +479,7 @@ const CompleteProfile = () => {
             type="text"
             name="parentesco_emergencia"
             value={formData.parentesco_emergencia}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Ej. Madre, Esposo, Hermano..."
           />
@@ -470,7 +493,7 @@ const CompleteProfile = () => {
             type="text"
             name="direccion"
             value={formData.direccion}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
             placeholder="Calle, número, ciudad..."
           />
@@ -492,7 +515,7 @@ const CompleteProfile = () => {
             type="date"
             name="fecha_nacimiento"
             value={formData.fecha_nacimiento}
-            onChange={handleChange}
+            onChange={handleChange} autoComplete="off"
             className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
           />
         </div>
@@ -581,8 +604,10 @@ const CompleteProfile = () => {
                 onChange={handleChange}
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
               >
-                <option value="">Seleccionar cargo...</option>
-                {cargos.map(cargo => (
+                <option value="">
+                  {formData.area_id ? 'Seleccionar cargo...' : 'Primero selecciona un área'}
+                </option>
+                {filteredCargos.map(cargo => (
                   <option key={cargo.id_cargo} value={cargo.id_cargo}>
                     {cargo.nombre_cargo}
                   </option>
@@ -617,6 +642,7 @@ const CompleteProfile = () => {
                 placeholder="Ingresa tu contraseña actual"
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871]"
                 required={!empleadoData?.primer_login && empleadoData?.permitir_edicion_datos}
+                autoComplete="current-password"
               />
             </div>
           </div>
@@ -646,6 +672,7 @@ const CompleteProfile = () => {
                 onChange={(e) => setFormData({...formData, nueva_password: e.target.value})}
                 placeholder="Mínimo 6 caracteres"
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871]"
+                autoComplete="new-password"
               />
             </div>
             
@@ -659,6 +686,7 @@ const CompleteProfile = () => {
                 onChange={(e) => setFormData({...formData, confirmar_password: e.target.value})}
                 placeholder="Repite la contraseña"
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-[#001871]"
+                autoComplete="new-password"
               />
             </div>
           </div>
@@ -756,10 +784,10 @@ const CompleteProfile = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
-            {step === 1 && renderStep1()}
-            {step === 2 && renderStep2()}
-            {step === 3 && renderStep3()}
+          <form onSubmit={handleSubmit} autoComplete="off" translate="no">
+            <div style={{ display: step === 1 ? '' : 'none' }}>{renderStep1()}</div>
+            <div style={{ display: step === 2 ? '' : 'none' }}>{renderStep2()}</div>
+            <div style={{ display: step === 3 ? '' : 'none' }}>{renderStep3()}</div>
 
             {/* Actions */}
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100">

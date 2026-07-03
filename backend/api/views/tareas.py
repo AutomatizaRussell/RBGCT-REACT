@@ -168,12 +168,23 @@ class TareasCalendarioViewSet(viewsets.ModelViewSet):
                     )
 
         data = request.data.copy()
-        data.pop('user_role', None)
-        data.pop('user_id', None)
-        data.pop('user_area_id', None)
+        # Limpiar campos que el frontend envía pero no pertenecen al modelo
+        for campo in ('user_role', 'user_id', 'user_area_id', 'asignado_a', 'creado_por', 'fecha_creacion'):
+            data.pop(campo, None)
         request._full_data = data
 
         return super().create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        """Auto-asigna creado_por desde el usuario autenticado."""
+        user = self.request.user
+        creado_por = None
+        if _es_empleado(user):
+            try:
+                creado_por = DatosEmpleado.objects.get(id_empleado=user.id_empleado)
+            except DatosEmpleado.DoesNotExist:
+                pass
+        serializer.save(creado_por=creado_por)
 
     def update(self, request, *args, **kwargs):
         """
