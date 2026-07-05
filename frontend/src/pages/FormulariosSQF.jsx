@@ -157,12 +157,11 @@ export default function FormulariosSQF({ onBack }) {
     const [billingClientDocument, setBillingClientDocument] = useState('');
     const [billingDueDate, setBillingDueDate] = useState('');
     const [billingObservations, setBillingObservations] = useState('');
-    const [billingItems, setBillingItems] = useState([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
+    // Items deshabilitado temporalmente (no se usa por ahora)
+    // const [billingItems, setBillingItems] = useState([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
     const [saleType, setSaleType] = useState('');
-    const [crossSalePerson, setCrossSalePerson] = useState('');
     const [serviceType, setServiceType] = useState('');
     const [billingValorMes, setBillingValorMes] = useState('');
-    const [billingValorProyecto, setBillingValorProyecto] = useState('');
     const [billingMonthType, setBillingMonthType] = useState('');
     const [billingSellerDocument, setBillingSellerDocument] = useState('');
     const [origin, setOrigin] = useState('');
@@ -655,9 +654,10 @@ export default function FormulariosSQF({ onBack }) {
 
     const resetBillingForm = () => {
         setBillingReqType('facturacion'); setBillingModality(''); setBillingType('Servicio nuevo'); setBillingClientType('Cliente nuevo');
-        setBillingClientName(''); setBillingCompany(''); setSaleType(''); setCrossSalePerson('');
-        setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations(''); setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
-        setServiceType(''); setBillingValorMes(''); setBillingValorProyecto('');
+        setBillingClientName(''); setBillingCompany(''); setSaleType('');
+        setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations('');
+        // setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]); // Items deshabilitado temporalmente
+        setServiceType(''); setBillingValorMes('');
         setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType(''); setBillingSellerDocument('');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '' }]);
         setBillingErrors({}); setNcErrors({});
@@ -696,8 +696,8 @@ export default function FormulariosSQF({ onBack }) {
         setServiceType(sType);
 
         const val = contract?.value ? formatCurrency(contract.value) : '';
-        if (sType === 'Fee mensual') { setBillingValorMes(val); setBillingValorProyecto(''); }
-        else { setBillingValorProyecto(val); setBillingValorMes(''); }
+        if (sType === 'Fee mensual') { setBillingValorMes(val); }
+        else { setBillingValorMes(''); }
 
         setBillingCloser(contract?.manager || '');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val }]);
@@ -718,12 +718,10 @@ export default function FormulariosSQF({ onBack }) {
         if (!billingClientName.trim()) { errors.billingClientName = 'Requerido'; isValid = false; }
         if (!billingCompany) { errors.billingCompany = 'Requerido'; isValid = false; }
         if (!saleType) { errors.saleType = 'Requerido'; isValid = false; }
-        if (saleType === 'Venta cruzada' && !crossSalePerson.trim()) { showToastMsg('error', 'Campo Faltante', 'Falta persona venta cruzada.'); isValid = false; }
         if (!serviceType) { errors.serviceType = 'Requerido'; isValid = false; }
         if (serviceType === 'Fee mensual' && !billingValorMes.trim()) { errors.billingValorMes = 'Requerido'; isValid = false; }
-        if (serviceType === 'Proyecto' && !billingValorProyecto.trim()) { errors.billingValorProyecto = 'Requerido'; isValid = false; }
         if (!origin) { errors.origin = 'Requerido'; isValid = false; }
-        if (['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) && !originRef.trim()) { showToastMsg('error', 'Campo Faltante', 'Especifique el nombre del referente.'); isValid = false; }
+        if (['Referido externo', 'Referido empleado'].includes(origin) && !originRef.trim()) { showToastMsg('error', 'Campo Faltante', 'Especifique el nombre del referente.'); isValid = false; }
         if (!billingMonthType) { errors.billingMonthType = 'Requerido'; isValid = false; }
         if (!billingSellerDocument.trim()) { errors.billingSellerDocument = 'Requerido'; isValid = false; }
         if (!billingCloser.trim()) { errors.billingCloser = 'Requerido'; isValid = false; }
@@ -738,24 +736,23 @@ export default function FormulariosSQF({ onBack }) {
         if (!isValid) { setBillingErrors(errors); return; }
 
         setIsSubmittingBilling(true);
-        // Build items array from billingItems state
-        const parsedItems = (Array.isArray(billingItems) ? billingItems : []).map(it => {
-            const code = String(it.code || '').trim();
-            const quantity = parseInt(String(it.quantity || '').replace(/\D/g, '') || '0', 10) || 0;
-            const unitPrice = parseInt(String(it.unitPrice || '').replace(/\D/g, '') || '0', 10) || 0;
-            const description = String(it.description || '').trim();
-            return { code, quantity, unitPrice, description, total: quantity * unitPrice };
-        }).filter(it => it.code || it.quantity || it.unitPrice || it.description);
+        // Items deshabilitado temporalmente (no se usa por ahora)
+        // const parsedItems = (Array.isArray(billingItems) ? billingItems : []).map(it => {
+        //     const code = String(it.code || '').trim();
+        //     const quantity = parseInt(String(it.quantity || '').replace(/\D/g, '') || '0', 10) || 0;
+        //     const unitPrice = parseInt(String(it.unitPrice || '').replace(/\D/g, '') || '0', 10) || 0;
+        //     const description = String(it.description || '').trim();
+        //     return { code, quantity, unitPrice, description, total: quantity * unitPrice };
+        // }).filter(it => it.code || it.quantity || it.unitPrice || it.description);
 
         const autoDueDate = calculateBusinessDaysDate(new Date().toISOString().split('T')[0], 3);
 
         const payload = {
             id: generateId('BIL'), tipoSolicitud: 'Facturación', billingType, billingClientType,
             billingModality, modalidad_facturacion: billingModality,
-            clientName: billingClientName.toUpperCase(), company: billingCompany, saleType, crossSalePerson: saleType === 'Venta cruzada' ? crossSalePerson.toUpperCase() : '',
+            clientName: billingClientName.toUpperCase(), company: billingCompany, saleType, crossSalePerson: '',
             serviceType,
             valorMes: parseInt(String(billingValorMes).replace(/\D/g, '') || '0', 10),
-            valorProyecto: parseInt(String(billingValorProyecto).replace(/\D/g, '') || '0', 10),
             reference: billingReference || '',
             referencia: billingReference || '',
             clientDocument: billingClientDocument || '',
@@ -766,9 +763,9 @@ export default function FormulariosSQF({ onBack }) {
             fechaVencimiento: autoDueDate,
             observations: billingObservations || '',
             observaciones: billingObservations || '',
-            items: JSON.stringify(parsedItems),
-            items_json: JSON.stringify(parsedItems),
-            origin, originRef: ['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) ? originRef.toUpperCase() : '',
+            // items: JSON.stringify(parsedItems), // Items deshabilitado temporalmente
+            // items_json: JSON.stringify(parsedItems),
+            origin, originRef: ['Referido externo', 'Referido empleado'].includes(origin) ? originRef.toUpperCase() : '',
             closer: billingCloser.toUpperCase(),
             mes_tipo: billingMonthType,
             mesCorrienteOVencido: billingMonthType,
@@ -782,18 +779,19 @@ export default function FormulariosSQF({ onBack }) {
         try {
             const formData = new FormData();
             Object.keys(payload).forEach(k => formData.append(k, payload[k]));
-            parsedItems.forEach((item, index) => {
-                formData.append(`items[${index}][code]`, item.code);
-                formData.append(`items[${index}][quantity]`, String(item.quantity));
-                formData.append(`items[${index}][unitPrice]`, String(item.unitPrice));
-                formData.append(`items[${index}][description]`, item.description);
-                formData.append(`items[${index}][total]`, String(item.total));
-                formData.append(`items[${index}][codigo]`, item.code);
-                formData.append(`items[${index}][cantidad]`, String(item.quantity));
-                formData.append(`items[${index}][precio]`, String(item.unitPrice));
-                formData.append(`items[${index}][descripcion]`, item.description);
-                formData.append(`items[${index}][observaciones]`, billingObservations || '');
-            });
+            // Items deshabilitado temporalmente (no se usa por ahora)
+            // parsedItems.forEach((item, index) => {
+            //     formData.append(`items[${index}][code]`, item.code);
+            //     formData.append(`items[${index}][quantity]`, String(item.quantity));
+            //     formData.append(`items[${index}][unitPrice]`, String(item.unitPrice));
+            //     formData.append(`items[${index}][description]`, item.description);
+            //     formData.append(`items[${index}][total]`, String(item.total));
+            //     formData.append(`items[${index}][codigo]`, item.code);
+            //     formData.append(`items[${index}][cantidad]`, String(item.quantity));
+            //     formData.append(`items[${index}][precio]`, String(item.unitPrice));
+            //     formData.append(`items[${index}][descripcion]`, item.description);
+            //     formData.append(`items[${index}][observaciones]`, billingObservations || '');
+            // });
             await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
 
             const datatableForm = new FormData();
@@ -813,7 +811,6 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('cross_sale_person', payload.crossSalePerson);
             datatableForm.append('service_type', payload.serviceType);
             datatableForm.append('valor_mes', payload.valorMes);
-            datatableForm.append('valor_proyecto', payload.valorProyecto);
             datatableForm.append('origin', payload.origin);
             datatableForm.append('origin_ref', payload.originRef);
             datatableForm.append('closer', payload.closer);
@@ -831,20 +828,21 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('observations', payload.observations);
             datatableForm.append('observaciones', payload.observaciones);
             datatableForm.append('fechaVencimiento', payload.fechaVencimiento);
-            datatableForm.append('items', payload.items);
-            datatableForm.append('items_json', payload.items_json);
-            parsedItems.forEach((item, index) => {
-                datatableForm.append(`items[${index}][code]`, item.code);
-                datatableForm.append(`items[${index}][quantity]`, String(item.quantity));
-                datatableForm.append(`items[${index}][unitPrice]`, String(item.unitPrice));
-                datatableForm.append(`items[${index}][description]`, item.description);
-                datatableForm.append(`items[${index}][total]`, String(item.total));
-                datatableForm.append(`items[${index}][codigo]`, item.code);
-                datatableForm.append(`items[${index}][cantidad]`, String(item.quantity));
-                datatableForm.append(`items[${index}][precio]`, String(item.unitPrice));
-                datatableForm.append(`items[${index}][descripcion]`, item.description);
-                datatableForm.append(`items[${index}][observaciones]`, billingObservations || '');
-            });
+            // Items deshabilitado temporalmente (no se usa por ahora)
+            // datatableForm.append('items', payload.items);
+            // datatableForm.append('items_json', payload.items_json);
+            // parsedItems.forEach((item, index) => {
+            //     datatableForm.append(`items[${index}][code]`, item.code);
+            //     datatableForm.append(`items[${index}][quantity]`, String(item.quantity));
+            //     datatableForm.append(`items[${index}][unitPrice]`, String(item.unitPrice));
+            //     datatableForm.append(`items[${index}][description]`, item.description);
+            //     datatableForm.append(`items[${index}][total]`, String(item.total));
+            //     datatableForm.append(`items[${index}][codigo]`, item.code);
+            //     datatableForm.append(`items[${index}][cantidad]`, String(item.quantity));
+            //     datatableForm.append(`items[${index}][precio]`, String(item.unitPrice));
+            //     datatableForm.append(`items[${index}][descripcion]`, item.description);
+            //     datatableForm.append(`items[${index}][observaciones]`, billingObservations || '');
+            // });
             datatableForm.append('nc_invoice', '');
             datatableForm.append('nc_value', 0);
             datatableForm.append('nc_reason', '');
@@ -1637,16 +1635,7 @@ export default function FormulariosSQF({ onBack }) {
                         {billingReqType === 'facturacion' ? (
                             <>
                                 <div className="billing-step-card">
-                                    <h2 className="billing-step-title"><span className="step-pill">2</span> Modalidad de Facturación</h2>
-                                    <div className="radio-group radio-group-col">
-                                        <label className="radio-option"><input type="radio" value="Proyecto" checked={billingModality === 'Proyecto'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Proyecto</strong><small>Factura única vez</small></span></label>
-                                        <label className="radio-option"><input type="radio" value="Mensual" checked={billingModality === 'Mensual'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Se incluye en la facturación mensual</small></span></label>
-                                    </div>
-                                    <span className="field-error">{billingErrors.billingModality}</span>
-                                </div>
-
-                                <div className="billing-step-card">
-                                    <h2 className="billing-step-title"><span className="step-pill">3</span> Detalles de la Facturación</h2>
+                                    <h2 className="billing-step-title"><span className="step-pill">2</span> Detalles de la Facturación</h2>
                                     <div className="form-grid">
                                         <div className="form-group">
                                             <label className="form-label required">Tipo de Facturación</label>
@@ -1664,6 +1653,15 @@ export default function FormulariosSQF({ onBack }) {
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+
+                                <div className="billing-step-card">
+                                    <h2 className="billing-step-title"><span className="step-pill">3</span> Modalidad de Facturación</h2>
+                                    <div className="radio-group radio-group-col">
+                                        <label className="radio-option"><input type="radio" value="Proyecto" checked={billingModality === 'Proyecto'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Proyecto</strong><small>Factura única vez</small></span></label>
+                                        <label className="radio-option"><input type="radio" value="Mensual" checked={billingModality === 'Mensual'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Se incluye en la facturación mensual</small></span></label>
+                                    </div>
+                                    <span className="field-error">{billingErrors.billingModality}</span>
                                 </div>
 
                                 <div className="form-card">
@@ -1687,6 +1685,7 @@ export default function FormulariosSQF({ onBack }) {
                                                 <label className="form-label">Observaciones</label>
                                                 <textarea className="form-input form-textarea" rows={2} value={billingObservations} onChange={(e) => setBillingObservations(e.target.value)} />
                                             </div>
+                                            {/* Items deshabilitado temporalmente (no se usa por ahora)
                                             <div className="form-group full-width">
                                                 <label className="form-label">Items</label>
                                                 <div className="items-table">
@@ -1734,6 +1733,7 @@ export default function FormulariosSQF({ onBack }) {
                                                     </div>
                                                 </div>
                                             </div>
+                                            */}
                                             <div className="form-group">
                                                 <label className="form-label required">Empresa Facturadora</label>
                                                 <select className="form-input form-select" value={billingCompany} onChange={(e) => setBillingCompany(e.target.value)}>
@@ -1759,17 +1759,9 @@ export default function FormulariosSQF({ onBack }) {
                                                     <option value="Nueva venta">Nueva venta</option>
                                                     <option value="Cambio de área">Cambio de área</option>
                                                     <option value="Reintegro de cliente retirado">Reintegro de cliente retirado</option>
-                                                    <option value="Venta cruzada">Venta cruzada</option>
                                                 </select>
                                                 <span className="field-error">{billingErrors.saleType}</span>
                                             </div>
-                                            
-                                            {saleType === 'Venta cruzada' && (
-                                                <div className="form-group full-width">
-                                                    <label className="form-label required">Persona que Generó la Venta Cruzada</label>
-                                                    <input type="text" className="form-input" value={crossSalePerson} onChange={(e) => setCrossSalePerson(e.target.value)} />
-                                                </div>
-                                            )}
 
                                             <div className="form-group">
                                                 <label className="form-label required">Tipo de Servicio</label>
@@ -1791,15 +1783,6 @@ export default function FormulariosSQF({ onBack }) {
                                                     <span className="field-error">{billingErrors.billingValorMes}</span>
                                                 </div>
                                             )}
-                                            {(serviceType === 'Proyecto' || serviceType === 'Otro') && (
-                                                <div className="form-group">
-                                                    <label className="form-label required">Valor Proyecto 100% (antes de IVA)</label>
-                                                    <div className="input-currency-wrapper"><span className="currency-prefix">$</span>
-                                                        <input type="text" className="form-input currency-input" value={billingValorProyecto} onChange={(e) => handleCurrencyChange(e, setBillingValorProyecto)} />
-                                                    </div>
-                                                    <span className="field-error">{billingErrors.billingValorProyecto}</span>
-                                                </div>
-                                            )}
 
                                             <div className="form-group">
                                                 <label className="form-label required">Origen del Cliente</label>
@@ -1814,7 +1797,7 @@ export default function FormulariosSQF({ onBack }) {
                                                 <span className="field-error">{billingErrors.origin}</span>
                                             </div>
 
-                                            {['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) && (
+                                            {['Referido externo', 'Referido empleado'].includes(origin) && (
                                                 <div className="form-group">
                                                     <label className="form-label required">Nombre Referente / Cliente Antiguo</label>
                                                     <input type="text" className="form-input" value={originRef} onChange={(e) => setOriginRef(e.target.value)} />
