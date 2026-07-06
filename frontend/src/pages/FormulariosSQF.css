@@ -372,7 +372,11 @@
 .radio-option input[type="radio"]:checked ~ .radio-custom { border-color: var(--color-blue-dark); }
 .radio-option input[type="radio"]:checked ~ .radio-custom::after { transform: translate(-50%,-50%) scale(1); }
 .radio-option input[type="radio"]:checked ~ .radio-text strong { color: var(--color-blue-dark); }
-.radio-option:has(input:checked) { border-color: var(--color-blue-dark); background: rgba(0,24,113,.04); }
+.radio-option:has(input:checked) {
+  border-color: var(--color-blue-dark);
+  background: rgba(0,24,113,.10);
+  box-shadow: 0 0 0 3px rgba(0,24,113,.16);
+}
 .radio-text { display: flex; flex-direction: column; gap: 2px; }
 .radio-text strong { font-size: 14px; color: var(--color-text); }
 .radio-text small  { font-size: 12px; color: var(--color-text-muted); }
@@ -1038,7 +1042,7 @@
 .radio-option:has(input:checked) {
     border-left-color: var(--color-blue-light);
     background: linear-gradient(90deg, rgba(0,24,113,.08), transparent);
-    box-shadow: 0 2px 8px rgba(0,24,113,.12);
+    box-shadow: 0 0 0 3px rgba(0,24,113,.14), 0 2px 10px rgba(0,24,113,.16);
 }
 
 .radio-custom {

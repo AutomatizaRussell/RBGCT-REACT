@@ -79,7 +79,6 @@ const BILLING_CENTERS = {
     'BPO':                   [{ label: 'BPO',                       code: '04 - 0202' }],
     'LEGAL':                 [{ label: 'LEGAL',                     code: '06 - 0601' }],
     'FINANZAS':              [{ label: 'FINANZAS',                  code: '07 - 0701' }],
-    'PROPIEDAD INTELECTUAL': [{ label: 'PROPIEDAD INTELECTUAL',     code: '08 - 0801' }],
     'ADMINISTRACIÓN':        [
         { label: 'ADMINISTRACION TI',      code: '99 - 0901' },
         { label: 'ADMINISTRACION MERCADEO', code: '99 - 1001' },
@@ -87,6 +86,27 @@ const BILLING_CENTERS = {
         { label: 'ADMINISTRACIÓN',          code: '99 - 9999' },
     ],
 };
+
+const GERENTES = [
+    'David López Castaño',
+    'Sara López Castaño',
+    'Nelson Eduardo Giraldo',
+    'Zulima López Arango',
+    'Erica Maria Vergara',
+    'Sandra Milena Pineda',
+    'Esneider López Caicedo',
+    'Karol viviana osorio Cuartas',
+    'Juan Guillermo Castaño Jimenez',
+    'Francy Milena Rico Areiza',
+    'Norbey Granada Grajales',
+    'Jose Felipe López Méndez',
+    'Daniel Vélez Mesa',
+    'Verónica Sánchez Fernández',
+    'Paula Jimena Tejeiro Cardenas',
+    'Manuel Alejandro Ramirez Carrasquilla',
+    'Mayra Alejandra Jaramillo Velásquez',
+    'Raúl Bernando Acosta Zapata',
+];
 
 const CATEGORIAS_CONCEPTOS = {
     'REVISORIA FISCAL': [
@@ -246,7 +266,6 @@ export default function FormulariosSQF({ onBack }) {
     const [billingCodigoConcepto, setBillingCodigoConcepto] = useState('');
     const [contractRoles, setContractRoles] = useState([{ id: 1, cargo: '', horas: '' }]);
     const [crossSalePersonName, setCrossSalePersonName] = useState('');
-    const [crossSaleArea, setCrossSaleArea] = useState('');
 
     const isCrossSale = saleType === 'Venta cruzada' || ['0303', '0404'].includes(serviceType);
 
@@ -275,9 +294,15 @@ export default function FormulariosSQF({ onBack }) {
     useEffect(() => {
         if (!isCrossSale) {
             setCrossSalePersonName('');
-            setCrossSaleArea('');
         }
     }, [isCrossSale]);
+
+    useEffect(() => {
+        if (saleType === 'Venta cruzada' && !['0303', '0404'].includes(serviceType)) {
+            setServiceType('');
+            setBillingSellerDocument('');
+        }
+    }, [saleType]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ==========================================
     // CARGA DE DATOS (PETICIONES SIMPLES ANTI-CORS)
@@ -750,7 +775,7 @@ export default function FormulariosSQF({ onBack }) {
         // setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]); // Items deshabilitado temporalmente
         setServiceType(''); setBillingValorMes('');
         setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType(''); setBillingSellerDocument('');
-        setCrossSalePersonName(''); setCrossSaleArea('');
+        setCrossSalePersonName('');
         setBillingCategoria(''); setBillingConcepto(''); setBillingCodigoConcepto('');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '', codigo: '' }]);
         setBillingErrors({}); setNcErrors({});
@@ -813,7 +838,6 @@ export default function FormulariosSQF({ onBack }) {
         if (!saleType) { errors.saleType = 'Requerido'; isValid = false; }
         if (!serviceType) { errors.serviceType = 'Requerido'; isValid = false; }
         if (isCrossSale && !crossSalePersonName.trim()) { errors.crossSalePersonName = 'Requerido'; isValid = false; }
-        if (isCrossSale && !crossSaleArea) { errors.crossSaleArea = 'Requerido'; isValid = false; }
         if (['0101', '0303'].includes(serviceType) && !billingValorMes.trim()) { errors.billingValorMes = 'Requerido'; isValid = false; }
         if (!origin) { errors.origin = 'Requerido'; isValid = false; }
         if (['Referido externo', 'Referido empleado'].includes(origin) && !originRef.trim()) { showToastMsg('error', 'Campo Faltante', 'Especifique el nombre del referente.'); isValid = false; }
@@ -849,7 +873,6 @@ export default function FormulariosSQF({ onBack }) {
             company: billingCompany,
             saleType,
             crossSalePerson: isCrossSale ? crossSalePersonName.toUpperCase() : '',
-            crossSaleArea: isCrossSale ? String(crossSaleArea || '').toUpperCase() : '',
             serviceType,
             valorMes: parseInt(String(billingValorMes).replace(/\D/g, '') || '0', 10),
             clientDocument: billingClientDocument || '',
@@ -909,7 +932,6 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('company', payload.company);
             datatableForm.append('sale_type', payload.saleType);
             datatableForm.append('cross_sale_person', payload.crossSalePerson);
-            datatableForm.append('cross_sale_area', payload.crossSaleArea);
             datatableForm.append('service_type', payload.serviceType);
             datatableForm.append('valor_mes', payload.valorMes);
             datatableForm.append('origin', payload.origin);
@@ -1003,7 +1025,6 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('company', '');
             datatableForm.append('sale_type', '');
             datatableForm.append('cross_sale_person', '');
-            datatableForm.append('cross_sale_area', '');
             datatableForm.append('service_type', '');
             datatableForm.append('valor_mes', 0);
             datatableForm.append('valor_proyecto', 0);
@@ -1768,6 +1789,7 @@ export default function FormulariosSQF({ onBack }) {
                                     <div className="radio-group radio-group-col">
                                         <label className="radio-option"><input type="radio" value="Proyecto" checked={billingModality === 'Proyecto'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Proyecto</strong><small>Factura única vez</small></span></label>
                                         <label className="radio-option"><input type="radio" value="Mensual" checked={billingModality === 'Mensual'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Se incluye en la facturación mensual</small></span></label>
+                                        <label className="radio-option"><input type="radio" value="Otros" checked={billingModality === 'Otros'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Otros</strong><small>Modalidad diferente</small></span></label>
                                     </div>
                                     <span className="field-error">{billingErrors.billingModality}</span>
                                 </div>
@@ -1880,16 +1902,6 @@ export default function FormulariosSQF({ onBack }) {
                                                         />
                                                         <span className="field-error">{billingErrors.crossSalePersonName}</span>
                                                     </div>
-                                                    <div className="form-group">
-                                                        <label className="form-label required">Área</label>
-                                                        <select className="form-input form-select" value={crossSaleArea} onChange={(e) => setCrossSaleArea(e.target.value)}>
-                                                            <option value="">Seleccione...</option>
-                                                            {Object.keys(BILLING_CENTERS).map((areaKey) => (
-                                                                <option key={areaKey} value={areaKey}>{areaKey}</option>
-                                                            ))}
-                                                        </select>
-                                                        <span className="field-error">{billingErrors.crossSaleArea}</span>
-                                                    </div>
                                                 </>
                                             )}
 
@@ -1897,7 +1909,10 @@ export default function FormulariosSQF({ onBack }) {
                                                 <label className="form-label required">Tipo de Servicio</label>
                                                 <select className="form-input form-select" value={serviceType} onChange={(e) => handleServiceTypeChange(e.target.value)}>
                                                     <option value="">Seleccione...</option>
-                                                    {SERVICE_TYPES.map(s => (
+                                                    {(saleType === 'Venta cruzada'
+                                                        ? SERVICE_TYPES.filter(s => String(s.label || '').toUpperCase().includes('CRUZADO'))
+                                                        : SERVICE_TYPES
+                                                    ).map(s => (
                                                         <option key={s.code} value={s.code}>{s.code} {s.label}</option>
                                                     ))}
                                                     <option value="Otro">Otro</option>
@@ -1948,49 +1963,12 @@ export default function FormulariosSQF({ onBack }) {
                                                 <span className="field-error">{billingErrors.billingSellerDocument}</span>
                                             </div>
                                             <div className="form-group full-width">
-                                                <label className="form-label required">Persona Encargada del Cierre de Negocio</label>
-                                                <input type="text" className="form-input" value={billingCloser} onChange={(e) => setBillingCloser(e.target.value)} />
+                                                <label className="form-label required">Gerente encargado del cierre del negocio</label>
+                                                <select className="form-input form-select" value={billingCloser} onChange={(e) => setBillingCloser(e.target.value)}>
+                                                    <option value="">-- Seleccionar gerente --</option>
+                                                    {GERENTES.map((g) => <option key={g} value={g}>{g}</option>)}
+                                                </select>
                                                 <span className="field-error">{billingErrors.billingCloser}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="form-grid">
-                                            <div className="form-group">
-                                                <label className="form-label">Categoría</label>
-                                                <select
-                                                    className="form-input form-select"
-                                                    value={billingCategoria}
-                                                    onChange={(e) => {
-                                                        const nextCategoria = e.target.value;
-                                                        setBillingCategoria(nextCategoria);
-                                                        setBillingConcepto('');
-                                                        setBillingCodigoConcepto('');
-                                                    }}
-                                                >
-                                                    <option value="">Seleccione...</option>
-                                                    {Object.keys(CATEGORIAS_CONCEPTOS).map((categoriaKey) => (
-                                                        <option key={categoriaKey} value={categoriaKey}>{categoriaKey}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div className="form-group">
-                                                <label className="form-label">Concepto</label>
-                                                <select
-                                                    className="form-input form-select"
-                                                    value={billingConcepto}
-                                                    onChange={(e) => {
-                                                        const nextConcepto = e.target.value;
-                                                        setBillingConcepto(nextConcepto);
-                                                        const match = (CATEGORIAS_CONCEPTOS[billingCategoria] || []).find(c => c.concepto === nextConcepto);
-                                                        setBillingCodigoConcepto(match?.codigo || '');
-                                                    }}
-                                                    disabled={!billingCategoria}
-                                                >
-                                                    <option value="">{billingCategoria ? 'Seleccione...' : 'Seleccione una categoría'}</option>
-                                                    {(CATEGORIAS_CONCEPTOS[billingCategoria] || []).map((item) => (
-                                                        <option key={item.codigo} value={item.concepto}>{item.concepto}</option>
-                                                    ))}
-                                                </select>
                                             </div>
                                         </div>
 
