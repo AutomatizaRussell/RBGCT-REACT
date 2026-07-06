@@ -1947,9 +1947,52 @@ export default function FormulariosSQF({ onBack }) {
                                                 <span className="field-error">{billingErrors.billingSellerDocument}</span>
                                             </div>
                                             <div className="form-group full-width">
-                                                <label className="form-label required">Persona Encargada del Cierre de Negocio</label>
-                                                <input type="text" className="form-input" value={billingCloser} onChange={(e) => setBillingCloser(e.target.value)} />
+                                                <label className="form-label required">Gerente encargado del cierre del negocio</label>
+                                                <select className="form-input form-select" value={billingCloser} onChange={(e) => setBillingCloser(e.target.value)}>
+                                                    <option value="">-- Seleccionar gerente --</option>
+                                                    {GERENTES.map((g) => <option key={g} value={g}>{g}</option>)}
+                                                </select>
                                                 <span className="field-error">{billingErrors.billingCloser}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="form-grid">
+                                            <div className="form-group">
+                                                <label className="form-label">Categoría</label>
+                                                <select
+                                                    className="form-input form-select"
+                                                    value={billingCategoria}
+                                                    onChange={(e) => {
+                                                        const nextCategoria = e.target.value;
+                                                        setBillingCategoria(nextCategoria);
+                                                        setBillingConcepto('');
+                                                        setBillingCodigoConcepto('');
+                                                    }}
+                                                >
+                                                    <option value="">Seleccione...</option>
+                                                    {Object.keys(CATEGORIAS_CONCEPTOS).map((categoriaKey) => (
+                                                        <option key={categoriaKey} value={categoriaKey}>{categoriaKey}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">Concepto</label>
+                                                <select
+                                                    className="form-input form-select"
+                                                    value={billingConcepto}
+                                                    onChange={(e) => {
+                                                        const nextConcepto = e.target.value;
+                                                        setBillingConcepto(nextConcepto);
+                                                        const match = (CATEGORIAS_CONCEPTOS[billingCategoria] || []).find(c => c.concepto === nextConcepto);
+                                                        setBillingCodigoConcepto(match?.codigo || '');
+                                                    }}
+                                                    disabled={!billingCategoria}
+                                                >
+                                                    <option value="">{billingCategoria ? 'Seleccione...' : 'Seleccione una categoría'}</option>
+                                                    {(CATEGORIAS_CONCEPTOS[billingCategoria] || []).map((item) => (
+                                                        <option key={item.codigo} value={item.concepto}>{item.concepto}</option>
+                                                    ))}
+                                                </select>
                                             </div>
                                         </div>
 
