@@ -806,21 +806,14 @@ export default function FormulariosSQF({ onBack }) {
 
         setBillingClientDocument(clientNit || '');
 
-        let sType = 'Otro';
-        const cTypeStr = String(contract?.contractType || '');
-        if (cTypeStr === 'Mensual' || cTypeStr.includes('Mensual')) sType = '0101';
-        else if (cTypeStr === 'Proyecto') sType = '0202';
-        setServiceType(sType);
-
         const val = contract?.value ? formatCurrency(contract.value) : '';
-        if (sType === '0101') { setBillingValorMes(val); }
-        else { setBillingValorMes(''); }
+        setServiceType('');
+        setBillingSellerDocument('');
+        setBillingValorMes('');
 
         setBillingCloser(contract?.manager || '');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val, codigo: '' }]);
         setBillingMonthType('');
-        const foundSeller = SERVICE_TYPES.find(s => s.code === sType);
-        setBillingSellerDocument(foundSeller ? foundSeller.seller : '');
 
         showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
     };
