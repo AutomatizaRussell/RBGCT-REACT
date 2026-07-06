@@ -88,6 +88,13 @@ const BILLING_CENTERS = {
     ],
 };
 
+const SERVICE_TYPES = [
+    { code: '0101', label: 'FEE MENSUAL',        seller: '1152469759' },
+    { code: '0202', label: 'PROYECTO',            seller: '1037671038' },
+    { code: '0303', label: 'FEE MENSUAL CRUZADO', seller: '1000920646' },
+    { code: '0404', label: 'PROYECTO CRUZADO',    seller: '1000633655' },
+];
+
 // Permisos por sección del formulario (flags en DatosEmpleado)
 const SQF_SECTIONS = [
     { id: 'clients', flag: 'acceso_sqf_clientes' },
@@ -634,6 +641,12 @@ export default function FormulariosSQF({ onBack }) {
         }));
     };
 
+    const handleServiceTypeChange = (value) => {
+        setServiceType(value);
+        const found = SERVICE_TYPES.find(s => s.code === value);
+        setBillingSellerDocument(found ? found.seller : '');
+    };
+
     const addContractRole = () => {
         setContractRoles(prev => [...prev, { id: prev.length + 1, cargo: '', horas: '' }]);
     };
@@ -686,18 +699,19 @@ export default function FormulariosSQF({ onBack }) {
 
         let sType = 'Otro';
         const cTypeStr = String(contract?.contractType || '');
-        if (cTypeStr === 'Mensual' || cTypeStr.includes('Mensual')) sType = 'Fee mensual';
-        else if (cTypeStr === 'Proyecto') sType = 'Proyecto';
+        if (cTypeStr === 'Mensual' || cTypeStr.includes('Mensual')) sType = '0101';
+        else if (cTypeStr === 'Proyecto') sType = '0202';
         setServiceType(sType);
 
         const val = contract?.value ? formatCurrency(contract.value) : '';
-        if (sType === 'Fee mensual') { setBillingValorMes(val); }
+        if (sType === '0101') { setBillingValorMes(val); }
         else { setBillingValorMes(''); }
 
         setBillingCloser(contract?.manager || '');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val, codigo: '' }]);
         setBillingMonthType('');
-        setBillingSellerDocument('');
+        const foundSeller = SERVICE_TYPES.find(s => s.code === sType);
+        setBillingSellerDocument(foundSeller ? foundSeller.seller : '');
 
         showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
     };
@@ -715,7 +729,7 @@ export default function FormulariosSQF({ onBack }) {
         if (!billingCompany) { errors.billingCompany = 'Requerido'; isValid = false; }
         if (!saleType) { errors.saleType = 'Requerido'; isValid = false; }
         if (!serviceType) { errors.serviceType = 'Requerido'; isValid = false; }
-        if (serviceType === 'Fee mensual' && !billingValorMes.trim()) { errors.billingValorMes = 'Requerido'; isValid = false; }
+        if (['0101', '0303'].includes(serviceType) && !billingValorMes.trim()) { errors.billingValorMes = 'Requerido'; isValid = false; }
         if (!origin) { errors.origin = 'Requerido'; isValid = false; }
         if (['Referido externo', 'Referido empleado'].includes(origin) && !originRef.trim()) { showToastMsg('error', 'Campo Faltante', 'Especifique el nombre del referente.'); isValid = false; }
         if (!billingMonthType) { errors.billingMonthType = 'Requerido'; isValid = false; }
@@ -1755,16 +1769,17 @@ export default function FormulariosSQF({ onBack }) {
 
                                             <div className="form-group">
                                                 <label className="form-label required">Tipo de Servicio</label>
-                                                <select className="form-input form-select" value={serviceType} onChange={(e) => setServiceType(e.target.value)}>
+                                                <select className="form-input form-select" value={serviceType} onChange={(e) => handleServiceTypeChange(e.target.value)}>
                                                     <option value="">Seleccione...</option>
-                                                    <option value="Fee mensual">Fee mensual</option>
-                                                    <option value="Proyecto">Proyecto</option>
+                                                    {SERVICE_TYPES.map(s => (
+                                                        <option key={s.code} value={s.code}>{s.code} {s.label}</option>
+                                                    ))}
                                                     <option value="Otro">Otro</option>
                                                 </select>
                                                 <span className="field-error">{billingErrors.serviceType}</span>
                                             </div>
-                                            
-                                            {serviceType === 'Fee mensual' && (
+
+                                            {['0101', '0303'].includes(serviceType) && (
                                                 <div className="form-group">
                                                     <label className="form-label required">Valor Mes (antes de IVA)</label>
                                                     <div className="input-currency-wrapper"><span className="currency-prefix">$</span>
@@ -1796,7 +1811,14 @@ export default function FormulariosSQF({ onBack }) {
 
                                             <div className="form-group">
                                                 <label className="form-label required">Identificación del Vendedor</label>
-                                                <input type="text" inputMode="numeric" className="form-input" placeholder="Ej: 1234567890" value={billingSellerDocument} onChange={(e) => setBillingSellerDocument(e.target.value.replace(/\D/g, ''))} />
+                                                <input
+                                                    type="text" inputMode="numeric" className="form-input"
+                                                    placeholder="Ej: 1234567890"
+                                                    value={billingSellerDocument}
+                                                    onChange={(e) => setBillingSellerDocument(e.target.value.replace(/\D/g, ''))}
+                                                    readOnly={SERVICE_TYPES.some(s => s.code === serviceType)}
+                                                    style={SERVICE_TYPES.some(s => s.code === serviceType) ? { background: '#f5f9ff', cursor: 'default' } : undefined}
+                                                />
                                                 <span className="field-error">{billingErrors.billingSellerDocument}</span>
                                             </div>
                                             <div className="form-group full-width">
