@@ -155,6 +155,27 @@ const CATEGORIAS_CONCEPTOS = {
     ]
 };
 
+const GERENTES = [
+    'David López Castaño',
+    'Sara López Castaño',
+    'Nelson Eduardo Giraldo',
+    'Zulima López Arango',
+    'Erica Maria Vergara',
+    'Sandra Milena Pineda',
+    'Esneider López Caicedo',
+    'Karol viviana osorio Cuartas',
+    'Juan Guillermo Castaño Jimenez',
+    'Francy Milena Rico Areiza',
+    'Norbey Granada Grajales',
+    'Jose Felipe López Méndez',
+    'Daniel Vélez Mesa',
+    'Verónica Sánchez Fernández',
+    'Paula Jimena Tejeiro Cardenas',
+    'Manuel Alejandro Ramirez Carrasquilla',
+    'Mayra Alejandra Jaramillo Velásquez',
+    'Raúl Bernando Acosta Zapata',
+];
+
 const SERVICE_TYPES = [
     { code: '0101', label: 'FEE MENSUAL',        seller: '1152469759' },
     { code: '0202', label: 'PROYECTO',            seller: '1037671038' },
@@ -1532,24 +1553,7 @@ export default function FormulariosSQF({ onBack }) {
                                         <label className="form-label required">Gerente a Cargo</label>
                                         <select name="manager" className="form-input form-select" defaultValue="">
                                           <option value="">-- Seleccionar gerente --</option>
-                                          <option>David López Castaño</option>
-                                          <option>Sara López Castaño</option>
-                                          <option>Nelson Eduardo Giraldo</option>
-                                          <option>Zulima López Arango</option>
-                                          <option>Erica Maria Vergara</option>
-                                          <option>Sandra Milena Pineda</option>
-                                          <option>Esneider López Caicedo</option>
-                                          <option>Karol viviana osorio Cuartas</option>
-                                          <option>Juan Guillermo Castaño Jimenez</option>
-                                          <option>Francy Milena Rico Areiza</option>
-                                          <option>Norbey Granada Grajales</option>
-                                          <option>Jose Felipe López Méndez</option>
-                                          <option>Daniel Vélez Mesa</option>
-                                          <option>Verónica Sánchez Fernández</option>
-                                          <option>Paula Jimena Tejeiro Cardenas</option>
-                                          <option>Manuel Alejandro Ramirez Carrasquilla</option>
-                                          <option>Mayra Alejandra Jaramillo Velásquez</option>
-                                          <option>Raúl Bernando Acosta Zapata</option>
+                                          {GERENTES.map((g) => <option key={g} value={g}>{g}</option>)}
                                         </select>
                                         <span className="field-error">{contractErrors.manager}</span>
                                     </div>
