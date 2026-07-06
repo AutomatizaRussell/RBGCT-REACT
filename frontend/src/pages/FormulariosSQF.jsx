@@ -149,8 +149,8 @@ export default function FormulariosSQF({ onBack }) {
 
     const [billingReqType, setBillingReqType] = useState('facturacion');
     const [billingModality, setBillingModality] = useState('');
-    const [billingType, setBillingType] = useState('Servicio nuevo');
-    const [billingClientType, setBillingClientType] = useState('Cliente nuevo');
+    const [billingType, setBillingType] = useState('');
+    const [billingClientType, setBillingClientType] = useState('');
     const [billingClientName, setBillingClientName] = useState('');
     const [billingCompany, setBillingCompany] = useState('');
     const [billingClientDocument, setBillingClientDocument] = useState('');
@@ -650,7 +650,7 @@ export default function FormulariosSQF({ onBack }) {
     };
 
     const resetBillingForm = () => {
-        setBillingReqType('facturacion'); setBillingModality(''); setBillingType('Servicio nuevo'); setBillingClientType('Cliente nuevo');
+        setBillingReqType('facturacion'); setBillingModality(''); setBillingType(''); setBillingClientType('');
         setBillingClientName(''); setBillingCompany(''); setSaleType('');
         setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations('');
         // setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]); // Items deshabilitado temporalmente
@@ -712,6 +712,8 @@ export default function FormulariosSQF({ onBack }) {
         let isValid = true;
 
         if (!billingModality) { errors.billingModality = 'Requerido'; isValid = false; }
+        if (!billingType) { errors.billingType = 'Requerido'; isValid = false; }
+        if (!billingClientType) { errors.billingClientType = 'Requerido'; isValid = false; }
         if (!billingClientName.trim()) { errors.billingClientName = 'Requerido'; isValid = false; }
         if (!billingCompany) { errors.billingCompany = 'Requerido'; isValid = false; }
         if (!saleType) { errors.saleType = 'Requerido'; isValid = false; }
@@ -1630,20 +1632,22 @@ export default function FormulariosSQF({ onBack }) {
                                 <div className="billing-step-card">
                                     <h2 className="billing-step-title"><span className="step-pill">2</span> Detalles de la Facturación</h2>
                                     <div className="form-grid">
-                                        <div className="form-group">
+                                        <div className="form-group full-width">
                                             <label className="form-label required">Tipo de Facturación</label>
                                             <div className="radio-group radio-group-col">
                                                 <label className="radio-option"><input type="radio" value="Servicio nuevo" checked={billingType === 'Servicio nuevo'} onChange={(e) => setBillingType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Servicio Nuevo</strong></span></label>
                                                 <label className="radio-option"><input type="radio" value="Servicio actual" checked={billingType === 'Servicio actual'} onChange={(e) => setBillingType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Servicio Actual</strong></span></label>
                                                 <label className="radio-option"><input type="radio" value="Otro" checked={billingType === 'Otro'} onChange={(e) => setBillingType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Otro</strong></span></label>
                                             </div>
+                                            <span className="field-error">{billingErrors.billingType}</span>
                                         </div>
-                                        <div className="form-group">
+                                        <div className="form-group full-width">
                                             <label className="form-label required">Tipo de Cliente</label>
                                             <div className="radio-group radio-group-col">
                                                 <label className="radio-option"><input type="radio" value="Cliente nuevo" checked={billingClientType === 'Cliente nuevo'} onChange={(e) => setBillingClientType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Cliente Nuevo</strong></span></label>
                                                 <label className="radio-option"><input type="radio" value="Cliente antiguo" checked={billingClientType === 'Cliente antiguo'} onChange={(e) => setBillingClientType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Cliente Antiguo</strong></span></label>
                                             </div>
+                                            <span className="field-error">{billingErrors.billingClientType}</span>
                                         </div>
                                     </div>
                                 </div>
