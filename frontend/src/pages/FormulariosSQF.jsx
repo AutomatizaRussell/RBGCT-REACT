@@ -652,7 +652,7 @@ export default function FormulariosSQF({ onBack }) {
     const resetBillingForm = () => {
         setBillingReqType('facturacion'); setBillingModality(''); setBillingType(''); setBillingClientType('');
         setBillingClientName(''); setBillingCompany(''); setSaleType('');
-        setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations('');
+        setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations('');
         // setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]); // Items deshabilitado temporalmente
         setServiceType(''); setBillingValorMes('');
         setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType(''); setBillingSellerDocument('');
@@ -663,8 +663,6 @@ export default function FormulariosSQF({ onBack }) {
     const sendContractToBilling = (contract) => {
         setActiveSection('billing');
         setBillingReqType('facturacion');
-        setBillingType('Servicio actual');
-        setBillingClientType('Cliente antiguo');
 
         const clientName = contract?.clientName || '';
         setBillingClientName(clientName);
@@ -697,8 +695,7 @@ export default function FormulariosSQF({ onBack }) {
         else { setBillingValorMes(''); }
 
         setBillingCloser(contract?.manager || '');
-        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val }]);
-        setBillingReference('');
+        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val, codigo: '' }]);
         setBillingMonthType('');
         setBillingSellerDocument('');
 
