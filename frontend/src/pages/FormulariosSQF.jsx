@@ -153,7 +153,6 @@ export default function FormulariosSQF({ onBack }) {
     const [billingClientType, setBillingClientType] = useState('Cliente nuevo');
     const [billingClientName, setBillingClientName] = useState('');
     const [billingCompany, setBillingCompany] = useState('');
-    const [billingReference, setBillingReference] = useState('');
     const [billingClientDocument, setBillingClientDocument] = useState('');
     const [billingDueDate, setBillingDueDate] = useState('');
     const [billingObservations, setBillingObservations] = useState('');
@@ -167,7 +166,7 @@ export default function FormulariosSQF({ onBack }) {
     const [origin, setOrigin] = useState('');
     const [originRef, setOriginRef] = useState('');
     const [billingCloser, setBillingCloser] = useState('');
-    const [billingAreas, setBillingAreas] = useState([{ id: 1, centro: '', concepto: '', valor: '' }]);
+    const [billingAreas, setBillingAreas] = useState([{ id: 1, centro: '', concepto: '', valor: '', codigo: '' }]);
     const [contractRoles, setContractRoles] = useState([{ id: 1, cargo: '', horas: '' }]);
 
     const [auditorModalItem, setAuditorModalItem] = useState(null);
@@ -613,7 +612,7 @@ export default function FormulariosSQF({ onBack }) {
             showToastMsg('error', 'Límite de Áreas', 'Solo se pueden agregar hasta 3 áreas de facturación.');
             return;
         }
-        setBillingAreas([...billingAreas, { id: billingAreas.length + 1, centro: '', concepto: '', valor: '' }]);
+        setBillingAreas([...billingAreas, { id: billingAreas.length + 1, centro: '', concepto: '', valor: '', codigo: '' }]);
     };
 
     const removeAreaBlock = (idToRemove) => {
@@ -625,13 +624,11 @@ export default function FormulariosSQF({ onBack }) {
         setBillingAreas(prev => prev.map(area => {
             if (area.id !== id) return area;
             if (field === 'centro') {
-                setBillingReference('');
-                return { ...area, centro: value, concepto: '' };
+                return { ...area, centro: value, concepto: '', codigo: '' };
             }
             if (field === 'concepto') {
                 const found = (BILLING_CENTERS[area.centro] || []).find(c => c.label === value);
-                if (found) setBillingReference(found.code);
-                return { ...area, concepto: value };
+                return { ...area, concepto: value, codigo: found?.code || '' };
             }
             return { ...area, [field]: value };
         }));
@@ -659,7 +656,7 @@ export default function FormulariosSQF({ onBack }) {
         // setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]); // Items deshabilitado temporalmente
         setServiceType(''); setBillingValorMes('');
         setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType(''); setBillingSellerDocument('');
-        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '' }]);
+        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '', codigo: '' }]);
         setBillingErrors({}); setNcErrors({});
     };
 
@@ -753,8 +750,6 @@ export default function FormulariosSQF({ onBack }) {
             clientName: billingClientName.toUpperCase(), company: billingCompany, saleType, crossSalePerson: '',
             serviceType,
             valorMes: parseInt(String(billingValorMes).replace(/\D/g, '') || '0', 10),
-            reference: billingReference || '',
-            referencia: billingReference || '',
             clientDocument: billingClientDocument || '',
             nit: billingClientDocument || '',
             documento: billingClientDocument || '',
@@ -818,8 +813,6 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('mes_corriente_o_vencido', payload.mesCorrienteOVencido);
             datatableForm.append('identificacion_vendedor', payload.identificacion_vendedor);
             datatableForm.append('areas', payload.areas);
-            datatableForm.append('reference', payload.reference);
-            datatableForm.append('referencia', payload.referencia);
             datatableForm.append('nit', payload.nit);
             datatableForm.append('documento', payload.documento);
             datatableForm.append('client_document', payload.clientDocument);
@@ -1677,10 +1670,6 @@ export default function FormulariosSQF({ onBack }) {
                                                 <label className="form-label">NIT / Documento</label>
                                                 <input type="text" className="form-input" value={billingClientDocument} onChange={(e) => setBillingClientDocument(e.target.value)} />
                                             </div>
-                                            <div className="form-group">
-                                                <label className="form-label">Referencia</label>
-                                                <input type="text" className="form-input" value={billingReference} readOnly placeholder="Se completa al elegir concepto" style={{ background: '#f5f9ff', cursor: 'default', color: billingReference ? 'var(--color-text)' : 'var(--color-text-light)' }} />
-                                            </div>
                                             <div className="form-group full-width">
                                                 <label className="form-label">Observaciones</label>
                                                 <textarea className="form-input form-textarea" rows={2} value={billingObservations} onChange={(e) => setBillingObservations(e.target.value)} />
@@ -1832,7 +1821,7 @@ export default function FormulariosSQF({ onBack }) {
                                                             <span className="area-block-label">{area.id}° Área – Centro de Costos</span>
                                                             {index > 0 && <button type="button" className="btn-remove-area" onClick={() => removeAreaBlock(area.id)}>✕ Eliminar</button>}
                                                         </div>
-                                                        <div className="form-grid" style={{ gridTemplateColumns: '1fr 1.5fr 1fr', padding: 0 }}>
+                                                        <div className="form-grid" style={{ gridTemplateColumns: '1fr 1.5fr 1fr 1fr', padding: 0 }}>
                                                             <div className="form-group">
                                                                 <label className="form-label required">Centro</label>
                                                                 <select className="form-input form-select" value={area.centro} onChange={(e) => updateArea(area.id, 'centro', e.target.value)}>
@@ -1848,6 +1837,10 @@ export default function FormulariosSQF({ onBack }) {
                                                                 </select>
                                                             </div>
                                                             <div className="form-group"><label className="form-label required">Valor</label><div className="input-currency-wrapper"><span className="currency-prefix">$</span><input type="text" className="form-input currency-input" value={area.valor} onChange={(e) => updateArea(area.id, 'valor', formatCurrency(e.target.value))} /></div></div>
+                                                            <div className="form-group">
+                                                                <label className="form-label">Referencia</label>
+                                                                <input type="text" className="form-input" value={area.codigo || ''} readOnly placeholder="Se completa al elegir concepto" style={{ background: '#f5f9ff', cursor: 'default', color: area.codigo ? 'var(--color-text)' : 'var(--color-text-light)' }} />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
