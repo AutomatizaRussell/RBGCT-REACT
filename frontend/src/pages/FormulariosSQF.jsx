@@ -246,7 +246,6 @@ export default function FormulariosSQF({ onBack }) {
     const [billingCodigoConcepto, setBillingCodigoConcepto] = useState('');
     const [contractRoles, setContractRoles] = useState([{ id: 1, cargo: '', horas: '' }]);
     const [crossSalePersonName, setCrossSalePersonName] = useState('');
-    const [crossSaleArea, setCrossSaleArea] = useState('');
 
     const isCrossSale = saleType === 'Venta cruzada' || ['0303', '0404'].includes(serviceType);
 
@@ -275,9 +274,15 @@ export default function FormulariosSQF({ onBack }) {
     useEffect(() => {
         if (!isCrossSale) {
             setCrossSalePersonName('');
-            setCrossSaleArea('');
         }
     }, [isCrossSale]);
+
+    useEffect(() => {
+        if (saleType === 'Venta cruzada' && !['0303', '0404'].includes(serviceType)) {
+            setServiceType('');
+            setBillingSellerDocument('');
+        }
+    }, [saleType]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ==========================================
     // CARGA DE DATOS (PETICIONES SIMPLES ANTI-CORS)
@@ -750,7 +755,7 @@ export default function FormulariosSQF({ onBack }) {
         // setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]); // Items deshabilitado temporalmente
         setServiceType(''); setBillingValorMes('');
         setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType(''); setBillingSellerDocument('');
-        setCrossSalePersonName(''); setCrossSaleArea('');
+        setCrossSalePersonName('');
         setBillingCategoria(''); setBillingConcepto(''); setBillingCodigoConcepto('');
         setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '', codigo: '' }]);
         setBillingErrors({}); setNcErrors({});
@@ -813,7 +818,6 @@ export default function FormulariosSQF({ onBack }) {
         if (!saleType) { errors.saleType = 'Requerido'; isValid = false; }
         if (!serviceType) { errors.serviceType = 'Requerido'; isValid = false; }
         if (isCrossSale && !crossSalePersonName.trim()) { errors.crossSalePersonName = 'Requerido'; isValid = false; }
-        if (isCrossSale && !crossSaleArea) { errors.crossSaleArea = 'Requerido'; isValid = false; }
         if (['0101', '0303'].includes(serviceType) && !billingValorMes.trim()) { errors.billingValorMes = 'Requerido'; isValid = false; }
         if (!origin) { errors.origin = 'Requerido'; isValid = false; }
         if (['Referido externo', 'Referido empleado'].includes(origin) && !originRef.trim()) { showToastMsg('error', 'Campo Faltante', 'Especifique el nombre del referente.'); isValid = false; }
@@ -849,7 +853,6 @@ export default function FormulariosSQF({ onBack }) {
             company: billingCompany,
             saleType,
             crossSalePerson: isCrossSale ? crossSalePersonName.toUpperCase() : '',
-            crossSaleArea: isCrossSale ? String(crossSaleArea || '').toUpperCase() : '',
             serviceType,
             valorMes: parseInt(String(billingValorMes).replace(/\D/g, '') || '0', 10),
             clientDocument: billingClientDocument || '',
@@ -909,7 +912,6 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('company', payload.company);
             datatableForm.append('sale_type', payload.saleType);
             datatableForm.append('cross_sale_person', payload.crossSalePerson);
-            datatableForm.append('cross_sale_area', payload.crossSaleArea);
             datatableForm.append('service_type', payload.serviceType);
             datatableForm.append('valor_mes', payload.valorMes);
             datatableForm.append('origin', payload.origin);
@@ -1003,7 +1005,6 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('company', '');
             datatableForm.append('sale_type', '');
             datatableForm.append('cross_sale_person', '');
-            datatableForm.append('cross_sale_area', '');
             datatableForm.append('service_type', '');
             datatableForm.append('valor_mes', 0);
             datatableForm.append('valor_proyecto', 0);
@@ -1880,16 +1881,6 @@ export default function FormulariosSQF({ onBack }) {
                                                         />
                                                         <span className="field-error">{billingErrors.crossSalePersonName}</span>
                                                     </div>
-                                                    <div className="form-group">
-                                                        <label className="form-label required">Área</label>
-                                                        <select className="form-input form-select" value={crossSaleArea} onChange={(e) => setCrossSaleArea(e.target.value)}>
-                                                            <option value="">Seleccione...</option>
-                                                            {Object.keys(BILLING_CENTERS).map((areaKey) => (
-                                                                <option key={areaKey} value={areaKey}>{areaKey}</option>
-                                                            ))}
-                                                        </select>
-                                                        <span className="field-error">{billingErrors.crossSaleArea}</span>
-                                                    </div>
                                                 </>
                                             )}
 
@@ -1897,9 +1888,13 @@ export default function FormulariosSQF({ onBack }) {
                                                 <label className="form-label required">Tipo de Servicio</label>
                                                 <select className="form-input form-select" value={serviceType} onChange={(e) => handleServiceTypeChange(e.target.value)}>
                                                     <option value="">Seleccione...</option>
-                                                    {SERVICE_TYPES.map(s => (
+                                                    {(saleType === 'Venta cruzada'
+                                                        ? SERVICE_TYPES.filter(s => ['0303', '0404'].includes(String(s.code)))
+                                                        : SERVICE_TYPES
+                                                    ).map(s => (
                                                         <option key={s.code} value={s.code}>{s.code} {s.label}</option>
-                                                    ))}                                                    
+                                                    ))}
+                                                    {saleType !== 'Venta cruzada' && <option value="Otro">Otro</option>}
                                                 </select>
                                                 <span className="field-error">{billingErrors.serviceType}</span>
                                             </div>
@@ -1947,7 +1942,7 @@ export default function FormulariosSQF({ onBack }) {
                                                 <span className="field-error">{billingErrors.billingSellerDocument}</span>
                                             </div>
                                             <div className="form-group full-width">
-                                                <label className="form-label required">Gerente encargado del cierre del negocio</label>
+                                                <label className="form-label required">Gerente Encargado del Cierre de Negocio</label>
                                                 <select className="form-input form-select" value={billingCloser} onChange={(e) => setBillingCloser(e.target.value)}>
                                                     <option value="">-- Seleccionar gerente --</option>
                                                     {GERENTES.map((g) => <option key={g} value={g}>{g}</option>)}
