@@ -72,87 +72,92 @@ const CONTRACT_ROLES = [
     'Analista/Asistente 1', 'Analista/Asistente 2', 'Analista/Asistente 3', 'Analista/Asistente 4',
 ];
 
-const BILLING_CENTERS = {
-    'REVISORIA FISCAL':      [{ label: 'REVISORIA FISCAL',          code: '01 - 0101' }, { label: 'AUDITORIA EXTERNA',            code: '01 - 0102' }],
-    'CONTABILIDAD':          [{ label: 'CONTABILIDAD',              code: '02 - 0201' }, { label: 'RENTA MEDIOS CONTABILIDAD',    code: '02 - 0203' }],
-    'IMPUESTOS':             [{ label: 'IMPUESTOS',                 code: '03 - 0301' }, { label: 'RENTA MEDIOS IMPUESTOS',       code: '03 - 0302' }],
-    'BPO':                   [{ label: 'BPO',                       code: '04 - 0202' }],
-    'LEGAL':                 [{ label: 'LEGAL',                     code: '06 - 0601' }],
-    'FINANZAS':              [{ label: 'FINANZAS',                  code: '07 - 0701' }],
-    'PROPIEDAD INTELECTUAL': [{ label: 'PROPIEDAD INTELECTUAL',     code: '08 - 0801' }],
-    'ADMINISTRACIÓN':        [
-        { label: 'ADMINISTRACION TI',      code: '99 - 0901' },
-        { label: 'ADMINISTRACION MERCADEO', code: '99 - 1001' },
-        { label: 'ADMINISTRACION 2',        code: '99 - 8888' },
-        { label: 'ADMINISTRACIÓN',          code: '99 - 9999' },
-    ],
-};
-
-const CATEGORIAS_CONCEPTOS = {
-    'REVISORIA FISCAL': [
-        { codigo: '500', concepto: 'RF- HONORARIOS REVISORÍA FISCAL' }
-    ],
-    'AUDITORIA EXTERNA': [
-        { codigo: '600', concepto: 'AE- HONORARIOS AUDITORÍA EXTERNA' },
-        { codigo: '601', concepto: 'AE- HONORARIOS AUDITORÍA FINANCIERA' }
-    ],
-    'CONTABILIDAD': [
-        { codigo: '700', concepto: 'CONT- HONORARIOS CONTABILIDAD' },
-        { codigo: '701', concepto: 'CONT- HONORARIOS REVISORÍA FISCAL' },
-        { codigo: '702', concepto: 'CONT- OUTSOURCING CONTABLE Y TRIBUTARIO' },
-        { codigo: '703', concepto: 'CONT- USO DE LICENCIA' },
-        { codigo: '704', concepto: 'CONT- ELABORACION REPORTES FINANCIEROS ADICIONALES' },
-        { codigo: '705', concepto: 'CONT- CONTABILIDAD ADMINISTRATIVA' },
-        { codigo: '706', concepto: 'CONT- INHOUSE CONTABLE Y TRIBUTARIO' },
-        { codigo: '707', concepto: 'CONT- HONORARIOS CONTABILIDAD HUDSON INVERSIONES' },
-        { codigo: '708', concepto: 'CONT- HONORARIOS CONTABILIDAD INVERSIONES OREGON' },
-        { codigo: '709', concepto: 'CONT- HONORARIOS CONTABILIDAD INVERSIONES PORTOVENTO' },
-        { codigo: '710', concepto: 'CONT- HONORARIOS CONTABILIDAD INVERSIONES VESTA' },
-        { codigo: '711', concepto: 'CONT- HONORARIOS CONTABILIDAD INVERSIONES RB' },
-        { codigo: '712', concepto: 'CONT- ELABORACION DE DOCUMENTOS ELECTRONICOS Y FACTURAS DE VENTA ELECTRONICAS' },
-        { codigo: '713', concepto: 'CONT- HONORARIOS MEDIOS MAGNETICOS' },
-        { codigo: '714', concepto: 'CONT- HONORARIOS DECLARACIÓN RENTA' },
-        { codigo: '715', concepto: 'CONT- SALDO A FAVOR EN IVA' },
-        { codigo: '716', concepto: 'CONT- SALDO A FAVOR EN RENTA' },
-        { codigo: '717', concepto: 'CONT- OUTSOURCING CONTABLE Y TRIBUTARIO PN' },
-        { codigo: '718', concepto: 'CONT- HONORARIOS CONTABILIDAD PN' }
-    ],
-    'BPO': [
-        { codigo: '800', concepto: 'BPO- ASESORÍA NÓMINA' },
-        { codigo: '801', concepto: 'BPO- AFILIACIONES' },
-        { codigo: '802', concepto: 'BPO- TESORERÍA Y FACTURACIÓN' },
-        { codigo: '803', concepto: 'BPO- TESORERÍA' },
-        { codigo: '804', concepto: 'BPO- ACEPTACIÓN DE FACTURAS' },
-        { codigo: '805', concepto: 'BPO- HONORARIOS SG-SST.' }
-    ],
-    'SERVICIOS LEGALES': [
-        { codigo: '900', concepto: 'LEG- ASESORÍA LEGAL' },
-        { codigo: '901', concepto: 'LEG- OFICIAL DE CUMPLIMIENTO' },
-        { codigo: '902', concepto: 'LEG- HONORARIOS REVISORÍA FISCAL' },
-        { codigo: '903', concepto: 'LEG- SECRETARIA CORPORATIVA' },
-        { codigo: '904', concepto: 'LEG- DOMICILIO FISCAL' },
-        { codigo: '905', concepto: 'LEG- REPRESENTACIÓN LEGAL' }
-    ],
-    'IMPUESTOS': [
-        { codigo: '1000', concepto: 'IMP- ASESORÍA TRIBUTRIA' },
-        { codigo: '1001', concepto: 'IMP- HONORARIOS MEDIOS MAGNETICOS' },
-        { codigo: '1002', concepto: 'IMP- HONORARIOS DECLARACIÓN RENTA' },
-        { codigo: '1003', concepto: 'IMP- SALDO A FAVOR EN IVA' },
-        { codigo: '1004', concepto: 'IMP- SALDO A FAVOR EN RENTA' },
-        { codigo: '1005', concepto: 'IMP- PRECIOS DE TRANSFERENCIA' },
-        { codigo: '1006', concepto: 'IMP- IMPUESTO AL PATRIMONIO' }
-    ],
-    'CONSULTORIA FINANCIERA': [
-        { codigo: '1100', concepto: 'FIN- OUTSOURCING FINANCIERO' },
-        { codigo: '1101', concepto: 'FIN- PRECIOS DE TRANSFERENCIA' }
-    ],
-    'ADMON': [
-        { codigo: '1200', concepto: 'ADMON- HONORARIOS CONTABILIDAD' },
-        { codigo: '1201', concepto: 'ADMON- COMISIÓN' }
-    ],
-    'ADMON2': [
-        { codigo: '1300', concepto: '1300' }
-    ]
+const CENTROS_FACTURACION = {
+    'REVISORIA FISCAL': {
+        codigoCentro: '01 - 0101',
+        productos: [
+            { codigo: '500', concepto: 'RF- HONORARIOS REVISORÍA FISCAL' }
+        ],
+    },
+    'AUDITORIA EXTERNA': {
+        codigoCentro: '01 - 0102',
+        productos: [
+            { codigo: '600', concepto: 'AE- HONORARIOS AUDITORÍA EXTERNA' },
+            { codigo: '601', concepto: 'AE- HONORARIOS AUDITORÍA FINANCIERA' }
+        ],
+    },
+    'CONTABILIDAD': {
+        codigoCentro: '02 - 0201',
+        productos: [
+            { codigo: '700', concepto: 'CONT- HONORARIOS CONTABILIDAD' },
+            { codigo: '701', concepto: 'CONT- HONORARIOS REVISORÍA FISCAL' },
+            { codigo: '702', concepto: 'CONT- OUTSOURCING CONTABLE Y TRIBUTARIO' },
+            { codigo: '703', concepto: 'CONT- USO DE LICENCIA' },
+            { codigo: '704', concepto: 'CONT- ELABORACION REPORTES FINANCIEROS ADICIONALES' },
+            { codigo: '705', concepto: 'CONT- CONTABILIDAD ADMINISTRATIVA' },
+            { codigo: '706', concepto: 'CONT- INHOUSE CONTABLE Y TRIBUTARIO' },
+            { codigo: '707', concepto: 'CONT- HONORARIOS CONTABILIDAD HUDSON INVERSIONES' },
+            { codigo: '708', concepto: 'CONT- HONORARIOS CONTABILIDAD INVERSIONES OREGON' },
+            { codigo: '709', concepto: 'CONT- HONORARIOS CONTABILIDAD INVERSIONES PORTOVENTO' },
+            { codigo: '710', concepto: 'CONT- HONORARIOS CONTABILIDAD INVERSIONES VESTA' },
+            { codigo: '711', concepto: 'CONT- HONORARIOS CONTABILIDAD INVERSIONES RB' },
+            { codigo: '712', concepto: 'CONT- ELABORACION DE DOCUMENTOS ELECTRONICOS Y FACTURAS DE VENTA ELECTRONICAS' },
+            { codigo: '713', concepto: 'CONT- HONORARIOS MEDIOS MAGNETICOS' },
+            { codigo: '714', concepto: 'CONT- HONORARIOS DECLARACIÓN RENTA' },
+            { codigo: '715', concepto: 'CONT- SALDO A FAVOR EN IVA' },
+            { codigo: '716', concepto: 'CONT- SALDO A FAVOR EN RENTA' },
+            { codigo: '717', concepto: 'CONT- OUTSOURCING CONTABLE Y TRIBUTARIO PN' },
+            { codigo: '718', concepto: 'CONT- HONORARIOS CONTABILIDAD PN' }
+        ],
+    },
+    'BPO': {
+        codigoCentro: '04 - 0202',
+        productos: [
+            { codigo: '800', concepto: 'BPO- ASESORÍA NÓMINA' },
+            { codigo: '801', concepto: 'BPO- AFILIACIONES' },
+            { codigo: '802', concepto: 'BPO- TESORERÍA Y FACTURACIÓN' },
+            { codigo: '803', concepto: 'BPO- TESORERÍA' },
+            { codigo: '804', concepto: 'BPO- ACEPTACIÓN DE FACTURAS' },
+            { codigo: '805', concepto: 'BPO- HONORARIOS SG-SST.' }
+        ],
+    },
+    'SERVICIOS LEGALES': {
+        codigoCentro: '06 - 0601',
+        productos: [
+            { codigo: '900', concepto: 'LEG- ASESORÍA LEGAL' },
+            { codigo: '901', concepto: 'LEG- OFICIAL DE CUMPLIMIENTO' },
+            { codigo: '902', concepto: 'LEG- HONORARIOS REVISORÍA FISCAL' },
+            { codigo: '903', concepto: 'LEG- SECRETARIA CORPORATIVA' },
+            { codigo: '904', concepto: 'LEG- DOMICILIO FISCAL' },
+            { codigo: '905', concepto: 'LEG- REPRESENTACIÓN LEGAL' }
+        ],
+    },
+    'IMPUESTOS': {
+        codigoCentro: '03 - 0301',
+        productos: [
+            { codigo: '1000', concepto: 'IMP- ASESORÍA TRIBUTRIA' },
+            { codigo: '1001', concepto: 'IMP- HONORARIOS MEDIOS MAGNETICOS' },
+            { codigo: '1002', concepto: 'IMP- HONORARIOS DECLARACIÓN RENTA' },
+            { codigo: '1003', concepto: 'IMP- SALDO A FAVOR EN IVA' },
+            { codigo: '1004', concepto: 'IMP- SALDO A FAVOR EN RENTA' },
+            { codigo: '1005', concepto: 'IMP- PRECIOS DE TRANSFERENCIA' },
+            { codigo: '1006', concepto: 'IMP- IMPUESTO AL PATRIMONIO' }
+        ],
+    },
+    'CONSULTORIA FINANCIERA': {
+        codigoCentro: '07 - 0701',
+        productos: [
+            { codigo: '1100', concepto: 'FIN- OUTSOURCING FINANCIERO' },
+            { codigo: '1101', concepto: 'FIN- PRECIOS DE TRANSFERENCIA' }
+        ],
+    },
+    'ADMON': {
+        codigoCentro: '99 - 0901',
+        productos: [
+            { codigo: '1200', concepto: 'ADMON- HONORARIOS CONTABILIDAD' },
+            { codigo: '1201', concepto: 'ADMON- COMISIÓN' }
+        ],
+    },
 };
 
 const GERENTES = [
@@ -261,10 +266,7 @@ export default function FormulariosSQF({ onBack }) {
     const [origin, setOrigin] = useState('');
     const [originRef, setOriginRef] = useState('');
     const [billingCloser, setBillingCloser] = useState('');
-    const [billingAreas, setBillingAreas] = useState([{ id: 1, centro: '', concepto: '', valor: '', codigo: '' }]);
-    const [billingCategoria, setBillingCategoria] = useState('');
-    const [billingConcepto, setBillingConcepto] = useState('');
-    const [billingCodigoConcepto, setBillingCodigoConcepto] = useState('');
+    const [billingAreas, setBillingAreas] = useState([{ id: 1, centro: '', concepto: '', valor: '', codigoCentro: '', codigoProducto: '' }]);
     const [contractRoles, setContractRoles] = useState([{ id: 1, cargo: '', horas: '' }]);
     const [crossSalePersonName, setCrossSalePersonName] = useState('');
 
@@ -726,7 +728,7 @@ export default function FormulariosSQF({ onBack }) {
             showToastMsg('error', 'Límite de Áreas', 'Solo se pueden agregar hasta 3 áreas de facturación.');
             return;
         }
-        setBillingAreas([...billingAreas, { id: billingAreas.length + 1, centro: '', concepto: '', valor: '', codigo: '' }]);
+        setBillingAreas([...billingAreas, { id: billingAreas.length + 1, centro: '', concepto: '', valor: '', codigoCentro: '', codigoProducto: '' }]);
     };
 
     const removeAreaBlock = (idToRemove) => {
@@ -738,11 +740,11 @@ export default function FormulariosSQF({ onBack }) {
         setBillingAreas(prev => prev.map(area => {
             if (area.id !== id) return area;
             if (field === 'centro') {
-                return { ...area, centro: value, concepto: '', codigo: '' };
+                return { ...area, centro: value, concepto: '', codigoCentro: CENTROS_FACTURACION[value]?.codigoCentro || '', codigoProducto: '' };
             }
             if (field === 'concepto') {
-                const found = (BILLING_CENTERS[area.centro] || []).find(c => c.label === value);
-                return { ...area, concepto: value, codigo: found?.code || '' };
+                const found = (CENTROS_FACTURACION[area.centro]?.productos || []).find(p => p.concepto === value);
+                return { ...area, concepto: value, codigoProducto: found?.codigo || '' };
             }
             return { ...area, [field]: value };
         }));
@@ -777,8 +779,7 @@ export default function FormulariosSQF({ onBack }) {
         setServiceType(''); setBillingValorMes('');
         setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType(''); setBillingSellerDocument('');
         setCrossSalePersonName('');
-        setBillingCategoria(''); setBillingConcepto(''); setBillingCodigoConcepto('');
-        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '', codigo: '' }]);
+        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '', codigoCentro: '', codigoProducto: '' }]);
         setBillingErrors({}); setNcErrors({});
     };
 
@@ -812,7 +813,7 @@ export default function FormulariosSQF({ onBack }) {
         setBillingValorMes('');
 
         setBillingCloser(contract?.manager || '');
-        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val, codigo: '' }]);
+        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val, codigoCentro: '', codigoProducto: '' }]);
         setBillingMonthType('');
 
         showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
@@ -885,9 +886,6 @@ export default function FormulariosSQF({ onBack }) {
             mesCorrienteOVencido: billingMonthType,
             identificacion_vendedor: billingSellerDocument,
             sellerDocument: billingSellerDocument,
-            billingCategoria,
-            billingConcepto,
-            billingCodigoConcepto,
             areas: JSON.stringify(billingAreas.map(a => ({ ...a, centro: a.centro.toUpperCase(), concepto: a.concepto.toUpperCase(), valor: parseInt(String(a.valor).replace(/\D/g, ''), 10) }))),
             createdAt: new Date().toISOString(),
             ...getLoggedUserMeta(),
@@ -934,9 +932,6 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('mes_tipo', payload.mes_tipo);
             datatableForm.append('mes_corriente_o_vencido', payload.mesCorrienteOVencido);
             datatableForm.append('identificacion_vendedor', payload.identificacion_vendedor);
-            datatableForm.append('billing_categoria', payload.billingCategoria);
-            datatableForm.append('billing_concepto', payload.billingConcepto);
-            datatableForm.append('billing_codigo_concepto', payload.billingCodigoConcepto);
             datatableForm.append('areas', payload.areas);
             datatableForm.append('nit', payload.nit);
             datatableForm.append('documento', payload.documento);
@@ -1948,46 +1943,6 @@ export default function FormulariosSQF({ onBack }) {
                                             </div>
                                         </div>
 
-                                        <div className="form-grid">
-                                            <div className="form-group">
-                                                <label className="form-label">Categoría</label>
-                                                <select
-                                                    className="form-input form-select"
-                                                    value={billingCategoria}
-                                                    onChange={(e) => {
-                                                        const nextCategoria = e.target.value;
-                                                        setBillingCategoria(nextCategoria);
-                                                        setBillingConcepto('');
-                                                        setBillingCodigoConcepto('');
-                                                    }}
-                                                >
-                                                    <option value="">Seleccione...</option>
-                                                    {Object.keys(CATEGORIAS_CONCEPTOS).map((categoriaKey) => (
-                                                        <option key={categoriaKey} value={categoriaKey}>{categoriaKey}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div className="form-group">
-                                                <label className="form-label">Concepto</label>
-                                                <select
-                                                    className="form-input form-select"
-                                                    value={billingConcepto}
-                                                    onChange={(e) => {
-                                                        const nextConcepto = e.target.value;
-                                                        setBillingConcepto(nextConcepto);
-                                                        const match = (CATEGORIAS_CONCEPTOS[billingCategoria] || []).find(c => c.concepto === nextConcepto);
-                                                        setBillingCodigoConcepto(match?.codigo || '');
-                                                    }}
-                                                    disabled={!billingCategoria}
-                                                >
-                                                    <option value="">{billingCategoria ? 'Seleccione...' : 'Seleccione una categoría'}</option>
-                                                    {(CATEGORIAS_CONCEPTOS[billingCategoria] || []).map((item) => (
-                                                        <option key={item.codigo} value={item.concepto}>{item.concepto}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-
                                         <div className="areas-section">
                                             <div className="areas-header">
                                                 <h3 className="areas-title">Áreas de Facturación</h3>
@@ -2009,20 +1964,20 @@ export default function FormulariosSQF({ onBack }) {
                                                                 <label className="form-label required">Centro de costos</label>
                                                                 <select className="form-input form-select" value={area.centro} onChange={(e) => updateArea(area.id, 'centro', e.target.value)}>
                                                                     <option value="">-- Seleccionar --</option>
-                                                                    {Object.keys(BILLING_CENTERS).map(c => <option key={c} value={c}>{c}</option>)}
+                                                                    {Object.keys(CENTROS_FACTURACION).map(c => <option key={c} value={c}>{c}</option>)}
                                                                 </select>
                                                             </div>
                                                             <div className="form-group">
                                                                 <label className="form-label required">Concepto</label>
                                                                 <select className="form-input form-select" value={area.concepto} onChange={(e) => updateArea(area.id, 'concepto', e.target.value)} disabled={!area.centro}>
                                                                     <option value="">-- Seleccionar --</option>
-                                                                    {(BILLING_CENTERS[area.centro] || []).map(c => <option key={c.code} value={c.label}>{c.label}</option>)}
+                                                                    {(CENTROS_FACTURACION[area.centro]?.productos || []).map(p => <option key={p.codigo} value={p.concepto}>{p.concepto}</option>)}
                                                                 </select>
                                                             </div>
                                                             <div className="form-group"><label className="form-label required">Valor</label><div className="input-currency-wrapper"><span className="currency-prefix">$</span><input type="text" className="form-input currency-input" value={area.valor} onChange={(e) => updateArea(area.id, 'valor', formatCurrency(e.target.value))} /></div></div>
                                                             <div className="form-group">
-                                                                <label className="form-label">Referencia</label>
-                                                                <input type="text" className="form-input" value={area.codigo || ''} readOnly placeholder="Se completa al elegir concepto" style={{ background: '#f5f9ff', cursor: 'default', color: area.codigo ? 'var(--color-text)' : 'var(--color-text-light)' }} />
+                                                                <label className="form-label">Código Centro / Producto</label>
+                                                                <input type="text" className="form-input" value={area.codigoCentro && area.codigoProducto ? `${area.codigoCentro} / ${area.codigoProducto}` : (area.codigoCentro || '')} readOnly placeholder="Se completa al elegir concepto" style={{ background: '#f5f9ff', cursor: 'default', color: area.codigoProducto ? 'var(--color-text)' : 'var(--color-text-light)' }} />
                                                             </div>
                                                         </div>
                                                     </div>
