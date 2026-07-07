@@ -1331,7 +1331,7 @@ export default function FormulariosSQF({ onBack }) {
                                         <tbody>
                                             {filteredClients.map((c, i) => (
                                                 <tr key={i} onClick={() => { setAuditorModalItem(c); setAuditorModalType('client'); }} style={{ cursor: 'pointer' }} title="Haga clic para ver detalles">
-                                                    <td className="td-wrap"><strong>{c?.name || ''}</strong> {c?.source === 'historico' && <span style={{ marginLeft: '5px', background: 'rgba(0,169,206,.12)', color: '#006e87', padding: '2px 6px', borderRadius: '50px', fontSize: '10px', fontWeight: '700' }} title="Cliente Histórico">H</span>}</td>
+                                                    <td className="td-wrap"><strong>{c?.name || ''}</strong> {c?.source === 'historico' && <span className="type-chip historico" title="Cliente Histórico">H</span>}</td>
                                                     <td>{c?.document || ''}</td>
                                                     <td>{c?.email || ''}</td>
                                                     <td>{c?.phone || ''}</td>
@@ -1391,10 +1391,10 @@ export default function FormulariosSQF({ onBack }) {
                                                 })
                                                 .map((c, i) => (
                                                     <tr key={i}>
-                                                        <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                                                        <td className="td-muted">{i + 1}</td>
                                                         <td className="td-wrap"><strong>{c?.name || '—'}</strong></td>
                                                         <td>{c?.solicitante_nombre || '—'}</td>
-                                                        <td style={{ whiteSpace: 'nowrap' }}>{formatDateSafe(c?.createdAt) || '—'}</td>
+                                                        <td className="td-nowrap">{formatDateSafe(c?.createdAt) || '—'}</td>
                                                         <td><span className={`status-badge ${c?.status === 'Validado' ? 'validated' : 'pending'}`}>{c?.status || '—'}</span></td>
                                                     </tr>
                                                 ))
@@ -1446,7 +1446,7 @@ export default function FormulariosSQF({ onBack }) {
                                                 <div><strong>✔ Cliente Encontrado:</strong> <br/> {nitLookupResult.client?.name || ''}</div>
                                                 <button type="button" className="btn-primary" style={{ width: '100%', borderRadius: '6px', padding: '12px', fontWeight: '600' }} onClick={() => startContractForClient(nitLookupResult.client)}>Generar Contrato</button>
                                             </div>
-                     . text, !exclu                   </div>
+                                        </div>
                                     )}
                                     {nitLookupResult?.type === 'error' && (
                                         <div className="lookup-result error">
@@ -1627,8 +1627,8 @@ export default function FormulariosSQF({ onBack }) {
                                                     <td><span className="card-value">{c?.valueFormatted || formatCurrencyDisplay(c?.value)}</span></td>
                                                     <td>{c?.startDate || ''} a {c?.endDate || ''}</td>
                                                     <td>
-                                                        {canSee('billing') && <button type="button" className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); sendContractToBilling(c); }} style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px' }}><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
+                                                        {canSee('billing') && <button type="button" className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); sendContractToBilling(c); }}>
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="btn-icon"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
                                                             Enviar a Facturar
                                                         </button>}
                                                     </td>
@@ -1689,11 +1689,11 @@ export default function FormulariosSQF({ onBack }) {
                                                 })
                                                 .map((c, i) => (
                                                     <tr key={i}>
-                                                        <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                                                        <td className="td-muted">{i + 1}</td>
                                                         <td className="td-wrap"><strong>{c?.name || '—'}</strong></td>
                                                         <td>{c?.clientName || '—'}</td>
                                                         <td>{c?.solicitante_nombre || '—'}</td>
-                                                        <td style={{ whiteSpace: 'nowrap' }}>{formatDateSafe(c?.createdAt) || '—'}</td>
+                                                        <td className="td-nowrap">{formatDateSafe(c?.createdAt) || '—'}</td>
                                                         <td><span className={`status-badge ${c?.status === 'Validado' ? 'validated' : 'pending'}`}>{c?.status || '—'}</span></td>
                                                     </tr>
                                                 ))
@@ -2029,7 +2029,7 @@ export default function FormulariosSQF({ onBack }) {
                             <p className="section-subtitle">Visualice y valide los procesos de creación de clientes y contratos.</p>
                         </div>
                     </div>
-                    <div className="form-grid">
+                    <div className="auditor-columns">
                         <div className="list-card">
                             <div className="list-header"><h2 className="list-title">Solicitudes de Clientes</h2></div>
                             <div>
@@ -2042,7 +2042,7 @@ export default function FormulariosSQF({ onBack }) {
                                             return (
                                                 <div key={i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('client'); }}>
                                                     <div className="auditor-card-header">
-                                                        <div><h4 className="auditor-item-title">{c?.name || ''}</h4><p className="auditor-item-subtitle">NIT: {c?.document || ''}</p></div>
+                                                        <div className="auditor-card-heading"><h4 className="auditor-item-title">{c?.name || ''}</h4><p className="auditor-item-subtitle">NIT: {c?.document || ''}</p></div>
                                                         <span className={`status-badge ${isPending ? 'pending' : 'validated'}`}>{c?.status || 'Pendiente'}</span>
                                                     </div>
                                                     <div className="auditor-card-footer">
@@ -2087,7 +2087,7 @@ export default function FormulariosSQF({ onBack }) {
                                             return (
                                                 <div key={i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('contract'); }}>
                                                     <div className="auditor-card-header">
-                                                        <div>
+                                                        <div className="auditor-card-heading">
                                                             <h4 className="auditor-item-title">{contractName}</h4>
                                                             <p className="auditor-item-subtitle">
                                                                 <strong>{clientName}</strong>
@@ -2096,7 +2096,7 @@ export default function FormulariosSQF({ onBack }) {
                                                         </div>
                                                         <span className={`status-badge ${isPending ? 'pending' : 'validated'}`}>{c?.status || 'Pendiente'}</span>
                                                     </div>
-                                                    <div style={{ padding: '8px 12px', borderTop: '1px solid #e5e7eb', fontSize: '13px', color: '#666' }}>
+                                                    <div className="auditor-card-details">
                                                         {contractType && <div><strong>Tipo:</strong> {contractType}</div>}
                                                         {service && <div><strong>Servicio:</strong> {service}</div>}
                                                     </div>
@@ -2172,16 +2172,16 @@ export default function FormulariosSQF({ onBack }) {
             {/* ========== TOAST GLOBAL ========== */}
             <div className={`toast ${toast.type} ${toast.show ? 'show' : ''}`}>
                 {toast.type === 'success-discrete' ? (
-                    <div className="toast-content" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '14px', height: '14px', flexShrink: 0, color: '#fff' }}><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        <span className="toast-msg" style={{ fontSize: '12px', fontWeight: '600', color: '#fff', margin: 0 }}>{toast.message}</span>
+                    <div className="toast-content">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="toast-icon"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span className="toast-msg">{toast.message}</span>
                     </div>
                 ) : (
                     <>
-                        {toast.type === 'success' && <svg viewBox="0 0 24 24" fill="none" className="toast-icon success" stroke="currentColor" strokeWidth="2" style={{ width: '24px', height: '24px' }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>}
-                        {toast.type === 'error' && <svg viewBox="0 0 24 24" fill="none" className="toast-icon error" stroke="currentColor" strokeWidth="2" style={{ width: '24px', height: '24px' }}><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>}
+                        {toast.type === 'success' && <svg viewBox="0 0 24 24" fill="none" className="toast-icon" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>}
+                        {toast.type === 'error' && <svg viewBox="0 0 24 24" fill="none" className="toast-icon" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>}
                         <div className="toast-content">
-                            <div className="toast-title" style={{ fontWeight: 'bold' }}>{toast.title}</div>
+                            <div className="toast-title">{toast.title}</div>
                             <div className="toast-msg">{toast.message}</div>
                         </div>
                     </>
