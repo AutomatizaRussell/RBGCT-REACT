@@ -571,7 +571,8 @@
   font-size: 13px;
 }
 .profile-table thead th {
-  background: linear-gradient(135deg, rgba(0,169,206,.05), rgba(0,191,179,.03));
+  background: #eef8fb;
+  background: linear-gradient(135deg, #eef8fb, #eafaf7);
   color: var(--color-blue-dark);
   font-weight: 700;
   font-size: 11px;
@@ -581,6 +582,10 @@
   white-space: nowrap;
   border-bottom: 2px solid var(--color-blue-light);
   text-align: left;
+  /* Encabezado fijo: no se pierde de vista al hacer scroll dentro de la tabla */
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 .profile-table tbody tr {
   border-bottom: 1px solid var(--color-border);
@@ -604,6 +609,8 @@
 }
 .td-muted { color: var(--color-text-muted); font-weight: 600; }
 .td-nowrap { white-space: nowrap; }
+.vigencia-range { display: inline-flex; align-items: baseline; gap: 6px; }
+.vigencia-sep { color: var(--color-text-light); }
 .type-chip {
   display: inline-block;
   padding: 4px 10px;
@@ -833,7 +840,7 @@
   transform: translateX(3px) translateY(-2px);
 }
 
-.auditor-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.auditor-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .auditor-card-header > .auditor-card-heading { flex: 1 1 auto; min-width: 0; }
 .auditor-item-title {
   font-size: 15px;
@@ -844,10 +851,10 @@
 }
 .auditor-item-subtitle { font-size: 13px; color: var(--color-text-muted); overflow-wrap: anywhere; }
 .auditor-card-details { padding: 8px 12px; border-top: 1px solid var(--color-border); font-size: 13px; color: var(--color-text-muted); display: flex; flex-direction: column; gap: 2px; }
-.auditor-card-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--color-border); }
-.auditor-date { font-size: 12px; color: var(--color-text-light); }
+.auditor-card-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 12px; border-top: 1px solid var(--color-border); }
+.auditor-date { font-size: 12px; color: var(--color-text-light); white-space: nowrap; }
 
-.status-badge { display: inline-flex; padding: 4px 10px; border-radius: 50px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; animation: badgePulse 2s ease-in-out infinite; }
+.status-badge { display: inline-flex; flex-shrink: 0; padding: 4px 10px; border-radius: 50px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; animation: badgePulse 2s ease-in-out infinite; }
 .status-badge.pending { background: var(--color-warning-bg); color: #92540a; border: 1px solid var(--color-warning-bdr); }
 .status-badge.validated { background: rgba(0,191,179,.1); color: var(--color-teal); border: 1px solid var(--color-teal); }
 .validated-info {
@@ -864,9 +871,25 @@
   color: var(--color-teal);
   border: 1px solid var(--color-teal);
 }
-.btn-validate { background: #fff; border: 1.5px solid var(--color-blue-dark); color: var(--color-blue-dark); padding: 6px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; transition: all var(--transition); }
-.btn-validate:hover { background: var(--color-blue-dark); color: #fff; }
-.btn-validate:disabled { opacity: .6; cursor: not-allowed; }
+.btn-validate {
+  background: var(--gradient-btn);
+  border: none;
+  color: #fff;
+  padding: 7px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,169,206,.3);
+  transition: all var(--transition);
+}
+.btn-validate:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,169,206,.4); }
+.btn-validate:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .auditor-overlay {
   position: fixed;

@@ -533,6 +533,12 @@ export default function FormulariosSQF({ onBack }) {
         return isNaN(d) ? String(isoStr) : d.toLocaleString('es-CO');
     };
 
+    const formatDateOnly = (isoStr) => {
+        if (!isoStr) return '';
+        const d = new Date(`${isoStr}T00:00:00`);
+        return isNaN(d) ? String(isoStr) : d.toLocaleDateString('es-CO');
+    };
+
     const getLoggedUserMeta = () => {
         const fullNameEmpleado = [
             empleadoData?.primer_nombre,
@@ -1625,7 +1631,15 @@ export default function FormulariosSQF({ onBack }) {
                                                     <td>{c?.clientName || ''}</td>
                                                     <td><span className="type-chip">{c?.contractType || ''}</span></td>
                                                     <td><span className="card-value">{c?.valueFormatted || formatCurrencyDisplay(c?.value)}</span></td>
-                                                    <td>{c?.startDate || ''} a {c?.endDate || ''}</td>
+                                                    <td className="td-nowrap">
+                                                        {c?.startDate ? (
+                                                            <span className="vigencia-range">
+                                                                <span>{formatDateOnly(c.startDate)}</span>
+                                                                <span className="vigencia-sep">–</span>
+                                                                <span>{c?.endDate ? formatDateOnly(c.endDate) : 'Indefinida'}</span>
+                                                            </span>
+                                                        ) : '—'}
+                                                    </td>
                                                     <td>
                                                         {canSee('billing') && <button type="button" className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); sendContractToBilling(c); }}>
                                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="btn-icon"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
