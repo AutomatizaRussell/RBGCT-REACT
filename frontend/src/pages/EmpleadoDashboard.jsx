@@ -29,10 +29,11 @@ import SugerenciasChat from '../components/common/SugerenciasChat'
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const location = useLocation()
   const navigate = useNavigate()
-  const { empleadoData } = useAuth()
+  const { empleadoData, logout } = useAuth()
 
   const [taskStats, setTaskStats] = useState({
     pending: 0,
@@ -178,7 +179,7 @@ const UserDashboard = () => {
   const getHeaderTitle = () => {
     if (isHome || isUtilidades || isSQF) return null
 
-    if (activeTab === 'tasks') return 'Mis Tareas Asignadas'
+    if (activeTab === 'tasks') return 'Mis solicitudes'
     if (activeTab === 'profile') return 'Mi Perfil'
     if (activeTab === 'cursos') return 'Cursos y Capacitaciones'
     if (activeTab === 'reglamento') return 'Reglamento Interno'
@@ -210,16 +211,22 @@ const UserDashboard = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isOpen={sidebarOpen}
+        isCollapsed={sidebarCollapsed}
         onClose={() => setSidebarOpen(false)}
+        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
       />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f1f5f9]">
         <Topbar
           eyebrow="Portal del empleado"
           title={topbarTitle}
+          userRole="Colaborador"
           userName={nombreUsuario}
-          userRole={empleadoData?.nombre_area || 'Colaborador'}
           avatarLabel={nombreUsuario.charAt(0).toUpperCase()}
+          userEmail={empleadoData?.correo_corporativo}
+          userCargo={empleadoData?.nombre_cargo}
+          userArea={empleadoData?.nombre_area}
+          onLogout={logout}
           onOpenSidebar={() => setSidebarOpen(true)}
           actions={
             <div className="relative" ref={notifRef}>
@@ -254,6 +261,7 @@ const UserDashboard = () => {
                     setActiveTab('tasks')
                     navigate('/app/auto-gestion')
                   }}
+                  count={taskStats.pending + confirmaciones.length}
                 />
               )}
             </div>
@@ -265,7 +273,7 @@ const UserDashboard = () => {
             <div className="mx-auto max-w-6xl space-y-8 animate-in fade-in duration-500">
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5">
                 <KpiCard
-                  label="Pendientes"
+                  label="Mis solicitudes Pendientes"
                   value={loadingStats ? '…' : taskStats.pending}
                   sub="Por completar"
                   icon={<Clock size={18} strokeWidth={1.75} />}
@@ -279,7 +287,7 @@ const UserDashboard = () => {
                 />
 
                 <KpiCard
-                  label="En proceso"
+                  label="Mis solicitudes En proceso"
                   value={loadingStats ? '…' : taskStats.inProgress}
                   sub="En curso"
                   icon={<Activity size={18} strokeWidth={1.75} />}
@@ -293,7 +301,7 @@ const UserDashboard = () => {
                 />
 
                 <KpiCard
-                  label="Completadas"
+                  label="Mis solicitudes Completadas"
                   value={loadingStats ? '…' : taskStats.completed}
                   sub="Cerradas en el periodo"
                   icon={<CheckCircle2 size={18} strokeWidth={1.75} />}
@@ -304,7 +312,7 @@ const UserDashboard = () => {
                 />
 
                 <KpiCard
-                  label="Total asignadas"
+                  label="Mis solicitudes Total"
                   value={loadingStats ? '…' : taskStats.total}
                   sub={empleadoData?.nombre_cargo || 'Cartera de tareas'}
                   icon={<ClipboardList size={18} strokeWidth={1.75} />}
@@ -502,7 +510,7 @@ const UserDashboard = () => {
   )
 }
 
-const NotificationsPanel = ({ tareas, loading, onClose, onNavigate, confirmaciones = [], onDescartarConfirmacion }) => {
+const NotificationsPanel = ({ tareas, loading, onClose, onNavigate, confirmaciones = [], onDescartarConfirmacion, count = 0 }) => {
   const now = new Date()
 
   const vencidas = tareas.filter(
@@ -520,16 +528,21 @@ const NotificationsPanel = ({ tareas, loading, onClose, onNavigate, confirmacion
     })
 
   return (
-    <div className="absolute right-0 top-12 z-50 w-[min(100vw-1.5rem,20rem)] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_12px_40px_-8px_rgba(15,23,42,0.18)] animate-in fade-in duration-200">
+    <div className="absolute right-0 top-12 z-50 w-[min(100vw-1.5rem,20rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_48px_-16px_rgba(15,23,42,0.2)] animate-in fade-in duration-200">
       <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#001871]">
-          Notificaciones
-        </p>
-
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#001871]">
+            Notificaciones
+          </p>
+          <p className="text-[10px] text-slate-500">
+            {count > 0 ? `${count} no leídas` : 'Sin notificaciones nuevas'}
+          </p>
+        </div>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-white hover:text-[#001871]"
+          className="rounded-md p-2 text-slate-500 transition-colors hover:bg-white hover:text-[#001871]"
+          aria-label="Cerrar notificaciones"
         >
           <X size={14} strokeWidth={2} />
         </button>
@@ -710,7 +723,6 @@ const KpiCard = ({
   icon,
   iconBg,
   iconColor,
-  accent,
   highlight,
   onClick,
 }) => (
@@ -728,7 +740,7 @@ const KpiCard = ({
           }
         : undefined
     }
-    className={`relative overflow-hidden rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-shadow duration-200 ${accent} border-l-[3px] pl-[17px] ${
+    className={`relative overflow-hidden rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-shadow duration-200 ${
       highlight ? 'ring-1 ring-slate-900/[0.06]' : ''
     } ${onClick ? 'cursor-pointer hover:border-slate-300 hover:shadow-md' : ''}`}
   >

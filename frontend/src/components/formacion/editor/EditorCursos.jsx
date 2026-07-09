@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import {
   getAllCursos, createCurso, updateCurso, deleteCurso,
-  createCursoContenido, deleteCursoContenido,
+  createCursoContenido, updateCursoContenido, deleteCursoContenido,
   getAllAreas, getAllEmpleados, getAllCargos,
   reordenarCursos, reordenarContenidos, exportarCalificaciones,
 } from '../../../lib/api';
@@ -771,6 +771,7 @@ function VisibilidadSelector({ value, onChange, areas, empleados, accentColor = 
 function ContenidosPanel({ curso, onContenidoAdded, onEliminarContenido, showAddContenido, setShowAddContenido, onReordenar }) {
   const [dragItemId, setDragItemId] = useState(null);
   const [dragOverItemId, setDragOverItemId] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
   const contenidos = curso.contenidos || [];
 
   const handleDragStartItem = (e, id) => {
@@ -805,6 +806,18 @@ function ContenidosPanel({ curso, onContenidoAdded, onEliminarContenido, showAdd
           {contenidos.map((item) => {
             const cfg = TIPO_CONFIG[item.tipo] || TIPO_CONFIG.enlace;
             const IconComp = cfg.icon;
+
+            if (editingItem?.id === item.id) {
+              return (
+                <EditContenidoForm
+                  key={`edit-${item.id}`}
+                  contenido={editingItem}
+                  onDone={() => { setEditingItem(null); onContenidoAdded(); }}
+                  onCancel={() => setEditingItem(null)}
+                />
+              );
+            }
+
             return (
               <div
                 key={item.id}
@@ -858,9 +871,9 @@ function ContenidosPanel({ curso, onContenidoAdded, onEliminarContenido, showAdd
                       <p className="text-xs text-slate-600 whitespace-pre-wrap line-clamp-4">{item.contenido}</p>
                     </div>
                   )}
-                  {item.contenido && item.tipo === 'cuestionario' && (() => {
+                  {item.tipo === 'cuestionario' && (() => {
                     try {
-                      const q = JSON.parse(item.contenido);
+                      const q = item.contenido ? JSON.parse(item.contenido) : { preguntas: [] };
                       const total = q.preguntas?.length || 0;
                       const autogradables = (q.preguntas || []).filter(p => p.tipo !== 'texto_libre').length;
                       return (
@@ -873,6 +886,9 @@ function ContenidosPanel({ curso, onContenidoAdded, onEliminarContenido, showAdd
                           {item.max_intentos > 0 && (
                             <><span className="text-amber-400">·</span><span>{item.max_intentos} intento{item.max_intentos !== 1 ? 's' : ''} máx.</span></>
                           )}
+                          {total === 0 && (
+                            <span className="text-red-500">⚠ Sin preguntas — edita para agregar</span>
+                          )}
                         </div>
                       );
                     } catch {
@@ -880,13 +896,22 @@ function ContenidosPanel({ curso, onContenidoAdded, onEliminarContenido, showAdd
                     }
                   })()}
                 </div>
-                <button
-                  onClick={() => onEliminarContenido(item.id)}
-                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0"
-                  title="Eliminar contenido"
-                >
-                  <Trash2 size={14}/>
-                </button>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => setEditingItem(item)}
+                    className="p-2 text-slate-400 hover:text-[#001871] hover:bg-blue-50 rounded-lg transition-all"
+                    title="Editar contenido"
+                  >
+                    <Pencil size={14}/>
+                  </button>
+                  <button
+                    onClick={() => onEliminarContenido(item.id)}
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                    title="Eliminar contenido"
+                  >
+                    <Trash2 size={14}/>
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -1078,6 +1103,115 @@ function AddContenidoForm({ cursoId, onDone, onCancel }) {
           className="px-5 py-2.5 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
         >
           {saving ? <><Loader2 size={14} className="animate-spin"/> Guardando...</> : <><CheckCircle2 size={14}/> Agregar Contenido</>}
+        </button>
+        <button onClick={onCancel} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EditContenidoForm({ contenido, onDone, onCancel }) {
+  const tipo = contenido.tipo;
+  const cfg = TIPO_CONFIG[tipo] || TIPO_CONFIG.enlace;
+  const [form, setForm] = useState({
+    titulo: contenido.titulo || '',
+    descripcion: contenido.descripcion || '',
+    url: contenido.url || '',
+    contenido: contenido.contenido || '',
+    max_intentos: contenido.max_intentos ?? 0,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const needsUrl = ['youtube', 'enlace'].includes(tipo);
+  const needsContenido = tipo === 'texto';
+  const needsBuilder = tipo === 'cuestionario';
+  const hasFile = ['video', 'documento'].includes(tipo);
+
+  const handleSubmit = async () => {
+    if (!form.titulo.trim()) { alert('El título es obligatorio'); return; }
+    setSaving(true);
+    try {
+      const payload = {
+        titulo: form.titulo.trim(),
+        descripcion: form.descripcion.trim(),
+      };
+      if (needsUrl) payload.url = form.url.trim() || null;
+      if (needsContenido || needsBuilder) payload.contenido = form.contenido || null;
+      if (needsBuilder) payload.max_intentos = Number(form.max_intentos) || 0;
+      await updateCursoContenido(contenido.id, payload);
+      onDone();
+    } catch (err) {
+      alert('Error al guardar: ' + (err.message || 'Error desconocido'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-4 shadow-sm">
+      <div className="flex items-center gap-2">
+        <div className="p-1.5 bg-amber-100 rounded-lg">
+          <Pencil size={14} className="text-amber-600"/>
+        </div>
+        <p className="text-xs font-bold text-amber-700 uppercase tracking-widest">Editar contenido</p>
+        <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${cfg.badge}`}>
+          {cfg.label}
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        <input autoFocus value={form.titulo} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))}
+          placeholder="Título del contenido *"
+          className="w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-50 font-semibold transition-all"
+        />
+        <input value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))}
+          placeholder="Descripción (opcional)..."
+          className="w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-50 transition-all"
+        />
+        {needsUrl && (
+          <input value={form.url} onChange={e => setForm(p => ({ ...p, url: e.target.value }))}
+            placeholder={tipo === 'youtube' ? 'https://youtube.com/watch?v=...' : 'https://...'}
+            className="w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-50 transition-all"
+          />
+        )}
+        {hasFile && contenido.archivo_url && (
+          <div className="flex items-center gap-2 p-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-500">
+            <FileText size={13} className="text-slate-400 flex-shrink-0"/>
+            <span>Archivo actual:</span>
+            <a href={contenido.archivo_url} target="_blank" rel="noopener noreferrer"
+              className="text-blue-600 hover:underline font-medium truncate">Ver archivo</a>
+            <span className="text-slate-300 text-[10px] flex-shrink-0">(Para cambiarlo, elimina y vuelve a crear)</span>
+          </div>
+        )}
+        {needsContenido && (
+          <textarea value={form.contenido} onChange={e => setForm(p => ({ ...p, contenido: e.target.value }))}
+            placeholder="Escribe el contenido del artículo..." rows={5}
+            className="w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-50 resize-none transition-all"
+          />
+        )}
+        {needsBuilder && (
+          <div className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl">
+            <ClipboardList size={14} className="text-amber-500 flex-shrink-0"/>
+            <label className="text-xs font-bold text-slate-600 flex-shrink-0">Intentos permitidos:</label>
+            <input type="number" min={0} max={99} value={form.max_intentos}
+              onChange={e => setForm(p => ({ ...p, max_intentos: e.target.value }))}
+              className="w-16 px-2 py-1.5 text-sm font-bold text-center bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-400"
+            />
+            <span className="text-[10px] text-slate-400">(0 = sin límite)</span>
+          </div>
+        )}
+        {needsBuilder && (
+          <CuestionarioBuilder value={form.contenido} onChange={val => setForm(p => ({ ...p, contenido: val }))} />
+        )}
+      </div>
+
+      <div className="flex gap-3 pt-2">
+        <button onClick={handleSubmit} disabled={saving || !form.titulo.trim()}
+          className="px-5 py-2.5 bg-amber-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+        >
+          {saving ? <><Loader2 size={14} className="animate-spin"/> Guardando...</> : <><CheckCircle2 size={14}/> Guardar cambios</>}
         </button>
         <button onClick={onCancel} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all">
           Cancelar

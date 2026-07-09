@@ -4,11 +4,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area,
 } from 'recharts';
 import {
-  Building2, Plus, Search, X, ChevronRight, Users, FileText,
+  Building2, Plus, Search, X, ChevronRight, Users,
   BookOpen, Phone, Mail, Globe, MapPin, AlertTriangle, Pencil,
-  Trash2, Upload, ExternalLink, UserPlus, DollarSign, Activity,
+  ExternalLink, UserPlus, DollarSign,
   ShieldAlert, LayoutDashboard, List, ArrowRight, ChevronDown,
-  ChevronUp, Briefcase, Clock, Download, Sheet,
+  ChevronUp, Briefcase, Clock, Download, Sheet, Trash2,
 } from 'lucide-react';
 import {
   exportClientesListaExcel, exportClientesListaPDF,
@@ -17,13 +17,11 @@ import {
 } from '../../lib/exports';
 import {
   getClientesSQF,
-  getClientesStats, getEmpresas, getEmpresa,
-  createEmpresa, updateEmpresa, deleteEmpresa,
-  getEmpresaPorAreas, getEmpresaContactos, getEmpresaDocumentos, getEmpresaBitacora,
+  getClientesStats, getEmpresas, getEmpresa, updateEmpresa,
+  getEmpresaPorAreas, getEmpresaContactos, getEmpresaBitacora,
   createContacto, deleteContacto,
-  createServicio, updateServicio, deleteServicio,
+  updateServicio, deleteServicio,
   createAsignacion, updateAsignacion,
-  createDocumentoCliente, deleteDocumentoCliente,
   createBitacora, deleteBitacora,
   getAllAreas, getAllEmpleados,
 } from '../../lib/api';
@@ -49,7 +47,6 @@ const ROL_LABELS = { responsable_principal:'Responsable Principal', gerente:'Ger
 const SERV_ESTADO_C = { activo:'bg-emerald-100 text-emerald-700', pausado:'bg-amber-100 text-amber-700', terminado:'bg-slate-100 text-slate-600' };
 const BIT_C = { reunion:'bg-blue-100 text-blue-700', llamada:'bg-emerald-100 text-emerald-700', visita:'bg-purple-100 text-purple-700', email:'bg-slate-100 text-slate-600', entrega:'bg-amber-100 text-amber-700', novedad:'bg-orange-100 text-orange-700', otro:'bg-slate-100 text-slate-500' };
 const BIT_L = { reunion:'Reunión', llamada:'Llamada', visita:'Visita', email:'Correo', entrega:'Entrega', novedad:'Novedad', otro:'Otro' };
-const DOC_L = { rut:'RUT', camara_comercio:'Cámara de Comercio', estado_financiero:'Estado Financiero', contrato_servicio:'Contrato Servicio', certificado:'Certificado', declaracion:'Declaración', poder:'Poder', otro:'Otro' };
 
 function Badge({ children, className = '' }) {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${className}`}>{children}</span>;
@@ -597,46 +594,6 @@ function EmpleadoRow({ a, onRemove }) {
   );
 }
 
-function AgregarServicioForm({ areaId, empresaId, onSaved, onCancel }) {
-  const [form, setForm] = useState({ descripcion:'', fecha_inicio:'', valor_mensual:'', periodicidad:'mensual' });
-  const [saving, setSaving] = useState(false);
-  const set = (k,v) => setForm(f=>({...f,[k]:v}));
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await createServicio({ ...form, empresa: empresaId, area: areaId, valor_mensual: form.valor_mensual || null });
-      onSaved();
-    } catch (err) { alert(err.message); }
-    finally { setSaving(false); }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="mt-2 p-3 bg-blue-50 border border-blue-100 rounded-xl space-y-2">
-      <p className="text-xs font-semibold text-blue-700 mb-1">Nuevo servicio</p>
-      <textarea placeholder="Descripción del servicio" rows={2} value={form.descripcion}
-        onChange={e=>set('descripcion',e.target.value)}
-        className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
-      <div className="grid grid-cols-3 gap-2">
-        <input type="date" required value={form.fecha_inicio} onChange={e=>set('fecha_inicio',e.target.value)}
-          className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
-        <input type="number" placeholder="Valor mensual (COP)" value={form.valor_mensual}
-          onChange={e=>set('valor_mensual',e.target.value)}
-          className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
-        <select value={form.periodicidad} onChange={e=>set('periodicidad',e.target.value)}
-          className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30">
-          {[['mensual','Mensual'],['bimestral','Bimestral'],['trimestral','Trimestral'],['semestral','Semestral'],['anual','Anual'],['unico','Único']].map(([v,l])=><option key={v} value={v}>{l}</option>)}
-        </select>
-      </div>
-      <div className="flex gap-2">
-        <button type="submit" disabled={saving} className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50">{saving?'Guardando...':'Agregar'}</button>
-        <button type="button" onClick={onCancel} className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg hover:bg-slate-50">Cancelar</button>
-      </div>
-    </form>
-  );
-}
-
 function AgregarEmpleadoForm({ areaId, empresaId, onSaved, onCancel, empleados, assignedIds = new Set() }) {
   const [form, setForm]       = useState({ empleado:'', rol:'', fecha_inicio:'' });
   const [busqueda, setBusqueda] = useState('');
@@ -724,9 +681,9 @@ function AgregarEmpleadoForm({ areaId, empresaId, onSaved, onCancel, empleados, 
 }
 
 function AreaCard({ bloque, empresaId, empleados, onRefresh, colorIdx }) {
-  const [open, setOpen]       = useState(true);
+  const [open, setOpen]     = useState(true);
+  const [addEmp, setAddEmp] = useState(false);
   const [addServ, setAddServ] = useState(false);
-  const [addEmp, setAddEmp]   = useState(false);
   const color = AREA_PAL[colorIdx % AREA_PAL.length];
 
   const handleToggleServicio = async (s) => {
@@ -784,10 +741,6 @@ function AreaCard({ bloque, empresaId, empleados, onRefresh, colorIdx }) {
                 <p className="text-xs font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
                   <Briefcase size={11}/> Servicios
                 </p>
-                <button onClick={e=>{e.stopPropagation();setAddServ(v=>!v);setAddEmp(false);}}
-                  className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium">
-                  <Plus size={11}/> Agregar
-                </button>
               </div>
 
               <div className="space-y-1.5">
@@ -798,14 +751,6 @@ function AreaCard({ bloque, empresaId, empleados, onRefresh, colorIdx }) {
                   ))
                 }
               </div>
-
-              {addServ && (
-                <AgregarServicioForm
-                  areaId={bloque.area_id} empresaId={empresaId}
-                  onSaved={() => { setAddServ(false); onRefresh(); }}
-                  onCancel={() => setAddServ(false)}
-                />
-              )}
             </div>
 
             {/* Equipo */}
@@ -849,26 +794,18 @@ function AreaCard({ bloque, empresaId, empleados, onRefresh, colorIdx }) {
 
 function AreasTab({ empresaId, empresaEstado }) {
   const [bloques, setBloques]     = useState([]);
-  const [areas, setAreas]         = useState([]);
   const [empleados, setEmpleados] = useState([]);
   const [loading, setLoading]     = useState(true);
-  const [showAddArea, setShowAddArea] = useState(false);
-  const [newAreaId, setNewAreaId] = useState('');
-  const [newAreaForm, setNewAreaForm] = useState({ descripcion:'', fecha_inicio:'', valor_mensual:'', periodicidad:'mensual' });
-  const [saving, setSaving]       = useState(false);
-
-  const areasEnUso = new Set(bloques.map(b => b.area_id));
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [b, a, e] = await Promise.all([
+      const [b, , e] = await Promise.all([
         getEmpresaPorAreas(empresaId),
         getAllAreas(),
         getAllEmpleados(),
       ]);
       setBloques(b);
-      setAreas(a);
       setEmpleados(e);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -876,122 +813,37 @@ function AreasTab({ empresaId, empresaEstado }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleAgregarArea = async (e) => {
-    e.preventDefault();
-    if (!newAreaId) return;
-    setSaving(true);
-    try {
-      await createServicio({
-        empresa: empresaId,
-        area: newAreaId,
-        descripcion: newAreaForm.descripcion || null,
-        fecha_inicio: newAreaForm.fecha_inicio,
-        valor_mensual: newAreaForm.valor_mensual || null,
-        periodicidad: newAreaForm.periodicidad,
-      });
-      setShowAddArea(false);
-      setNewAreaId('');
-      setNewAreaForm({ descripcion:'', fecha_inicio:'', valor_mensual:'', periodicidad:'mensual' });
-      load();
-    } catch (err) { alert(err.message); }
-    finally { setSaving(false); }
-  };
-
   if (loading) return (
     <div className="flex items-center justify-center py-10">
       <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"/>
     </div>
   );
 
-  const areasDisponibles = areas.filter(a => !areasEnUso.has(a.id_area));
-
   const esActivo = empresaEstado === 'activo';
   const sinAreas = bloques.length === 0;
 
   return (
     <div className="space-y-3">
-      {/* Warning: Cliente activo sin áreas */}
       {esActivo && sinAreas && (
         <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
           <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5"/>
           <div>
             <p className="text-xs font-semibold text-amber-700">Cliente activo sin área asignada</p>
             <p className="text-[11px] text-amber-600 mt-0.5">
-              Los clientes activos deben tener al menos un área de servicio asignada.
+              Los servicios se registran desde el Formulario SQF.
             </p>
           </div>
         </div>
       )}
 
-      {/* Botón agregar área */}
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-500">
-          {sinAreas ? 'Este cliente no tiene áreas asignadas aún.' : `${bloques.length} área(s) prestando servicios`}
-        </p>
-        <button onClick={() => setShowAddArea(v => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-xl hover:bg-blue-700 transition-colors">
-          <Plus size={13}/> Agregar área
-        </button>
-      </div>
+      <p className="text-xs text-slate-500">
+        {sinAreas ? 'Sin áreas asignadas. Los servicios llegan desde FormulariosSQF.' : `${bloques.length} área(s) prestando servicios`}
+      </p>
 
-      {/* Form para agregar nueva área */}
-      {showAddArea && (
-        <form onSubmit={handleAgregarArea} className="p-4 bg-blue-50 border border-blue-100 rounded-2xl space-y-3">
-          <p className="text-xs font-bold text-blue-800">Nueva área de servicio para este cliente</p>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="col-span-2">
-              <label className="block text-xs text-slate-500 mb-1">Área *</label>
-              <select value={newAreaId} onChange={e=>setNewAreaId(e.target.value)} required
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30">
-                <option value="">— Seleccionar área —</option>
-                {areasDisponibles.map(a=><option key={a.id_area} value={a.id_area}>{a.nombre_area}</option>)}
-              </select>
-              {areasDisponibles.length === 0 && <p className="text-xs text-amber-600 mt-1">Todas las áreas ya están asignadas a este cliente.</p>}
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs text-slate-500 mb-1">Descripción del servicio</label>
-              <textarea rows={2} value={newAreaForm.descripcion}
-                onChange={e=>setNewAreaForm(f=>({...f,descripcion:e.target.value}))}
-                placeholder="Ej: Revisoría Fiscal mensual, Contabilidad general..."
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30"/>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Fecha inicio *</label>
-              <input type="date" required value={newAreaForm.fecha_inicio}
-                onChange={e=>setNewAreaForm(f=>({...f,fecha_inicio:e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30"/>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Valor mensual (COP)</label>
-              <input type="number" placeholder="0" value={newAreaForm.valor_mensual}
-                onChange={e=>setNewAreaForm(f=>({...f,valor_mensual:e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30"/>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Periodicidad</label>
-              <select value={newAreaForm.periodicidad} onChange={e=>setNewAreaForm(f=>({...f,periodicidad:e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30">
-                {[['mensual','Mensual'],['bimestral','Bimestral'],['trimestral','Trimestral'],['semestral','Semestral'],['anual','Anual'],['unico','Único']].map(([v,l])=><option key={v} value={v}>{l}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" disabled={saving||!areasDisponibles.length}
-              className="px-4 py-2 bg-blue-600 text-white text-xs rounded-xl hover:bg-blue-700 disabled:opacity-50 font-medium">
-              {saving ? 'Guardando...' : 'Agregar área'}
-            </button>
-            <button type="button" onClick={()=>setShowAddArea(false)}
-              className="px-4 py-2 border border-slate-200 text-xs rounded-xl hover:bg-slate-50">Cancelar</button>
-          </div>
-        </form>
-      )}
-
-      {/* Tarjetas por área */}
-      {bloques.length === 0 && !showAddArea && (
+      {sinAreas && (
         <div className="flex flex-col items-center justify-center py-12 text-slate-400">
           <Briefcase size={28} className="mb-2 opacity-30"/>
           <p className="text-sm">Sin áreas de servicio</p>
-          <button onClick={() => setShowAddArea(true)} className="mt-2 text-xs text-blue-500 hover:underline">Agregar la primera área</button>
         </div>
       )}
 
@@ -1072,78 +924,6 @@ function ContactosTab({ empresaId }) {
         </div>
       ))}
       {!contactos.length && !showForm && <p className="text-sm text-slate-400 text-center py-6">Sin contactos registrados</p>}
-    </div>
-  );
-}
-
-// ── DocumentosTab ─────────────────────────────────────────────────────────────
-
-function DocumentosTab({ empresaId }) {
-  const [docs, setDocs]       = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm]       = useState({ tipo:'', nombre:'', fecha_documento:'', archivo:null });
-  const [uploading, setUploading] = useState(false);
-
-  useEffect(() => { getEmpresaDocumentos(empresaId).then(setDocs).catch(console.error); }, [empresaId]);
-
-  const handleUpload = async (e) => {
-    e.preventDefault();
-    if (!form.archivo) return;
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('empresa', empresaId); fd.append('tipo', form.tipo);
-      fd.append('nombre', form.nombre); fd.append('archivo', form.archivo);
-      if (form.fecha_documento) fd.append('fecha_documento', form.fecha_documento);
-      await createDocumentoCliente(fd);
-      setShowForm(false);
-      setForm({ tipo:'', nombre:'', fecha_documento:'', archivo:null });
-      getEmpresaDocumentos(empresaId).then(setDocs);
-    } catch (err) { alert(err.message); }
-    finally { setUploading(false); }
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-slate-700">{docs.length} documento(s)</span>
-        <button onClick={()=>setShowForm(!showForm)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-xl hover:bg-blue-700"><Upload size={13}/> Subir</button>
-      </div>
-      {showForm && (
-        <form onSubmit={handleUpload} className="p-3 bg-blue-50 border border-blue-100 rounded-xl space-y-2">
-          <div className="grid grid-cols-2 gap-2">
-            <select value={form.tipo} onChange={e=>setForm(f=>({...f,tipo:e.target.value}))} required className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white">
-              <option value="">Tipo *</option>
-              {Object.entries(DOC_L).map(([v,l])=><option key={v} value={v}>{l}</option>)}
-            </select>
-            <input placeholder="Nombre *" required value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg"/>
-            <input type="date" value={form.fecha_documento} onChange={e=>setForm(f=>({...f,fecha_documento:e.target.value}))} className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg"/>
-            <input type="file" required onChange={e=>setForm(f=>({...f,archivo:e.target.files[0]}))} className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg"/>
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" disabled={uploading} className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg disabled:opacity-50">{uploading?'Subiendo...':'Subir'}</button>
-            <button type="button" onClick={()=>setShowForm(false)} className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg">Cancelar</button>
-          </div>
-        </form>
-      )}
-      {docs.map(d => (
-        <div key={d.id} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl">
-          <div>
-            <div className="flex items-center gap-2">
-              <FileText size={13} className="text-blue-400"/>
-              <span className="text-sm font-medium text-slate-800">{d.nombre}</span>
-              <Badge className="bg-slate-100 text-slate-600">{d.tipo_display}</Badge>
-              {!d.vigente && <Badge className="bg-red-100 text-red-600">Vencido</Badge>}
-            </div>
-            {d.fecha_documento && <p className="text-xs text-slate-400 mt-0.5">Fecha: {d.fecha_documento}</p>}
-          </div>
-          <div className="flex gap-1">
-            {d.archivo_url && <a href={d.archivo_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"><ExternalLink size={13}/></a>}
-            <button onClick={async()=>{if(!confirm('¿Eliminar?'))return;await deleteDocumentoCliente(d.id);setDocs(x=>x.filter(i=>i.id!==d.id));}} className="text-slate-300 hover:text-red-400 p-1 rounded hover:bg-red-50"><Trash2 size={13}/></button>
-          </div>
-        </div>
-      ))}
-      {!docs.length && !showForm && <p className="text-sm text-slate-400 text-center py-6">Sin documentos</p>}
     </div>
   );
 }
@@ -1231,7 +1011,7 @@ function EmpresaForm({ empresa, onSave, onCancel }) {
       const p = Object.fromEntries(
         Object.entries(form).filter(([, v]) => v !== '' && v !== null && v !== undefined)
       );
-      empresa?.id ? await updateEmpresa(empresa.id, p) : await createEmpresa(p);
+      await updateEmpresa(empresa.id, p);
       onSave();
     } catch (err) {
       if (err.fieldErrors) {
@@ -1328,7 +1108,7 @@ function EmpresaForm({ empresa, onSave, onCancel }) {
       <div className="flex gap-2 pt-2">
         <button type="submit" disabled={saving}
           className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
-          {saving ? 'Guardando…' : empresa?.id ? 'Actualizar Cliente' : 'Crear Cliente'}
+          {saving ? 'Guardando…' : 'Actualizar Cliente'}
         </button>
         <button type="button" onClick={onCancel}
           className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition-colors">
@@ -1342,10 +1122,9 @@ function EmpresaForm({ empresa, onSave, onCancel }) {
 // ── EmpresaPanel ──────────────────────────────────────────────────────────────
 
 const DETAIL_TABS = [
-  { id:'areas',       label:'Áreas & Servicios', icon:Briefcase  },
-  { id:'contactos',   label:'Contactos',          icon:Users      },
-  { id:'documentos',  label:'Documentos',         icon:FileText   },
-  { id:'bitacora',    label:'Bitácora',            icon:BookOpen   },
+  { id:'areas',     label:'Áreas & Servicios', icon:Briefcase },
+  { id:'contactos', label:'Contactos',          icon:Users     },
+  { id:'bitacora',  label:'Bitácora',            icon:BookOpen  },
 ];
 
 function EmpresaPanel({ empresa, onClose, onUpdate }) {
@@ -1409,10 +1188,9 @@ function EmpresaPanel({ empresa, onClose, onUpdate }) {
             })}
           </div>
           <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50">
-            {tab==='areas'      && <AreasTab      empresaId={empresa.id} empresaEstado={empresa.estado}/>}
-            {tab==='contactos'  && <ContactosTab  empresaId={empresa.id}/>}
-            {tab==='documentos' && <DocumentosTab empresaId={empresa.id}/>}
-            {tab==='bitacora'   && <BitacoraTab   empresaId={empresa.id}/>}
+            {tab==='areas'     && <AreasTab     empresaId={empresa.id} empresaEstado={empresa.estado}/>}
+            {tab==='contactos' && <ContactosTab empresaId={empresa.id}/>}
+            {tab==='bitacora'  && <BitacoraTab  empresaId={empresa.id}/>}
           </div>
         </>
       )}
@@ -1428,7 +1206,6 @@ function Directorio() {
   const [search, setSearch]     = useState('');
   const [filterEstado, setFilterEstado] = useState('');
   const [selected, setSelected] = useState(null);
-  const [showCreate, setShowCreate] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1448,18 +1225,10 @@ function Directorio() {
     try { setSelected(await getEmpresa(selected.id)); } catch {}
   };
 
-  const handleDelete = async (id, e) => {
-    e.stopPropagation();
-    if (!confirm('¿Eliminar cliente? Esta acción no se puede deshacer.')) return;
-    await deleteEmpresa(id);
-    if (selected?.id === id) setSelected(null);
-    load();
-  };
-
   return (
     <div className="flex h-full overflow-hidden">
       {/* List */}
-      <div className={`flex flex-col bg-white border-r border-slate-100 transition-all ${selected||showCreate?'w-96 min-w-[22rem]':'flex-1'}`}>
+      <div className={`flex flex-col bg-white border-r border-slate-100 transition-all ${selected?'w-96 min-w-[22rem]':'flex-1'}`}>
         <div className="p-5 border-b border-slate-100">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-slate-800">Directorio</h3>
@@ -1476,10 +1245,6 @@ function Directorio() {
                 title={`Exportar PDF (${empresas.length})`}
                 className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors disabled:opacity-40"
               ><Download size={11}/> PDF</button>
-              <button onClick={()=>{setShowCreate(true);setSelected(null);}}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-xl hover:bg-blue-700">
-                <Plus size={13}/> Nuevo cliente
-              </button>
             </div>
           </div>
           <div className="flex gap-1.5 mb-3 flex-wrap">
@@ -1504,11 +1269,10 @@ function Directorio() {
               ? <div className="flex flex-col items-center justify-center py-16 text-slate-400">
                   <Building2 size={28} className="mb-2 opacity-30"/>
                   <p className="text-sm">Sin clientes</p>
-                  <button onClick={()=>setShowCreate(true)} className="mt-2 text-xs text-blue-500 hover:underline">Agregar el primero</button>
                 </div>
               : empresas.map(em => (
                 <div key={em.id}
-                  onClick={()=>{setSelected(em);setShowCreate(false);}}
+                  onClick={()=>setSelected(em)}
                   className={`flex items-start gap-3 px-4 py-3.5 border-b border-slate-50 cursor-pointer transition-colors hover:bg-slate-50 ${selected?.id===em.id?'bg-blue-50/60 border-l-2 border-l-blue-500 pl-[14px]':''}`}>
                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                     {(em.razon_social||'C').charAt(0)}
@@ -1529,7 +1293,6 @@ function Directorio() {
                     {em.contacto_principal && <p className="text-[10px] text-slate-400 mt-0.5 truncate">{em.contacto_principal.nombre} · {em.contacto_principal.cargo}</p>}
                   </div>
                   <div className="flex gap-1 flex-shrink-0 mt-0.5">
-                    <button onClick={e=>handleDelete(em.id,e)} className="p-1 text-slate-200 hover:text-red-400 rounded hover:bg-red-50"><Trash2 size={12}/></button>
                     <ChevronRight size={14} className="text-slate-300 mt-0.5"/>
                   </div>
                 </div>
@@ -1539,19 +1302,9 @@ function Directorio() {
       </div>
 
       {/* Detail */}
-      {(selected||showCreate) && (
+      {selected && (
         <div className="flex-1 flex flex-col overflow-hidden">
-          {showCreate ? (
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="text-base font-bold text-slate-900">Nuevo Cliente</h3>
-                <button onClick={()=>setShowCreate(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"><X size={14}/></button>
-              </div>
-              <EmpresaForm onSave={()=>{setShowCreate(false);load();}} onCancel={()=>setShowCreate(false)}/>
-            </div>
-          ) : (
-            <EmpresaPanel empresa={selected} onClose={()=>setSelected(null)} onUpdate={()=>{load();refreshSelected();}}/>
-          )}
+          <EmpresaPanel empresa={selected} onClose={()=>setSelected(null)} onUpdate={()=>{load();refreshSelected();}}/>
         </div>
       )}
     </div>

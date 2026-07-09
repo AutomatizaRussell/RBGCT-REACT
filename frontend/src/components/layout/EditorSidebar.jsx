@@ -5,6 +5,7 @@ import {
   LogOut,
   UserCircle,
   BookOpen,
+  GraduationCap,
   Wrench,
 } from 'lucide-react'
 
@@ -12,7 +13,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { SidebarShell } from './SidebarShell'
 
-export const EditorSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
+export const EditorSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, onClose, onToggleCollapse }) => {
   const navigate = useNavigate()
   const { logout } = useAuth()
 
@@ -40,6 +41,9 @@ export const EditorSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
       case 'cursos':
         navigate('/editor/cursos')
         break
+      case 'mis-cursos':
+        navigate('/editor')
+        break
       case 'historial':
         navigate('/editor/historial')
         break
@@ -64,8 +68,9 @@ export const EditorSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
     {
       label: 'Contenido',
       items: [
-        { tab: 'cursos', label: 'Formación', icon: BookOpen },
-        { tab: 'historial', label: 'Historial', icon: History },
+        { tab: 'cursos',     label: 'Formación',  icon: BookOpen },
+        { tab: 'mis-cursos', label: 'Mis Cursos', icon: GraduationCap },
+        { tab: 'historial',  label: 'Historial',  icon: History },
       ],
     },
     {
@@ -90,7 +95,9 @@ export const EditorSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
       badge="Content Editor"
       activeTab={activeTab}
       isOpen={isOpen}
+      isCollapsed={isCollapsed}
       onClose={onClose}
+      onToggleCollapse={onToggleCollapse}
       onNavigate={handleNavigation}
       sections={sections}
       footer={

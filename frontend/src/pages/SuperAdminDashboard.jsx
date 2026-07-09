@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { SuperAdminSidebar } from '../components/layout/SuperAdminSidebar';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Users, Activity, ShieldAlert, Zap, Database, Plus, X, AlertTriangle, Eye, Trash2, CheckCircle, Lock, Edit3, Clock, Building2, Phone, MapPin, Menu } from 'lucide-react';
+import { Users, Activity, ShieldAlert, Zap, Database, Plus, X, AlertTriangle, Eye, Trash2, CheckCircle, Lock, Edit3, Clock, Building2, Phone, MapPin, Menu, Bell, ArrowRight, CheckCircle2 } from 'lucide-react';
 import StatCard from '../components/ui/StatCard';
 import RecentUserRow from '../components/ui/RecentUserRow';
 import ActionButton from '../components/ui/ActionButton';
@@ -49,11 +49,14 @@ const AdminDashboard = () => {
   const [n8nStatus, setN8nStatus] = useState({ connected: false, ping: null, loading: true });
   const [alertDetail, setAlertDetail] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const activeTabRef = useRef('dashboard');
   const hasMountedTabEffect = useRef(false);
+  const notifRef = useRef(null);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isSuperAdmin, user } = useAuth();
+  const { isSuperAdmin, user, logout } = useAuth();
   const { fetchEmpleados } = useDataCache();
 
   // --- FUNCIONES DE CARGA ---
@@ -299,6 +302,16 @@ const AdminDashboard = () => {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    const handler = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifPanel(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   // --- LÓGICA DE RENDERIZADO ---
   const renderContent = () => {
     if (location.pathname === '/superadmin/usuarios/nuevo') return <CreateUserPage />;
@@ -433,23 +446,32 @@ const AdminDashboard = () => {
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
-      <SuperAdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <SuperAdminSidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isOpen={sidebarOpen}
+        isCollapsed={sidebarCollapsed}
+        onClose={() => setSidebarOpen(false)}
+        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+      />
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Topbar
           eyebrow="Control global"
           title={getHeaderTitle()}
           description="Administración · Sistema · Operación"
+          userRole={isSuperAdmin ? 'Superadmin' : 'Administrador'}
           userName={
-            user?.primer_nombre
-              ? `${user.primer_nombre} ${user.primer_apellido || ''}`.trim()
+            user?.nombre
+              ? `${user.nombre} ${user.apellido || ''}`.trim()
               : user?.email || 'SuperAdmin'
           }
-          userRole={isSuperAdmin ? 'Superadmin' : 'Administrador'}
           avatarLabel={
-            user?.primer_nombre
-              ? user.primer_nombre.charAt(0).toUpperCase()
-              : 'A'
+            user?.nombre
+              ? user.nombre.charAt(0).toUpperCase()
+              : user?.email?.charAt(0)?.toUpperCase() || 'A'
           }
+          userEmail={user?.email}
+          onLogout={logout}
           onOpenSidebar={() => setSidebarOpen(true)}
           actions={
             <>
@@ -464,6 +486,33 @@ const AdminDashboard = () => {
                   <span className="sm:hidden">Crear</span>
                 </button>
               )}
+
+              <div className="relative" ref={notifRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowNotifPanel((v) => !v)}
+                  className={`relative flex h-10 w-10 items-center justify-center rounded-md border transition-colors ${
+                    showNotifPanel
+                      ? 'border-slate-200 bg-slate-50 text-[#001871]'
+                      : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-white hover:text-[#001871]'
+                  }`}
+                  title="Notificaciones"
+                >
+                  <Bell size={18} strokeWidth={1.75} />
+                  {alertasCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">
+                      {alertasCount > 9 ? '9+' : alertasCount}
+                    </span>
+                  )}
+                </button>
+                {showNotifPanel && (
+                  <SANotifDropdown
+                    alertasCount={alertasCount}
+                    onClose={() => setShowNotifPanel(false)}
+                    onVerAlertas={() => { setShowNotifPanel(false); setShowAlertasModal(true); }}
+                  />
+                )}
+              </div>
             </>
           }
         />
@@ -525,6 +574,68 @@ const AdminDashboard = () => {
     </div>
   );
 };
+
+// --- NOTIF DROPDOWN (campana) ---
+
+const SANotifDropdown = ({ alertasCount, onClose, onVerAlertas }) => (
+  <div className="absolute right-0 top-12 z-50 w-[min(100vw-1.5rem,20rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_48px_-16px_rgba(15,23,42,0.2)] animate-in fade-in duration-200">
+    <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#001871]">Notificaciones</p>
+        <p className="text-[10px] text-slate-500">
+          {alertasCount > 0 ? `${alertasCount} pendiente${alertasCount === 1 ? '' : 's'}` : 'Sin notificaciones nuevas'}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-white hover:text-[#001871]"
+      >
+        <X size={14} strokeWidth={2} />
+      </button>
+    </div>
+
+    <div className="max-h-[360px] overflow-y-auto">
+      {alertasCount === 0 ? (
+        <div className="py-10 text-center">
+          <CheckCircle2 size={28} className="mx-auto text-slate-300" strokeWidth={1.5} />
+          <p className="mt-3 text-xs font-medium text-slate-500">Todo al día — sin pendientes</p>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onVerAlertas}
+          className="flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors hover:bg-slate-50"
+        >
+          <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-500">
+            <ShieldAlert size={15} strokeWidth={1.75} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-slate-800">Alertas de recuperación</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">
+              {alertasCount === 1 ? '1 usuario intentó recuperar contraseña' : `${alertasCount} usuarios intentaron recuperar contraseña`}
+            </p>
+          </div>
+          <span className="mt-1 flex h-5 min-w-[1.25rem] flex-shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+            {alertasCount > 9 ? '9+' : alertasCount}
+          </span>
+        </button>
+      )}
+    </div>
+
+    {alertasCount > 0 && (
+      <div className="border-t border-slate-200 bg-slate-50 px-4 py-3">
+        <button
+          type="button"
+          onClick={onVerAlertas}
+          className="flex w-full items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#001871] transition-colors hover:text-slate-600"
+        >
+          Ver todas <ArrowRight size={12} strokeWidth={2} />
+        </button>
+      </div>
+    )}
+  </div>
+)
 
 // --- MODAL DE ALERTAS ---
 

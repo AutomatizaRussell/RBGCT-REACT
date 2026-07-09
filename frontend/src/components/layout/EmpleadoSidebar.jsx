@@ -12,10 +12,10 @@ import {
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { getAllCursos } from '../../lib/api'
+import { getAllCursos, getMisClientes } from '../../lib/api'
 import { SidebarShell } from './SidebarShell'
 
-export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
+export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, onClose, onToggleCollapse }) => {
   const navigate = useNavigate()
   const { logout, empleadoData } = useAuth()
 
@@ -31,6 +31,7 @@ export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) =>
     'Colaborador'
 
   const [tieneCursos, setTieneCursos] = useState(false)
+  const [tieneClientes, setTieneClientes] = useState(false)
 
   useEffect(() => {
     getAllCursos()
@@ -40,6 +41,16 @@ export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) =>
       })
       .catch(() => { })
   }, [])
+
+  useEffect(() => {
+    if (!empleadoData?.id) return
+    getMisClientes(empleadoData.id)
+      .then((data) => {
+        const lista = Array.isArray(data) ? data : data?.results || []
+        setTieneClientes(lista.length > 0)
+      })
+      .catch(() => { })
+  }, [empleadoData?.id])
 
   const handleLogout = async () => {
     try {
@@ -90,7 +101,7 @@ export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) =>
       items: [
         { tab: 'dashboard', label: 'Mi resumen', icon: LayoutDashboard },
         { tab: 'tasks', label: 'Auto gestión', icon: ClipboardList },
-        { tab: 'clientes', label: 'Mis clientes', icon: Building2 },
+        { tab: 'clientes', label: 'Mis clientes', icon: Building2, visible: tieneClientes || Boolean(empleadoData?.acceso_formularios_sqf) },
         { tab: 'profile', label: 'Mi perfil', icon: UserCircle },
       ],
     },
@@ -111,7 +122,9 @@ export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) =>
       badge="Portal Empleado"
       activeTab={activeTab}
       isOpen={isOpen}
+      isCollapsed={isCollapsed}
       onClose={onClose}
+      onToggleCollapse={onToggleCollapse}
       onNavigate={handleNavigation}
       sections={sections}
       userCard={

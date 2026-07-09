@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from django.db.models import Q, Count
 import bcrypt
 
-from ..models import DatosArea, DatosCargo, SuperAdmin, DatosEmpleado, DatosContacto, Persona, DatosAcademicos, MovimientoLaboral
+from ..models import DatosArea, DatosCargo, SuperAdmin, DatosEmpleado, DatosContacto, Persona, DatosAcademicos, MovimientoLaboral, Hijo
 from ..serializers import (
     DatosAreaSerializer, DatosCargoSerializer, SuperAdminSerializer, DatosEmpleadoSerializer,
     DatosAcademicosSerializer, MovimientoLaboralSerializer,
@@ -88,10 +88,11 @@ class DatosEmpleadoViewSet(viewsets.ModelViewSet):
         # Preparar datos para el serializer
         data = request.data.copy()
 
-        # Si está usando permiso de edición y es el propio usuario, revocar después de actualizar (UN SOLO USO)
-        if not instance.primer_login and instance.permitir_edicion_datos and is_own_profile:
+        revocar_permiso = (
+            not instance.primer_login and instance.permitir_edicion_datos and is_own_profile
+        )
+        if revocar_permiso:
             data['permitir_edicion_datos'] = False
-            data['datos_completados'] = True
 
         serializer = self.get_serializer(instance, data=data, partial=partial)
 
@@ -102,6 +103,10 @@ class DatosEmpleadoViewSet(viewsets.ModelViewSet):
             )
 
         self.perform_update(serializer)
+
+        if revocar_permiso:
+            instance.datos_completados = True
+            instance.save(update_fields=['datos_completados'])
 
         # Preparar respuesta con mensaje si se revocó el permiso
         response_data = serializer.data.copy()
@@ -220,14 +225,124 @@ def actualizar_mi_persona(request):
                 setattr(persona, campo, valor or None)
     persona.save()
 
-    empleado_update_fields = ['datos_persona_completados', 'permitir_edicion_datos']
+    empleado_update_fields = ['datos_persona_completados']
     empleado.datos_persona_completados = True
-    empleado.permitir_edicion_datos = False
+    if empleado.permitir_edicion_datos:
+        empleado.permitir_edicion_datos = False
+        empleado_update_fields.append('permitir_edicion_datos')
     if 'fecha_ingreso' in request.data:
         empleado.fecha_ingreso = request.data['fecha_ingreso'] or None
         empleado_update_fields.append('fecha_ingreso')
     empleado.save(update_fields=empleado_update_fields)
 
+    return Response({'ok': True})
+
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def certificado_discapacidad(request):
+    """Subir (POST) o eliminar (DELETE) el certificado de discapacidad del empleado autenticado."""
+    if not _es_empleado(request.user):
+        return Response({'error': 'Solo empleados pueden usar este endpoint'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        empleado = DatosEmpleado.objects.get(id_empleado=request.user.id_empleado)
+    except DatosEmpleado.DoesNotExist:
+        return Response({'error': 'Empleado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    persona = empleado.persona
+
+    if request.method == 'DELETE':
+        if persona.certificado_discapacidad:
+            persona.certificado_discapacidad.delete(save=False)
+            persona.certificado_discapacidad = None
+            persona.save(update_fields=['certificado_discapacidad'])
+        return Response({'ok': True})
+
+    archivo = request.FILES.get('certificado')
+    if not archivo:
+        return Response({'error': 'No se recibió ningún archivo'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if persona.certificado_discapacidad:
+        persona.certificado_discapacidad.delete(save=False)
+
+    archivo.seek(0)
+    archivo_bytes = archivo.read()
+    archivo.seek(0)
+
+    persona.certificado_discapacidad = archivo
+    persona.save(update_fields=['certificado_discapacidad'])
+
+    from ..n8n_gateway import subir_intranet_async
+    subir_intranet_async('datos_academicos', archivo.name, archivo_bytes, archivo.content_type)
+
+    return Response({'ok': True, 'url': persona.certificado_discapacidad.url})
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def mis_hijos(request):
+    """Lista (GET) o crea (POST) un hijo del empleado autenticado."""
+    if not _es_empleado(request.user):
+        return Response({'error': 'Solo empleados'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        empleado = DatosEmpleado.objects.get(id_empleado=request.user.id_empleado)
+    except DatosEmpleado.DoesNotExist:
+        return Response({'error': 'Empleado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    persona = empleado.persona
+
+    if request.method == 'GET':
+        hijos = persona.hijos.all().values(
+            'id', 'nombre', 'tipo_documento', 'numero_identificacion', 'fecha_nacimiento', 'sexo'
+        )
+        return Response(list(hijos))
+
+    data = request.data
+    if not data.get('nombre'):
+        return Response({'error': 'El nombre es obligatorio'}, status=status.HTTP_400_BAD_REQUEST)
+
+    hijo = Hijo.objects.create(
+        persona=persona,
+        nombre=data.get('nombre', ''),
+        tipo_documento=data.get('tipo_documento', 'RC'),
+        numero_identificacion=data.get('numero_identificacion') or None,
+        fecha_nacimiento=data.get('fecha_nacimiento') or None,
+        sexo=data.get('sexo') or None,
+    )
+    return Response({
+        'id': hijo.id, 'nombre': hijo.nombre,
+        'tipo_documento': hijo.tipo_documento,
+        'numero_identificacion': hijo.numero_identificacion,
+        'fecha_nacimiento': hijo.fecha_nacimiento,
+        'sexo': hijo.sexo,
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def mi_hijo_detalle(request, hijo_id):
+    """Actualiza (PATCH) o elimina (DELETE) un hijo del empleado autenticado."""
+    if not _es_empleado(request.user):
+        return Response({'error': 'Solo empleados'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        empleado = DatosEmpleado.objects.get(id_empleado=request.user.id_empleado)
+    except DatosEmpleado.DoesNotExist:
+        return Response({'error': 'Empleado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        hijo = Hijo.objects.get(id=hijo_id, persona=empleado.persona)
+    except Hijo.DoesNotExist:
+        return Response({'error': 'Hijo no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'DELETE':
+        hijo.delete()
+        return Response({'ok': True})
+
+    data = request.data
+    for campo in ('nombre', 'tipo_documento', 'numero_identificacion', 'fecha_nacimiento', 'sexo'):
+        if campo in data:
+            setattr(hijo, campo, data[campo] or None if campo != 'nombre' else data[campo])
+    hijo.save()
     return Response({'ok': True})
 
 
@@ -243,8 +358,11 @@ def actualizar_mi_contacto(request):
     except DatosEmpleado.DoesNotExist:
         return Response({'error': 'Empleado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
-    campos_contacto = ['correo_personal', 'telefono', 'direccion',
-                       'telefono_emergencia', 'nombre_contacto_emergencia', 'parentesco_emergencia']
+    campos_contacto = [
+        'correo_personal', 'telefono',
+        'pais_residencia', 'departamento_residencia', 'municipio_residencia', 'direccion', 'detalles_residencia',
+        'telefono_emergencia', 'nombre_contacto_emergencia', 'parentesco_emergencia',
+    ]
     contacto_data = {c: request.data[c] for c in campos_contacto if c in request.data}
 
     if contacto_data:
@@ -373,11 +491,21 @@ def mis_academicos(request):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    diploma = request.FILES.get('diploma')
+    if diploma:
+        diploma.seek(0)
+        diploma_bytes = diploma.read()
+        diploma.seek(0)
+
     serializer.save(persona=persona)
 
     if not empleado.datos_academicos_completados:
         empleado.datos_academicos_completados = True
         empleado.save(update_fields=['datos_academicos_completados'])
+
+    if diploma:
+        from ..n8n_gateway import subir_intranet_async
+        subir_intranet_async('datos_academicos', diploma.name, diploma_bytes, diploma.content_type)
 
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -435,10 +563,22 @@ def admin_academicos_empleado(request, empleado_id):
     serializer = DatosAcademicosSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    diploma = request.FILES.get('diploma')
+    if diploma:
+        diploma.seek(0)
+        diploma_bytes = diploma.read()
+        diploma.seek(0)
+
     serializer.save(persona=persona)
     if not empleado.datos_academicos_completados:
         empleado.datos_academicos_completados = True
         empleado.save(update_fields=['datos_academicos_completados'])
+
+    if diploma:
+        from ..n8n_gateway import subir_intranet_async
+        subir_intranet_async('datos_academicos', diploma.name, diploma_bytes, diploma.content_type)
+
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 

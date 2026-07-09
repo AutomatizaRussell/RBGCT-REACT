@@ -50,6 +50,19 @@ class Curso(models.Model):
         return self.nombre
 
 
+class CursoModulo(models.Model):
+    curso  = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='modulos')
+    nombre = models.CharField(max_length=200)
+    orden  = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = '"formacion"."curso_modulo"'
+        ordering = ['orden']
+
+    def __str__(self):
+        return f"{self.curso.nombre} — {self.nombre}"
+
+
 class CursoContenido(models.Model):
     TIPO_CHOICES = [
         ('youtube',      'Video YouTube'),
@@ -61,6 +74,10 @@ class CursoContenido(models.Model):
     ]
 
     curso      = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='contenidos')
+    modulo     = models.ForeignKey(
+        CursoModulo, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='contenidos',
+    )
     tipo       = models.CharField(max_length=20, choices=TIPO_CHOICES)
     titulo     = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True, default='')

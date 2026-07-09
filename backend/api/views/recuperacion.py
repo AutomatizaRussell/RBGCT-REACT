@@ -14,57 +14,10 @@ import bcrypt
 
 from ..models import DatosEmpleado, SolicitudesPassword
 
-from ._utils import generar_codigo_verificacion, _post_n8n, _post_n8n_async
+from ._utils import generar_codigo_verificacion
+from ..n8n_gateway import enviar_recuperacion_password, notificar_password_restablecida
 
 logger = logging.getLogger(__name__)
-
-
-def enviar_email_recuperacion_n8n(email, codigo, nombre=None):
-    """Envía código de recuperación de contraseña vía n8n."""
-    nombre_usuario = nombre or 'Usuario'
-    html_email = f"""<div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #F8F9FA;">
-  <div style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-
-    <div style="text-align: center; padding: 30px 20px 20px 20px;">
-      <img src="https://raw.githubusercontent.com/AutomatizaRussell/Resourse_GestionHumana/main/Logo_RB2021.png" alt="Russell Bedford" style="height: 50px; margin-bottom: 15px;">
-    </div>
-    <div style="height: 4px; background: linear-gradient(to right, #001871 50%, #00a9ce 50%, #00a9ce 75%, #ed8b00 75%, #ed8b00 100%);"></div>
-
-    <div style="padding: 40px 30px;">
-      <h2 style="color: #001871; font-size: 24px; margin-top: 0; margin-bottom: 20px;">Recuperación de Contraseña</h2>
-      <p style="font-size: 16px; color: #4A5568; margin-bottom: 20px; line-height: 1.6;">Hola <strong>{nombre_usuario}</strong>,</p>
-      <p style="font-size: 16px; color: #4A5568; margin-bottom: 25px; line-height: 1.6;">Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Por favor, utiliza el siguiente código de verificación para continuar con el proceso:</p>
-
-      <div style="background-color: #F8F9FA; padding: 35px 20px; border-radius: 8px; margin: 30px 0; border: 1px solid #e2e8f0; border-top: 4px solid #00a9ce; text-align: center;">
-        <p style="margin: 0 0 15px 0; color: #4A5568; font-size: 14px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Tu código de verificación</p>
-        <div style="color: #001871; font-size: 40px; font-weight: bold; letter-spacing: 12px; margin: 0;">
-          {codigo}
-        </div>
-      </div>
-
-      <p style="font-size: 14px; color: #718096; margin-top: 25px; line-height: 1.5;">
-        <strong style="color: #e53e3e;">Importante:</strong> Este código expira en 15 minutos. Si no solicitaste este cambio, puedes ignorar este mensaje de forma segura; tu cuenta sigue protegida.
-      </p>
-    </div>
-
-    <div style="background-color: #001871; color: #ffffff; padding: 20px; text-align: center; font-size: 12px; line-height: 1.6;">
-      <p style="margin: 0; font-size: 14px;"><strong>GCT - Sistema de Gestión</strong></p>
-      <p style="margin: 5px 0 0 0; color: #e2e8f0;">Russell Bedford Colombia</p>
-      <p style="margin: 10px 0 0 0;"><a href="https://conecta.rbgct.cloud" style="color: #00a9ce; text-decoration: none; font-size: 13px; font-weight: bold;">🌐 conecta.rbgct.cloud</a></p>
-      <p style="margin: 10px 0 0 0; font-size: 11px; color: #a0aec0;">Este es un mensaje automático, por favor no respondas a este correo.</p>
-    </div>
-
-  </div>
-</div>"""
-    payload = {
-        'tipo': 'recuperacion_password',
-        'destinatario': email,
-        'asunto': 'Recuperación de Contraseña - GCT',
-        'html_email': html_email,
-        'datos_sensibles': {'correo_login': email, 'codigo_verificacion': codigo},
-        'datos_usuario': {'nombre': nombre_usuario, 'expira_en': '15 minutos'},
-    }
-    return _post_n8n(email, payload, 'recuperacion_password')
 
 
 # Endpoint para solicitar recuperación de contraseña - PÚBLICO
@@ -109,8 +62,7 @@ def solicitar_recuperacion_password(request):
         'intentos': 0
     }, timeout=900)  # 15 minutos
 
-    # Enviar email vía n8n
-    email_sent, result = enviar_email_recuperacion_n8n(email, codigo, nombre_usuario)
+    email_sent, result = enviar_recuperacion_password(email, codigo, nombre_usuario)
 
     if email_sent:
         logger.info(f"[RECUPERACION] Código enviado a {email}")
@@ -245,32 +197,13 @@ def restablecer_password(request):
 
 
 def notificar_admin_password_restablecida(empleado):
-    """
-    Notifica a admin/superadmin cuando un empleado restablece su contraseña.
-    Envía webhook a n8n para notificación (email o teams).
-    """
+    """Notifica a admin cuando un empleado restablece su contraseña."""
     try:
-        from django.conf import settings
-        n8n_url = settings.N8N_WEBHOOK_URL
-        if not n8n_url:
-            return
-
-        payload = {
-            'tipo': 'notificacion_admin',
-            'evento': 'password_restablecida',
-            'datos_empleado': {
-                'id': empleado.id_empleado,
-                'nombre': f"{empleado.primer_nombre} {empleado.primer_apellido}",
-                'email': empleado.correo_corporativo,
-                'area': str(empleado.area) if empleado.area else 'Sin área',
-                'cargo': str(empleado.cargo) if empleado.cargo else 'Sin cargo'
-            },
-            'mensaje': f"El empleado {empleado.primer_nombre} {empleado.primer_apellido} ha restablecido su contraseña",
-            'timestamp': str(datetime.now())
-        }
-
-        _post_n8n_async(empleado.correo_corporativo, payload, 'notificacion_password_restablecida')
-        logger.info(f"[N8N NOTIFICACION] Notificación admin enviada en background")
-
+        notificar_password_restablecida(
+            email=empleado.correo_corporativo,
+            nombre=f"{empleado.primer_nombre} {empleado.primer_apellido}",
+            area=str(empleado.area) if empleado.area else '',
+            cargo=str(empleado.cargo) if empleado.cargo else '',
+        )
     except Exception as e:
-        logger.error(f"[NOTIFICACION] Error: {str(e)}")
+        logger.error(f"[NOTIFICACION] Error: {e}")

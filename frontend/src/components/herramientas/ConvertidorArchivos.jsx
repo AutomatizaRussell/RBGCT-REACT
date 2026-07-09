@@ -1,20 +1,21 @@
 import { useState, useRef } from 'react';
-import { FileUp, Download, X, Loader2, ChevronDown, ChevronUp, ArrowRight, FileText, FileSpreadsheet, FileImage, File } from 'lucide-react';
+import { FileUp, Download, X, Loader2, ChevronDown, ArrowRight, FileText, FileSpreadsheet, FileImage, File } from 'lucide-react';
 import { fetchApi } from '../../lib/api.js';
 
 const FORMATOS = {
-  pdf: { icono: FileText, color: 'bg-red-100 text-red-600', label: 'PDF' },
-  docx: { icono: FileText, color: 'bg-blue-100 text-blue-600', label: 'Word' },
+  pdf:  { icono: FileText,        color: 'bg-red-100 text-red-600',     label: 'PDF' },
+  docx: { icono: FileText,        color: 'bg-blue-100 text-blue-600',   label: 'Word' },
   xlsx: { icono: FileSpreadsheet, color: 'bg-green-100 text-green-600', label: 'Excel' },
-  txt: { icono: FileText, color: 'bg-slate-100 text-slate-600', label: 'Texto' },
-  html: { icono: FileText, color: 'bg-orange-100 text-orange-600', label: 'HTML' },
-  md: { icono: FileText, color: 'bg-purple-100 text-purple-600', label: 'Markdown' },
-  png: { icono: FileImage, color: 'bg-pink-100 text-pink-600', label: 'PNG' },
-  jpg: { icono: FileImage, color: 'bg-yellow-100 text-yellow-600', label: 'JPG' },
-  jpeg: { icono: FileImage, color: 'bg-yellow-100 text-yellow-600', label: 'JPEG' },
-  gif: { icono: FileImage, color: 'bg-cyan-100 text-cyan-600', label: 'GIF' },
-  bmp: { icono: FileImage, color: 'bg-indigo-100 text-indigo-600', label: 'BMP' },
-  webp: { icono: FileImage, color: 'bg-teal-100 text-teal-600', label: 'WebP' },
+  csv:  { icono: FileSpreadsheet, color: 'bg-lime-100 text-lime-600',   label: 'CSV' },
+  txt:  { icono: FileText,        color: 'bg-slate-100 text-slate-600', label: 'Texto' },
+  html: { icono: FileText,        color: 'bg-orange-100 text-orange-600',  label: 'HTML' },
+  md:   { icono: FileText,        color: 'bg-purple-100 text-purple-600', label: 'Markdown' },
+  png:  { icono: FileImage,       color: 'bg-pink-100 text-pink-600',     label: 'PNG' },
+  jpg:  { icono: FileImage,       color: 'bg-yellow-100 text-yellow-600', label: 'JPG' },
+  jpeg: { icono: FileImage,       color: 'bg-yellow-100 text-yellow-600', label: 'JPEG' },
+  gif:  { icono: FileImage,       color: 'bg-cyan-100 text-cyan-600',   label: 'GIF' },
+  bmp:  { icono: FileImage,       color: 'bg-indigo-100 text-indigo-600', label: 'BMP' },
+  webp: { icono: FileImage,       color: 'bg-teal-100 text-teal-600',   label: 'WebP' },
 };
 
 const CONVERSIONES_SOPORTADAS = [

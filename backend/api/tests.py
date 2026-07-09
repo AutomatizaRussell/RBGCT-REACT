@@ -354,7 +354,7 @@ class RecuperacionPasswordTests(APITestCase):
         self.empleado = crear_empleado('recupera@rbcol.co', primer_login=False)
 
     @patch('api.views.recuperacion.notificar_admin_password_restablecida')
-    @patch('api.views.recuperacion.enviar_email_recuperacion_n8n', return_value=(True, 'ok'))
+    @patch('api.n8n_gateway.enviar_recuperacion_password', return_value=(True, 'ok'))
     def test_flujo_completo_de_recuperacion(self, _mail, _notif):
         res = self.client.post('/api/recuperar-password/', {'email': 'recupera@rbcol.co'})
         self.assertEqual(res.status_code, 200)
@@ -375,14 +375,14 @@ class RecuperacionPasswordTests(APITestCase):
         self.assertEqual(res.status_code, 200)
         self.assertIn('accessToken', res.data)
 
-    @patch('api.views.recuperacion.enviar_email_recuperacion_n8n', return_value=(True, 'ok'))
+    @patch('api.n8n_gateway.enviar_recuperacion_password', return_value=(True, 'ok'))
     def test_email_inexistente_respuesta_generica(self, _):
         res = self.client.post('/api/recuperar-password/', {'email': 'noexiste@rbcol.co'})
         self.assertEqual(res.status_code, 200)
         self.assertFalse(res.data['enviado'])
 
     @patch('api.views.recuperacion.notificar_admin_password_restablecida')
-    @patch('api.views.recuperacion.enviar_email_recuperacion_n8n', return_value=(True, 'ok'))
+    @patch('api.n8n_gateway.enviar_recuperacion_password', return_value=(True, 'ok'))
     def test_token_recuperacion_de_un_solo_uso(self, _mail, _notif):
         """Un token de recuperación no debe poder usarse dos veces."""
         self.client.post('/api/recuperar-password/', {'email': 'recupera@rbcol.co'})

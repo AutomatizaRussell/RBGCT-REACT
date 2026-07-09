@@ -45,22 +45,55 @@ const _safeStorage = (() => {
   };
 })();
 
+const _isPersistent = () => _safeStorage.get('gct_remember') !== 'false';
+
 export const tokenStorage = {
   _store: () => {
-    try { return _safeStorage.get('gct_remember') === 'false' ? sessionStorage : (localStorage || sessionStorage); }
-    catch { return sessionStorage; }
+    try {
+      if (typeof window !== 'undefined') {
+        try {
+          const testStore = window.localStorage;
+          testStore.setItem('_gct_test', '1');
+          testStore.removeItem('_gct_test');
+          return testStore;
+        } catch {}
+        try { return window.sessionStorage; } catch {}
+      }
+    } catch {}
+
+    return {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    };
   },
-  getAccess: () => _safeStorage.get('gct_access_token'),
-  getRefresh: () => _safeStorage.get('gct_refresh_token'),
+  // Lee de ambos stores: sessionStorage tiene prioridad (caso remember=false)
+  getAccess: () => {
+    try { const v = sessionStorage.getItem('gct_access_token'); if (v) return v; } catch {}
+    return _safeStorage.get('gct_access_token');
+  },
+  getRefresh: () => {
+    try { const v = sessionStorage.getItem('gct_refresh_token'); if (v) return v; } catch {}
+    return _safeStorage.get('gct_refresh_token');
+  },
   set: (accessToken, refreshToken, remember) => {
     if (remember !== undefined) _safeStorage.set('gct_remember', remember ? 'true' : 'false');
-    _safeStorage.set('gct_access_token', accessToken);
-    if (refreshToken) _safeStorage.set('gct_refresh_token', refreshToken);
+    const persistent = remember !== undefined ? !!remember : _isPersistent();
+    if (persistent) {
+      _safeStorage.set('gct_access_token', accessToken);
+      if (refreshToken) _safeStorage.set('gct_refresh_token', refreshToken);
+      try { sessionStorage.removeItem('gct_access_token'); sessionStorage.removeItem('gct_refresh_token'); } catch {}
+    } else {
+      try { sessionStorage.setItem('gct_access_token', accessToken); } catch {}
+      if (refreshToken) { try { sessionStorage.setItem('gct_refresh_token', refreshToken); } catch {} }
+      try { localStorage.removeItem('gct_access_token'); localStorage.removeItem('gct_refresh_token'); } catch {}
+    }
   },
   clear: () => {
     _safeStorage.remove('gct_access_token');
     _safeStorage.remove('gct_refresh_token');
     _safeStorage.remove('gct_remember');
+    try { sessionStorage.removeItem('gct_access_token'); sessionStorage.removeItem('gct_refresh_token'); } catch {}
   },
 };
 
@@ -277,8 +310,9 @@ export const enviarRespuestasCuestionario = (contenidoId, data) => fetchApi(`/cu
   method: 'POST',
   body: JSON.stringify(data),
 });
-export const getMisIntentosCuestionario = (contenidoId) => fetchApi(`/curso-contenido/${contenidoId}/mis-intentos/`);
-export const getResultadosCuestionario  = (contenidoId) => fetchApi(`/curso-contenido/${contenidoId}/resultados/`);
+export const getMisIntentosCuestionario   = (contenidoId) => fetchApi(`/curso-contenido/${contenidoId}/mis-intentos/`);
+export const getResultadosCuestionario    = (contenidoId) => fetchApi(`/curso-contenido/${contenidoId}/resultados/`);
+export const getResumenEmpleadosFormacion = ()            => fetchApi('/cursos/resumen-empleados/');
 export const getMisAcademicos = () => fetchApi('/mis-academicos/');
 export const crearDatoAcademico = (data, diploma = null) => {
   if (diploma) {
@@ -399,6 +433,12 @@ export const updateCurso = (id, data) => fetchApi(`/cursos/${id}/`, {
 export const deleteCurso = (id) => fetchApi(`/cursos/${id}/`, { method: 'DELETE' });
 
 export const getContenidosByCurso = (cursoId) => fetchApi(`/curso-contenido/?curso_id=${cursoId}`);
+
+// ── MÓDULOS DE CURSO ──────────────────────────────────────────────────────────
+export const getModulosByCurso   = (cursoId) => fetchApi(`/curso-modulos/?curso_id=${cursoId}`);
+export const createCursoModulo   = (data)    => fetchApi('/curso-modulos/', { method: 'POST',   body: JSON.stringify(data) });
+export const updateCursoModulo   = (id, data) => fetchApi(`/curso-modulos/${id}/`, { method: 'PATCH',  body: JSON.stringify(data) });
+export const deleteCursoModulo   = (id)      => fetchApi(`/curso-modulos/${id}/`, { method: 'DELETE' });
 
 export const createCursoContenido = (data) => {
   if (data instanceof FormData) {
@@ -839,20 +879,13 @@ export const getEmpresas = (params = {}) => {
 
 export const getEmpresa = (id) => fetchApi(`/clientes/empresas/${id}/`);
 
-export const createEmpresa = (data) =>
-  fetchApi('/clientes/empresas/', { method: 'POST', body: JSON.stringify(data) });
-
 export const updateEmpresa = (id, data) =>
   fetchApi(`/clientes/empresas/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
-
-export const deleteEmpresa = (id) =>
-  fetchApi(`/clientes/empresas/${id}/`, { method: 'DELETE' });
 
 export const getEmpresaPorAreas  = (id) => fetchApi(`/clientes/empresas/${id}/por_areas/`);
 export const getEmpresaContactos = (id) => fetchApi(`/clientes/empresas/${id}/contactos/`);
 export const getEmpresaServicios = (id) => fetchApi(`/clientes/empresas/${id}/servicios/`);
 export const getEmpresaEquipo    = (id) => fetchApi(`/clientes/empresas/${id}/equipo/`);
-export const getEmpresaDocumentos = (id) => fetchApi(`/clientes/empresas/${id}/documentos/`);
 export const getEmpresaBitacora  = (id) => fetchApi(`/clientes/empresas/${id}/bitacora/`);
 
 export const createContacto = (data) =>
@@ -863,9 +896,6 @@ export const updateContacto = (id, data) =>
 
 export const deleteContacto = (id) =>
   fetchApi(`/clientes/contactos/${id}/`, { method: 'DELETE' });
-
-export const createServicio = (data) =>
-  fetchApi('/clientes/servicios/', { method: 'POST', body: JSON.stringify(data) });
 
 export const updateServicio = (id, data) =>
   fetchApi(`/clientes/servicios/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
@@ -882,18 +912,6 @@ export const updateAsignacion = (id, data) =>
 export const deleteAsignacion = (id) =>
   fetchApi(`/clientes/asignaciones/${id}/`, { method: 'DELETE' });
 
-export const createDocumentoCliente = (data) => {
-  const formData = data instanceof FormData ? data : (() => {
-    const fd = new FormData();
-    Object.entries(data).forEach(([k, v]) => v != null && fd.append(k, v));
-    return fd;
-  })();
-  return fetchApi('/clientes/documentos/', { method: 'POST', body: formData });
-};
-
-export const deleteDocumentoCliente = (id) =>
-  fetchApi(`/clientes/documentos/${id}/`, { method: 'DELETE' });
-
 export const createBitacora = (data) =>
   fetchApi('/clientes/bitacora/', { method: 'POST', body: JSON.stringify(data) });
 
@@ -902,6 +920,21 @@ export const updateBitacora = (id, data) =>
 
 export const deleteBitacora = (id) =>
   fetchApi(`/clientes/bitacora/${id}/`, { method: 'DELETE' });
+
+// Intake desde FormulariosSQF — fire-and-forget, no bloquean el flujo principal
+export const registrarClienteSQF = (data) =>
+  fetchApi('/clientes/empresas/from_sqf/', { method: 'POST', body: JSON.stringify(data) });
+
+export const registrarContratoSQF = (data) =>
+  fetchApi('/clientes/servicios/from_sqf/', { method: 'POST', body: JSON.stringify(data) });
+
+export const registrarFacturacionSQF = (data) =>
+  fetchApi('/clientes/facturacion/from_sqf/', { method: 'POST', body: JSON.stringify(data) });
+
+export const getFacturaciones = (params = {}) => {
+  const q = new URLSearchParams(params).toString();
+  return fetchApi(`/clientes/facturacion/${q ? '?' + q : ''}`);
+};
 
 // ── CERTIFICADO DE EMPLEO ─────────────────────────────────────────────────
 export const enviarCertificadoEmpleo = (data) =>
@@ -923,3 +956,23 @@ export const getCertPermisosBackend = () => fetchApi('/cert-permisos/');
 
 export const setCertPermisoBackend = (id_empleado, value) =>
   fetchApi('/cert-permisos/set/', { method: 'POST', body: JSON.stringify({ id_empleado, value }) });
+
+export const subirCertificadoDiscapacidad = (file) => {
+  const fd = new FormData();
+  fd.append('certificado', file);
+  return fetchApi('/mi-certificado-discapacidad/', { method: 'POST', body: fd });
+};
+
+export const eliminarCertificadoDiscapacidad = () =>
+  fetchApi('/mi-certificado-discapacidad/', { method: 'DELETE' });
+
+export const getMisHijos = () => fetchApi('/mis-hijos/');
+
+export const crearHijo = (data) =>
+  fetchApi('/mis-hijos/', { method: 'POST', body: JSON.stringify(data) });
+
+export const actualizarHijo = (id, data) =>
+  fetchApi(`/mis-hijos/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+
+export const eliminarHijo = (id) =>
+  fetchApi(`/mis-hijos/${id}/`, { method: 'DELETE' });

@@ -381,7 +381,7 @@ const AutoGestion = () => {
 
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-[#001871]">Mis Tareas Asignadas</h3>
+          <h3 className="text-lg font-bold text-[#001871]">Mis solicitudes</h3>
           <p className="text-xs text-slate-500 mt-0.5">Haz clic en cualquier tarea para ver el detalle y cambiar su estado</p>
         </div>
         <div className="flex items-center gap-4">

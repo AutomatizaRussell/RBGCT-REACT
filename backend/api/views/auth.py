@@ -19,10 +19,10 @@ from ..throttles import LoginThrottle, EnviarCodigoThrottle, VerificarCodigoThro
 
 from ._utils import (
     generar_codigo_verificacion,
-    enviar_email_verificacion,
     _es_superadmin,
     _es_empleado,
 )
+from ..n8n_gateway import enviar_bienvenida, enviar_codigo_login
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,8 @@ def login_view(request):
         empleado = DatosEmpleado.objects.select_related('persona').only(
             'id_empleado', 'correo_corporativo', 'id_permisos', 'estado',
             'area_id', 'cargo_id', 'primer_login', 'datos_completados',
-            'permitir_edicion_datos', 'acceso_sqf_clientes', 'acceso_sqf_contratos',
+            'permitir_edicion_datos', 'acceso_formularios_sqf',
+            'acceso_sqf_clientes', 'acceso_sqf_contratos',
             'acceso_sqf_facturacion', 'acceso_sqf_auditoria', 'password_hash', 'persona',
             'persona__primer_nombre', 'persona__segundo_nombre',
             'persona__primer_apellido', 'persona__segundo_apellido',
@@ -93,18 +94,7 @@ def login_view(request):
                         'intentos': 0,
                         'password_verificada': True,
                     }, timeout=900)
-                    # Envío en hilo aparte: n8n/SMTP lentos no deben bloquear el
-                    # login (el usuario puede usar "Reenviar código" si no llega).
-                    import threading
-
-                    def _enviar_codigo_login(destino=email, cod=codigo):
-                        ok, detalle = enviar_email_verificacion(destino, cod)
-                        if ok:
-                            logger.info(f"[LOGIN] Código de verificación reenviado a {destino}")
-                        else:
-                            logger.error(f"[LOGIN] Error enviando código a {destino}: {detalle}")
-
-                    threading.Thread(target=_enviar_codigo_login, daemon=True).start()
+                    enviar_codigo_login(email, codigo)
 
                 return Response({
                     'type': 'empleado',
@@ -252,15 +242,13 @@ def crear_usuario_superadmin(request):
         'intentos': 0
     }, timeout=900)  # 15 minutos
 
-    # Enviar email con código de verificación (ahora via n8n)
     nombre_usuario = empleado.primer_nombre if empleado.primer_nombre != 'Por' else None
-    email_sent, email_result = enviar_email_verificacion(
+    email_sent, email_result = enviar_bienvenida(
         email=email,
         codigo=codigo_verificacion,
         password=password,
-        nombre=nombre_usuario
+        nombre=nombre_usuario,
     )
-
     if email_sent:
         logger.info(f"[CREAR USUARIO] Código de verificación enviado a {email}")
     else:
@@ -273,8 +261,6 @@ def crear_usuario_superadmin(request):
         'tipo_creacion': 'completo' if empleado.datos_completados else 'minimo',
         'primer_login': empleado.primer_login,
         'email_sent': email_sent,
-        'codigo_verificacion': codigo_verificacion,  # Código para mostrar al SuperAdmin
-        'nota': 'Comparta este código con el usuario para su primer login'
     }, status=status.HTTP_201_CREATED)
 
 
@@ -379,13 +365,16 @@ def completar_datos_empleado(request):
             else:
                 logger.warning(f"[COMPLETAR DATOS] NO es primer login, no se puede cambiar contraseña")
 
+            # Capturar el estado ANTES de mutar, para la lógica posterior
+            era_primer_login = empleado.primer_login
+
             # Marcar como completado y quitar primer_login
             empleado.datos_completados = True
             empleado.primer_login = False
 
-            # Si estaba usando permiso de edición, revocarlo (un solo uso)
+            # Si estaba usando permiso de edición (no es primer login), revocarlo (un solo uso)
             permiso_revocado = False
-            if not empleado.primer_login and empleado.permitir_edicion_datos:
+            if not era_primer_login and empleado.permitir_edicion_datos:
                 permiso_revocado = True
                 logger.info(f"[COMPLETAR DATOS] REVOCANDO PERMISO de edición para empleado {empleado_id}")
 
@@ -553,21 +542,12 @@ def enviar_codigo_verificacion(request):
         'password_verificada': password_verificada,
     }, timeout=900)  # 15 minutos
 
-    # Enviar email
-    success, result = enviar_email_verificacion(email, codigo)
-
-    if success:
-        logger.info(f"[VERIFICACION] Código enviado a {email}")
-        return Response({
-            'message': 'Código de verificación enviado',
-            'email_enviado': True
-        })
-    else:
-        logger.error(f"[VERIFICACION] Error enviando a {email}: {result}")
-        return Response({
-            'error': 'No se pudo enviar el código',
-            'detalle': str(result)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    enviar_codigo_login(email, codigo)
+    logger.info(f"[VERIFICACION] Código despachado a {email}")
+    return Response({
+        'message': 'Código de verificación enviado',
+        'email_enviado': True
+    })
 
 
 # Endpoint para verificar código y completar login - PÚBLICO

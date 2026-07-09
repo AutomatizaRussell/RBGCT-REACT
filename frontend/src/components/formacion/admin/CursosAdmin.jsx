@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import {
   getAllCursos, createCurso, updateCurso, deleteCurso,
-  createCursoContenido, deleteCursoContenido,
+  createCursoModulo, updateCursoModulo, deleteCursoModulo,
+  createCursoContenido, updateCursoContenido, deleteCursoContenido,
   getNotificacionesCursos, marcarNotificacionCursoLeida,
   marcarTodasNotificacionesCursosLeidas,
   getAllAreas, getAllEmpleados, getAllCargos,
@@ -65,7 +66,14 @@ export default function CursosAdmin() {
   const [showNuevo, setShowNuevo]     = useState(false);
   const [nuevoCurso, setNuevoCurso]   = useState({ tipo: 'curso', nombre: '', descripcion: '', visibilidad: 'todos', area_ids: [], empleado_asignado_id: null, nivel_cargo: null, fecha_inicio: '', fecha_fin: '' });
   const [editingCurso, setEditingCurso] = useState(null);
-  const [showAddContenido, setShowAddContenido] = useState(false);
+  // null = oculto | { moduloId: number|null } = abierto en ese módulo (null = sin módulo)
+  const [addContenidoTarget, setAddContenidoTarget] = useState(null);
+  const [editingContenido,   setEditingContenido]   = useState(null);
+
+  // Módulos de curso
+  const [editingModulo,     setEditingModulo]     = useState(null); // { id, nombre } | null
+  const [showNuevoModulo,   setShowNuevoModulo]   = useState(false);
+  const [nuevoModuloNombre, setNuevoModuloNombre] = useState('');
 
   // Notificaciones
   const [notifs, setNotifs]           = useState([]);
@@ -169,8 +177,47 @@ export default function CursosAdmin() {
     } catch (err) { alert('Error: ' + err.message); }
   };
 
-  const abrirDetalle = (curso) => { setCursoActivo(curso); setVista('detail'); setEditingCurso(null); setShowAddContenido(false); };
-  const volverGrid   = () => { setVista('grid'); setCursoActivo(null); setEditingCurso(null); };
+  // Módulos handlers
+  const handleCrearModulo = async () => {
+    if (!nuevoModuloNombre.trim()) return;
+    setSaving(true);
+    try {
+      await createCursoModulo({ curso: cursoActivo.id, nombre: nuevoModuloNombre.trim() });
+      setNuevoModuloNombre('');
+      setShowNuevoModulo(false);
+      fetchAll();
+    } catch (err) { alert('Error: ' + err.message); }
+    finally { setSaving(false); }
+  };
+
+  const handleEditarModulo = async () => {
+    if (!editingModulo?.nombre?.trim()) return;
+    setSaving(true);
+    try {
+      await updateCursoModulo(editingModulo.id, { nombre: editingModulo.nombre });
+      setEditingModulo(null);
+      fetchAll();
+    } catch (err) { alert('Error: ' + err.message); }
+    finally { setSaving(false); }
+  };
+
+  const handleEliminarModulo = async (moduloId) => {
+    if (!confirm('¿Eliminar este módulo? El contenido dentro quedará sin módulo.')) return;
+    try {
+      await deleteCursoModulo(moduloId);
+      fetchAll();
+    } catch (err) { alert('Error: ' + err.message); }
+  };
+
+  const abrirDetalle = (curso) => {
+    setCursoActivo(curso);
+    setVista('detail');
+    setEditingCurso(null);
+    setAddContenidoTarget(null);
+    setEditingModulo(null);
+    setShowNuevoModulo(false);
+  };
+  const volverGrid = () => { setVista('grid'); setCursoActivo(null); setEditingCurso(null); };
 
   const marcarLeida    = async (id) => { await marcarNotificacionCursoLeida(id); setNotifs(p => p.map(n => n.id === id ? { ...n, leida: true } : n)); };
   const marcarTodas    = async () => { await marcarTodasNotificacionesCursosLeidas(); setNotifs(p => p.map(n => ({ ...n, leida: true }))); };
@@ -275,18 +322,28 @@ export default function CursosAdmin() {
               )}
             </div>
 
-            {/* Lista de contenidos */}
-            <div className="bg-white p-6 space-y-3">
-              {contenidos.length === 0 ? (
-                <div className="py-10 text-center">
-                  <Layers size={28} className="mx-auto text-slate-200 mb-3"/>
-                  <p className="text-sm text-slate-400 font-medium">Este curso no tiene contenido aún</p>
-                  <p className="text-xs text-slate-300 mt-1">Agrega videos, documentos o cuestionarios</p>
-                </div>
-              ) : (
-                contenidos.map(item => {
+            {/* Contenidos agrupados por módulo */}
+            <div className="bg-white p-6 space-y-5">
+              {(() => {
+                const modulos = cursoActivo.modulos || [];
+                const sinModulo = contenidos.filter(c => !c.modulo);
+
+                const renderContenidoItem = (item) => {
                   const cfg = TIPO_CONFIG[item.tipo] || TIPO_CONFIG.enlace;
                   const { Icon } = cfg;
+
+                  if (editingContenido?.id === item.id) {
+                    return (
+                      <EditContenidoFormAdmin
+                        key={`edit-${item.id}`}
+                        contenido={editingContenido}
+                        modulos={modulos}
+                        onDone={() => { setEditingContenido(null); fetchAll(); }}
+                        onCancel={() => setEditingContenido(null)}
+                      />
+                    );
+                  }
+
                   return (
                     <div key={item.id} className={`flex items-start gap-4 p-4 rounded-xl border ${cfg.bg}`}>
                       <div className="p-2 bg-white rounded-lg shadow-sm flex-shrink-0">
@@ -314,14 +371,15 @@ export default function CursosAdmin() {
                             <Download size={11}/> Descargar archivo
                           </a>
                         )}
-                        {item.contenido && item.tipo === 'cuestionario' && (() => {
+                        {item.tipo === 'cuestionario' && (() => {
                           try {
-                            const q = JSON.parse(item.contenido);
+                            const q = item.contenido ? JSON.parse(item.contenido) : { preguntas: [] };
                             const total = q.preguntas?.length || 0;
                             return (
                               <p className="text-[11px] text-amber-700 mt-1 font-semibold">
                                 {total} pregunta{total !== 1 ? 's' : ''} · Aprobación: {q.puntaje_aprobacion ?? 70}%
                                 {item.max_intentos > 0 ? ` · ${item.max_intentos} intento${item.max_intentos > 1 ? 's' : ''} máx.` : ''}
+                                {total === 0 && <span className="text-red-500 ml-2">⚠ Sin preguntas</span>}
                               </p>
                             );
                           } catch { return null; }
@@ -330,27 +388,163 @@ export default function CursosAdmin() {
                           <p className="text-xs text-slate-500 mt-1 line-clamp-2">{item.contenido}</p>
                         )}
                       </div>
-                      <button onClick={() => handleEliminarContenido(item.id)}
-                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0">
-                        <Trash2 size={13}/>
-                      </button>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button onClick={() => { setEditingContenido(item); setAddContenidoTarget(null); }}
+                          className="p-2 text-slate-300 hover:text-[#001871] hover:bg-blue-50 rounded-lg transition-all"
+                          title="Editar contenido">
+                          <Pencil size={13}/>
+                        </button>
+                        <button onClick={() => handleEliminarContenido(item.id)}
+                          className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                          title="Eliminar contenido">
+                          <Trash2 size={13}/>
+                        </button>
+                      </div>
                     </div>
                   );
-                })
-              )}
+                };
 
-              {/* Agregar contenido */}
-              {showAddContenido ? (
-                <AddContenidoForm cursoId={cursoActivo.id}
-                  onDone={() => { setShowAddContenido(false); fetchAll(); }}
-                  onCancel={() => setShowAddContenido(false)}
-                />
-              ) : (
-                <button onClick={() => setShowAddContenido(true)}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-400 hover:border-[#001871] hover:text-[#001871] hover:bg-blue-50/30 transition-all">
-                  <Plus size={14}/> Agregar Contenido
-                </button>
-              )}
+                const renderAddBtn = (moduloId) => {
+                  const isActive = addContenidoTarget !== null && addContenidoTarget.moduloId === moduloId;
+                  if (isActive) {
+                    return (
+                      <AddContenidoForm
+                        cursoId={cursoActivo.id}
+                        moduloId={moduloId}
+                        onDone={() => { setAddContenidoTarget(null); fetchAll(); }}
+                        onCancel={() => setAddContenidoTarget(null)}
+                      />
+                    );
+                  }
+                  return (
+                    <button
+                      onClick={() => { setEditingContenido(null); setAddContenidoTarget({ moduloId }); }}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-400 hover:border-[#001871] hover:text-[#001871] hover:bg-blue-50/30 transition-all"
+                    >
+                      <Plus size={13}/> Agregar contenido
+                    </button>
+                  );
+                };
+
+                return (
+                  <>
+                    {/* Estado vacío total */}
+                    {modulos.length === 0 && contenidos.length === 0 && (
+                      <div className="py-10 text-center">
+                        <Layers size={28} className="mx-auto text-slate-200 mb-3"/>
+                        <p className="text-sm text-slate-400 font-medium">Este curso no tiene contenido aún</p>
+                        <p className="text-xs text-slate-300 mt-1">Crea un módulo o agrega contenido directamente</p>
+                      </div>
+                    )}
+
+                    {/* Secciones de módulos */}
+                    {modulos.map(modulo => {
+                      const items = contenidos.filter(c => c.modulo === modulo.id);
+                      return (
+                        <div key={modulo.id} className="rounded-2xl border border-slate-200 overflow-hidden">
+                          {/* Cabecera del módulo */}
+                          <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border-b border-slate-200">
+                            <Layers size={14} className="text-[#001871] flex-shrink-0"/>
+                            {editingModulo?.id === modulo.id ? (
+                              <div className="flex items-center gap-2 flex-1">
+                                <input
+                                  autoFocus
+                                  value={editingModulo.nombre}
+                                  onChange={e => setEditingModulo(p => ({ ...p, nombre: e.target.value }))}
+                                  onKeyDown={e => { if (e.key === 'Enter') handleEditarModulo(); if (e.key === 'Escape') setEditingModulo(null); }}
+                                  className="flex-1 px-3 py-1.5 text-sm font-bold bg-white border border-[#001871] rounded-lg focus:outline-none"
+                                />
+                                <button onClick={handleEditarModulo} disabled={saving}
+                                  className="p-1.5 bg-[#001871] text-white rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-all">
+                                  <Check size={12}/>
+                                </button>
+                                <button onClick={() => setEditingModulo(null)}
+                                  className="p-1.5 bg-white border border-slate-200 text-slate-500 rounded-lg hover:bg-slate-50 transition-all">
+                                  <X size={12}/>
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="flex-1 text-sm font-black text-[#001871]">{modulo.nombre}</span>
+                                <span className="text-[10px] font-bold text-slate-400">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+                                <button onClick={() => setEditingModulo({ id: modulo.id, nombre: modulo.nombre })}
+                                  className="p-1.5 text-slate-300 hover:text-[#001871] hover:bg-blue-50 rounded-lg transition-all" title="Renombrar módulo">
+                                  <Pencil size={12}/>
+                                </button>
+                                <button onClick={() => handleEliminarModulo(modulo.id)}
+                                  className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Eliminar módulo">
+                                  <Trash2 size={12}/>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                          {/* Contenidos del módulo */}
+                          <div className="p-4 space-y-2">
+                            {items.length === 0 && addContenidoTarget?.moduloId !== modulo.id && (
+                              <p className="text-xs text-slate-300 italic text-center py-2">Sin contenido en este módulo</p>
+                            )}
+                            {items.map(renderContenidoItem)}
+                            {!editingContenido && renderAddBtn(modulo.id)}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Sección sin módulo */}
+                    {(sinModulo.length > 0 || (modulos.length > 0 && addContenidoTarget?.moduloId === null)) && (
+                      <div className="rounded-2xl border border-dashed border-slate-200 overflow-hidden">
+                        <div className="flex items-center gap-3 px-4 py-3 bg-slate-50/50 border-b border-dashed border-slate-200">
+                          <Layers size={14} className="text-slate-300 flex-shrink-0"/>
+                          <span className="flex-1 text-sm font-bold text-slate-400 italic">Sin módulo</span>
+                          <span className="text-[10px] font-bold text-slate-300">{sinModulo.length} item{sinModulo.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="p-4 space-y-2">
+                          {sinModulo.map(renderContenidoItem)}
+                          {!editingContenido && renderAddBtn(null)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Agregar contenido suelto cuando no hay módulos */}
+                    {modulos.length === 0 && !editingContenido && (
+                      <div className="space-y-2">
+                        {contenidos.map(renderContenidoItem)}
+                        {renderAddBtn(null)}
+                      </div>
+                    )}
+
+                    {/* Botón nuevo módulo */}
+                    {showNuevoModulo ? (
+                      <div className="flex items-center gap-2 p-4 bg-[#001871]/5 border-2 border-dashed border-[#001871]/30 rounded-2xl">
+                        <Layers size={14} className="text-[#001871] flex-shrink-0"/>
+                        <input
+                          autoFocus
+                          value={nuevoModuloNombre}
+                          onChange={e => setNuevoModuloNombre(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleCrearModulo(); if (e.key === 'Escape') { setShowNuevoModulo(false); setNuevoModuloNombre(''); }}}
+                          placeholder="Nombre del módulo..."
+                          className="flex-1 px-3 py-2 text-sm font-semibold bg-white border border-[#001871]/30 rounded-xl focus:outline-none focus:border-[#001871]"
+                        />
+                        <button onClick={handleCrearModulo} disabled={saving || !nuevoModuloNombre.trim()}
+                          className="px-4 py-2 bg-[#001871] text-white rounded-xl text-xs font-bold hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-1.5">
+                          <Check size={12}/> Crear
+                        </button>
+                        <button onClick={() => { setShowNuevoModulo(false); setNuevoModuloNombre(''); }}
+                          className="p-2 bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-all">
+                          <X size={12}/>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setShowNuevoModulo(true); setAddContenidoTarget(null); }}
+                        className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-[#001871]/20 rounded-2xl text-xs font-bold text-[#001871]/50 hover:border-[#001871]/40 hover:text-[#001871] hover:bg-blue-50/20 transition-all"
+                      >
+                        <Layers size={13}/> Nuevo módulo
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -1148,7 +1342,7 @@ function VisibilidadBadge({ visibilidad, nombresAreas, nombreEmpleado, nivelCarg
 
 // ── Formulario agregar contenido ──────────────────────────────────────────────
 
-function AddContenidoForm({ cursoId, onDone, onCancel }) {
+function AddContenidoForm({ cursoId, moduloId = null, onDone, onCancel }) {
   const [tipo, setTipo] = useState('youtube');
   const [form, setForm] = useState({ titulo: '', descripcion: '', url: '', contenido: '', max_intentos: 3 });
   const [archivo, setArchivo] = useState(null);
@@ -1168,6 +1362,7 @@ function AddContenidoForm({ cursoId, onDone, onCancel }) {
         const fd = new FormData();
         fd.append('curso', cursoId); fd.append('tipo', tipo);
         fd.append('titulo', form.titulo); fd.append('descripcion', form.descripcion);
+        if (moduloId != null) fd.append('modulo', moduloId);
         fd.append('archivo', archivo);
         await createCursoContenido(fd);
       } else {
@@ -1175,6 +1370,7 @@ function AddContenidoForm({ cursoId, onDone, onCancel }) {
           curso: cursoId, tipo,
           titulo: form.titulo.trim(),
           descripcion: form.descripcion.trim(),
+          modulo: moduloId ?? null,
           url: needsUrl ? form.url.trim() || null : null,
           contenido: (needsText || needsBuilder) ? form.contenido || null : null,
           max_intentos: needsBuilder ? Number(form.max_intentos) || 0 : 0,
@@ -1261,6 +1457,123 @@ function AddContenidoForm({ cursoId, onDone, onCancel }) {
         <button onClick={handleSubmit} disabled={saving || !form.titulo.trim()}
           className="px-5 py-2.5 bg-[#001871] text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-800 disabled:opacity-40 transition-all flex items-center gap-2">
           {saving ? <><Loader2 size={13} className="animate-spin"/> Guardando...</> : <><Check size={13}/> Agregar</>}
+        </button>
+        <button onClick={onCancel}
+          className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EditContenidoFormAdmin({ contenido, modulos = [], onDone, onCancel }) {
+  const tipo = contenido.tipo;
+  const cfg = TIPO_CONFIG[tipo] || TIPO_CONFIG.enlace;
+  const { Icon } = cfg;
+  const [form, setForm] = useState({
+    titulo:       contenido.titulo || '',
+    descripcion:  contenido.descripcion || '',
+    url:          contenido.url || '',
+    contenido:    contenido.contenido || '',
+    max_intentos: contenido.max_intentos ?? 0,
+    modulo:       contenido.modulo ?? '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const needsUrl     = ['youtube', 'enlace'].includes(tipo);
+  const needsText    = tipo === 'texto';
+  const needsBuilder = tipo === 'cuestionario';
+  const hasFile      = ['video', 'documento'].includes(tipo);
+
+  const handleSubmit = async () => {
+    if (!form.titulo.trim()) { alert('El título es obligatorio'); return; }
+    setSaving(true);
+    try {
+      const payload = {
+        titulo:      form.titulo.trim(),
+        descripcion: form.descripcion.trim(),
+        modulo:      form.modulo !== '' ? Number(form.modulo) : null,
+      };
+      if (needsUrl) payload.url = form.url.trim() || null;
+      if (needsText || needsBuilder) payload.contenido = form.contenido || null;
+      if (needsBuilder) payload.max_intentos = Number(form.max_intentos) || 0;
+      await updateCursoContenido(contenido.id, payload);
+      onDone();
+    } catch (err) {
+      alert('Error al guardar: ' + (err.message || 'Error desconocido'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="p-1.5 bg-amber-100 rounded-lg">
+          <Pencil size={14} className="text-amber-600"/>
+        </div>
+        <p className="text-xs font-bold text-amber-700 uppercase tracking-widest">Editar contenido</p>
+        <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-md ${cfg.badge}`}>
+          <Icon size={10} className="inline mr-1"/>{cfg.label}
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        <input autoFocus value={form.titulo} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))}
+          placeholder="Título *"
+          className="w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400 font-semibold"
+        />
+        <input value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))}
+          placeholder="Descripción (opcional)"
+          className="w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400"
+        />
+        {modulos.length > 0 && (
+          <select value={form.modulo} onChange={e => setForm(p => ({ ...p, modulo: e.target.value }))}
+            className="w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400">
+            <option value="">Sin módulo</option>
+            {modulos.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+          </select>
+        )}
+        {needsUrl && (
+          <input value={form.url} onChange={e => setForm(p => ({ ...p, url: e.target.value }))}
+            placeholder={tipo === 'youtube' ? 'https://youtube.com/watch?v=...' : 'https://...'}
+            className="w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400"
+          />
+        )}
+        {hasFile && contenido.archivo_url && (
+          <div className="flex items-center gap-2 p-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-500">
+            <a href={contenido.archivo_url} target="_blank" rel="noopener noreferrer"
+              className="text-blue-600 hover:underline font-medium">Ver archivo actual</a>
+            <span className="text-slate-300">(Para cambiar el archivo, elimina y vuelve a crear)</span>
+          </div>
+        )}
+        {needsText && (
+          <textarea value={form.contenido} onChange={e => setForm(p => ({ ...p, contenido: e.target.value }))}
+            placeholder="Contenido del artículo..." rows={5}
+            className="w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400 resize-none"
+          />
+        )}
+        {needsBuilder && (
+          <div className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl">
+            <ClipboardList size={14} className="text-amber-500 flex-shrink-0"/>
+            <label className="text-xs font-bold text-slate-600 flex-shrink-0">Intentos permitidos:</label>
+            <input type="number" min={0} max={99} value={form.max_intentos}
+              onChange={e => setForm(p => ({ ...p, max_intentos: e.target.value }))}
+              className="w-16 px-2 py-1.5 text-sm font-bold text-center bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-amber-400"
+            />
+            <span className="text-[10px] text-slate-400">(0 = sin límite)</span>
+          </div>
+        )}
+        {needsBuilder && (
+          <CuestionarioBuilder value={form.contenido} onChange={val => setForm(p => ({ ...p, contenido: val }))} />
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <button onClick={handleSubmit} disabled={saving || !form.titulo.trim()}
+          className="px-5 py-2.5 bg-amber-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-amber-600 disabled:opacity-40 transition-all flex items-center gap-2">
+          {saving ? <><Loader2 size={13} className="animate-spin"/> Guardando...</> : <><Check size={13}/> Guardar cambios</>}
         </button>
         <button onClick={onCancel}
           className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all">

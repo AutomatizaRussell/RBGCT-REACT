@@ -19,7 +19,6 @@ import bcrypt
 import json
 import logging
 import random
-import requests
 from django.conf import settings
 from django.core.cache import cache
 
@@ -76,118 +75,23 @@ def generar_codigo_verificacion():
     """Genera código aleatorio de 6 dígitos"""
     return str(random.randint(100000, 999999))
 
-def _post_n8n(destinatario, payload, workflow_name):
-    """Base: POST a n8n, registra en N8nLog, retorna (bool, resultado)."""
-    n8n_url = settings.N8N_WEBHOOK_URL
-    if not n8n_url:
-        logger.error("[N8N] N8N_WEBHOOK_URL no configurado")
-        return False, "N8N_WEBHOOK_URL no configurado"
-    try:
-        response = requests.post(
-            n8n_url,
-            json=payload,
-            headers={'Content-Type': 'application/json', 'X-API-Key': settings.N8N_WEBHOOK_API_KEY},
-            timeout=5
-        )
-        if response.status_code == 200:
-            logger.info(f"[N8N] {workflow_name} enviado a {destinatario}")
-            try:
-                N8nLog.objects.create(
-                    workflow_name=workflow_name, status='SUCCESS',
-                    message=f"Enviado a {destinatario}", destinatario=destinatario,
-                    tipo_evento=workflow_name, response_data=json.dumps(response.json())[:500],
-                )
-            except Exception as log_err:
-                logger.warning(f"[N8N] No se pudo guardar log: {log_err}")
-            return True, response.json()
-        else:
-            logger.error(f"[N8N] {workflow_name} error {response.status_code}")
-            try:
-                N8nLog.objects.create(
-                    workflow_name=workflow_name, status='ERROR',
-                    message=f"HTTP {response.status_code}: {response.text[:200]}",
-                    destinatario=destinatario, tipo_evento=workflow_name,
-                )
-            except Exception:
-                pass
-            return False, f"HTTP {response.status_code}"
-    except Exception as e:
-        logger.error(f"[N8N] Error en {workflow_name}: {e}")
-        try:
-            N8nLog.objects.create(
-                workflow_name=workflow_name, status='ERROR',
-                message=str(e)[:300], destinatario=destinatario,
-            )
-        except Exception:
-            pass
-        return False, str(e)
-
-
-def _post_n8n_async(destinatario, payload, workflow_name):
-    """Lanza _post_n8n en hilo daemon para no bloquear el request."""
-    import threading
-    t = threading.Thread(
-        target=_post_n8n,
-        args=(destinatario, payload, workflow_name),
-        daemon=True,
-    )
-    t.start()
-
-
-def _duracion_ejecucion_segundos(execution):
-    """Calcula duración de ejecución n8n de forma segura."""
-    started_at = execution.get('startedAt')
-    stopped_at = execution.get('stoppedAt')
-    if not started_at or not stopped_at:
-        return None
-    try:
-        started_dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
-        stopped_dt = datetime.fromisoformat(stopped_at.replace('Z', '+00:00'))
-        return max(0, round((stopped_dt - started_dt).total_seconds()))
-    except Exception:
-        return None
-
-
-def _persistir_ejecuciones_n8n(executions):
+def _run_in_thread(fn, *args):
     """
-    Persiste ejecuciones de n8n sin bloquear el request principal.
-    Usa cache para deduplicar por execution id y evitar consultas SQL costosas.
+    Lanza fn(*args) en un hilo daemon.
+    Cierra las conexiones DB heredadas antes de empezar y al finalizar,
+    para que cada hilo use su propia conexión y no agote max_connections.
     """
-    for ex in executions:
-        try:
-            exec_id = str(ex.get('id') or '')
-            if not exec_id:
-                continue
-
-            dedupe_key = f'api:n8n:exec-sync:{exec_id}'
-            if cache.get(dedupe_key):
-                continue
-
-            wf_name = ex.get('workflowData', {}).get('name') or f"Workflow #{ex.get('workflowId', '?')}"
-            ok = ex.get('status') in ('success',)
-            duracion = _duracion_ejecucion_segundos(ex)
-            msg = f"Duración: {duracion}s" if duracion is not None else ex.get('status', '')
-
-            N8nLog.objects.create(
-                workflow_name=wf_name,
-                status='SUCCESS' if ok else 'ERROR',
-                message=msg,
-                tipo_evento=ex.get('mode', 'webhook'),
-                response_data=json.dumps({'exec_id': exec_id})[:200],
-            )
-            # Dedupe temporal en cache compartido.
-            cache.set(dedupe_key, True, timeout=86400)
-        except Exception as log_err:
-            logger.warning(f"[N8N SYNC] No se pudo persistir ejecución: {log_err}")
-
-
-def _persistir_ejecuciones_n8n_async(executions):
     import threading
-    t = threading.Thread(
-        target=_persistir_ejecuciones_n8n,
-        args=(executions,),
-        daemon=True,
-    )
+    from django.db import close_old_connections
+
+    def _wrapper(*a):
+        close_old_connections()
+        try:
+            fn(*a)
+        finally:
+            close_old_connections()
+
+    t = threading.Thread(target=_wrapper, args=args, daemon=True)
     t.start()
 
 
@@ -353,108 +257,9 @@ def _puede_gestionar_certificados(user):
 
 
 def enviar_email_verificacion(email, codigo, password=None, nombre=None):
-    """Envía credenciales de bienvenida vía n8n; fallback SMTP si falla."""
-    if not settings.N8N_WEBHOOK_URL:
-        return _enviar_email_smtp_fallback(email, codigo)
-    nombre_usuario = nombre or 'Usuario'
-    html_email = f"""<div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #F8F9FA;">
-  <div style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-
-    <div style="text-align: center; padding: 30px 20px 20px 20px;">
-      <img src="https://raw.githubusercontent.com/AutomatizaRussell/Resourse_GestionHumana/main/Logo_RB2021.png" alt="Russell Bedford" style="height: 50px; margin-bottom: 15px;">
-    </div>
-    <div style="height: 4px; background: linear-gradient(to right, #001871 50%, #00a9ce 50%, #00a9ce 75%, #ed8b00 75%, #ed8b00 100%);"></div>
-
-    <div style="padding: 40px 30px;">
-      <h2 style="color: #001871; font-size: 24px; margin-top: 0; margin-bottom: 20px;">Bienvenido al Portal de Usuarios</h2>
-      <p style="font-size: 16px; color: #4A5568; margin-bottom: 20px; line-height: 1.6;">Hola <strong>{nombre_usuario}</strong>,</p>
-      <p style="font-size: 16px; color: #4A5568; margin-bottom: 25px; line-height: 1.6;">Tu cuenta ha sido creada exitosamente. A continuación, encontrarás tus credenciales de acceso para ingresar a la plataforma:</p>
-
-      <div style="background-color: #F8F9FA; padding: 25px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ed8b00;">
-        <p style="margin: 0 0 10px 0; color: #4A5568; font-size: 15px;"><strong>Usuario / Correo:</strong> <span style="color: #001871;">{email}</span></p>
-        <p style="margin: 0 0 20px 0; color: #4A5568; font-size: 15px;"><strong>Contraseña temporal:</strong> <span style="color: #001871;">{password}</span></p>
-
-        <p style="margin: 0 0 10px 0; color: #4A5568; font-size: 14px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Tu código de verificación:</p>
-        <div style="background-color: #001871; color: #ffffff; padding: 12px 20px; border-radius: 6px; display: inline-block; font-size: 24px; font-weight: bold; letter-spacing: 3px;">
-          {codigo}
-        </div>
-      </div>
-
-      <p style="font-size: 14px; color: #718096; margin-top: 25px; line-height: 1.5;">
-        <strong style="color: #e53e3e;">Nota importante:</strong> Este código expira en 15 minutos. Por motivos de seguridad, el sistema te solicitará cambiar tu contraseña la primera vez que ingreses.
-      </p>
-    </div>
-
-    <div style="background-color: #001871; color: #ffffff; padding: 20px; text-align: center; font-size: 12px; line-height: 1.6;">
-      <p style="margin: 0; font-size: 14px;"><strong>GCT - Sistema de Gestión</strong></p>
-      <p style="margin: 5px 0 0 0; color: #e2e8f0;">Russell Bedford Colombia</p>
-      <p style="margin: 10px 0 0 0;"><a href="https://conecta.rbgct.cloud" style="color: #00a9ce; text-decoration: none; font-size: 13px; font-weight: bold;">🌐 conecta.rbgct.cloud</a></p>
-      <p style="margin: 10px 0 0 0; font-size: 11px; color: #a0aec0;">Si no solicitaste esta cuenta, por favor ignora este correo o contacta al equipo de TI y Proyectos.</p>
-    </div>
-
-  </div>
-</div>"""
-    payload = {
-        'tipo': 'bienvenida_nuevo_usuario',
-        'destinatario': email,
-        'asunto': 'Bienvenido a GCT - Credenciales de acceso',
-        'html_email': html_email,
-        'datos_sensibles': {'correo_login': email, 'password_temporal': password, 'codigo_verificacion': codigo},
-        'datos_usuario': {'nombre': nombre_usuario, 'expira_en': '15 minutos'},
-        'plantilla': 'bienvenida_rbgct',
-    }
-    ok, result = _post_n8n(email, payload, 'bienvenida_nuevo_usuario')
-    if not ok:
-        return _enviar_email_smtp_fallback(email, codigo)
-    return True, {"status": "webhook_sent", "n8n_response": result}
-
-
-def _enviar_email_smtp_fallback(email, codigo):
-    """Función fallback que envía email directo por SMTP si n8n falla"""
-    try:
-        from django.core.mail import send_mail
-
-        subject = 'Código de verificación - GCT'
-        html_content = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5;">
-            <div style="background: #001e33; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-                <h2 style="margin: 0;">GCT</h2>
-                <p style="margin: 10px 0 0 0; opacity: 0.9;">Código de verificación</p>
-            </div>
-            <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-                    Tu código de verificación es:
-                </p>
-                <div style="background: #001e33; color: white; font-size: 32px; font-weight: bold; text-align: center; padding: 20px; border-radius: 8px; letter-spacing: 8px; margin: 20px 0;">
-                    {codigo}
-                </div>
-                <p style="font-size: 14px; color: #666; margin-top: 20px;">
-                    Este código expira en 15 minutos. No lo compartas con nadie.
-                </p>
-                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-                <p style="font-size: 12px; color: #999; text-align: center;">
-                    Si no solicitaste este código, ignora este mensaje.<br>
-                    GCT - Sistema de Gestión
-                </p>
-            </div>
-        </div>
-        """
-
-        send_mail(
-            subject=subject,
-            message=f'Tu código de verificación es: {codigo}. Expira en 15 minutos.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=False,
-            html_message=html_content
-        )
-
-        logger.info(f"[EMAIL FALLBACK] Código enviado a {email} por SMTP")
-        return True, {"status": "sent_via_smtp_fallback"}
-
-    except Exception as e:
-        logger.error(f"[EMAIL FALLBACK] Error: {str(e)}")
-        return False, str(e)
+    """Deprecated — usar n8n_gateway directamente."""
+    from ..n8n_gateway import enviar_bienvenida
+    return enviar_bienvenida(email, codigo, password, nombre)
 
 
 # ── Certificado helpers (needed here because _empleado_activo_con_permiso_cert uses them) ──

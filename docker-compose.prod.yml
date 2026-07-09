@@ -1,7 +1,7 @@
 version: '3.9'
 
 services:
-  # Redis Cache
+  # ── Redis Cache ──────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: rbgct-redis-prod
@@ -9,15 +9,25 @@ services:
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data_prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
-      - gct-network-prod
+      - conecta-network-prod
+    deploy:
+      resources:
+        limits:
+          memory: 384m   # 256mb datos + overhead OS; ajustar según VPS
     logging:
       driver: "json-file"
       options:
         max-size: "5m"
         max-file: "2"
 
-  # PostgreSQL Database
+  # ── PostgreSQL Database ──────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
     container_name: rbgct-postgres-prod
@@ -26,32 +36,68 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_INITDB_ARGS: "-c shared_buffers=512MB -c max_connections=400 -c random_page_cost=1.1"
+      # POSTGRES_INITDB_ARGS solo aplica en la creación inicial del cluster;
+      # para tuning en DB existente usar el parámetro `command:` abajo.
+      POSTGRES_INITDB_ARGS: "-c shared_buffers=512MB -c max_connections=200"
+    # Tuning aplicado en cada inicio (válido para DB existente)
+    command: >
+      postgres
+        -c shared_buffers=512MB
+        -c max_connections=200
+        -c random_page_cost=1.1
+        -c effective_cache_size=1GB
+        -c wal_buffers=16MB
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
       - ./docker/backup:/backup
-    healthcheck:  
-      test: ["CMD-SHELL", "pg_isready -h localhost"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
     networks:
-      - gct-network-prod
+      - conecta-network-prod
+    deploy:
+      resources:
+        limits:
+          memory: 1g    # shared_buffers=512MB + conexiones + overhead
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # Django Backend
+  # ── Django Backend ───────────────────────────────────────────────────────────
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     container_name: rbgct-backend-prod
     restart: always
-    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-4} --worker-class sync --threads ${GUNICORN_THREADS:-4} --timeout ${GUNICORN_TIMEOUT:-120} --keep-alive 5 --max-requests 1000 --max-requests-jitter 100 --access-logfile - --error-logfile - rbgct.wsgi:application"
+    # Usuario no-root (UID/GID 1001 creado en Dockerfile.backend).
+    # NOTA: en primer despliegue con este cambio, si los volúmenes existentes
+    # fueron creados por root, ejecutar una vez:
+    #   docker exec -u root rbgct-backend-prod chown -R 1001:1001 /app/staticfiles /app/media
+    user: "1001:1001"
+    command: >
+      sh -c "
+        python manage.py migrate --noinput &&
+        python manage.py collectstatic --noinput &&
+        gunicorn
+          --bind 0.0.0.0:8000
+          --workers ${GUNICORN_WORKERS:-4}
+          --worker-class sync
+          --threads ${GUNICORN_THREADS:-4}
+          --timeout ${GUNICORN_TIMEOUT:-120}
+          --keep-alive 5
+          --max-requests 1000
+          --max-requests-jitter 100
+          --access-logfile -
+          --error-logfile -
+          rbgct.wsgi:application
+      "
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -85,7 +131,7 @@ services:
       CACHE_DIR: ${CACHE_DIR:-/tmp/django_cache}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/1}
       DB_CONN_MAX_AGE: ${DB_CONN_MAX_AGE:-120}
-      DB_CONN_HEALTH_CHECKS: ${DB_CONN_HEALTH_CHECKS:-False}
+      DB_CONN_HEALTH_CHECKS: ${DB_CONN_HEALTH_CHECKS:-True}
       DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-5}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-4}
       GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
@@ -94,7 +140,7 @@ services:
       - media_volume_prod:/app/media
       - static_volume_prod:/app/staticfiles
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:8000/api/health/ || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/api/health/',timeout=8); exit(0 if r.status==200 else 1)\""]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -103,16 +149,20 @@ services:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     networks:
-      - gct-network-prod
+      - conecta-network-prod
+    deploy:
+      resources:
+        limits:
+          memory: 900m  # 4 workers × ~200m + overhead; ajustar según VPS
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # React Frontend
+  # ── React Frontend (nginx estático) ─────────────────────────────────────────
   frontend:
     build:
       context: .
@@ -128,14 +178,18 @@ services:
       retries: 3
       start_period: 15s
     networks:
-      - gct-network-prod
+      - conecta-network-prod
+    deploy:
+      resources:
+        limits:
+          memory: 128m  # nginx sirviendo archivos estáticos: muy liviano
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # Nginx Reverse Proxy
+  # ── Nginx Reverse Proxy ──────────────────────────────────────────────────────
   nginx:
     build:
       context: .
@@ -145,8 +199,7 @@ services:
     labels:
       # CRÍTICO (504s intermitentes): en Coolify este contenedor queda en DOS
       # redes (la del compose y la de Coolify). Traefik solo alcanza la de
-      # Coolify; sin esta etiqueta a veces elige la IP de la otra red y todo
-      # responde 504. La etiqueta le fija la red correcta.
+      # Coolify; sin esta etiqueta a veces elige la IP de la otra red → 504.
       - traefik.docker.network=hqso6bdpvt7izvvlu2fq541t
     volumes:
       - 'media_volume_prod:/app/media:ro'
@@ -165,7 +218,11 @@ services:
       retries: 3
       start_period: 15s
     networks:
-      - gct-network-prod
+      - conecta-network-prod
+    deploy:
+      resources:
+        limits:
+          memory: 64m   # nginx proxy: footprint mínimo
     logging:
       driver: json-file
       options:
@@ -183,5 +240,5 @@ volumes:
     driver: local
 
 networks:
-  gct-network-prod:
+  conecta-network-prod:
     driver: bridge

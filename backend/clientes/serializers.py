@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     EmpresaCliente, ContactoCliente, ServicioContratado,
-    AsignacionEquipo, DocumentoCliente, BitacoraCliente,
+    AsignacionEquipo, BitacoraCliente, SolicitudFacturacion,
 )
 
 
@@ -15,9 +15,11 @@ class ContactoClienteSerializer(serializers.ModelSerializer):
 
 
 class ServicioContratadoSerializer(serializers.ModelSerializer):
-    area_nombre = serializers.CharField(source='area.nombre_area', read_only=True)
-    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+    area_nombre          = serializers.CharField(source='area.nombre_area', read_only=True)
+    estado_display       = serializers.CharField(source='get_estado_display', read_only=True)
     periodicidad_display = serializers.CharField(source='get_periodicidad_display', read_only=True)
+    sqf_status_display   = serializers.CharField(source='get_sqf_status_display', read_only=True)
+    tipo_contrato_display = serializers.CharField(source='get_tipo_contrato_display', read_only=True)
 
     class Meta:
         model = ServicioContratado
@@ -48,22 +50,6 @@ class AsignacionEquipoSerializer(serializers.ModelSerializer):
         return None
 
 
-class DocumentoClienteSerializer(serializers.ModelSerializer):
-    tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
-    archivo_url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = DocumentoCliente
-        fields = '__all__'
-        read_only_fields = ['created_at']
-
-    def get_archivo_url(self, obj):
-        request = self.context.get('request')
-        if obj.archivo and request:
-            return request.build_absolute_uri(obj.archivo.url)
-        return None
-
-
 class BitacoraClienteSerializer(serializers.ModelSerializer):
     tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
     empleado_nombre = serializers.SerializerMethodField()
@@ -80,15 +66,26 @@ class BitacoraClienteSerializer(serializers.ModelSerializer):
         return None
 
 
+class SolicitudFacturacionSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    empresa_nombre = serializers.CharField(source='empresa.razon_social', read_only=True)
+
+    class Meta:
+        model = SolicitudFacturacion
+        fields = '__all__'
+        read_only_fields = ['created_at']
+
+
 class EmpresaClienteSerializer(serializers.ModelSerializer):
-    tipo_empresa_display = serializers.CharField(source='get_tipo_empresa_display', read_only=True)
-    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
-    nivel_riesgo_display = serializers.CharField(source='get_nivel_riesgo_display', read_only=True)
+    tipo_empresa_display    = serializers.CharField(source='get_tipo_empresa_display', read_only=True)
+    estado_display          = serializers.CharField(source='get_estado_display', read_only=True)
+    nivel_riesgo_display    = serializers.CharField(source='get_nivel_riesgo_display', read_only=True)
     regimen_tributario_display = serializers.CharField(source='get_regimen_tributario_display', read_only=True)
-    empresa_matriz_nombre = serializers.CharField(source='empresa_matriz.razon_social', read_only=True)
-    contactos = ContactoClienteSerializer(many=True, read_only=True)
-    servicios = ServicioContratadoSerializer(many=True, read_only=True)
-    equipo = serializers.SerializerMethodField()
+    sqf_status_display      = serializers.CharField(source='get_sqf_status_display', read_only=True)
+    empresa_matriz_nombre   = serializers.CharField(source='empresa_matriz.razon_social', read_only=True)
+    contactos  = ContactoClienteSerializer(many=True, read_only=True)
+    servicios  = ServicioContratadoSerializer(many=True, read_only=True)
+    equipo     = serializers.SerializerMethodField()
 
     def get_equipo(self, obj):
         qs = obj.equipo.filter(activo=True).select_related('empleado__persona', 'empleado__cargo')
@@ -101,10 +98,10 @@ class EmpresaClienteSerializer(serializers.ModelSerializer):
 
 
 class EmpresaClienteListSerializer(serializers.ModelSerializer):
-    """Serializer ligero para listados (sin nested relations)."""
     tipo_empresa_display  = serializers.CharField(source='get_tipo_empresa_display', read_only=True)
     estado_display        = serializers.CharField(source='get_estado_display', read_only=True)
     nivel_riesgo_display  = serializers.CharField(source='get_nivel_riesgo_display', read_only=True)
+    sqf_status_display    = serializers.CharField(source='get_sqf_status_display', read_only=True)
     contacto_principal    = serializers.SerializerMethodField()
     areas_count           = serializers.SerializerMethodField()
 
@@ -112,7 +109,9 @@ class EmpresaClienteListSerializer(serializers.ModelSerializer):
         model = EmpresaCliente
         fields = [
             'id', 'razon_social', 'nit', 'tipo_empresa', 'tipo_empresa_display',
-            'estado', 'estado_display', 'nivel_riesgo', 'nivel_riesgo_display',
+            'tipo_cliente', 'grupo_economico',
+            'estado', 'estado_display', 'sqf_status', 'sqf_status_display',
+            'nivel_riesgo', 'nivel_riesgo_display',
             'ciudad', 'departamento', 'email_principal', 'telefono',
             'fecha_inicio_relacion', 'contacto_principal', 'areas_count', 'created_at',
         ]

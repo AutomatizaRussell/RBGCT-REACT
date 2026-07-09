@@ -6,18 +6,30 @@ from django.db.models.functions import TruncMonth
 from datetime import datetime, timedelta
 from .models import (
     EmpresaCliente, ContactoCliente, ServicioContratado,
-    AsignacionEquipo, DocumentoCliente, BitacoraCliente,
+    AsignacionEquipo, BitacoraCliente, SolicitudFacturacion,
 )
 from .serializers import (
     EmpresaClienteSerializer, EmpresaClienteListSerializer,
     ContactoClienteSerializer, ServicioContratadoSerializer,
-    AsignacionEquipoSerializer, DocumentoClienteSerializer,
-    BitacoraClienteSerializer,
+    AsignacionEquipoSerializer, BitacoraClienteSerializer,
+    SolicitudFacturacionSerializer,
 )
 
 
 class EmpresaClienteViewSet(viewsets.ModelViewSet):
     queryset = EmpresaCliente.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {'detail': 'Las empresas se crean únicamente desde FormulariosSQF vía /from_sqf/.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        return Response(
+            {'detail': 'No se permite eliminar empresas desde esta interfaz.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -101,12 +113,6 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
         empresa = self.get_object()
         qs = empresa.equipo.filter(activo=True)
         serializer = AsignacionEquipoSerializer(qs, many=True, context={'request': request})
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['get'])
-    def documentos(self, request, pk=None):
-        empresa = self.get_object()
-        serializer = DocumentoClienteSerializer(empresa.documentos.all(), many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
@@ -330,6 +336,77 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
             'clientes': serializer.data
         })
 
+    @action(detail=False, methods=['post'])
+    def from_sqf(self, request):
+        """
+        Recibe datos de un cliente registrado en FormulariosSQF y hace upsert
+        en EmpresaCliente + ContactoCliente. Idempotente por NIT.
+        """
+        d = request.data
+        nit = str(d.get('document') or d.get('nit') or '').strip()
+        razon_social = str(d.get('name') or d.get('razon_social') or '').strip()
+
+        if not nit or not razon_social:
+            return Response(
+                {'error': 'Se requieren los campos document/nit y name/razon_social.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        sqf_id = str(d.get('id') or '').strip() or None
+        tipo_cliente = str(d.get('clientType') or '').strip() or None
+        grupo_economico = str(d.get('economicGroup') or '').strip() or None
+
+        empresa, created = EmpresaCliente.objects.get_or_create(
+            nit=nit,
+            defaults={
+                'razon_social':    razon_social,
+                'tipo_cliente':    tipo_cliente,
+                'grupo_economico': grupo_economico,
+                'direccion':       str(d.get('address') or '').strip() or None,
+                'telefono':        str(d.get('phone') or '').strip() or None,
+                'email_principal': str(d.get('email') or '').strip() or None,
+                'sqf_id':          sqf_id,
+                'sqf_status':      'pendiente',
+                'estado':          'prospecto',
+            }
+        )
+
+        if not created:
+            # Actualiza campos que puedan estar vacíos pero no sobreescribe los que ya existen
+            updates = {}
+            if sqf_id and not empresa.sqf_id:
+                updates['sqf_id'] = sqf_id
+            if tipo_cliente and not empresa.tipo_cliente:
+                updates['tipo_cliente'] = tipo_cliente
+            if grupo_economico and not empresa.grupo_economico:
+                updates['grupo_economico'] = grupo_economico
+            if not empresa.sqf_status:
+                updates['sqf_status'] = 'pendiente'
+            if updates:
+                EmpresaCliente.objects.filter(pk=empresa.pk).update(**updates)
+                empresa.refresh_from_db()
+
+        contact_name = str(d.get('contactName') or '').strip()
+        contact_role = str(d.get('contactRole') or '').strip()
+        if contact_name:
+            ContactoCliente.objects.get_or_create(
+                empresa=empresa,
+                nombre=contact_name,
+                defaults={
+                    'cargo': 'otro',
+                    'notas': contact_role,
+                    'email':    str(d.get('email') or '').strip() or None,
+                    'telefono': str(d.get('phone') or '').strip() or None,
+                    'es_principal': True,
+                }
+            )
+
+        serializer = EmpresaClienteSerializer(empresa, context={'request': request})
+        return Response(
+            {'created': created, 'empresa': serializer.data},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+
 
 class ContactoClienteViewSet(viewsets.ModelViewSet):
     queryset = ContactoCliente.objects.all()
@@ -357,10 +434,96 @@ class ServicioContratadoViewSet(viewsets.ModelViewSet):
             qs = qs.filter(estado=estado)
         return qs
 
+    @action(detail=False, methods=['post'])
+    def from_sqf(self, request):
+        """
+        Recibe datos de un contrato registrado en FormulariosSQF y crea
+        un ServicioContratado. Idempotente por sqf_id.
+        """
+        d = request.data
+        sqf_id = str(d.get('id') or '').strip()
+        if not sqf_id:
+            return Response({'error': 'Se requiere el campo id (CTR-XXX).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if ServicioContratado.objects.filter(sqf_id=sqf_id).exists():
+            servicio = ServicioContratado.objects.get(sqf_id=sqf_id)
+            return Response(
+                {'created': False, 'servicio': ServicioContratadoSerializer(servicio).data},
+                status=status.HTTP_200_OK
+            )
+
+        # Buscar empresa por clientId (nit) o clientName
+        client_nit = str(d.get('clientId') or d.get('nit') or '').strip()
+        empresa = None
+        if client_nit:
+            empresa = EmpresaCliente.objects.filter(
+                Q(nit=client_nit) | Q(sqf_id=client_nit)
+            ).first()
+
+        contract_type = str(d.get('contractType') or '').lower()
+        if 'mensual' in contract_type:
+            tipo_contrato = 'mensual'
+            periodicidad = 'mensual'
+        elif 'proyecto' in contract_type:
+            tipo_contrato = 'proyecto'
+            periodicidad = 'unico'
+        else:
+            tipo_contrato = 'otro'
+            periodicidad = 'mensual'
+
+        raw_value = str(d.get('value') or '0').replace('.', '').replace(',', '').replace('$', '').strip()
+        try:
+            valor = float(raw_value) if raw_value else None
+        except ValueError:
+            valor = None
+
+        start_date = str(d.get('startDate') or d.get('fecha_inicio') or '').strip()
+        if not start_date:
+            from datetime import date
+            start_date = date.today().isoformat()
+
+        servicio = ServicioContratado.objects.create(
+            empresa=empresa,
+            sqf_id=sqf_id,
+            sqf_status='pendiente',
+            nombre=str(d.get('name') or '').strip() or None,
+            responsable=str(d.get('manager') or '').strip() or None,
+            tipo_contrato=tipo_contrato,
+            grupo_economico=str(d.get('economicGroup') or '').strip() or None,
+            descripcion=str(d.get('service') or '').strip() or None,
+            roles_json=str(d.get('roles') or '').strip() or None,
+            fecha_inicio=start_date,
+            fecha_fin=str(d.get('endDate') or '').strip() or None,
+            valor_mensual=valor,
+            periodicidad=periodicidad,
+            estado='activo',
+            notas=str(d.get('notes') or '').strip() or None,
+        )
+
+        return Response(
+            {'created': True, 'servicio': ServicioContratadoSerializer(servicio).data},
+            status=status.HTTP_201_CREATED
+        )
+
 
 class AsignacionEquipoViewSet(viewsets.ModelViewSet):
     queryset = AsignacionEquipo.objects.select_related('empleado__persona', 'empleado__cargo').all()
     serializer_class = AsignacionEquipoSerializer
+
+    def create(self, request, *args, **kwargs):
+        empresa_id  = request.data.get('empresa')
+        area_id     = request.data.get('area')
+        empleado_id = request.data.get('empleado')
+        if empresa_id and area_id and empleado_id:
+            if AsignacionEquipo.objects.filter(
+                empresa_id=empresa_id, area_id=area_id,
+                empleado_id=empleado_id, activo=True
+            ).exists():
+                return Response(
+                    {'error': 'Ya existe una asignación activa para este empleado en esta empresa y área.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        return super().create(request, *args, **kwargs)
 
     def get_queryset(self):
         qs = AsignacionEquipo.objects.select_related('empleado__persona', 'empleado__cargo').all()
@@ -376,29 +539,6 @@ class AsignacionEquipoViewSet(viewsets.ModelViewSet):
         return qs
 
 
-class DocumentoClienteViewSet(viewsets.ModelViewSet):
-    queryset = DocumentoCliente.objects.all()
-    serializer_class = DocumentoClienteSerializer
-
-    def get_queryset(self):
-        qs = DocumentoCliente.objects.all()
-        empresa_id = self.request.query_params.get('empresa')
-        tipo = self.request.query_params.get('tipo')
-        vigente = self.request.query_params.get('vigente')
-        if empresa_id:
-            qs = qs.filter(empresa_id=empresa_id)
-        if tipo:
-            qs = qs.filter(tipo=tipo)
-        if vigente is not None:
-            qs = qs.filter(vigente=(vigente.lower() == 'true'))
-        return qs
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
-
-
 class BitacoraClienteViewSet(viewsets.ModelViewSet):
     queryset = BitacoraCliente.objects.all()
     serializer_class = BitacoraClienteSerializer
@@ -412,3 +552,78 @@ class BitacoraClienteViewSet(viewsets.ModelViewSet):
         if tipo:
             qs = qs.filter(tipo=tipo)
         return qs
+
+
+class SolicitudFacturacionViewSet(viewsets.ModelViewSet):
+    queryset = SolicitudFacturacion.objects.all()
+    serializer_class = SolicitudFacturacionSerializer
+
+    def get_queryset(self):
+        qs = SolicitudFacturacion.objects.all()
+        empresa_id = self.request.query_params.get('empresa')
+        nit = self.request.query_params.get('nit')
+        status_f = self.request.query_params.get('status')
+        if empresa_id:
+            qs = qs.filter(empresa_id=empresa_id)
+        if nit:
+            qs = qs.filter(nit=nit)
+        if status_f:
+            qs = qs.filter(status=status_f)
+        return qs
+
+    @action(detail=False, methods=['post'])
+    def from_sqf(self, request):
+        """
+        Recibe datos de una solicitud de facturación de FormulariosSQF.
+        Idempotente por sqf_id.
+        """
+        d = request.data
+        sqf_id = str(d.get('id') or '').strip()
+        if not sqf_id:
+            return Response({'error': 'Se requiere el campo id (BIL-XXX).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if SolicitudFacturacion.objects.filter(sqf_id=sqf_id).exists():
+            sol = SolicitudFacturacion.objects.get(sqf_id=sqf_id)
+            return Response(
+                {'created': False, 'solicitud': SolicitudFacturacionSerializer(sol).data},
+                status=status.HTTP_200_OK
+            )
+
+        nit = str(d.get('nit') or d.get('clientDocument') or d.get('documento') or '').strip()
+        empresa = EmpresaCliente.objects.filter(nit=nit).first() if nit else None
+
+        def _int(val):
+            try:
+                return int(str(val or '0').replace('.', '').replace(',', '').replace('$', '').strip() or '0')
+            except (ValueError, TypeError):
+                return 0
+
+        sol = SolicitudFacturacion.objects.create(
+            sqf_id=sqf_id,
+            empresa=empresa,
+            nit=nit or None,
+            client_name=str(d.get('clientName') or '').strip(),
+            company=str(d.get('company') or '').strip() or None,
+            billing_type=str(d.get('billingType') or '').strip() or None,
+            billing_client_type=str(d.get('billingClientType') or d.get('billing_client_type') or '').strip() or None,
+            billing_modality=str(d.get('billingModality') or d.get('billing_modality') or '').strip() or None,
+            sale_type=str(d.get('saleType') or d.get('sale_type') or '').strip() or None,
+            cross_sale_person=str(d.get('crossSalePerson') or d.get('cross_sale_person') or '').strip() or None,
+            service_type=str(d.get('serviceType') or d.get('service_type') or '').strip() or None,
+            valor_mes=_int(d.get('valorMes') or d.get('valor_mes')),
+            valor_proyecto=_int(d.get('valorProyecto') or d.get('valor_proyecto')),
+            origin=str(d.get('origin') or '').strip() or None,
+            origin_ref=str(d.get('originRef') or d.get('origin_ref') or '').strip() or None,
+            closer=str(d.get('closer') or '').strip() or None,
+            mes_tipo=str(d.get('mes_tipo') or d.get('mesCorrienteOVencido') or '').strip() or None,
+            areas_json=str(d.get('areas') or '').strip() or None,
+            items_json=str(d.get('items_json') or d.get('items') or '').strip() or None,
+            status='pendiente',
+            solicitante_nombre=str(d.get('solicitante_nombre') or '').strip() or None,
+            solicitante_id=str(d.get('solicitante_id') or '').strip() or None,
+        )
+
+        return Response(
+            {'created': True, 'solicitud': SolicitudFacturacionSerializer(sol).data},
+            status=status.HTTP_201_CREATED
+        )

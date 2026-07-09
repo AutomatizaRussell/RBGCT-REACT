@@ -11,12 +11,13 @@ from rest_framework.response import Response
 from django.db import models as django_models
 from django.db.models import Q
 
-from ..models import Curso, CursoContenido, CursoHistorial, NotificacionCurso, DatosEmpleado, CursoProgreso, CuestionarioIntento, AsignacionFormacion, ExclusionFormacion
+from ..models import Curso, CursoModulo, CursoContenido, CursoHistorial, NotificacionCurso, DatosEmpleado, CursoProgreso, CuestionarioIntento, AsignacionFormacion, ExclusionFormacion
 from ..serializers import (
-    CursoSerializer, CursoContenidoSerializer, CursoHistorialSerializer, NotificacionCursoSerializer,
+    CursoSerializer, CursoModuloSerializer, CursoContenidoSerializer,
+    CursoHistorialSerializer, NotificacionCursoSerializer,
     CuestionarioIntentoSerializer, AsignacionFormacionSerializer,
 )
-from ..permissions import IsAdminOrSuperAdmin
+from ..permissions import IsAdminOrSuperAdmin, IsEditorOrAbove
 from ._utils import get_usuario_nombre, _es_empleado, _es_superadmin
 
 logger = logging.getLogger(__name__)
@@ -36,12 +37,12 @@ class CursoViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         write_actions = {'create', 'update', 'partial_update', 'destroy', 'reordenar', 'exportar_calificaciones'}
         if self.action in write_actions:
-            return [IsAdminOrSuperAdmin()]
+            return [IsEditorOrAbove()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
-        base = Curso.objects.all().order_by('orden').prefetch_related('contenidos')
+        base = Curso.objects.all().order_by('orden').prefetch_related('modulos', 'contenidos')
 
         if _es_superadmin(user):
             return base
@@ -68,7 +69,15 @@ class CursoViewSet(viewsets.ModelViewSet):
             except Exception:
                 pass
             user_nivel = _nivel_cargo(cargo_nombre)
-            cargo_q = Q(visibilidad='cargo', nivel_cargo=user_nivel) if user_nivel != 99 else Q(pk__in=[])
+            # Visibilidad por cargo: respetar las áreas elegidas por el admin.
+            # Si el curso no tiene áreas → aplica a todos los empleados con ese nivel.
+            # Si tiene áreas → solo empleados en esas áreas.
+            if user_nivel != 99:
+                cargo_q = Q(visibilidad='cargo', nivel_cargo=user_nivel) & (
+                    Q(areas__isnull=True) | Q(areas__id_area=user.area_id)
+                )
+            else:
+                cargo_q = Q(pk__in=[])
 
             # IDs de cursos asignados directamente a este empleado
             asignados_ids = AsignacionFormacion.objects.filter(
@@ -213,10 +222,10 @@ class CursoViewSet(viewsets.ModelViewSet):
             if persona:
                 nombre = f"{getattr(persona, 'primer_nombre', '')} {getattr(persona, 'primer_apellido', '')}".strip()
             else:
-                nombre = getattr(i.empleado, 'correo_electronico', str(i.empleado.id_empleado))
+                nombre = getattr(i.empleado, 'correo_corporativo', str(i.empleado.id_empleado))
             rows.append({
                 'empleado': nombre,
-                'correo': getattr(i.empleado, 'correo_electronico', ''),
+                'correo': getattr(i.empleado, 'correo_corporativo', ''),
                 'cuestionario': i.contenido.titulo if i.contenido else '',
                 'puntaje': round(float(i.puntaje), 1),
                 'aprobado': 'Sí' if i.aprobado else 'No',
@@ -281,15 +290,150 @@ class CursoViewSet(viewsets.ModelViewSet):
             },
         })
 
+    @action(detail=False, methods=['get'], url_path='resumen-empleados')
+    def resumen_empleados(self, request):
+        """Admin/editor: resumen de progreso de todos los empleados en todos los cursos."""
+        if not (
+            _es_superadmin(request.user) or
+            (_es_empleado(request.user) and int(getattr(request.user, 'id_permisos', 3)) <= 2)
+        ):
+            return Response({'error': 'Sin permisos.'}, status=403)
+
+        from django.db.models import Count, Max, Q as DQ
+        from ..models import DatosArea, DatosCargo
+
+        area_id  = request.query_params.get('area_id')
+        cargo_id = request.query_params.get('cargo_id')
+
+        empleados_qs = DatosEmpleado.objects.filter(estado='ACTIVA').select_related('persona')
+        if area_id:
+            empleados_qs = empleados_qs.filter(area_id=area_id)
+        if cargo_id:
+            empleados_qs = empleados_qs.filter(cargo_id=cargo_id)
+
+        # Diccionarios de nombres para resolución eficiente (evita N+1 queries)
+        area_names  = dict(DatosArea.objects.values_list('id_area', 'nombre_area'))
+        cargo_names = dict(DatosCargo.objects.values_list('id_cargo', 'nombre_cargo'))
+
+        # Todos los cursos activos con conteo de contenidos
+        cursos = list(
+            Curso.objects.filter(activo=True)
+            .annotate(n_contenidos=Count('contenidos', distinct=True))
+            .values('id', 'nombre', 'tipo', 'n_contenidos')
+            .order_by('orden')
+        )
+
+        # Progreso: contenidos completados por empleado×curso
+        prog_map = {}
+        for p in CursoProgreso.objects.filter(empleado__in=empleados_qs).values(
+            'empleado_id', 'curso_id'
+        ).annotate(completados=Count('id')):
+            prog_map.setdefault(p['empleado_id'], {})[p['curso_id']] = p['completados']
+
+        # Mejor intento de cuestionario por empleado×contenido
+        intento_map = {}
+        for i in CuestionarioIntento.objects.filter(empleado__in=empleados_qs).values(
+            'empleado_id', 'curso_id', 'contenido_id', 'contenido__titulo'
+        ).annotate(
+            mejor_puntaje=Max('puntaje'),
+            aprobados=Count('id', filter=DQ(aprobado=True)),
+            num_intentos=Count('id'),
+        ):
+            intento_map.setdefault(i['empleado_id'], {}).setdefault(i['curso_id'], []).append({
+                'cuestionario':  i['contenido__titulo'] or '—',
+                'mejor_puntaje': round(float(i['mejor_puntaje']), 1),
+                'aprobado':      i['aprobados'] > 0,
+                'num_intentos':  i['num_intentos'],
+            })
+
+        result = []
+        for emp in empleados_qs:
+            persona = getattr(emp, 'persona', None)
+            nombre = (
+                f"{getattr(persona, 'primer_nombre', '')} {getattr(persona, 'primer_apellido', '')}".strip()
+                if persona else emp.correo_corporativo or str(emp.id_empleado)
+            )
+
+            emp_prog   = prog_map.get(emp.id_empleado, {})
+            emp_intent = intento_map.get(emp.id_empleado, {})
+
+            cursos_emp = []
+            for c in cursos:
+                cid         = c['id']
+                total       = c['n_contenidos']
+                completados = emp_prog.get(cid, 0)
+                quizzes     = emp_intent.get(cid, [])
+                if completados > 0 or quizzes:
+                    cursos_emp.append({
+                        'curso_id':         cid,
+                        'nombre':           c['nombre'],
+                        'tipo':             c['tipo'],
+                        'total_contenidos': total,
+                        'completados':      completados,
+                        'pct':              round(completados / total * 100) if total > 0 else 0,
+                        'completo':         total > 0 and completados >= total,
+                        'quizzes':          quizzes,
+                    })
+
+            result.append({
+                'id_empleado':        emp.id_empleado,
+                'nombre':             nombre,
+                'correo':             emp.correo_corporativo or '',
+                'area_id':            emp.area_id,
+                'area':               area_names.get(emp.area_id, '') if emp.area_id else '',
+                'cargo_id':           emp.cargo_id,
+                'cargo':              cargo_names.get(emp.cargo_id, '') if emp.cargo_id else '',
+                'cursos_totales':     len(cursos),
+                'cursos_iniciados':   len(cursos_emp),
+                'cursos_completados': sum(1 for c in cursos_emp if c['completo']),
+                'cursos':             cursos_emp,
+            })
+
+        return Response(result)
+
     @action(detail=True, methods=['get'], url_path='mi-progreso')
     def mi_progreso(self, request, pk=None):
-        """IDs de contenidos completados por el empleado autenticado en este curso."""
+        """Progreso del empleado en el curso: completados con fecha, resumen de quizzes y calificación."""
         if not _es_empleado(request.user):
-            return Response({'completados': []})
-        completados = CursoProgreso.objects.filter(
+            return Response({'completados': [], 'quizzes': {}, 'calificacion': None})
+
+        from django.db.models import Max, Q as DQ
+
+        progresos = CursoProgreso.objects.filter(
             empleado=request.user, curso_id=pk
-        ).values_list('contenido_id', flat=True)
-        return Response({'completados': list(completados)})
+        ).values('contenido_id', 'fecha_completado')
+
+        completados = [
+            {'id': p['contenido_id'], 'fecha': p['fecha_completado'].isoformat()}
+            for p in progresos
+        ]
+
+        intentos = CuestionarioIntento.objects.filter(
+            empleado=request.user, curso_id=pk
+        ).values('contenido_id').annotate(
+            mejor_puntaje=Max('puntaje'),
+            aprobados=django_models.Count('id', filter=DQ(aprobado=True)),
+            num_intentos=django_models.Count('id'),
+        )
+
+        quizzes = {
+            str(i['contenido_id']): {
+                'mejor_puntaje': round(float(i['mejor_puntaje']), 1),
+                'aprobado':      i['aprobados'] > 0,
+                'num_intentos':  i['num_intentos'],
+            }
+            for i in intentos
+        }
+
+        calificacion = None
+        if quizzes:
+            calificacion = round(sum(v['mejor_puntaje'] for v in quizzes.values()) / len(quizzes), 1)
+
+        return Response({
+            'completados': completados,
+            'quizzes':     quizzes,
+            'calificacion': calificacion,
+        })
 
     @action(detail=True, methods=['post'], url_path='marcar-progreso')
     def marcar_progreso(self, request, pk=None):
@@ -303,6 +447,11 @@ class CursoViewSet(viewsets.ModelViewSet):
             contenido = CursoContenido.objects.get(pk=contenido_id, curso_id=pk)
         except CursoContenido.DoesNotExist:
             return Response({'error': 'Contenido no encontrado en este curso.'}, status=404)
+        if contenido.tipo == 'cuestionario':
+            return Response(
+                {'error': 'Los cuestionarios se completan respondiendo, no marcando manualmente.'},
+                status=400,
+            )
         progreso, created = CursoProgreso.objects.get_or_create(
             empleado=request.user, contenido=contenido,
             defaults={'curso_id': pk}
@@ -358,7 +507,7 @@ class CursoContenidoViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         write_actions = {'create', 'update', 'partial_update', 'destroy', 'reordenar'}
         if self.action in write_actions:
-            return [IsAdminOrSuperAdmin()]
+            return [IsEditorOrAbove()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
@@ -381,8 +530,16 @@ class CursoContenidoViewSet(viewsets.ModelViewSet):
             data['orden'] = max_orden + 1
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
+        archivo = request.FILES.get('archivo')
+        if archivo:
+            archivo.seek(0)
+            archivo_bytes = archivo.read()
+            archivo.seek(0)
         self.perform_create(serializer)
         instance = serializer.instance
+        if archivo:
+            from ..n8n_gateway import subir_intranet_async
+            subir_intranet_async('cursos', archivo.name, archivo_bytes, archivo.content_type)
         try:
             curso = Curso.objects.get(id=curso_id) if curso_id else None
         except Curso.DoesNotExist:
@@ -462,13 +619,19 @@ class CursoContenidoViewSet(viewsets.ModelViewSet):
             enviada = respuestas_enviadas.get(p['id'])
             correcta = p.get('correcta')
             if p.get('tipo') == 'multiple':
-                if enviada is not None and int(enviada) == int(correcta):
+                if enviada is not None and correcta is not None and int(enviada) == int(correcta):
                     correctas += 1
             elif p.get('tipo') == 'verdadero_falso':
                 if str(enviada).lower() == str(correcta).lower():
                     correctas += 1
 
-        puntaje = (correctas / total_autogradable * 100) if total_autogradable > 0 else 100.0
+        if total_autogradable > 0:
+            puntaje = correctas / total_autogradable * 100
+        else:
+            # Solo preguntas texto_libre: aprueba si el empleado respondió todas (no vacías).
+            textos = [p for p in preguntas if p.get('tipo') == 'texto_libre']
+            respondidas = sum(1 for p in textos if str(respuestas_enviadas.get(p['id'], '')).strip())
+            puntaje = 100.0 if textos and respondidas == len(textos) else 0.0
         aprobado = puntaje >= puntaje_aprobacion
 
         num_intento = CuestionarioIntento.objects.filter(
@@ -589,6 +752,42 @@ def toggle_encargado_cursos(request):
     empleado.es_encargado_cursos = bool(valor)
     empleado.save(update_fields=['es_encargado_cursos'])
     return Response({'id_empleado': id_empleado, 'es_encargado_cursos': empleado.es_encargado_cursos})
+
+
+class CursoModuloViewSet(viewsets.ModelViewSet):
+    """CRUD de módulos de un curso. Filtrar por ?curso_id=X"""
+    serializer_class = CursoModuloSerializer
+    queryset = CursoModulo.objects.all().order_by('orden')
+
+    def get_permissions(self):
+        if self.action in {'create', 'update', 'partial_update', 'destroy', 'reordenar'}:
+            return [IsEditorOrAbove()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        curso_id = self.request.query_params.get('curso_id')
+        if curso_id:
+            qs = qs.filter(curso_id=curso_id)
+        return qs
+
+    def perform_create(self, serializer):
+        curso_id = self.request.data.get('curso')
+        max_orden = CursoModulo.objects.filter(curso_id=curso_id).aggregate(
+            django_models.Max('orden')
+        )['orden__max'] or 0
+        serializer.save(orden=max_orden + 1)
+
+    @action(detail=False, methods=['post'], url_path='reordenar')
+    def reordenar(self, request):
+        """Actualiza el orden de módulos. Body: [{id, orden}, ...]"""
+        items = request.data if isinstance(request.data, list) else request.data.get('orden', [])
+        for item in items:
+            try:
+                CursoModulo.objects.filter(id=item['id']).update(orden=item['orden'])
+            except (KeyError, TypeError):
+                pass
+        return Response({'ok': True})
 
 
 class AsignacionFormacionViewSet(viewsets.ModelViewSet):

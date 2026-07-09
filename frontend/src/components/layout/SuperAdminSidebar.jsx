@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { SidebarShell } from './SidebarShell'
 
-export const SuperAdminSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
+export const SuperAdminSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, onClose, onToggleCollapse }) => {
   const navigate = useNavigate()
   const { logout } = useAuth()
 
@@ -58,7 +58,9 @@ export const SuperAdminSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) 
       badge="Superadmin"
       activeTab={activeTab}
       isOpen={isOpen}
+      isCollapsed={isCollapsed}
       onClose={onClose}
+      onToggleCollapse={onToggleCollapse}
       onNavigate={handleNavigation}
       sections={sections}
       footer={

@@ -24,13 +24,26 @@ const SugerenciasChat = ({ desplazado = false }) => {
   const [cargando, setCargando] = useState(false);
   const [sugerencias, setSugerencias] = useState([]);
   const [error, setError] = useState('');
+  const [position, setPosition] = useState(() => {
+    if (typeof window === 'undefined') return { x: 24, y: 24 };
+    return {
+      x: Math.max(12, window.innerWidth - 72 - 24),
+      y: Math.max(12, window.innerHeight - 72 - 24),
+    };
+  });
+  const [lastBubblePosition, setLastBubblePosition] = useState(null);
+  const [dragging, setDragging] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const panelRef = useRef(null);
+  const dragStateRef = useRef({ pointerId: null, offsetX: 0, offsetY: 0, startX: 0, startY: 0, moved: false, source: null });
+  const suppressOpenRef = useRef(false);
 
-  const posicion = desplazado ? 'right-24' : 'right-6';
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
   useEffect(() => {
     if (!open) return;
+    setLastBubblePosition(position);
     setTimeout(() => inputRef.current?.focus(), 100);
     setCargando(true);
     getMisSugerencias()
@@ -42,6 +55,83 @@ const SugerenciasChat = ({ desplazado = false }) => {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [sugerencias, open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const keepInsideViewport = () => {
+      const width = panelRef.current?.offsetWidth || 360;
+      const height = panelRef.current?.offsetHeight || 520;
+      setPosition(prev => ({
+        x: clamp(prev.x, 12, Math.max(12, window.innerWidth - width - 12)),
+        y: clamp(prev.y, 12, Math.max(12, window.innerHeight - height - 12)),
+      }));
+    };
+
+    keepInsideViewport();
+    window.addEventListener('resize', keepInsideViewport);
+    return () => window.removeEventListener('resize', keepInsideViewport);
+  }, [open]);
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    const handlePointerMove = (event) => {
+      if (event.pointerId !== dragStateRef.current.pointerId) return;
+      const source = dragStateRef.current.source;
+      const width = source === 'button' ? 56 : (panelRef.current?.offsetWidth || 360);
+      const height = source === 'button' ? 56 : (panelRef.current?.offsetHeight || 520);
+      const nextX = clamp(event.clientX - dragStateRef.current.offsetX, 12, Math.max(12, window.innerWidth - width - 12));
+      const nextY = clamp(event.clientY - dragStateRef.current.offsetY, 12, Math.max(12, window.innerHeight - height - 12));
+      const dx = event.clientX - dragStateRef.current.startX;
+      const dy = event.clientY - dragStateRef.current.startY;
+      const movedDistance = Math.hypot(dx, dy);
+      if (!dragStateRef.current.moved && movedDistance > 6) {
+        dragStateRef.current.moved = true;
+        suppressOpenRef.current = true;
+      }
+
+      dragStateRef.current.lastX = event.clientX;
+      dragStateRef.current.lastY = event.clientY;
+      setPosition({ x: nextX, y: nextY });
+    };
+
+    const handlePointerUp = (event) => {
+      if (dragStateRef.current.pointerId !== null && event.pointerId !== dragStateRef.current.pointerId) return;
+      setDragging(false);
+      dragStateRef.current.pointerId = null;
+      dragStateRef.current.moved = false;
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [dragging]);
+
+  const iniciarArrastre = (event, source) => {
+    if (event.button !== 0) return;
+
+    const rect = source === 'panel' && panelRef.current
+      ? panelRef.current.getBoundingClientRect()
+      : { left: event.clientX, top: event.clientY };
+    suppressOpenRef.current = false;
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      moved: false,
+      source,
+    };
+    setDragging(true);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
 
   const enviar = async () => {
     const t = texto.trim();
@@ -63,19 +153,35 @@ const SugerenciasChat = ({ desplazado = false }) => {
     <>
       {!open && (
         <button
-          onClick={() => setOpen(true)}
+          onPointerDown={(event) => iniciarArrastre(event, 'button')}
+          onClick={(event) => {
+            event.preventDefault();
+            if (event.button !== 2 && !suppressOpenRef.current) {
+              setOpen(true);
+            }
+            suppressOpenRef.current = false;
+          }}
+          onContextMenu={(event) => event.preventDefault()}
           title="Sugerencias, dudas o problemas"
-          className={`fixed bottom-6 ${posicion} z-50 w-14 h-14 bg-[#00a9ce] text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-[#0090b0] hover:scale-105 transition-all`}
+          className="fixed z-50 w-14 h-14 bg-[#00a9ce] text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-[#0090b0] hover:scale-105 transition-all touch-none"
+          style={{ left: `${position.x}px`, top: `${position.y}px`, transition: dragging ? 'none' : 'left 160ms ease-out, top 160ms ease-out, transform 160ms ease-out, box-shadow 160ms ease-out' }}
         >
           <MessageSquarePlus size={22} />
         </button>
       )}
 
       {open && (
-        <div className={`fixed bottom-6 ${posicion} z-50 w-[360px] h-[520px] bg-white rounded-2xl shadow-2xl flex flex-col border border-slate-200 overflow-hidden`}>
+        <div
+          ref={panelRef}
+          className="fixed z-50 w-[min(92vw,360px)] h-[min(86vh,520px)] bg-white rounded-2xl shadow-2xl flex flex-col border border-slate-200 overflow-hidden"
+          style={{ left: `${position.x}px`, top: `${position.y}px` }}
+        >
 
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-[#00a9ce] text-white flex-shrink-0">
+          <div
+            className="flex items-center justify-between px-4 py-3 bg-[#00a9ce] text-white flex-shrink-0 cursor-grab active:cursor-grabbing"
+            onPointerDown={(event) => iniciarArrastre(event, 'panel')}
+          >
             <div className="flex items-center gap-2">
               <MessageSquarePlus size={18} />
               <div>
@@ -83,7 +189,18 @@ const SugerenciasChat = ({ desplazado = false }) => {
                 <p className="text-[10px] text-cyan-100 font-medium">Sugerencias · Dudas · Problemas</p>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="p-1 rounded-lg hover:bg-white/20 transition-colors">
+            <button
+              type="button"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (lastBubblePosition) {
+                  setPosition(lastBubblePosition);
+                }
+                setOpen(false);
+              }}
+              className="p-1 rounded-lg hover:bg-white/20 transition-colors"
+            >
               <X size={16} />
             </button>
           </div>

@@ -240,7 +240,6 @@ export default function ManualesCargo() {
     return (
       <CursoDetalle
         curso={cursoActivo}
-        porCurso={porCurso}
         onVolver={() => { setCursoActivo(null); refrescarProgreso(); }}
       />
     );
@@ -647,15 +646,25 @@ function CursoCard({ curso, gradient, completados, total, pct, completo, iniciad
 }
 
 // ── Vista detalle de un curso ─────────────────────────────────────────────────
-function CursoDetalle({ curso, porCurso, onVolver }) {
-  const gradient  = GRADIENTS[curso.id % GRADIENTS.length];
-  const [contenidos, setContenidos]     = useState([]);
-  const [completados, setCompletados]   = useState(new Set());
-  const [loading, setLoading]           = useState(true);
-  const [toggling, setToggling]         = useState(null);
-  const [expandedQuiz, setExpandedQuiz] = useState(null);
-  const [agotados, setAgotados]         = useState(new Set());
-  const [celebracion, setCelebracion]   = useState(false);
+function CursoDetalle({ curso, onVolver }) {
+  const gradient = GRADIENTS[curso.id % GRADIENTS.length];
+
+  const [contenidos,        setContenidos]        = useState([]);
+  const [completados,       setCompletados]       = useState({});   // { id: fecha_iso }
+  const [quizzes,           setQuizzes]           = useState({});   // { contenido_id: {mejor_puntaje, aprobado, num_intentos} }
+  const [calificacion,      setCalificacion]      = useState(null);
+  const [loading,           setLoading]           = useState(true);
+  const [toggling,          setToggling]          = useState(null);
+  const [expandedQuiz,      setExpandedQuiz]      = useState(null);
+  const [agotados,          setAgotados]          = useState(new Set());
+  const [celebracion,       setCelebracion]       = useState(false);
+  const [modulosColapsados, setModulosColapsados] = useState(new Set());
+
+  const toggleModulo = (moduloId) => setModulosColapsados(prev => {
+    const next = new Set(prev);
+    if (next.has(moduloId)) next.delete(moduloId); else next.add(moduloId);
+    return next;
+  });
 
   useEffect(() => {
     setLoading(true);
@@ -664,22 +673,28 @@ function CursoDetalle({ curso, porCurso, onVolver }) {
       getMiProgresoCurso(curso.id),
     ]).then(([cData, pData]) => {
       setContenidos(Array.isArray(cData) ? cData : (cData?.results || []));
-      setCompletados(new Set(pData?.completados || []));
+      const mapa = {};
+      for (const c of (pData?.completados || [])) {
+        mapa[c.id] = c.fecha ?? null;
+      }
+      setCompletados(mapa);
+      setQuizzes(pData?.quizzes || {});
+      setCalificacion(pData?.calificacion ?? null);
     }).catch(console.error)
       .finally(() => setLoading(false));
   }, [curso.id]);
 
+  const ids          = new Set(Object.keys(completados).map(Number));
   const total        = contenidos.length;
-  const hechos       = contenidos.filter(c => completados.has(c.id)).length;
+  const hechos       = contenidos.filter(c => ids.has(c.id)).length;
   const pct          = total > 0 ? Math.round((hechos / total) * 100) : 0;
   const completo     = total > 0 && hechos === total;
   const esCapacitacion = curso.tipo === 'capacitacion';
 
-  // Para capacitaciones: un recurso está bloqueado si alguno anterior no está completado
   const estaBloqueado = (idx) => {
     if (!esCapacitacion) return false;
     for (let i = 0; i < idx; i++) {
-      if (!completados.has(contenidos[i].id)) return true;
+      if (!ids.has(contenidos[i].id)) return true;
     }
     return false;
   };
@@ -690,8 +705,9 @@ function CursoDetalle({ curso, porCurso, onVolver }) {
     try {
       const res = await marcarProgresoCurso(curso.id, contenidoId);
       setCompletados(prev => {
-        const next = new Set(prev);
-        res.completado ? next.add(contenidoId) : next.delete(contenidoId);
+        const next = { ...prev };
+        if (res.completado) next[contenidoId] = new Date().toISOString();
+        else delete next[contenidoId];
         return next;
       });
       if (res.curso_completado) setCelebracion(true);
@@ -699,24 +715,46 @@ function CursoDetalle({ curso, porCurso, onVolver }) {
     finally { setToggling(null); }
   };
 
-  const handleAgotado    = (id) => { setAgotados(prev => new Set([...prev, id])); setExpandedQuiz(p => p === id ? null : p); };
-  const handleCompletado = (id) => {
-    setCompletados(prev => {
-      const next = new Set([...prev, id]);
-      if (contenidos.length > 0 && next.size >= contenidos.length) setCelebracion(true);
-      return next;
-    });
+  const handleAgotado = (id) => {
+    setAgotados(prev => new Set([...prev, id]));
+    setExpandedQuiz(p => p === id ? null : p);
   };
+
+  const handleQuizCompletado = (id, puntaje, aprobado) => {
+    setCompletados(prev => ({ ...prev, [id]: new Date().toISOString() }));
+    setQuizzes(prev => ({
+      ...prev,
+      [String(id)]: {
+        mejor_puntaje: Math.max(puntaje, prev[String(id)]?.mejor_puntaje ?? 0),
+        aprobado:      aprobado || (prev[String(id)]?.aprobado ?? false),
+        num_intentos:  (prev[String(id)]?.num_intentos ?? 0) + 1,
+      },
+    }));
+    const nuevosIds = new Set([...Object.keys(completados).map(Number), id]);
+    if (contenidos.length > 0 && nuevosIds.size >= contenidos.length) setCelebracion(true);
+  };
+
+  // Agrupar contenidos por módulo (modulo es ahora FK id numérico o null)
+  const modulosList = curso.modulos || [];
+  const tieneModulos = modulosList.length > 0;
+
+  // Construir secciones: módulos en orden + contenidos sin módulo al final
+  const seccionesModulos = modulosList.map(m => ({
+    id:     m.id,
+    nombre: m.nombre,
+    items:  contenidos.filter((c, i) => c.modulo === m.id).map(c => ({ ...c, _idx: contenidos.indexOf(c) })),
+  }));
+  const sinModuloItems = contenidos
+    .filter(c => !c.modulo)
+    .map(c => ({ ...c, _idx: contenidos.indexOf(c) }));
 
   return (
     <div className="space-y-5 animate-in fade-in duration-300 max-w-3xl mx-auto">
 
-      {/* Celebración */}
+      {/* Banner de celebración */}
       {celebracion && (
-        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-5 flex items-center gap-4 shadow-md animate-in slide-in-from-top-2 duration-500">
-          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0">
-            🏆
-          </div>
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-5 flex items-center gap-4 shadow-md">
+          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0">🏆</div>
           <div className="flex-1">
             <p className="font-black text-white text-base">¡Curso completado!</p>
             <p className="text-emerald-100 text-sm mt-0.5">Terminaste "{curso.nombre}" al 100%. ¡Excelente trabajo!</p>
@@ -736,7 +774,7 @@ function CursoDetalle({ curso, porCurso, onVolver }) {
       {/* Header del curso */}
       <div className={`bg-gradient-to-br ${gradient} rounded-2xl p-6 shadow-sm`}>
         <div className="flex items-start gap-4">
-          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center font-black text-2xl text-white border border-white/25 flex-shrink-0 shadow-sm">
+          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center font-black text-2xl text-white border border-white/25 flex-shrink-0">
             {curso.nombre.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
@@ -746,13 +784,13 @@ function CursoDetalle({ curso, porCurso, onVolver }) {
             )}
           </div>
           {completo && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 rounded-xl text-white text-[10px] font-black border border-white/25 flex-shrink-0">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 rounded-xl text-white text-[10px] font-black border border-white/25 flex-shrink-0">
               <CheckCircle2 size={11}/> Completado
-            </div>
+            </span>
           )}
         </div>
 
-        {/* Plazo del curso */}
+        {/* Plazo */}
         {(curso.fecha_inicio || curso.fecha_fin) && (
           <div className="flex items-center gap-2 mt-4 px-3 py-2 bg-white/15 rounded-xl border border-white/20 w-fit">
             <Calendar size={12} className="text-white/70"/>
@@ -760,42 +798,38 @@ function CursoDetalle({ curso, porCurso, onVolver }) {
               {curso.fecha_inicio && curso.fecha_fin
                 ? `${fmtFecha(curso.fecha_inicio)} → ${fmtFecha(curso.fecha_fin)}`
                 : curso.fecha_fin
-                  ? `Disponible hasta ${fmtFecha(curso.fecha_fin)}`
-                  : `Disponible desde ${fmtFecha(curso.fecha_inicio)}`
-              }
+                  ? `Hasta ${fmtFecha(curso.fecha_fin)}`
+                  : `Desde ${fmtFecha(curso.fecha_inicio)}`}
             </span>
             {(() => {
               const dias = diasRestantes(curso.fecha_fin);
-              if (dias !== null && dias <= 7 && dias >= 0) return (
-                <span className="text-[10px] font-black text-red-200 bg-red-500/40 px-2 py-0.5 rounded-md">
-                  ¡{dias}d restantes!
-                </span>
-              );
-              return null;
+              return dias !== null && dias <= 7 && dias >= 0
+                ? <span className="text-[10px] font-black text-red-200 bg-red-500/40 px-2 py-0.5 rounded-md">¡{dias}d!</span>
+                : null;
             })()}
           </div>
         )}
 
-        {/* Progreso */}
+        {/* Progreso + calificación */}
         {total > 0 && (
           <div className="mt-5 space-y-2">
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-white/70 font-semibold">Tu progreso</span>
               <div className="flex items-center gap-3 text-white">
+                {calificacion !== null && (
+                  <span className="flex items-center gap-1 text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-lg border border-white/20">
+                    <Trophy size={9}/> {calificacion}% calificación
+                  </span>
+                )}
                 <span className="font-black text-sm">{pct}%</span>
                 <span className="text-white/50 text-xs">{hechos}/{total} recursos</span>
               </div>
             </div>
             <div className="h-2.5 bg-white/20 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${pct}%`,
-                  backgroundColor: completo ? '#10b981' : 'white',
-                }}
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${pct}%`, backgroundColor: completo ? '#10b981' : 'white' }}
               />
             </div>
-            {/* Hitos de progreso */}
             <div className="flex justify-between text-[9px] text-white/40 font-bold px-0.5">
               {[25, 50, 75, 100].map(h => (
                 <span key={h} className={pct >= h ? 'text-white/70' : ''}>{h}%</span>
@@ -805,7 +839,7 @@ function CursoDetalle({ curso, porCurso, onVolver }) {
         )}
       </div>
 
-      {/* Banner plan secuencial para capacitaciones */}
+      {/* Aviso capacitación secuencial */}
       {esCapacitacion && !loading && contenidos.length > 0 && (
         <div className="flex items-start gap-2.5 px-4 py-3 bg-[#ed8b00]/10 border border-[#ed8b00]/30 rounded-2xl">
           <AlertCircle size={14} className="text-[#ed8b00] flex-shrink-0 mt-0.5"/>
@@ -815,54 +849,143 @@ function CursoDetalle({ curso, porCurso, onVolver }) {
         </div>
       )}
 
-      {/* Lista de contenidos */}
-      <div className="space-y-2">
-        {loading ? (
-          <div className="py-12 flex flex-col items-center gap-3">
-            <Loader2 size={24} className="text-[#001871] animate-spin"/>
-            <p className="text-sm text-slate-400">Cargando recursos...</p>
-          </div>
-        ) : contenidos.length === 0 ? (
-          <div className="py-12 text-center">
-            <Layers size={28} className="mx-auto text-slate-200 mb-2"/>
-            <p className="text-sm text-slate-400">Este plan no tiene recursos aún</p>
-          </div>
-        ) : (
-          contenidos.map((c, idx) => (
-            <RecursoItem
-              key={c.id}
-              item={c}
-              num={idx + 1}
-              completado={completados.has(c.id)}
-              toggling={toggling === c.id}
-              agotado={agotados.has(c.id)}
-              bloqueadoPorPlan={estaBloqueado(idx)}
-              quizExpandido={expandedQuiz === c.id}
-              onToggleCompletado={() => handleToggleCompletado(c.id)}
-              onToggleQuiz={() => { if (!agotados.has(c.id) && !estaBloqueado(idx)) setExpandedQuiz(p => p === c.id ? null : c.id); }}
-              onAgotado={() => handleAgotado(c.id)}
-              onCompletado={() => handleCompletado(c.id)}
-            />
-          ))
-        )}
-      </div>
+      {/* Lista de contenidos agrupados por módulo */}
+      {loading ? (
+        <div className="py-12 flex flex-col items-center gap-3">
+          <Loader2 size={24} className="text-[#001871] animate-spin"/>
+          <p className="text-sm text-slate-400">Cargando recursos...</p>
+        </div>
+      ) : contenidos.length === 0 ? (
+        <div className="py-12 text-center">
+          <Layers size={28} className="mx-auto text-slate-200 mb-2"/>
+          <p className="text-sm text-slate-400">Este curso no tiene recursos aún</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {(() => {
+            const renderItems = (items) => items.map((c) => (
+              <RecursoItem
+                key={c.id}
+                item={c}
+                num={c._idx + 1}
+                completado={ids.has(c.id)}
+                fechaCompletado={completados[c.id] ?? null}
+                quizResumen={quizzes[String(c.id)] ?? null}
+                toggling={toggling === c.id}
+                agotado={agotados.has(c.id)}
+                bloqueadoPorPlan={estaBloqueado(c._idx)}
+                quizExpandido={expandedQuiz === c.id}
+                onToggleCompletado={() => handleToggleCompletado(c.id)}
+                onToggleQuiz={() => {
+                  if (!agotados.has(c.id) && !estaBloqueado(c._idx))
+                    setExpandedQuiz(p => p === c.id ? null : c.id);
+                }}
+                onAgotado={() => handleAgotado(c.id)}
+                onCompletado={(puntaje, aprobado) => handleQuizCompletado(c.id, puntaje, aprobado)}
+              />
+            ));
+
+            if (!tieneModulos) {
+              return <div className="space-y-2">{renderItems(contenidos.map((c, i) => ({ ...c, _idx: i })))}</div>;
+            }
+
+            return (
+              <>
+                {seccionesModulos.map((seccion, secIdx) => {
+                  const colapsado = modulosColapsados.has(seccion.id);
+                  const hechosM   = seccion.items.filter(c => ids.has(c.id)).length;
+                  const totalM    = seccion.items.length;
+                  const pctM      = totalM > 0 ? Math.round((hechosM / totalM) * 100) : 0;
+                  const completoM = totalM > 0 && hechosM === totalM;
+
+                  return (
+                    <div key={seccion.id} className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                      {/* Cabecera del módulo — clic para colapsar */}
+                      <button
+                        onClick={() => toggleModulo(seccion.id)}
+                        className="w-full flex items-center gap-3 px-4 py-4 bg-white hover:bg-slate-50/80 transition-colors text-left"
+                      >
+                        {/* Número de módulo */}
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs flex-shrink-0 transition-all ${
+                          completoM
+                            ? 'bg-emerald-100 text-emerald-600'
+                            : 'bg-[#001871]/10 text-[#001871]'
+                        }`}>
+                          {completoM ? <CheckCircle2 size={14}/> : secIdx + 1}
+                        </div>
+
+                        {/* Nombre + progreso */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black text-[#001871] leading-tight">{seccion.nombre}</p>
+                          <div className="flex items-center gap-2 mt-1.5">
+                            {/* Barra de progreso del módulo */}
+                            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[120px]">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{ width: `${pctM}%`, backgroundColor: completoM ? '#10b981' : '#001871' }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                              {hechosM}/{totalM} {totalM === 1 ? 'recurso' : 'recursos'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Chevron animado */}
+                        <ChevronDown
+                          size={16}
+                          className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${colapsado ? '-rotate-90' : ''}`}
+                        />
+                      </button>
+
+                      {/* Contenidos — visible cuando no está colapsado */}
+                      {!colapsado && (
+                        <div className="border-t border-slate-100 p-3 space-y-2 bg-slate-50/40">
+                          {seccion.items.length === 0
+                            ? <p className="text-xs text-slate-300 italic text-center py-3">Sin recursos en este módulo</p>
+                            : renderItems(seccion.items)
+                          }
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {sinModuloItems.length > 0 && (
+                  <div className="rounded-2xl border border-dashed border-slate-200 overflow-hidden">
+                    <div className="flex items-center gap-3 px-4 py-3 bg-slate-50/40">
+                      <div className="h-px flex-1 bg-slate-200"/>
+                      <span className="text-[10px] font-bold text-slate-300 italic px-1">Otros recursos</span>
+                      <div className="h-px flex-1 bg-slate-200"/>
+                    </div>
+                    <div className="p-3 space-y-2">{renderItems(sinModuloItems)}</div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Item de recurso ───────────────────────────────────────────────────────────
-function RecursoItem({ item, num, completado, toggling, agotado, bloqueadoPorPlan = false, quizExpandido, onToggleCompletado, onToggleQuiz, onAgotado, onCompletado }) {
+function RecursoItem({
+  item, num, completado, fechaCompletado, quizResumen,
+  toggling, agotado, bloqueadoPorPlan = false,
+  quizExpandido, onToggleCompletado, onToggleQuiz, onAgotado, onCompletado,
+}) {
   const cfg = TIPO_CONFIG[item.tipo] || TIPO_CONFIG.enlace;
   const { Icon } = cfg;
   const esCuestionario = item.tipo === 'cuestionario';
 
-  // Bloqueado por plan secuencial de capacitación
   if (bloqueadoPorPlan) {
     return (
-      <div className="bg-slate-50 rounded-2xl border border-slate-200 border-dashed overflow-hidden">
-        <div className="flex items-center gap-3 p-4 opacity-50">
+      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 overflow-hidden">
+        <div className="flex items-center gap-3 p-4 opacity-40">
           <span className="text-[9px] font-black text-slate-300 flex-shrink-0">{String(num).padStart(2, '0')}</span>
-          <div className="p-2 rounded-xl border bg-slate-100 border-slate-200 flex-shrink-0">
+          <div className="p-2 rounded-xl bg-slate-100 border border-slate-200 flex-shrink-0">
             <Lock size={14} className="text-slate-400"/>
           </div>
           <div className="flex-1 min-w-0">
@@ -877,77 +1000,73 @@ function RecursoItem({ item, num, completado, toggling, agotado, bloqueadoPorPla
       </div>
     );
   }
+
   const url = item.url || item.archivo_url;
 
   return (
-    <div className={`bg-white rounded-2xl border transition-all ${
-      agotado       ? 'border-slate-100 opacity-55' :
-      completado    ? 'border-emerald-100 bg-emerald-50/30' :
-                      'border-slate-100 hover:border-slate-200'
+    <div className={`rounded-2xl border transition-all duration-200 ${
+      agotado    ? 'bg-slate-50 border-slate-100 opacity-55' :
+      completado ? 'bg-emerald-50/40 border-emerald-100' :
+                   'bg-white border-slate-100 hover:border-slate-200'
     }`}>
       <div className="flex items-start gap-3 p-4">
-        {/* Número + indicador */}
+
+        {/* Número + check */}
         <div className="flex flex-col items-center gap-1.5 flex-shrink-0 pt-0.5">
-          <span className="text-[9px] font-black text-slate-300 tabular-nums">
-            {String(num).padStart(2, '0')}
-          </span>
+          <span className="text-[9px] font-black text-slate-300 tabular-nums">{String(num).padStart(2, '0')}</span>
           {esCuestionario ? (
             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
               completado ? 'border-emerald-400 bg-emerald-400' :
-              agotado    ? 'border-slate-300 bg-slate-100' :
-                           'border-[#981d97]'
+              agotado    ? 'border-slate-300 bg-slate-100' : 'border-[#981d97]'
             }`}>
               {completado && <CheckCircle2 size={11} className="text-white"/>}
               {agotado && !completado && <Lock size={9} className="text-slate-400"/>}
             </div>
           ) : (
-            <button onClick={onToggleCompletado} disabled={toggling} className="transition-colors"
-              title={completado ? 'Marcar como pendiente' : 'Marcar como completado'}>
+            <button onClick={onToggleCompletado} disabled={!!toggling}
+              title={completado ? 'Marcar como pendiente' : 'Marcar como completado'}
+              className="transition-colors">
               {toggling
                 ? <Loader2 size={18} className="animate-spin text-emerald-400"/>
                 : completado
                   ? <CheckCircle2 size={18} className="text-emerald-500"/>
-                  : <Circle size={18} className="text-slate-200 hover:text-[#001871]"/>
-              }
+                  : <Circle size={18} className="text-slate-200 hover:text-[#001871]"/>}
             </button>
           )}
         </div>
 
-        {/* Icono tipo */}
+        {/* Ícono tipo */}
         <div className={`p-2 rounded-xl border flex-shrink-0 ${agotado ? 'bg-slate-50 border-slate-200' : cfg.bg}`}>
-          {agotado
-            ? <Lock size={14} className="text-slate-300"/>
-            : <Icon size={14} className={cfg.color}/>
-          }
+          {agotado ? <Lock size={14} className="text-slate-300"/> : <Icon size={14} className={cfg.color}/>}
         </div>
 
         {/* Contenido */}
         <div className="flex-1 min-w-0">
           {esCuestionario ? (
             <button onClick={onToggleQuiz} disabled={agotado}
-              className={`text-left w-full flex items-center gap-2 group ${agotado ? 'cursor-default' : ''}`}>
-              <span className={`text-sm font-semibold ${
-                agotado    ? 'text-slate-400 line-through' :
-                completado ? 'text-emerald-700' :
-                             'text-[#001871]'
-              }`}>
-                {item.titulo}
-              </span>
-              {!agotado && (quizExpandido
-                ? <ChevronDown size={13} className="text-slate-400 flex-shrink-0"/>
-                : <ChevronRight size={13} className="text-slate-400 flex-shrink-0"/>
-              )}
-              {agotado && (
-                <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">Límite</span>
-              )}
-              {!agotado && item.max_intentos > 0 && (
-                <span className="text-[10px] font-bold text-[#981d97] bg-purple-50 border border-purple-100 px-2 py-0.5 rounded-md">
-                  {item.max_intentos} intento{item.max_intentos !== 1 ? 's' : ''}
-                </span>
-              )}
+              className={`text-left w-full group ${agotado ? 'cursor-default' : ''}`}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-sm font-semibold ${
+                  agotado ? 'text-slate-400 line-through' : completado ? 'text-emerald-700' : 'text-[#001871]'
+                }`}>{item.titulo}</span>
+                {agotado && (
+                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">Límite alcanzado</span>
+                )}
+                {!agotado && item.max_intentos > 0 && (
+                  <span className="text-[10px] font-bold text-[#981d97] bg-purple-50 border border-purple-100 px-2 py-0.5 rounded-md">
+                    {item.max_intentos} intento{item.max_intentos !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {!agotado && !quizExpandido && (
+                  <ChevronRight size={13} className="text-slate-400 flex-shrink-0"/>
+                )}
+                {!agotado && quizExpandido && (
+                  <ChevronDown size={13} className="text-slate-400 flex-shrink-0"/>
+                )}
+              </div>
             </button>
           ) : (
-            <p className={`text-sm font-semibold ${completado ? 'text-slate-400 line-through' : 'text-[#001871]'}`}>
+            <p className={`text-sm font-semibold ${completado ? 'text-slate-500 line-through' : 'text-[#001871]'}`}>
               {item.titulo}
             </p>
           )}
@@ -956,7 +1075,32 @@ function RecursoItem({ item, num, completado, toggling, agotado, bloqueadoPorPla
             <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">{item.descripcion}</p>
           )}
 
-          {item.tipo === 'youtube' && item.url && <YouTubeThumbnail url={item.url} titulo={item.titulo} />}
+          {/* Resumen quiz: puntaje + fecha (visible sin expandir) */}
+          {esCuestionario && quizResumen && (
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <span className={`flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-lg ${
+                quizResumen.aprobado
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-red-50 text-red-600'
+              }`}>
+                {quizResumen.aprobado ? <CheckCircle2 size={9}/> : <X size={9}/>}
+                {quizResumen.mejor_puntaje}%
+              </span>
+              <span className="text-[10px] text-slate-400 font-semibold">
+                {quizResumen.num_intentos} intento{quizResumen.num_intentos !== 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
+
+          {/* Fecha de completado */}
+          {completado && fechaCompletado && (
+            <p className="flex items-center gap-1 text-[10px] text-slate-400 mt-1.5">
+              <CheckCircle2 size={9} className="text-emerald-400"/>
+              Completado el {fmtFecha(fechaCompletado.slice(0, 10))}
+            </p>
+          )}
+
+          {item.tipo === 'youtube' && item.url && <YouTubeThumbnail url={item.url} titulo={item.titulo}/>}
 
           {item.tipo === 'texto' && item.contenido && (
             <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-600 whitespace-pre-line leading-relaxed">
@@ -969,7 +1113,7 @@ function RecursoItem({ item, num, completado, toggling, agotado, bloqueadoPorPla
               <CuestionarioViewer
                 contenido={item}
                 onAgotado={onAgotado}
-                onCompletado={onCompletado}
+                onCompletado={(puntaje, aprobado) => onCompletado(puntaje, aprobado)}
               />
             </div>
           )}

@@ -43,6 +43,7 @@ import UserTable from '../components/empleados/gestion/UserTable';
 import UserProfile from '../components/empleados/portal/UserProfile';
 import TaskDashboard from '../components/tasks/TaskDashboard';
 import CursosAdmin from '../components/formacion/admin/CursosAdmin';
+import ManualesCargo from '../components/formacion/portal/ManualesCargo';
 import UtilidadesSection from '../components/herramientas/UtilidadesSection';
 import ContratosSection from '../components/admin/ContratosSection';
 import ClientesSection from '../components/admin/ClientesSection';
@@ -50,7 +51,6 @@ import FormulariosSQF from '../components/features/FormulariosSQF/FormulariosSQF
 import VacantesAdmin from '../components/features/vacantes/VacantesAdmin';
 import AutoGestion from '../components/empleados/portal/AutoGestion';
 import CertificadoSection from '../components/admin/CertificadoSection';
-import GeminiChat from '../components/admin/GeminiChat';
 import SugerenciasChat from '../components/common/SugerenciasChat';
 import StatCard from '../components/ui/StatCard';
 import RecentUserRow from '../components/ui/RecentUserRow';
@@ -67,6 +67,7 @@ const formatDateOnly = (value, locale = 'es-CO', options = { dateStyle: 'medium'
 const Admin2Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [employeeStats, setEmployeeStats] = useState({ totalCount: 0, activeCount: 0, loading: true });
@@ -81,11 +82,13 @@ const Admin2Dashboard = () => {
   const [taskStats, setTaskStats] = useState({ pending: 0, inProgress: 0, completed: 0, total: 0 });
   const [areaStats, setAreaStats] = useState([]);
   const [lastRefresh, setLastRefresh] = useState(new Date());
-  const { user, empleadoData } = useAuth();
+  const { user, empleadoData, logout } = useAuth();
   const [puedeExpedirCert, setPuedeExpedirCert] = useState(false);
   const certPermRef = useRef(false);
   const activeTabRef = useRef('dashboard');
   const hasMountedTabEffect = useRef(false);
+  const notifRef = useRef(null);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
   const { fetchEmpleados } = useDataCache();
 
   const fetchStats = useCallback(async () => {
@@ -242,6 +245,16 @@ const Admin2Dashboard = () => {
   }, [empleadoData?.id_empleado, checkCertPermisos]);
 
   useEffect(() => {
+    const handler = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifPanel(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  useEffect(() => {
     const refreshDashboard = () => {
       if (document.visibilityState !== 'visible') return;
       if (activeTabRef.current !== 'dashboard') return;
@@ -336,6 +349,12 @@ const Admin2Dashboard = () => {
         return (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
             <CursosAdmin />
+          </div>
+        );
+      case 'mis-cursos':
+        return (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <ManualesCargo />
           </div>
         );
       case 'herramientas':
@@ -628,6 +647,7 @@ const Admin2Dashboard = () => {
       case 'formularios-sqf': return 'Formulario creacion clientes/contratos';
       case 'vacantes': return 'Portal de Vacantes';
       case 'cursos': return 'Formación';
+      case 'mis-cursos': return 'Mis Cursos';
       case 'herramientas': return 'Herramientas';
       case 'reglamento': return 'Reglamento Interno';
       case 'certificado': return 'Certificado de Empleo';
@@ -641,20 +661,31 @@ const Admin2Dashboard = () => {
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
-      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <AdminSidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isOpen={sidebarOpen}
+        isCollapsed={sidebarCollapsed}
+        onClose={() => setSidebarOpen(false)}
+        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+      />
 
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Topbar
           eyebrow="Gestión administrativa"
           title={getHeaderTitle()}
           description="Clientes · Personas · Operación"
+          userRole="Administrador"
           userName={
-            user?.primer_nombre
-              ? `${user.primer_nombre} ${user.primer_apellido || ''}`.trim()
-              : 'Administrador'
+            empleadoData?.primer_nombre
+              ? `${empleadoData.primer_nombre} ${empleadoData.primer_apellido || ''}`.trim()
+              : user?.email || 'Administrador'
           }
-          userRole="Administración"
-          avatarLabel={user?.primer_nombre?.charAt(0)?.toUpperCase() || 'A'}
+          avatarLabel={empleadoData?.primer_nombre?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'A'}
+          userEmail={empleadoData?.correo_corporativo || user?.email}
+          userCargo={empleadoData?.nombre_cargo}
+          userArea={empleadoData?.nombre_area}
+          onLogout={logout}
           onOpenSidebar={() => setSidebarOpen(true)}
           actions={
             <>
@@ -672,23 +703,38 @@ const Admin2Dashboard = () => {
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={() =>
-                  (alertasCount > 0 || (puedeExpedirCert && solicitudesCertCount > 0) || sugerenciasPend.length > 0) &&
-                  setShowAlertasModal(true)
-                }
-                className="relative rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-[#001871]"
-                title="Notificaciones"
-              >
-                <Bell size={18} />
-
-                {(alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0) + sugerenciasPend.length) > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white">
-                    {alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0) + sugerenciasPend.length}
-                  </span>
+              <div className="relative" ref={notifRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowNotifPanel((v) => !v)}
+                  className={`relative flex h-10 w-10 items-center justify-center rounded-md border transition-colors ${
+                    showNotifPanel
+                      ? 'border-slate-200 bg-slate-50 text-[#001871]'
+                      : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-white hover:text-[#001871]'
+                  }`}
+                  title="Notificaciones"
+                >
+                  <Bell size={18} strokeWidth={1.75} />
+                  {(alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0) + sugerenciasPend.length) > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">
+                      {(alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0) + sugerenciasPend.length) > 9
+                        ? '9+'
+                        : alertasCount + (puedeExpedirCert ? solicitudesCertCount : 0) + sugerenciasPend.length}
+                    </span>
+                  )}
+                </button>
+                {showNotifPanel && (
+                  <AdminNotifDropdown
+                    alertasCount={alertasCount}
+                    solicitudesCount={puedeExpedirCert ? solicitudesCertCount : 0}
+                    sugerenciasCount={sugerenciasPend.length}
+                    onClose={() => setShowNotifPanel(false)}
+                    onVerAlertas={() => { setShowNotifPanel(false); setShowAlertasModal(true); }}
+                    onVerSolicitudes={() => { setShowNotifPanel(false); setActiveTab('certificado'); }}
+                    onVerSugerencias={() => { setShowNotifPanel(false); setShowAlertasModal(true); }}
+                  />
                 )}
-              </button>
+              </div>
             </>
           }
         />
@@ -718,19 +764,121 @@ const Admin2Dashboard = () => {
           }
         }}
       />
-      <GeminiChat />
+
       <SugerenciasChat desplazado />
     </div>
   );
 };
 
+// ── AdminNotifDropdown ────────────────────────────────────────────────────────
+
+const AdminNotifDropdown = ({ alertasCount, solicitudesCount, sugerenciasCount, onClose, onVerAlertas, onVerSolicitudes, onVerSugerencias }) => {
+  const total = alertasCount + solicitudesCount + sugerenciasCount
+
+  const items = [
+    {
+      key: 'alertas',
+      count: alertasCount,
+      label: 'Alertas de recuperación',
+      description: alertasCount === 1 ? '1 usuario intentó recuperar contraseña' : `${alertasCount} usuarios intentaron recuperar contraseña`,
+      icon: <ShieldAlert size={15} strokeWidth={1.75} />,
+      iconBg: 'bg-red-50',
+      iconColor: 'text-red-500',
+      badgeColor: 'bg-red-500',
+      onAction: onVerAlertas,
+    },
+    {
+      key: 'solicitudes',
+      count: solicitudesCount,
+      label: 'Solicitudes de certificado',
+      description: solicitudesCount === 1 ? '1 solicitud pendiente de gestión' : `${solicitudesCount} solicitudes pendientes de gestión`,
+      icon: <FileText size={15} strokeWidth={1.75} />,
+      iconBg: 'bg-amber-50',
+      iconColor: 'text-amber-500',
+      badgeColor: 'bg-amber-500',
+      onAction: onVerSolicitudes,
+    },
+    {
+      key: 'sugerencias',
+      count: sugerenciasCount,
+      label: 'Sugerencias de empleados',
+      description: sugerenciasCount === 1 ? '1 mensaje sin responder' : `${sugerenciasCount} mensajes sin responder`,
+      icon: <ClipboardList size={15} strokeWidth={1.75} />,
+      iconBg: 'bg-cyan-50',
+      iconColor: 'text-cyan-600',
+      badgeColor: 'bg-cyan-500',
+      onAction: onVerSugerencias,
+    },
+  ].filter((item) => item.count > 0)
+
+  return (
+    <div className="absolute right-0 top-12 z-50 w-[min(100vw-1.5rem,20rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_48px_-16px_rgba(15,23,42,0.2)] animate-in fade-in duration-200">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#001871]">Notificaciones</p>
+          <p className="text-[10px] text-slate-500">
+            {total > 0 ? `${total} pendiente${total === 1 ? '' : 's'}` : 'Sin notificaciones nuevas'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-white hover:text-[#001871]"
+        >
+          <X size={14} strokeWidth={2} />
+        </button>
+      </div>
+
+      <div className="max-h-[360px] overflow-y-auto">
+        {items.length === 0 ? (
+          <div className="py-10 text-center">
+            <CheckCircle2 size={28} className="mx-auto text-slate-300" strokeWidth={1.5} />
+            <p className="mt-3 text-xs font-medium text-slate-500">Todo al día — sin pendientes</p>
+          </div>
+        ) : (
+          items.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={item.onAction}
+              className="flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-0 hover:bg-slate-50"
+            >
+              <span className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${item.iconBg} ${item.iconColor}`}>
+                {item.icon}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-slate-800">{item.label}</p>
+                <p className="mt-0.5 text-[11px] text-slate-500">{item.description}</p>
+              </div>
+              <span className={`mt-1 flex h-5 min-w-[1.25rem] flex-shrink-0 items-center justify-center rounded-full ${item.badgeColor} px-1.5 text-[10px] font-bold text-white`}>
+                {item.count > 9 ? '9+' : item.count}
+              </span>
+            </button>
+          ))
+        )}
+      </div>
+
+      {items.length > 0 && (
+        <div className="border-t border-slate-200 bg-slate-50 px-4 py-3">
+          <button
+            type="button"
+            onClick={onVerAlertas}
+            className="flex w-full items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#001871] transition-colors hover:text-slate-600"
+          >
+            Ver todas <ArrowRight size={12} strokeWidth={2} />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Sub-componentes ────────────────────────────────────────────────────────────
 
-const KpiCard = ({ label, value, sub, icon, iconBg, iconColor, accent, highlight, onClick, clickable }) => (
+const KpiCard = ({ label, value, sub, icon, iconBg, iconColor, highlight, onClick, clickable }) => (
   <div
     onClick={onClick}
-    className={`bg-white rounded-xl border border-slate-100 p-5 shadow-sm transition-all duration-300
-      ${accent || ''} ${clickable ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : 'hover:shadow-md'}`}
+    className={`bg-white rounded-xl border border-slate-100 p-5 shadow-sm transition-all duration-300 ${clickable ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : 'hover:shadow-md'}`}
   >
     <div className="flex items-start justify-between mb-3">
       <div className={`p-2 rounded-lg ${iconBg}`}>

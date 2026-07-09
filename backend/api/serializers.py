@@ -3,7 +3,7 @@ from .models import (
     DatosArea, DatosCargo, SuperAdmin,
     Persona, DatosContacto, DatosEmpleado,
     TareasCalendario, SolicitudesPassword, ReglamentoItem,
-    Curso, CursoContenido, CursoHistorial, N8nLog, ApiKey,
+    Curso, CursoModulo, CursoContenido, CursoHistorial, N8nLog, ApiKey,
     EntidadEPS, EntidadAFP, EntidadARL, CajaCompensacion,
     Contrato, AfiliacionSeguridadSocial, ContratoRenovacion,
     DatosAcademicos, MovimientoLaboral, CursoProgreso, CuestionarioIntento,
@@ -53,7 +53,8 @@ class DatosContactoSerializer(serializers.ModelSerializer):
     class Meta:
         model = DatosContacto
         fields = [
-            'correo_personal', 'telefono', 'direccion',
+            'correo_personal', 'telefono',
+            'pais_residencia', 'departamento_residencia', 'municipio_residencia', 'direccion', 'detalles_residencia',
             'nombre_contacto_emergencia', 'telefono_emergencia', 'parentesco_emergencia',
         ]
 
@@ -76,13 +77,15 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
         'tiene_vehiculo', 'tipo_vehiculo', 'placa_vehiculo',
     )
     _FLAT_CONTACTO_FIELDS = (
-        'correo_personal', 'telefono', 'direccion',
+        'correo_personal', 'telefono',
+        'pais_residencia', 'departamento_residencia', 'municipio_residencia', 'direccion', 'detalles_residencia',
         'telefono_emergencia', 'nombre_contacto_emergencia', 'parentesco_emergencia',
     )
     _EMPTY_TO_NONE_FIELDS = frozenset({
         'fecha_nacimiento', 'fecha_ingreso', 'fecha_expedicion', 'fecha_retiro',
         'sexo', 'tipo_sangre', 'estado_civil', 'tipo_documento',
-        'area_id', 'cargo_id', 'correo_personal', 'telefono', 'direccion',
+        'area_id', 'cargo_id', 'correo_personal', 'telefono',
+        'pais_residencia', 'departamento_residencia', 'municipio_residencia', 'direccion', 'detalles_residencia',
         'telefono_emergencia', 'nombre_contacto_emergencia', 'parentesco_emergencia',
     })
 
@@ -110,6 +113,7 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
     tipo_vivienda = serializers.SerializerMethodField()
     tiene_discapacidad = serializers.SerializerMethodField()
     descripcion_discapacidad = serializers.SerializerMethodField()
+    certificado_discapacidad = serializers.SerializerMethodField()
     tiene_hijos = serializers.SerializerMethodField()
     numero_hijos = serializers.SerializerMethodField()
     tiene_vehiculo = serializers.SerializerMethodField()
@@ -129,7 +133,11 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
     correo_personal = serializers.SerializerMethodField()
     telefono = serializers.SerializerMethodField()
     telefono_emergencia = serializers.SerializerMethodField()
+    pais_residencia = serializers.SerializerMethodField()
+    departamento_residencia = serializers.SerializerMethodField()
+    municipio_residencia = serializers.SerializerMethodField()
     direccion = serializers.SerializerMethodField()
+    detalles_residencia = serializers.SerializerMethodField()
     nombre_contacto_emergencia = serializers.SerializerMethodField()
     parentesco_emergencia = serializers.SerializerMethodField()
 
@@ -149,13 +157,14 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
             # Persona — socioeconomico
             'estrato_socioeconomico', 'tipo_vivienda',
             # Persona — discapacidad
-            'tiene_discapacidad', 'descripcion_discapacidad',
+            'tiene_discapacidad', 'descripcion_discapacidad', 'certificado_discapacidad',
             # Persona — familia
             'tiene_hijos', 'numero_hijos',
             # Persona — vehículo
             'tiene_vehiculo', 'tipo_vehiculo', 'placa_vehiculo',
             # Contacto
-            'correo_personal', 'telefono', 'direccion',
+            'correo_personal', 'telefono',
+            'pais_residencia', 'departamento_residencia', 'municipio_residencia', 'direccion', 'detalles_residencia',
             # Emergencia
             'nombre_contacto_emergencia', 'telefono_emergencia', 'parentesco_emergencia',
             # Laboral
@@ -201,6 +210,15 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
     def get_tipo_vivienda(self, obj):          return self._p(obj, 'tipo_vivienda')
     def get_tiene_discapacidad(self, obj):     return self._p(obj, 'tiene_discapacidad')
     def get_descripcion_discapacidad(self, obj):return self._p(obj, 'descripcion_discapacidad')
+    def get_certificado_discapacidad(self, obj):
+        persona = obj.persona if hasattr(obj, 'persona') else None
+        if not persona:
+            return None
+        f = persona.certificado_discapacidad
+        if not f:
+            return None
+        request = self.context.get('request')
+        return request.build_absolute_uri(f.url) if request else f.url
     def get_tiene_hijos(self, obj):            return self._p(obj, 'tiene_hijos')
     def get_numero_hijos(self, obj):           return self._p(obj, 'numero_hijos')
     def get_tiene_vehiculo(self, obj):         return self._p(obj, 'tiene_vehiculo')
@@ -221,9 +239,25 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
         c = obj._contacto()
         return c.telefono_emergencia if c else None
 
+    def get_pais_residencia(self, obj):
+        c = obj._contacto()
+        return c.pais_residencia if c else None
+
+    def get_departamento_residencia(self, obj):
+        c = obj._contacto()
+        return c.departamento_residencia if c else None
+
+    def get_municipio_residencia(self, obj):
+        c = obj._contacto()
+        return c.municipio_residencia if c else None
+
     def get_direccion(self, obj):
         c = obj._contacto()
         return c.direccion if c else None
+
+    def get_detalles_residencia(self, obj):
+        c = obj._contacto()
+        return c.detalles_residencia if c else None
 
     def get_nombre_contacto_emergencia(self, obj):
         c = obj._contacto()
@@ -279,8 +313,11 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
         for k in persona_fields:
             if k in validated_data:
                 persona_data[k] = validated_data.pop(k)
-        contacto_fields = ['correo_personal', 'telefono', 'direccion',
-                           'telefono_emergencia', 'nombre_contacto_emergencia', 'parentesco_emergencia']
+        contacto_fields = [
+            'correo_personal', 'telefono',
+            'pais_residencia', 'departamento_residencia', 'municipio_residencia', 'direccion', 'detalles_residencia',
+            'telefono_emergencia', 'nombre_contacto_emergencia', 'parentesco_emergencia',
+        ]
         contacto_data = {k: validated_data.pop(k) for k in contacto_fields if k in validated_data}
         return persona_data, contacto_data, validated_data
 
@@ -369,13 +406,24 @@ class ReglamentoItemSerializer(serializers.ModelSerializer):
         return None
 
 
+class CursoModuloSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CursoModulo
+        fields = ['id', 'curso', 'nombre', 'orden']
+
+
 class CursoContenidoSerializer(serializers.ModelSerializer):
-    archivo_url = serializers.SerializerMethodField()
-    contenido   = serializers.SerializerMethodField()
+    archivo_url  = serializers.SerializerMethodField()
+    modulo_nombre = serializers.SerializerMethodField()
 
     class Meta:
         model = CursoContenido
-        fields = ['id', 'curso', 'tipo', 'titulo', 'descripcion', 'url', 'contenido', 'archivo', 'archivo_url', 'orden', 'max_intentos', 'created_at']
+        fields = [
+            'id', 'curso', 'modulo', 'modulo_nombre',
+            'tipo', 'titulo', 'descripcion',
+            'url', 'contenido', 'archivo', 'archivo_url',
+            'orden', 'max_intentos', 'created_at',
+        ]
 
     def get_archivo_url(self, obj):
         if obj.archivo:
@@ -385,32 +433,37 @@ class CursoContenidoSerializer(serializers.ModelSerializer):
             return obj.archivo.url
         return None
 
-    def get_contenido(self, obj):
-        """Para cuestionarios: oculta 'correcta' de cada pregunta a empleados regulares."""
+    def get_modulo_nombre(self, obj):
+        return obj.modulo.nombre if obj.modulo_id else None
+
+    def to_representation(self, instance):
         import json as _j
-        raw = obj.contenido
-        if obj.tipo != 'cuestionario' or not raw:
-            return raw
+        data = super().to_representation(instance)
+        raw = data.get('contenido')
+        if instance.tipo != 'cuestionario' or not raw:
+            return data
         request = self.context.get('request')
         if not request:
-            return raw
+            return data
         user = request.user
         # SuperAdmin (sin id_permisos) y admin/editor (id_permisos <= 2) ven todo
         permisos = getattr(user, 'id_permisos', None)
         if permisos is None or int(permisos or 3) <= 2:
-            return raw
+            return data
         # Empleado regular: eliminar respuestas correctas
         try:
-            data = _j.loads(raw)
-            for p in data.get('preguntas', []):
+            contenido_data = _j.loads(raw)
+            for p in contenido_data.get('preguntas', []):
                 p.pop('correcta', None)
-            return _j.dumps(data)
+            data['contenido'] = _j.dumps(contenido_data)
         except Exception:
-            return raw
+            pass
+        return data
 
 
 class CursoSerializer(serializers.ModelSerializer):
     contenidos            = CursoContenidoSerializer(many=True, read_only=True)
+    modulos               = CursoModuloSerializer(many=True, read_only=True)
     total_contenidos      = serializers.SerializerMethodField()
     nombre_empleado       = serializers.SerializerMethodField()
     nombre_creador        = serializers.SerializerMethodField()
@@ -430,7 +483,7 @@ class CursoSerializer(serializers.ModelSerializer):
             'nivel_cargo', 'nivel_cargo_label',
             'nombre_empleado', 'creado_por', 'nombre_creador',
             'fecha_inicio', 'fecha_fin', 'estado_disponibilidad',
-            'contenidos', 'total_contenidos',
+            'modulos', 'contenidos', 'total_contenidos',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['creado_por']
@@ -711,7 +764,8 @@ class DatosAcademicosSerializer(serializers.ModelSerializer):
 
     def get_diploma_url(self, obj):
         if obj.diploma:
-            return obj.diploma.url
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.diploma.url) if request else obj.diploma.url
         return None
 
 

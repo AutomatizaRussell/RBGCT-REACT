@@ -11,6 +11,9 @@ from .views.empleados import (
     ping_actividad,
     actualizar_mi_contacto,
     actualizar_mi_persona,
+    certificado_discapacidad,
+    mis_hijos,
+    mi_hijo_detalle,
     mi_organigrama,
     mis_academicos,
     mis_academicos_detalle,
@@ -30,6 +33,7 @@ from .views.admin import (
 )
 from .views.cursos import (
     CursoViewSet,
+    CursoModuloViewSet,
     CursoContenidoViewSet,
     CursoHistorialViewSet,
     NotificacionCursoViewSet,
@@ -62,7 +66,7 @@ from .views.recuperacion import (
     verificar_codigo_recuperacion,
     restablecer_password,
 )
-from .views.ia import gemini_chat, n8n_proxy
+from .views.ia import n8n_proxy
 from .views.herramientas import convertir_markdown, convertir_archivo, gestor_pdf, descargar_archivo_intranet
 from .views.certificados import (
     enviar_certificado_empleo,
@@ -90,6 +94,7 @@ router.register(r'tareas', TareasCalendarioViewSet)
 router.register(r'solicitudes-password', SolicitudesPasswordViewSet)
 router.register(r'reglamento', ReglamentoItemViewSet)
 router.register(r'cursos', CursoViewSet)
+router.register(r'curso-modulos', CursoModuloViewSet, basename='curso-modulos')
 router.register(r'curso-contenido', CursoContenidoViewSet)
 router.register(r'curso-historial', CursoHistorialViewSet)
 router.register(r'notificaciones-cursos', NotificacionCursoViewSet, basename='notificaciones-cursos')
@@ -136,6 +141,9 @@ urlpatterns = [
     path('ping/', ping_actividad, name='ping_actividad'),
     path('mi-contacto/', actualizar_mi_contacto, name='actualizar_mi_contacto'),
     path('mi-persona/', actualizar_mi_persona, name='actualizar_mi_persona'),
+    path('mi-certificado-discapacidad/', certificado_discapacidad, name='certificado_discapacidad'),
+    path('mis-hijos/', mis_hijos, name='mis_hijos'),
+    path('mis-hijos/<int:hijo_id>/', mi_hijo_detalle, name='mi_hijo_detalle'),
     path('mi-organigrama/', mi_organigrama, name='mi_organigrama'),
     path('mis-academicos/', mis_academicos, name='mis_academicos'),
     path('mis-academicos/<int:pk>/', mis_academicos_detalle, name='mis_academicos_detalle'),
@@ -171,6 +179,4 @@ urlpatterns = [
     # Permisos de certificado (JSON temporal, sin modelo)
     path('cert-permisos/',      get_cert_permisos, name='get_cert_permisos'),
     path('cert-permisos/set/',  set_cert_permiso,  name='set_cert_permiso'),
-    # Asistente IA — proxy seguro a Gemini
-    path('gemini-chat/', gemini_chat, name='gemini_chat'),
 ]

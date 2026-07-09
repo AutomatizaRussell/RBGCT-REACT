@@ -4,13 +4,17 @@ import {
   MapPin, Shield, RefreshCw, Edit3, Save, X, Heart, User, Hash,
   ClipboardList, CheckCircle2, AlertCircle, FileText, Lock, GraduationCap, Plus, Trash2,
   Network, History, ArrowRightLeft, TrendingUp, DollarSign, FileSignature, ToggleLeft, LogIn, LogOut,
+  Upload, ExternalLink,
 } from 'lucide-react';
 import {
   getEmpleadoById, actualizarMiContacto, actualizarMiPersona,
   getMisAcademicos, crearDatoAcademico, actualizarDatoAcademico, eliminarDatoAcademico,
   getMiOrganigrama, getHistorialEmpleado,
+  subirCertificadoDiscapacidad, eliminarCertificadoDiscapacidad,
+  getMisHijos, crearHijo, actualizarHijo, eliminarHijo,
 } from '../../../lib/api';
 import { useAuth } from '../../../hooks/useAuth';
+import { COLOMBIA } from '../../../lib/colombiaData';
 
 const NIVEL_LABELS = {
   bachiller: 'Bachiller', tecnico: 'Técnico', tecnologo: 'Tecnólogo',
@@ -60,6 +64,12 @@ const UserProfile = () => {
   const [editandoAcademico, setEditandoAcademico] = useState(null); // id del registro en edición, o 'nuevo'
   const [formAcademico, setFormAcademico] = useState({});
   const [historial, setHistorial] = useState([]);
+  const [subiendoCert, setSubiendoCert] = useState(false)
+  const [certStatus, setCertStatus] = useState(null)
+  const [hijos, setHijos] = useState([])
+  const [editandoHijo, setEditandoHijo] = useState(null) // id o 'nuevo'
+  const [formHijo, setFormHijo] = useState({})
+  const [savingHijo, setSavingHijo] = useState(false)
   const seccionPersonaRef = useRef(null);
   const seccionIdentidadRef = useRef(null);
   const seccionAcademicosRef = useRef(null);
@@ -76,18 +86,25 @@ const UserProfile = () => {
       const data = await getEmpleadoById(empleadoData.id_empleado);
       setEmpleado(data);
       // Datos secundarios: fallan silenciosamente para no bloquear el perfil
-      const [academicosResult, historialResult] = await Promise.allSettled([
+      const [academicosResult, historialResult, hijosResult] = await Promise.allSettled([
         getMisAcademicos(),
         getHistorialEmpleado(empleadoData.id_empleado),
+        getMisHijos(),
       ]);
       const academicosData = academicosResult.status === 'fulfilled' ? academicosResult.value : [];
       const historialData  = historialResult.status  === 'fulfilled' ? historialResult.value  : [];
+      const hijosData      = hijosResult.status      === 'fulfilled' ? hijosResult.value      : [];
       setAcademicos(Array.isArray(academicosData) ? academicosData : []);
       setHistorial(Array.isArray(historialData) ? historialData : []);
+      setHijos(Array.isArray(hijosData) ? hijosData : []);
       setForm({
         telefono: data?.telefono || '',
         correo_personal: data?.correo_personal || '',
+        pais_residencia: data?.pais_residencia || 'Colombia',
+        departamento_residencia: data?.departamento_residencia || '',
+        municipio_residencia: data?.municipio_residencia || '',
         direccion: data?.direccion || '',
+        detalles_residencia: data?.detalles_residencia || '',
         nombre_contacto_emergencia: data?.nombre_contacto_emergencia || '',
         telefono_emergencia: data?.telefono_emergencia || '',
         parentesco_emergencia: data?.parentesco_emergencia || '',
@@ -136,7 +153,11 @@ const UserProfile = () => {
       await actualizarMiContacto({
         telefono: form.telefono,
         correo_personal: form.correo_personal,
+        pais_residencia: form.pais_residencia,
+        departamento_residencia: form.departamento_residencia,
+        municipio_residencia: form.municipio_residencia,
         direccion: form.direccion,
+        detalles_residencia: form.detalles_residencia,
         nombre_contacto_emergencia: form.nombre_contacto_emergencia,
         telefono_emergencia: form.telefono_emergencia,
         parentesco_emergencia: form.parentesco_emergencia,
@@ -169,6 +190,71 @@ const UserProfile = () => {
       setTimeout(() => setPersonaStatus(null), 4000);
     }
   };
+
+  const handleSubirCertificado = async (file) => {
+    try {
+      setSubiendoCert(true)
+      const res = await subirCertificadoDiscapacidad(file)
+      setEmpleado(prev => ({ ...prev, certificado_discapacidad: res.url }))
+      setCertStatus('ok')
+    } catch {
+      setCertStatus('error')
+    } finally {
+      setSubiendoCert(false)
+      setTimeout(() => setCertStatus(null), 4000)
+    }
+  }
+
+  const calcularEdad = (fechaNacimiento) => {
+    if (!fechaNacimiento) return null;
+    const hoy = new Date();
+    const nac = new Date(fechaNacimiento + 'T00:00:00');
+    let edad = hoy.getFullYear() - nac.getFullYear();
+    const m = hoy.getMonth() - nac.getMonth();
+    if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+    return edad >= 0 ? edad : null;
+  }
+
+  const hijoVacio = () => ({ nombre: '', tipo_documento: 'RC', numero_identificacion: '', fecha_nacimiento: '', sexo: '' })
+
+  const handleGuardarHijo = async () => {
+    if (!formHijo.nombre?.trim()) return
+    try {
+      setSavingHijo(true)
+      if (editandoHijo === 'nuevo') {
+        const nuevo = await crearHijo(formHijo)
+        setHijos(prev => [...prev, nuevo])
+      } else {
+        await actualizarHijo(editandoHijo, formHijo)
+        setHijos(prev => prev.map(h => h.id === editandoHijo ? { ...h, ...formHijo } : h))
+      }
+      setEditandoHijo(null)
+      setFormHijo({})
+    } catch { /* silencioso */ } finally {
+      setSavingHijo(false)
+    }
+  }
+
+  const handleEliminarHijo = async (id) => {
+    if (!window.confirm('¿Eliminar este hijo?')) return
+    try {
+      await eliminarHijo(id)
+      setHijos(prev => prev.filter(h => h.id !== id))
+    } catch { /* silencioso */ }
+  }
+
+  const handleEliminarCertificado = async () => {
+    if (!window.confirm('¿Eliminar el certificado de discapacidad?')) return
+    try {
+      setSubiendoCert(true)
+      await eliminarCertificadoDiscapacidad()
+      setEmpleado(prev => ({ ...prev, certificado_discapacidad: null }))
+    } catch {
+      setCertStatus('error')
+    } finally {
+      setSubiendoCert(false)
+    }
+  }
 
   const handleGuardarIdentidad = async () => {
     // Validar años de fechas antes de enviar
@@ -659,13 +745,54 @@ const UserProfile = () => {
             />
             <EditableRow
               icon={<MapPin size={16} />}
-              label="Dirección"
+              label="País de residencia"
+              value={form.pais_residencia}
+              displayValue={empleado.pais_residencia || 'Colombia'}
+              editando={editando}
+              onChange={v => setForm(f => ({ ...f, pais_residencia: v }))}
+              type="text"
+              placeholder="Ej: Colombia"
+            />
+            <EditableSelectRow
+              icon={<MapPin size={16} />}
+              label="Departamento"
+              value={form.departamento_residencia}
+              displayValue={empleado.departamento_residencia || 'No registrado'}
+              editando={editando}
+              onChange={v => setForm(f => ({ ...f, departamento_residencia: v, municipio_residencia: '' }))}
+              options={COLOMBIA.map(d => d.departamento)}
+              placeholder="-- Selecciona departamento --"
+            />
+            <EditableSelectRow
+              icon={<MapPin size={16} />}
+              label="Municipio"
+              value={form.municipio_residencia}
+              displayValue={empleado.municipio_residencia || 'No registrado'}
+              editando={editando}
+              onChange={v => setForm(f => ({ ...f, municipio_residencia: v }))}
+              options={COLOMBIA.find(d => d.departamento === form.departamento_residencia)?.ciudades ?? []}
+              disabled={!form.departamento_residencia}
+              placeholder={form.departamento_residencia ? '-- Selecciona municipio --' : '-- Selecciona departamento primero --'}
+            />
+            <EditableRow
+              icon={<MapPin size={16} />}
+              label="Dirección de residencia"
               value={form.direccion}
               displayValue={empleado.direccion || 'No registrada'}
               editando={editando}
               onChange={v => setForm(f => ({ ...f, direccion: v }))}
               type="text"
               placeholder="Ej: Calle 123 # 45-67"
+            />
+            <EditableRow
+              icon={<MapPin size={16} />}
+              label="Detalles de residencia"
+              value={form.detalles_residencia}
+              displayValue={empleado.detalles_residencia || 'No registrado'}
+              editando={editando}
+              onChange={v => setForm(f => ({ ...f, detalles_residencia: v }))}
+              type="text"
+              placeholder="Ej: Apto 301, Torre B, Unidad Residencial Los Pinos"
             />
           </div>
           {!puedeEditarPersona && (
@@ -748,14 +875,123 @@ const UserProfile = () => {
               input={<select value={formPersona.tipo_vivienda} onChange={e=>setFormPersona(p=>({...p,tipo_vivienda:e.target.value}))} className="input-modern text-sm"><option value="">— Seleccionar —</option><option value="propia">Propia</option><option value="arrendada">Arrendada</option><option value="familiar">Familiar</option></select>}
             />
             <PersonaField label="¿Tiene hijos?" editando={editandoPersona}
-              displayValue={empleado.tiene_hijos ? `Sí — ${empleado.numero_hijos ?? 0}` : 'No'}
+              displayValue={empleado.tiene_hijos ? `Sí — ${hijos.length || empleado.numero_hijos || 0} hijo(s)` : 'No'}
               input={
-                <div className="flex gap-2 items-center">
-                  <select value={formPersona.tiene_hijos ? 'si' : 'no'} onChange={e=>setFormPersona(p=>({...p,tiene_hijos:e.target.value==='si',numero_hijos:e.target.value==='no'?'':p.numero_hijos}))} className="input-modern text-sm flex-1"><option value="no">No</option><option value="si">Sí</option></select>
-                  {formPersona.tiene_hijos && <input type="number" min="1" max="20" value={formPersona.numero_hijos} onChange={e=>setFormPersona(p=>({...p,numero_hijos:e.target.value}))} placeholder="Cuántos" className="input-modern text-sm w-24"/>}
-                </div>
+                <select value={formPersona.tiene_hijos ? 'si' : 'no'} onChange={e=>setFormPersona(p=>({...p,tiene_hijos:e.target.value==='si',numero_hijos:e.target.value==='no'?'':p.numero_hijos}))} className="input-modern text-sm w-full"><option value="no">No</option><option value="si">Sí</option></select>
               }
             />
+            {(empleado.tiene_hijos || formPersona.tiene_hijos) && (
+              <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-bold text-[#001871]">Datos de hijos ({hijos.length})</p>
+                  {editandoHijo !== 'nuevo' && (
+                    <button onClick={() => { setEditandoHijo('nuevo'); setFormHijo(hijoVacio()) }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-indigo-100 text-indigo-900 rounded-lg text-xs font-semibold hover:bg-indigo-200 transition-colors">
+                      <Plus size={13}/> Agregar hijo
+                    </button>
+                  )}
+                </div>
+                {hijos.length === 0 && editandoHijo !== 'nuevo' && (
+                  <p className="text-xs text-slate-400 italic">No hay hijos registrados. Haz clic en "Agregar hijo" para añadir.</p>
+                )}
+                <div className="space-y-2">
+                  {hijos.map(h => (
+                    <div key={h.id} className="bg-slate-50 rounded-xl border border-slate-100 px-4 py-3">
+                      {editandoHijo === h.id ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Nombre completo *</label>
+                            <input type="text" value={formHijo.nombre} onChange={e=>setFormHijo(p=>({...p,nombre:e.target.value}))} className="input-modern text-sm mt-1 w-full" placeholder="Nombre completo"/></div>
+                          <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Tipo de documento</label>
+                            <select value={formHijo.tipo_documento} onChange={e=>setFormHijo(p=>({...p,tipo_documento:e.target.value}))} className="input-modern text-sm mt-1 w-full">
+                              <option value="RC">Registro Civil</option><option value="TI">Tarjeta de Identidad</option>
+                              <option value="CC">Cédula de Ciudadanía</option><option value="CE">Cédula de Extranjería</option><option value="PA">Pasaporte</option>
+                            </select></div>
+                          <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Número de identificación</label>
+                            <input type="text" value={formHijo.numero_identificacion} onChange={e=>setFormHijo(p=>({...p,numero_identificacion:e.target.value}))} className="input-modern text-sm mt-1 w-full" placeholder="Número"/></div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Fecha de nacimiento</label>
+                            <input type="date" value={formHijo.fecha_nacimiento} onChange={e=>setFormHijo(p=>({...p,fecha_nacimiento:e.target.value}))} className="input-modern text-sm mt-1 w-full"/>
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Edad</label>
+                            <div className="input-modern text-sm mt-1 w-full flex items-center">
+                              {formHijo.fecha_nacimiento && calcularEdad(formHijo.fecha_nacimiento) !== null
+                                ? <span className="font-bold text-indigo-700">{calcularEdad(formHijo.fecha_nacimiento)} años</span>
+                                : <span className="text-slate-400">Se calcula automáticamente</span>}
+                            </div>
+                          </div>
+                          <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Sexo</label>
+                            <select value={formHijo.sexo} onChange={e=>setFormHijo(p=>({...p,sexo:e.target.value}))} className="input-modern text-sm mt-1 w-full">
+                              <option value="">— Seleccionar —</option><option value="M">Masculino</option><option value="F">Femenino</option><option value="O">Otro</option>
+                            </select></div>
+                          <div className="flex items-end gap-2">
+                            <button onClick={handleGuardarHijo} disabled={savingHijo} className="flex items-center gap-1 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors disabled:opacity-50"><Save size={13}/> {savingHijo ? 'Guardando...' : 'Guardar'}</button>
+                            <button onClick={()=>{setEditandoHijo(null);setFormHijo({})}} className="flex items-center gap-1 px-3 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors"><X size={13}/> Cancelar</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-slate-800">{h.nombre}</p>
+                              {h.fecha_nacimiento && calcularEdad(h.fecha_nacimiento) !== null && (
+                                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">
+                                  {calcularEdad(h.fecha_nacimiento)} años
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {h.tipo_documento}{h.numero_identificacion ? ` ${h.numero_identificacion}` : ''}{h.fecha_nacimiento ? ` · ${new Date(h.fecha_nacimiento+'T00:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})}` : ''}{h.sexo ? ` · ${{M:'Masculino',F:'Femenino',O:'Otro'}[h.sexo]}` : ''}
+                            </p>
+                          </div>
+                          <div className="flex gap-1">
+                            <button onClick={()=>{setEditandoHijo(h.id);setFormHijo({nombre:h.nombre||'',tipo_documento:h.tipo_documento||'RC',numero_identificacion:h.numero_identificacion||'',fecha_nacimiento:h.fecha_nacimiento||'',sexo:h.sexo||''})}}
+                              className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"><Edit3 size={13}/></button>
+                            <button onClick={()=>handleEliminarHijo(h.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={13}/></button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {editandoHijo === 'nuevo' && (
+                    <div className="bg-indigo-50 rounded-xl border border-indigo-100 px-4 py-3">
+                      <p className="text-xs font-bold text-indigo-700 mb-3">Nuevo hijo</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Nombre completo *</label>
+                          <input type="text" value={formHijo.nombre} onChange={e=>setFormHijo(p=>({...p,nombre:e.target.value}))} className="input-modern text-sm mt-1 w-full" placeholder="Nombre completo"/></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Tipo de documento</label>
+                          <select value={formHijo.tipo_documento} onChange={e=>setFormHijo(p=>({...p,tipo_documento:e.target.value}))} className="input-modern text-sm mt-1 w-full">
+                            <option value="RC">Registro Civil</option><option value="TI">Tarjeta de Identidad</option>
+                            <option value="CC">Cédula de Ciudadanía</option><option value="CE">Cédula de Extranjería</option><option value="PA">Pasaporte</option>
+                          </select></div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Número de identificación</label>
+                          <input type="text" value={formHijo.numero_identificacion} onChange={e=>setFormHijo(p=>({...p,numero_identificacion:e.target.value}))} className="input-modern text-sm mt-1 w-full" placeholder="Número"/></div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Fecha de nacimiento</label>
+                          <input type="date" value={formHijo.fecha_nacimiento} onChange={e=>setFormHijo(p=>({...p,fecha_nacimiento:e.target.value}))} className="input-modern text-sm mt-1 w-full"/>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Edad</label>
+                          <div className="input-modern text-sm mt-1 w-full flex items-center">
+                            {formHijo.fecha_nacimiento && calcularEdad(formHijo.fecha_nacimiento) !== null
+                              ? <span className="font-bold text-indigo-700">{calcularEdad(formHijo.fecha_nacimiento)} años</span>
+                              : <span className="text-slate-400">Se calcula automáticamente</span>}
+                          </div>
+                        </div>
+                        <div><label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Sexo</label>
+                          <select value={formHijo.sexo} onChange={e=>setFormHijo(p=>({...p,sexo:e.target.value}))} className="input-modern text-sm mt-1 w-full">
+                            <option value="">— Seleccionar —</option><option value="M">Masculino</option><option value="F">Femenino</option><option value="O">Otro</option>
+                          </select></div>
+                        <div className="flex items-end gap-2">
+                          <button onClick={handleGuardarHijo} disabled={savingHijo} className="flex items-center gap-1 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors disabled:opacity-50"><Save size={13}/> {savingHijo ? 'Guardando...' : 'Guardar'}</button>
+                          <button onClick={()=>{setEditandoHijo(null);setFormHijo({})}} className="flex items-center gap-1 px-3 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors"><X size={13}/> Cancelar</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             <PersonaField label="¿Tiene discapacidad?" editando={editandoPersona}
               displayValue={empleado.tiene_discapacidad ? `Sí${empleado.descripcion_discapacidad ? ` — ${empleado.descripcion_discapacidad}` : ''}` : 'No'}
               input={
@@ -765,6 +1001,34 @@ const UserProfile = () => {
                 </div>
               }
             />
+            {(empleado.tiene_discapacidad || formPersona.tiene_discapacidad) && (
+              <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+                <p className="text-xs font-semibold text-slate-600 mb-2">Certificado de discapacidad</p>
+                {certStatus === 'ok' && <p className="text-xs text-emerald-600 mb-2 flex items-center gap-1"><CheckCircle2 size={12}/> Certificado guardado correctamente</p>}
+                {certStatus === 'error' && <p className="text-xs text-red-600 mb-2 flex items-center gap-1"><AlertCircle size={12}/> Error al procesar el certificado</p>}
+                {empleado.certificado_discapacidad ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a href={empleado.certificado_discapacidad} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition-colors">
+                      <ExternalLink size={13}/> Ver certificado
+                    </a>
+                    <label className={`flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200 transition-colors cursor-pointer ${subiendoCert ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <Upload size={13}/> Reemplazar
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => e.target.files[0] && handleSubirCertificado(e.target.files[0])} disabled={subiendoCert}/>
+                    </label>
+                    <button onClick={handleEliminarCertificado} disabled={subiendoCert}
+                      className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors disabled:opacity-50">
+                      <Trash2 size={13}/> Eliminar
+                    </button>
+                  </div>
+                ) : (
+                  <label className={`inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-900 rounded-lg text-xs font-semibold hover:bg-indigo-200 transition-colors cursor-pointer ${subiendoCert ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <Upload size={14}/> {subiendoCert ? 'Subiendo...' : 'Subir certificado (PDF, JPG, PNG)'}
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e => e.target.files[0] && handleSubirCertificado(e.target.files[0])} disabled={subiendoCert}/>
+                  </label>
+                )}
+              </div>
+            )}
             <PersonaField label="Fecha de ingreso" editando={editandoPersona}
               displayValue={formatDateOnly(empleado.fecha_ingreso)}
               input={<input type="date" value={formPersona.fecha_ingreso} onChange={e=>setFormPersona(p=>({...p,fecha_ingreso:e.target.value}))} className="input-modern text-sm"/>}
@@ -898,10 +1162,10 @@ const UserProfile = () => {
           )}
         </div>
 
-        {/* ── Historial Laboral ── */}
+        {/* ── Plan Carrera ── */}
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm col-span-1 md:col-span-2">
           <h4 className="text-sm font-bold text-[#001871] mb-5 flex items-center gap-2">
-            <History size={16} className="text-[#001871]" /> Historial Laboral
+            <History size={16} className="text-[#001871]" /> Plan Carrera
           </h4>
           {historial.length === 0 ? (
             <p className="text-sm text-slate-400 text-center py-6">
@@ -1024,6 +1288,32 @@ const EditableRow = ({ icon, label, value, displayValue, editando, onChange, typ
           placeholder={placeholder}
           className="w-full text-sm border border-slate-200 rounded-lg px-2 py-1 mt-0.5 outline-none focus:ring-2 focus:ring-indigo-400"
         />
+      ) : (
+        <p className="text-sm font-medium text-slate-700 truncate">{displayValue}</p>
+      )}
+    </div>
+  </div>
+);
+
+const EditableSelectRow = ({ icon, label, value, displayValue, editando, onChange, options, disabled, placeholder }) => (
+  <div className="flex items-center gap-3">
+    <div className="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 flex-shrink-0">
+      {icon}
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-[10px] text-slate-400 uppercase font-bold">{label}</p>
+      {editando ? (
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          disabled={disabled}
+          className="w-full text-sm border border-slate-200 rounded-lg px-2 py-1 mt-0.5 outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed bg-white"
+        >
+          <option value="">{placeholder || '-- Selecciona --'}</option>
+          {options.map(opt => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
       ) : (
         <p className="text-sm font-medium text-slate-700 truncate">{displayValue}</p>
       )}

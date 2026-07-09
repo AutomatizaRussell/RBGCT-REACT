@@ -21,7 +21,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - gct-network
+      - conecta-network
 
   # Django Backend
   backend:
@@ -45,7 +45,7 @@ services:
       db:
         condition: service_healthy
     networks:
-      - gct-network
+      - conecta-network
 
   frontend:
     build:
@@ -61,7 +61,7 @@ services:
     ports:
       - "5173:80"
     networks:
-      - gct-network
+      - conecta-network
 
   # Nginx Reverse Proxy
   nginx:
@@ -82,7 +82,7 @@ services:
       timeout: 5s
       retries: 3
     networks:
-      - gct-network
+      - conecta-network
 
 volumes:
   postgres_data:
@@ -93,5 +93,5 @@ volumes:
     driver: local
 
 networks:
-  gct-network:
+  conecta-network:
     driver: bridge

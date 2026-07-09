@@ -10,7 +10,8 @@ import {
   toggleExclusionFormacion, batchAsignarFormacion,
   getResumenAreaOnboarding, toggleAsignacionOnboarding, batchAsignarOnboarding,
 } from '../../../lib/api';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, BarChart2 } from 'lucide-react';
+import ResultadosFormacion from './ResultadosFormacion';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -49,6 +50,7 @@ function tieneAccesoPorVisibilidad(empleado, curso) {
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function UsuariosFormacion() {
+  const [vistaActiva, setVistaActiva] = useState('asignaciones'); // 'asignaciones' | 'resultados'
   const [areas, setAreas]           = useState([]);
   const [empleados, setEmpleados]   = useState([]);
   const [cursos, setCursos]         = useState([]);
@@ -259,6 +261,30 @@ export default function UsuariosFormacion() {
 
   return (
     <div className="space-y-5">
+
+      {/* ── Toggle Asignaciones / Resultados ── */}
+      <div className="flex items-center gap-1 bg-slate-100 rounded-2xl p-1 w-fit">
+        {[
+          { key: 'asignaciones', label: 'Asignaciones', Icon: Users },
+          { key: 'resultados',   label: 'Resultados',   Icon: BarChart2 },
+        ].map(({ key, label, Icon }) => (
+          <button key={key} type="button"
+            onClick={() => setVistaActiva(key)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              vistaActiva === key
+                ? 'bg-white text-[#001871] shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}>
+            <Icon size={13}/> {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Vista Resultados ── */}
+      {vistaActiva === 'resultados' && <ResultadosFormacion />}
+
+      {/* ── Vista Asignaciones ── */}
+      {vistaActiva !== 'resultados' && <>
 
       {/* ── Filtros ── */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -595,6 +621,8 @@ export default function UsuariosFormacion() {
 
         </>
       )}
+
+      </>}
     </div>
   );
 }

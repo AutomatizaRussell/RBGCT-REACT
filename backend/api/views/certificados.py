@@ -26,10 +26,10 @@ from ._utils import (
     _puede_gestionar_certificados,
     _es_empleado,
     _es_superadmin,
-    _post_n8n,
     _ensure_cert_dir,
     _leer_cert_permisos,
 )
+from ..n8n_gateway import enviar_certificado_empleo as gw_certificado_empleo
 
 logger = logging.getLogger(__name__)
 
@@ -227,18 +227,7 @@ def enviar_certificado_empleo(request):
     pdf_base64 = data.get('pdf_base64', '')
     pdf_nombre = data.get('pdf_nombre', f'Certificado_{nombre_empleado}.pdf')
 
-    payload = {
-        'tipo':        'certificado_empleo',
-        'destinatario': email_destino,
-        'asunto':      f'Certificado de Empleo — {nombre_empleado}',
-        'html_email':  html_email,
-        'plantilla':   'certificado_empleo',
-        'attachment_base64': pdf_base64,
-        'attachment_name':   pdf_nombre,
-        'attachment_type':   'application/pdf',
-    }
-
-    ok, result = _post_n8n(email_destino, payload, 'certificado_empleo')
+    ok, result = gw_certificado_empleo(email_destino, html_email, nombre_empleado, pdf_base64, pdf_nombre)
 
     if ok:
         return Response({'status': 'enviado', 'detalle': result})

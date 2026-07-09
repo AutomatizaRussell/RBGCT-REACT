@@ -65,7 +65,15 @@ class ReglamentoItemViewSet(viewsets.ModelViewSet):
                 data[key] = file_obj
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
+            archivo = request.FILES.get('archivo')
+            if archivo:
+                archivo.seek(0)
+                archivo_bytes = archivo.read()
+                archivo.seek(0)
             self.perform_create(serializer)
+            if archivo:
+                from ..n8n_gateway import subir_intranet_async
+                subir_intranet_async('reglamento', archivo.name, archivo_bytes, archivo.content_type)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return super().create(request, *args, **kwargs)
 

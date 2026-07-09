@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { EditorSidebar } from '../components/layout/EditorSidebar'
 import Topbar from '../components/layout/Topbar'
 import { useLocation, Outlet, useNavigate } from 'react-router-dom'
@@ -10,10 +10,15 @@ import {
   BookOpen,
   History,
   ChevronRight,
+  Bell,
+  X,
+  CheckCircle2,
 } from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
 import TaskDashboard from '../components/tasks/TaskDashboard'
 import UtilidadesSection from '../components/herramientas/UtilidadesSection'
 import { getAllCursos, getCursoHistorial } from '../lib/api'
+import ManualesCargo from '../components/formacion/portal/ManualesCargo'
 import StatCard from '../components/ui/StatCard'
 import ActionButton from '../components/ui/ActionButton'
 import SugerenciasChat from '../components/common/SugerenciasChat'
@@ -21,6 +26,7 @@ import SugerenciasChat from '../components/common/SugerenciasChat'
 const EditorDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const location = useLocation()
   const navigate = useNavigate()
@@ -35,6 +41,10 @@ const EditorDashboard = () => {
   const [recentCourses, setRecentCourses] = useState([])
   const [recentHistory, setRecentHistory] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showNotifPanel, setShowNotifPanel] = useState(false)
+  const notifRef = useRef(null)
+
+  const { empleadoData, logout } = useAuth()
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -100,6 +110,16 @@ const EditorDashboard = () => {
     else if (path.includes('perfil')) setActiveTab('perfil')
   }, [location.pathname])
 
+  useEffect(() => {
+    const handler = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifPanel(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   const getHeaderTitle = () => {
     if (location.pathname.includes('cursos')) return 'Gestión de Cursos'
     if (location.pathname.includes('historial')) return 'Historial de Cambios'
@@ -112,13 +132,14 @@ const EditorDashboard = () => {
   }
 
   const renderContent = () => {
-    /**
-     * Ruta base del editor.
-     *
-     * Se mantiene la lógica existente:
-     * - /editor muestra dashboard editorial.
-     * - subrutas delegan en Outlet o render específico.
-     */
+    if (activeTab === 'mis-cursos') {
+      return (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <ManualesCargo />
+        </div>
+      )
+    }
+
     if (location.pathname === '/editor' || location.pathname === '/editor/') {
       return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -276,7 +297,9 @@ const EditorDashboard = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isOpen={sidebarOpen}
+        isCollapsed={sidebarCollapsed}
         onClose={() => setSidebarOpen(false)}
+        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
       />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f1f5f9]">
@@ -284,10 +307,55 @@ const EditorDashboard = () => {
           eyebrow="Editor Workspace"
           title={getHeaderTitle()}
           description="Contenido · Cursos · Documentación"
-          userName="Editor"
-          userRole="Contenido"
-          avatarLabel="E"
+          userRole="Editor"
+          userName={
+            empleadoData?.primer_nombre
+              ? `${empleadoData.primer_nombre} ${empleadoData.primer_apellido || ''}`.trim()
+              : 'Editor'
+          }
+          avatarLabel={empleadoData?.primer_nombre?.charAt(0)?.toUpperCase() || 'E'}
+          userEmail={empleadoData?.correo_corporativo}
+          userCargo={empleadoData?.nombre_cargo}
+          userArea={empleadoData?.nombre_area}
+          onLogout={logout}
           onOpenSidebar={() => setSidebarOpen(true)}
+          actions={
+            <div className="relative" ref={notifRef}>
+              <button
+                type="button"
+                onClick={() => setShowNotifPanel((v) => !v)}
+                className={`relative flex h-10 w-10 items-center justify-center rounded-md border transition-colors ${
+                  showNotifPanel
+                    ? 'border-slate-200 bg-slate-50 text-[#001871]'
+                    : 'border-transparent text-slate-500 hover:border-slate-200 hover:bg-white hover:text-[#001871]'
+                }`}
+                title="Notificaciones"
+              >
+                <Bell size={18} strokeWidth={1.75} />
+              </button>
+              {showNotifPanel && (
+                <div className="absolute right-0 top-12 z-50 w-[min(100vw-1.5rem,20rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_48px_-16px_rgba(15,23,42,0.2)] animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#001871]">Notificaciones</p>
+                      <p className="text-[10px] text-slate-500">Sin notificaciones nuevas</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowNotifPanel(false)}
+                      className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-white hover:text-[#001871]"
+                    >
+                      <X size={14} strokeWidth={2} />
+                    </button>
+                  </div>
+                  <div className="py-10 text-center">
+                    <CheckCircle2 size={28} className="mx-auto text-slate-300" strokeWidth={1.5} />
+                    <p className="mt-3 text-xs font-medium text-slate-500">Todo al día — sin pendientes</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          }
         />
 
         <div className="flex-1 overflow-auto p-4 lg:p-10">

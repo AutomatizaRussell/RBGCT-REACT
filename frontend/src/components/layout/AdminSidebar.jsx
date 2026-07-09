@@ -20,7 +20,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { getCertPermisosBackend } from '../../lib/api'
 import { SidebarShell } from './SidebarShell'
 
-export const AdminSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
+export const AdminSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, onClose, onToggleCollapse }) => {
   const navigate = useNavigate()
   const { logout, empleadoData } = useAuth()
   const [puedeExpedirCert, setPuedeExpedirCert] = useState(false)
@@ -63,7 +63,8 @@ export const AdminSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
         { tab: 'contratos', label: 'Gestión Personas', icon: FileText },
         { tab: 'clientes', label: 'Clientes', icon: Building2 },
         { tab: 'vacantes', label: 'Portal de Vacantes', icon: Briefcase },
-        { tab: 'cursos', label: 'Formación', icon: GraduationCap },
+        { tab: 'cursos',     label: 'Formación',  icon: GraduationCap },
+        { tab: 'mis-cursos', label: 'Mis Cursos', icon: BookOpen },
         { tab: 'herramientas', label: 'Herramientas', icon: Wrench },
       ],
     },
@@ -95,7 +96,9 @@ export const AdminSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
       badge="Panel Administrativo"
       activeTab={activeTab}
       isOpen={isOpen}
+      isCollapsed={isCollapsed}
       onClose={onClose}
+      onToggleCollapse={onToggleCollapse}
       onNavigate={handleNavigation}
       sections={sections}
       footer={

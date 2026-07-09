@@ -1,53 +1,53 @@
 # Backend Django - Multi-stage build
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Instalar dependencias del sistema
+# Dependencias de compilación únicamente (no van al runtime)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar requirements y instalar dependencias Python
 COPY backend/requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
 
-# Etapa final
+# Virtual env: aislado, fácil de copiar entre stages y sin ambigüedad de --user
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# ── Etapa final ──────────────────────────────────────────────────────────────
 FROM python:3.11-slim
+
+# ENV antes del COPY del código para maximizar cache de layers
+ENV VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Instalar solo libpq-dev (runtime)
+# Solo libpq5 (librería C runtime) — postgresql-client (CLI) no es necesario
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
-    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar dependencias del builder
-COPY --from=builder /root/.local /root/.local
+# Copiar venv del builder
+COPY --from=builder /opt/venv /opt/venv
 
-# Copiar código del backend
+# Copiar código fuente
 COPY backend/ .
 
-# Configurar PATH
-ENV PATH=/root/.local/bin:$PATH
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Usuario no-root: prod lo activa con `user: "1001:1001"` en docker-compose.prod.yml
+# UID/GID fijo 1001 para que coincida con volúmenes Docker gestionados
+RUN groupadd --gid 1001 appuser && \
+    useradd --uid 1001 --gid 1001 --no-create-home --shell /sbin/nologin appuser && \
+    chown -R appuser:appuser /app
 
-# Crear directorio para media
-RUN mkdir -p /app/media/clientes/documentos /app/media/contratos /app/media/cursos
-
-# Recolectar archivos estáticos
-RUN python manage.py collectstatic --noinput || true
-
-# Exponer puerto
 EXPOSE 8000
 
-# Health check: HTTP real contra /api/health/ (verifica Django + BD + cache).
-# Un chequeo de solo-socket marcaba healthy aunque los workers estuvieran colgados.
+# Health check HTTP real: verifica Django + BD + cache (no solo TCP)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import urllib.request; r = urllib.request.urlopen('http://127.0.0.1:8000/api/health/', timeout=8); exit(0 if r.status == 200 else 1)"
 
-# Comando por defecto
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120", "rbgct.wsgi:application"]

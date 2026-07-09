@@ -63,14 +63,18 @@ const VerifyCode = () => {
       const data = await parseResponseBody(response);
 
       if (response.ok) {
-        // Código correcto - actualizar AuthContext y redirigir
         setEmpleadoDataVerify(data.user, {
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
         });
-        
-        // Redirigir a completar perfil
-        navigate('/completar-perfil');
+
+        if (data.necesita_completar_datos) {
+          navigate('/completar-perfil');
+        } else {
+          const permisos = data.user?.id_permisos;
+          const ruta = permisos === 1 ? '/admin2' : permisos === 2 ? '/editor' : '/app';
+          navigate(ruta);
+        }
       } else {
         // Código incorrecto
         setError(data.error || 'Código incorrecto');

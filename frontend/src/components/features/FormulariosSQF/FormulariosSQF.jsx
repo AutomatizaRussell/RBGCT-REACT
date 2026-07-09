@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FormulariosSQF.css';
-import { useAuth } from '../../../hooks/useAuth';
-import { fetchApi } from '../../../lib/api';
+import { useAuth } from '../hooks/useAuth';
+import { fetchApi } from '../lib/api';
 
 const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',
@@ -48,41 +48,21 @@ const calculateBusinessDaysDate = (startDate, businessDays) => {
 };
 
 const BILLING_DESCRIPTIONS = [
-  { name: '25% RADICACIÓN SALDO A FAVOR IVA BIM 02 2026', code: '76' },
-  { name: '50% SOLICITUD SALDO A FAVOR DE RENTA AÑO 2025', code: '70' },
-  { name: 'ACCOUNTING FEES', code: '38' },
-  { name: 'ACEPTACIÓN DE FACTURAS', code: '26' },
-  { name: 'ACEPTACIÓN DE FACTURAS', code: '43' },
-  { name: 'AFILIACIONES', code: '30' },
-  { name: 'ASESORÍA CONSULTORÍA ORGANIZACIONAL', code: '46' },
-  { name: 'ASESORÍA DE NÓMINA', code: '5' },
-  { name: 'ASESORÍA LEGAL PERMANENTE', code: '29' },
-  { name: 'AUDITORÍA FINANCIERA CORTE 30 ABRIL 2026', code: '71' },
-  { name: 'CONTABILIDAD ADMINISTRATIVA', code: '40' },
-  { name: 'ELABORACIÓN DOCUMENTOS ELECTRÓNICOS Y FACTURAS DE VENTAS ELECTRÓNICAS', code: '37' },
-  { name: 'ELABORACIÓN REPORTES FINANCIEROS ADICIONALES', code: '35' },
-  { name: 'EXÁMENES MÉDICOS', code: '31' },
-  { name: 'HONORARIOS CONTABILIDAD HUDSON INVERSIONES', code: '47' },
-  { name: 'HONORARIOS CONTABILIDAD INVERSIONES OREGON', code: '48' },
-  { name: 'HONORARIOS CONTABILIDAD INVERSIONES PORTOVENTO', code: '49' },
-  { name: 'HONORARIOS CONTABILIDAD INVERSIONES RB', code: '10' },
-  { name: 'HONORARIOS CONTABILIDAD INVERSIONES VESTA', code: '50' },
-  { name: 'HONORARIOS DE AUDITORÍA EXTERNA', code: '33' },
-  { name: 'HONORARIOS DE CONTABILIDAD', code: '44' },
-  { name: 'HONORARIOS DE REVISORÍA FISCAL', code: '45' },
-  { name: 'HONORARIOS DECLARACIÓN DE RENTA', code: '51' },
-  { name: 'HONORARIOS MEDIOS MAGNÉTICOS', code: '52' },
-  { name: 'HONORARIOS SG-SST', code: '41' },
-  { name: 'INHOUSE CONTABLE Y TRIBUTARIO', code: '28' },
-  { name: 'OFICIAL DE CUMPLIMIENTO', code: '39' },
-  { name: 'OUTSOURCING CONTABLE Y TRIBUTARIO', code: '36' },
-  { name: 'OUTSOURCING FINANCIERO', code: '27' },
-  { name: 'SERVICIO CONTABLE', code: '53' },
-  { name: 'TESORERÍA', code: '42' },
-  { name: 'TESORERÍA Y FACTURACIÓN', code: '32' },
-  { name: 'USO DE LICENCIA', code: '34' }
-];
- 
+    { name: 'Auditoría Financiera', code: 'AUD-001' },
+    { name: 'Asesoría Fiscal', code: 'ASE-002' },
+    { name: 'Asesoría Laboral', code: 'ASE-003' },
+    { name: 'Asesoría Contable', code: 'ASE-004' },
+    { name: 'Consultoría Empresarial', code: 'CON-005' },
+    { name: 'Auditoría de Nómina', code: 'AUD-006' },
+    { name: 'Revisoría Fiscal', code: 'REV-007' },
+    { name: 'Asesoría Administrativa', code: 'ASE-008' },
+    { name: 'Servicios de Outsourcing', code: 'OUT-009' },
+    { name: 'Servicios Legales', code: 'SLG-010' },
+    { name: 'Valoración de empresas', code: 'VAL-011' },
+    { name: 'Dictamen Pericianl', code: 'DIP-012' },
+    { name: 'Auditoría Forense', code: 'AUF-013' },
+    { name: 'Otros Servicios', code: 'OTR-010' }
+]; 
 
 const CONTRACT_ROLES = [
     'Socio',
@@ -92,21 +72,121 @@ const CONTRACT_ROLES = [
     'Analista/Asistente 1', 'Analista/Asistente 2', 'Analista/Asistente 3', 'Analista/Asistente 4',
 ];
 
-const BILLING_CENTERS = {
-    'REVISORIA FISCAL':      [{ label: 'REVISORIA FISCAL',          code: '01 - 0101' }, { label: 'AUDITORIA EXTERNA',            code: '01 - 0102' }],
-    'CONTABILIDAD':          [{ label: 'CONTABILIDAD',              code: '02 - 0201' }, { label: 'RENTA MEDIOS CONTABILIDAD',    code: '02 - 0203' }],
-    'IMPUESTOS':             [{ label: 'IMPUESTOS',                 code: '03 - 0301' }, { label: 'RENTA MEDIOS IMPUESTOS',       code: '03 - 0302' }],
-    'BPO':                   [{ label: 'BPO',                       code: '04 - 0202' }],
-    'LEGAL':                 [{ label: 'LEGAL',                     code: '06 - 0601' }],
-    'FINANZAS':              [{ label: 'FINANZAS',                  code: '07 - 0701' }],
-    'PROPIEDAD INTELECTUAL': [{ label: 'PROPIEDAD INTELECTUAL',     code: '08 - 0801' }],
-    'ADMINISTRACIÓN':        [
-        { label: 'ADMINISTRACION TI',      code: '99 - 0901' },
-        { label: 'ADMINISTRACION MERCADEO', code: '99 - 1001' },
-        { label: 'ADMINISTRACION 2',        code: '99 - 8888' },
-        { label: 'ADMINISTRACIÓN',          code: '99 - 9999' },
-    ],
+const CENTROS_FACTURACION = {
+    'REVISORIA FISCAL': {
+        codigoCentro: '01 - 0101',
+        productos: [
+            { codigo: '500', concepto: 'RF- HONORARIOS REVISORÍA FISCAL' }
+        ],
+    },
+    'AUDITORIA EXTERNA': {
+        codigoCentro: '01 - 0102',
+        productos: [
+            { codigo: '600', concepto: 'AE- HONORARIOS AUDITORÍA EXTERNA' },
+            { codigo: '601', concepto: 'AE- HONORARIOS AUDITORÍA FINANCIERA' }
+        ],
+    },
+    'CONTABILIDAD': {
+        codigoCentro: '02 - 0201',
+        productos: [
+            { codigo: '700', concepto: 'CONT- HONORARIOS CONTABILIDAD' },
+            { codigo: '701', concepto: 'CONT- HONORARIOS REVISORÍA FISCAL' },
+            { codigo: '702', concepto: 'CONT- OUTSOURCING CONTABLE Y TRIBUTARIO' },
+            { codigo: '703', concepto: 'CONT- USO DE LICENCIA' },
+            { codigo: '704', concepto: 'CONT- ELABORACION REPORTES FINANCIEROS ADICIONALES' },
+            { codigo: '705', concepto: 'CONT- CONTABILIDAD ADMINISTRATIVA' },
+            { codigo: '706', concepto: 'CONT- INHOUSE CONTABLE Y TRIBUTARIO' },
+            { codigo: '707', concepto: 'CONT- HONORARIOS CONTABILIDAD HUDSON INVERSIONES' },
+            { codigo: '708', concepto: 'CONT- HONORARIOS CONTABILIDAD INVERSIONES OREGON' },
+            { codigo: '709', concepto: 'CONT- HONORARIOS CONTABILIDAD INVERSIONES PORTOVENTO' },
+            { codigo: '710', concepto: 'CONT- HONORARIOS CONTABILIDAD INVERSIONES VESTA' },
+            { codigo: '711', concepto: 'CONT- HONORARIOS CONTABILIDAD INVERSIONES RB' },
+            { codigo: '712', concepto: 'CONT- ELABORACION DE DOCUMENTOS ELECTRONICOS Y FACTURAS DE VENTA ELECTRONICAS' },
+            { codigo: '713', concepto: 'CONT- HONORARIOS MEDIOS MAGNETICOS' },
+            { codigo: '714', concepto: 'CONT- HONORARIOS DECLARACIÓN RENTA' },
+            { codigo: '715', concepto: 'CONT- SALDO A FAVOR EN IVA' },
+            { codigo: '716', concepto: 'CONT- SALDO A FAVOR EN RENTA' },
+            { codigo: '717', concepto: 'CONT- OUTSOURCING CONTABLE Y TRIBUTARIO PN' },
+            { codigo: '718', concepto: 'CONT- HONORARIOS CONTABILIDAD PN' }
+        ],
+    },
+    'BPO': {
+        codigoCentro: '04 - 0202',
+        productos: [
+            { codigo: '800', concepto: 'BPO- ASESORÍA NÓMINA' },
+            { codigo: '801', concepto: 'BPO- AFILIACIONES' },
+            { codigo: '802', concepto: 'BPO- TESORERÍA Y FACTURACIÓN' },
+            { codigo: '803', concepto: 'BPO- TESORERÍA' },
+            { codigo: '804', concepto: 'BPO- ACEPTACIÓN DE FACTURAS' },
+            { codigo: '805', concepto: 'BPO- HONORARIOS SG-SST.' }
+        ],
+    },
+    'SERVICIOS LEGALES': {
+        codigoCentro: '06 - 0601',
+        productos: [
+            { codigo: '900', concepto: 'LEG- ASESORÍA LEGAL' },
+            { codigo: '901', concepto: 'LEG- OFICIAL DE CUMPLIMIENTO' },
+            { codigo: '902', concepto: 'LEG- HONORARIOS REVISORÍA FISCAL' },
+            { codigo: '903', concepto: 'LEG- SECRETARIA CORPORATIVA' },
+            { codigo: '904', concepto: 'LEG- DOMICILIO FISCAL' },
+            { codigo: '905', concepto: 'LEG- REPRESENTACIÓN LEGAL' }
+        ],
+    },
+    'IMPUESTOS': {
+        codigoCentro: '03 - 0301',
+        productos: [
+            { codigo: '1000', concepto: 'IMP- ASESORÍA TRIBUTRIA' },
+            { codigo: '1001', concepto: 'IMP- HONORARIOS MEDIOS MAGNETICOS' },
+            { codigo: '1002', concepto: 'IMP- HONORARIOS DECLARACIÓN RENTA' },
+            { codigo: '1003', concepto: 'IMP- SALDO A FAVOR EN IVA' },
+            { codigo: '1004', concepto: 'IMP- SALDO A FAVOR EN RENTA' },
+            { codigo: '1005', concepto: 'IMP- PRECIOS DE TRANSFERENCIA' },
+            { codigo: '1006', concepto: 'IMP- IMPUESTO AL PATRIMONIO' }
+        ],
+    },
+    'CONSULTORIA FINANCIERA': {
+        codigoCentro: '07 - 0701',
+        productos: [
+            { codigo: '1100', concepto: 'FIN- OUTSOURCING FINANCIERO' },
+            { codigo: '1101', concepto: 'FIN- PRECIOS DE TRANSFERENCIA' }
+        ],
+    },
+    'ADMON': {
+        codigoCentro: '99 - 0901',
+        productos: [
+            { codigo: '1200', concepto: 'ADMON- HONORARIOS CONTABILIDAD' },
+            { codigo: '1201', concepto: 'ADMON- COMISIÓN' }
+        ],
+    },
 };
+
+const GERENTES = [
+    'David López Castaño',
+    'Sara López Castaño',
+    'Nelson Eduardo Giraldo',
+    'Zulima López Arango',
+    'Erica Maria Vergara',
+    'Sandra Milena Pineda',
+    'Esneider López Caicedo',
+    'Karol viviana osorio Cuartas',
+    'Juan Guillermo Castaño Jimenez',
+    'Francy Milena Rico Areiza',
+    'Norbey Granada Grajales',
+    'Jose Felipe López Méndez',
+    'Daniel Vélez Mesa',
+    'Verónica Sánchez Fernández',
+    'Paula Jimena Tejeiro Cardenas',
+    'Manuel Alejandro Ramirez Carrasquilla',
+    'Mayra Alejandra Jaramillo Velásquez',
+    'Raúl Bernando Acosta Zapata',
+];
+
+const SERVICE_TYPES = [
+    { code: '0101', label: 'FEE MENSUAL',        seller: '1152469759' },
+    { code: '0202', label: 'PROYECTO',            seller: '1037671038' },
+    { code: '0303', label: 'FEE MENSUAL CRUZADO', seller: '1000920646' },
+    { code: '0404', label: 'PROYECTO CRUZADO',    seller: '1000633655' },
+];
 
 // Permisos por sección del formulario (flags en DatosEmpleado)
 const SQF_SECTIONS = [
@@ -169,27 +249,28 @@ export default function FormulariosSQF({ onBack }) {
 
     const [billingReqType, setBillingReqType] = useState('facturacion');
     const [billingModality, setBillingModality] = useState('');
-    const [billingType, setBillingType] = useState('Servicio nuevo');
-    const [billingClientType, setBillingClientType] = useState('Cliente nuevo');
+    const [billingType, setBillingType] = useState('');
+    const [billingClientType, setBillingClientType] = useState('');
     const [billingClientName, setBillingClientName] = useState('');
     const [billingCompany, setBillingCompany] = useState('');
-    const [billingReference, setBillingReference] = useState('');
     const [billingClientDocument, setBillingClientDocument] = useState('');
     const [billingDueDate, setBillingDueDate] = useState('');
     const [billingObservations, setBillingObservations] = useState('');
-    const [billingItems, setBillingItems] = useState([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
+    // Items deshabilitado temporalmente (no se usa por ahora)
+    // const [billingItems, setBillingItems] = useState([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
     const [saleType, setSaleType] = useState('');
-    const [crossSalePerson, setCrossSalePerson] = useState('');
     const [serviceType, setServiceType] = useState('');
     const [billingValorMes, setBillingValorMes] = useState('');
-    const [billingValorProyecto, setBillingValorProyecto] = useState('');
     const [billingMonthType, setBillingMonthType] = useState('');
     const [billingSellerDocument, setBillingSellerDocument] = useState('');
     const [origin, setOrigin] = useState('');
     const [originRef, setOriginRef] = useState('');
     const [billingCloser, setBillingCloser] = useState('');
-    const [billingAreas, setBillingAreas] = useState([{ id: 1, centro: '', concepto: '', valor: '' }]);
+    const [billingAreas, setBillingAreas] = useState([{ id: 1, centro: '', concepto: '', valor: '', codigoCentro: '', codigoProducto: '' }]);
     const [contractRoles, setContractRoles] = useState([{ id: 1, cargo: '', horas: '' }]);
+    const [crossSalePersonName, setCrossSalePersonName] = useState('');
+
+    const isCrossSale = saleType === 'Venta cruzada' || ['0303', '0404'].includes(serviceType);
 
     const [auditorModalItem, setAuditorModalItem] = useState(null);
     const [auditorModalType, setAuditorModalType] = useState('');
@@ -212,6 +293,19 @@ export default function FormulariosSQF({ onBack }) {
     const [contractErrors, setContractErrors] = useState({});
     const [billingErrors, setBillingErrors] = useState({});
     const [ncErrors, setNcErrors] = useState({});
+
+    useEffect(() => {
+        if (!isCrossSale) {
+            setCrossSalePersonName('');
+        }
+    }, [isCrossSale]);
+
+    useEffect(() => {
+        if (saleType === 'Venta cruzada' && !['0303', '0404'].includes(serviceType)) {
+            setServiceType('');
+            setBillingSellerDocument('');
+        }
+    }, [saleType]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ==========================================
     // CARGA DE DATOS (PETICIONES SIMPLES ANTI-CORS)
@@ -341,6 +435,7 @@ export default function FormulariosSQF({ onBack }) {
                     id: c.id || generateId('CLI'),
                     clientType: c.clientType || (c.Tipodocumento === 'NIT' ? 'juridica' : 'natural'),
                     document: c.document || c.Documento || '',
+                    documentDv: c.documentDv || c.DV || c.Dv || c.DigitoVerificacion || '',
                     name: c.name || c.Nombre || '',
                     contactName: c.contactName || c.NombreContacto || '',
                     contactRole: c.contactRole || c.CargoContacto || '',
@@ -436,6 +531,12 @@ export default function FormulariosSQF({ onBack }) {
         if (!isoStr) return '';
         const d = new Date(isoStr);
         return isNaN(d) ? String(isoStr) : d.toLocaleString('es-CO');
+    };
+
+    const formatDateOnly = (isoStr) => {
+        if (!isoStr) return '';
+        const d = new Date(`${isoStr}T00:00:00`);
+        return isNaN(d) ? String(isoStr) : d.toLocaleDateString('es-CO');
     };
 
     const getLoggedUserMeta = () => {
@@ -538,6 +639,12 @@ export default function FormulariosSQF({ onBack }) {
     // ==========================================
     // LÓGICA DE CONTRATOS Y MODAL NIT
     // ==========================================
+    const formatNitDv = (client) => {
+        const doc = client?.document || '';
+        const dv = client?.documentDv || '';
+        return dv ? `${doc}-${dv}` : doc;
+    };
+
     const triggerLookup = () => {
         if (!String(nitLookupValue).trim()) {
             setNitLookupResult({ type: 'empty' });
@@ -627,7 +734,7 @@ export default function FormulariosSQF({ onBack }) {
             showToastMsg('error', 'Límite de Áreas', 'Solo se pueden agregar hasta 3 áreas de facturación.');
             return;
         }
-        setBillingAreas([...billingAreas, { id: billingAreas.length + 1, centro: '', concepto: '', valor: '' }]);
+        setBillingAreas([...billingAreas, { id: billingAreas.length + 1, centro: '', concepto: '', valor: '', codigoCentro: '', codigoProducto: '' }]);
     };
 
     const removeAreaBlock = (idToRemove) => {
@@ -639,16 +746,20 @@ export default function FormulariosSQF({ onBack }) {
         setBillingAreas(prev => prev.map(area => {
             if (area.id !== id) return area;
             if (field === 'centro') {
-                setBillingReference('');
-                return { ...area, centro: value, concepto: '' };
+                return { ...area, centro: value, concepto: '', codigoCentro: CENTROS_FACTURACION[value]?.codigoCentro || '', codigoProducto: '' };
             }
             if (field === 'concepto') {
-                const found = (BILLING_CENTERS[area.centro] || []).find(c => c.label === value);
-                if (found) setBillingReference(found.code);
-                return { ...area, concepto: value };
+                const found = (CENTROS_FACTURACION[area.centro]?.productos || []).find(p => p.concepto === value);
+                return { ...area, concepto: value, codigoProducto: found?.codigo || '' };
             }
             return { ...area, [field]: value };
         }));
+    };
+
+    const handleServiceTypeChange = (value) => {
+        setServiceType(value);
+        const found = SERVICE_TYPES.find(s => s.code === value);
+        setBillingSellerDocument(found ? found.seller : '');
     };
 
     const addContractRole = () => {
@@ -667,20 +778,20 @@ export default function FormulariosSQF({ onBack }) {
     };
 
     const resetBillingForm = () => {
-        setBillingReqType('facturacion'); setBillingModality(''); setBillingType('Servicio nuevo'); setBillingClientType('Cliente nuevo');
-        setBillingClientName(''); setBillingCompany(''); setSaleType(''); setCrossSalePerson('');
-        setBillingReference(''); setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations(''); setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
-        setServiceType(''); setBillingValorMes(''); setBillingValorProyecto('');
+        setBillingReqType('facturacion'); setBillingModality(''); setBillingType(''); setBillingClientType('');
+        setBillingClientName(''); setBillingCompany(''); setSaleType('');
+        setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations('');
+        // setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]); // Items deshabilitado temporalmente
+        setServiceType(''); setBillingValorMes('');
         setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType(''); setBillingSellerDocument('');
-        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '' }]);
+        setCrossSalePersonName('');
+        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '', codigoCentro: '', codigoProducto: '' }]);
         setBillingErrors({}); setNcErrors({});
     };
 
     const sendContractToBilling = (contract) => {
         setActiveSection('billing');
         setBillingReqType('facturacion');
-        setBillingType('Servicio actual');
-        setBillingClientType('Cliente antiguo');
 
         const clientName = contract?.clientName || '';
         setBillingClientName(clientName);
@@ -702,21 +813,14 @@ export default function FormulariosSQF({ onBack }) {
 
         setBillingClientDocument(clientNit || '');
 
-        let sType = 'Otro';
-        const cTypeStr = String(contract?.contractType || '');
-        if (cTypeStr === 'Mensual' || cTypeStr.includes('Mensual')) sType = 'Fee mensual';
-        else if (cTypeStr === 'Proyecto') sType = 'Proyecto';
-        setServiceType(sType);
-
         const val = contract?.value ? formatCurrency(contract.value) : '';
-        if (sType === 'Fee mensual') { setBillingValorMes(val); setBillingValorProyecto(''); }
-        else { setBillingValorProyecto(val); setBillingValorMes(''); }
+        setServiceType('');
+        setBillingSellerDocument('');
+        setBillingValorMes('');
 
         setBillingCloser(contract?.manager || '');
-        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val }]);
-        setBillingReference('');
+        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val, codigoCentro: '', codigoProducto: '' }]);
         setBillingMonthType('');
-        setBillingSellerDocument('');
 
         showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
     };
@@ -728,15 +832,18 @@ export default function FormulariosSQF({ onBack }) {
         let isValid = true;
 
         if (!billingModality) { errors.billingModality = 'Requerido'; isValid = false; }
+        if (!billingType) { errors.billingType = 'Requerido'; isValid = false; }
+        if (!billingClientType) { errors.billingClientType = 'Requerido'; isValid = false; }
         if (!billingClientName.trim()) { errors.billingClientName = 'Requerido'; isValid = false; }
         if (!billingCompany) { errors.billingCompany = 'Requerido'; isValid = false; }
         if (!saleType) { errors.saleType = 'Requerido'; isValid = false; }
-        if (saleType === 'Venta cruzada' && !crossSalePerson.trim()) { showToastMsg('error', 'Campo Faltante', 'Falta persona venta cruzada.'); isValid = false; }
         if (!serviceType) { errors.serviceType = 'Requerido'; isValid = false; }
-        if (serviceType === 'Fee mensual' && !billingValorMes.trim()) { errors.billingValorMes = 'Requerido'; isValid = false; }
-        if (serviceType === 'Proyecto' && !billingValorProyecto.trim()) { errors.billingValorProyecto = 'Requerido'; isValid = false; }
+        if (isCrossSale && !crossSalePersonName.trim()) { errors.crossSalePersonName = 'Requerido'; isValid = false; }
+        if (['0101', '0303'].includes(serviceType) && !billingValorMes.trim()) { errors.billingValorMes = 'Requerido'; isValid = false; }
         if (!origin) { errors.origin = 'Requerido'; isValid = false; }
-        if (['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) && !originRef.trim()) { showToastMsg('error', 'Campo Faltante', 'Especifique el nombre del referente.'); isValid = false; }
+        if (['Referido externo', 'Referido empleado'].includes(origin) && !originRef.trim()) { showToastMsg('error', 'Campo Faltante', 'Especifique el nombre del referente.'); isValid = false; }
+        if (!billingMonthType) { errors.billingMonthType = 'Requerido'; isValid = false; }
+        if (!billingSellerDocument.trim()) { errors.billingSellerDocument = 'Requerido'; isValid = false; }
         if (!billingCloser.trim()) { errors.billingCloser = 'Requerido'; isValid = false; }
 
         billingAreas.forEach(area => {
@@ -749,26 +856,26 @@ export default function FormulariosSQF({ onBack }) {
         if (!isValid) { setBillingErrors(errors); return; }
 
         setIsSubmittingBilling(true);
-        // Build items array from billingItems state
-        const parsedItems = (Array.isArray(billingItems) ? billingItems : []).map(it => {
-            const code = String(it.code || '').trim();
-            const quantity = parseInt(String(it.quantity || '').replace(/\D/g, '') || '0', 10) || 0;
-            const unitPrice = parseInt(String(it.unitPrice || '').replace(/\D/g, '') || '0', 10) || 0;
-            const description = String(it.description || '').trim();
-            return { code, quantity, unitPrice, description, total: quantity * unitPrice };
-        }).filter(it => it.code || it.quantity || it.unitPrice || it.description);
+        // Items deshabilitado temporalmente (no se usa por ahora)
+        // const parsedItems = (Array.isArray(billingItems) ? billingItems : []).map(it => {
+        //     const code = String(it.code || '').trim();
+        //     const quantity = parseInt(String(it.quantity || '').replace(/\D/g, '') || '0', 10) || 0;
+        //     const unitPrice = parseInt(String(it.unitPrice || '').replace(/\D/g, '') || '0', 10) || 0;
+        //     const description = String(it.description || '').trim();
+        //     return { code, quantity, unitPrice, description, total: quantity * unitPrice };
+        // }).filter(it => it.code || it.quantity || it.unitPrice || it.description);
 
         const autoDueDate = calculateBusinessDaysDate(new Date().toISOString().split('T')[0], 3);
 
         const payload = {
             id: generateId('BIL'), tipoSolicitud: 'Facturación', billingType, billingClientType,
             billingModality, modalidad_facturacion: billingModality,
-            clientName: billingClientName.toUpperCase(), company: billingCompany, saleType, crossSalePerson: saleType === 'Venta cruzada' ? crossSalePerson.toUpperCase() : '',
+            clientName: billingClientName.toUpperCase(),
+            company: billingCompany,
+            saleType,
+            crossSalePerson: isCrossSale ? crossSalePersonName.toUpperCase() : '',
             serviceType,
             valorMes: parseInt(String(billingValorMes).replace(/\D/g, '') || '0', 10),
-            valorProyecto: parseInt(String(billingValorProyecto).replace(/\D/g, '') || '0', 10),
-            reference: billingReference || '',
-            referencia: billingReference || '',
             clientDocument: billingClientDocument || '',
             nit: billingClientDocument || '',
             documento: billingClientDocument || '',
@@ -777,9 +884,9 @@ export default function FormulariosSQF({ onBack }) {
             fechaVencimiento: autoDueDate,
             observations: billingObservations || '',
             observaciones: billingObservations || '',
-            items: JSON.stringify(parsedItems),
-            items_json: JSON.stringify(parsedItems),
-            origin, originRef: ['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) ? originRef.toUpperCase() : '',
+            // items: JSON.stringify(parsedItems), // Items deshabilitado temporalmente
+            // items_json: JSON.stringify(parsedItems),
+            origin, originRef: ['Referido externo', 'Referido empleado'].includes(origin) ? originRef.toUpperCase() : '',
             closer: billingCloser.toUpperCase(),
             mes_tipo: billingMonthType,
             mesCorrienteOVencido: billingMonthType,
@@ -793,18 +900,19 @@ export default function FormulariosSQF({ onBack }) {
         try {
             const formData = new FormData();
             Object.keys(payload).forEach(k => formData.append(k, payload[k]));
-            parsedItems.forEach((item, index) => {
-                formData.append(`items[${index}][code]`, item.code);
-                formData.append(`items[${index}][quantity]`, String(item.quantity));
-                formData.append(`items[${index}][unitPrice]`, String(item.unitPrice));
-                formData.append(`items[${index}][description]`, item.description);
-                formData.append(`items[${index}][total]`, String(item.total));
-                formData.append(`items[${index}][codigo]`, item.code);
-                formData.append(`items[${index}][cantidad]`, String(item.quantity));
-                formData.append(`items[${index}][precio]`, String(item.unitPrice));
-                formData.append(`items[${index}][descripcion]`, item.description);
-                formData.append(`items[${index}][observaciones]`, billingObservations || '');
-            });
+            // Items deshabilitado temporalmente (no se usa por ahora)
+            // parsedItems.forEach((item, index) => {
+            //     formData.append(`items[${index}][code]`, item.code);
+            //     formData.append(`items[${index}][quantity]`, String(item.quantity));
+            //     formData.append(`items[${index}][unitPrice]`, String(item.unitPrice));
+            //     formData.append(`items[${index}][description]`, item.description);
+            //     formData.append(`items[${index}][total]`, String(item.total));
+            //     formData.append(`items[${index}][codigo]`, item.code);
+            //     formData.append(`items[${index}][cantidad]`, String(item.quantity));
+            //     formData.append(`items[${index}][precio]`, String(item.unitPrice));
+            //     formData.append(`items[${index}][descripcion]`, item.description);
+            //     formData.append(`items[${index}][observaciones]`, billingObservations || '');
+            // });
             await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
 
             const datatableForm = new FormData();
@@ -824,7 +932,6 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('cross_sale_person', payload.crossSalePerson);
             datatableForm.append('service_type', payload.serviceType);
             datatableForm.append('valor_mes', payload.valorMes);
-            datatableForm.append('valor_proyecto', payload.valorProyecto);
             datatableForm.append('origin', payload.origin);
             datatableForm.append('origin_ref', payload.originRef);
             datatableForm.append('closer', payload.closer);
@@ -832,8 +939,6 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('mes_corriente_o_vencido', payload.mesCorrienteOVencido);
             datatableForm.append('identificacion_vendedor', payload.identificacion_vendedor);
             datatableForm.append('areas', payload.areas);
-            datatableForm.append('reference', payload.reference);
-            datatableForm.append('referencia', payload.referencia);
             datatableForm.append('nit', payload.nit);
             datatableForm.append('documento', payload.documento);
             datatableForm.append('client_document', payload.clientDocument);
@@ -842,20 +947,21 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('observations', payload.observations);
             datatableForm.append('observaciones', payload.observaciones);
             datatableForm.append('fechaVencimiento', payload.fechaVencimiento);
-            datatableForm.append('items', payload.items);
-            datatableForm.append('items_json', payload.items_json);
-            parsedItems.forEach((item, index) => {
-                datatableForm.append(`items[${index}][code]`, item.code);
-                datatableForm.append(`items[${index}][quantity]`, String(item.quantity));
-                datatableForm.append(`items[${index}][unitPrice]`, String(item.unitPrice));
-                datatableForm.append(`items[${index}][description]`, item.description);
-                datatableForm.append(`items[${index}][total]`, String(item.total));
-                datatableForm.append(`items[${index}][codigo]`, item.code);
-                datatableForm.append(`items[${index}][cantidad]`, String(item.quantity));
-                datatableForm.append(`items[${index}][precio]`, String(item.unitPrice));
-                datatableForm.append(`items[${index}][descripcion]`, item.description);
-                datatableForm.append(`items[${index}][observaciones]`, billingObservations || '');
-            });
+            // Items deshabilitado temporalmente (no se usa por ahora)
+            // datatableForm.append('items', payload.items);
+            // datatableForm.append('items_json', payload.items_json);
+            // parsedItems.forEach((item, index) => {
+            //     datatableForm.append(`items[${index}][code]`, item.code);
+            //     datatableForm.append(`items[${index}][quantity]`, String(item.quantity));
+            //     datatableForm.append(`items[${index}][unitPrice]`, String(item.unitPrice));
+            //     datatableForm.append(`items[${index}][description]`, item.description);
+            //     datatableForm.append(`items[${index}][total]`, String(item.total));
+            //     datatableForm.append(`items[${index}][codigo]`, item.code);
+            //     datatableForm.append(`items[${index}][cantidad]`, String(item.quantity));
+            //     datatableForm.append(`items[${index}][precio]`, String(item.unitPrice));
+            //     datatableForm.append(`items[${index}][descripcion]`, item.description);
+            //     datatableForm.append(`items[${index}][observaciones]`, billingObservations || '');
+            // });
             datatableForm.append('nc_invoice', '');
             datatableForm.append('nc_value', 0);
             datatableForm.append('nc_reason', '');
@@ -921,6 +1027,9 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('origin_ref', '');
             datatableForm.append('closer', '');
             datatableForm.append('areas', '');
+            datatableForm.append('billing_categoria', '');
+            datatableForm.append('billing_concepto', '');
+            datatableForm.append('billing_codigo_concepto', '');
             await fetch(N8N_WEBHOOKS.datatable, { method: 'POST', mode: 'no-cors', body: datatableForm });
 
             showToastMsg('success', 'Solicitud Enviada', 'La Nota Crédito fue enviada.');
@@ -1110,7 +1219,10 @@ export default function FormulariosSQF({ onBack }) {
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label required">NIT Empresa / Documento</label>
-                                        <input type="text" name="document" className="form-input" placeholder="Ej: 900.123.456-7" />
+                                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
+                                            <input type="text" name="document" className="form-input" placeholder="Ej: 900.123.456" />
+                                            <input type="text" name="documentDv" className="form-input" placeholder="DV" maxLength="1" inputMode="numeric" />
+                                        </div>
                                         <span className="field-error">{clientErrors.document}</span>
                                     </div>
                                     <div className="form-group">
@@ -1225,7 +1337,7 @@ export default function FormulariosSQF({ onBack }) {
                                         <tbody>
                                             {filteredClients.map((c, i) => (
                                                 <tr key={i} onClick={() => { setAuditorModalItem(c); setAuditorModalType('client'); }} style={{ cursor: 'pointer' }} title="Haga clic para ver detalles">
-                                                    <td className="td-wrap"><strong>{c?.name || ''}</strong> {c?.source === 'historico' && <span style={{ marginLeft: '5px', background: 'rgba(0,169,206,.12)', color: '#006e87', padding: '2px 6px', borderRadius: '50px', fontSize: '10px', fontWeight: '700' }} title="Cliente Histórico">H</span>}</td>
+                                                    <td className="td-wrap"><strong>{c?.name || ''}</strong> {c?.source === 'historico' && <span className="type-chip historico" title="Cliente Histórico">H</span>}</td>
                                                     <td>{c?.document || ''}</td>
                                                     <td>{c?.email || ''}</td>
                                                     <td>{c?.phone || ''}</td>
@@ -1285,10 +1397,10 @@ export default function FormulariosSQF({ onBack }) {
                                                 })
                                                 .map((c, i) => (
                                                     <tr key={i}>
-                                                        <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                                                        <td className="td-muted">{i + 1}</td>
                                                         <td className="td-wrap"><strong>{c?.name || '—'}</strong></td>
                                                         <td>{c?.solicitante_nombre || '—'}</td>
-                                                        <td style={{ whiteSpace: 'nowrap' }}>{formatDateSafe(c?.createdAt) || '—'}</td>
+                                                        <td className="td-nowrap">{formatDateSafe(c?.createdAt) || '—'}</td>
                                                         <td><span className={`status-badge ${c?.status === 'Validado' ? 'validated' : 'pending'}`}>{c?.status || '—'}</span></td>
                                                     </tr>
                                                 ))
@@ -1340,7 +1452,7 @@ export default function FormulariosSQF({ onBack }) {
                                                 <div><strong>✔ Cliente Encontrado:</strong> <br/> {nitLookupResult.client?.name || ''}</div>
                                                 <button type="button" className="btn-primary" style={{ width: '100%', borderRadius: '6px', padding: '12px', fontWeight: '600' }} onClick={() => startContractForClient(nitLookupResult.client)}>Generar Contrato</button>
                                             </div>
-                     . text, !exclu                   </div>
+                                        </div>
                                     )}
                                     {nitLookupResult?.type === 'error' && (
                                         <div className="lookup-result error">
@@ -1396,7 +1508,7 @@ export default function FormulariosSQF({ onBack }) {
                                                             {dropdownClients.length > 0 ? dropdownClients.map(c => (
                                                                 <div key={c.id} className="client-dropdown-item" onClick={() => selectClientFromDropdown(c)}>
                                                                     <div style={{ fontWeight: 500 }}>{c?.name || ''}</div>
-                                                                    <div style={{ fontSize: '0.8rem', color: '#666' }}>NIT: {c?.document || ''}</div>
+                                                                    <div style={{ fontSize: '0.8rem', color: '#666' }}>NIT: {formatNitDv(c)}</div>
                                                                 </div>
                                                             )) : <div className="dropdown-empty">No se encontraron clientes</div>}
                                                         </div>
@@ -1408,7 +1520,7 @@ export default function FormulariosSQF({ onBack }) {
                                         {selectedClientForContract && (
                                             <div className="selected-client-badge">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="badge-avatar-icon"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                                                <span>{selectedClientForContract?.name} (NIT: {selectedClientForContract?.document})</span>
+                                                <span>{selectedClientForContract?.name} (NIT: {formatNitDv(selectedClientForContract)})</span>
                                                 <button type="button" className="badge-remove" onClick={() => setSelectedClientForContract(null)}>✕</button>
                                             </div>
                                         )}
@@ -1432,8 +1544,11 @@ export default function FormulariosSQF({ onBack }) {
                                         <span className="field-error">{contractErrors.value}</span>
                                     </div>
                                     <div className="form-group full-width">
-                                        <label className="form-label required">Gerente a Cargo (Administrador del Cliente)</label>
-                                        <input type="text" name="manager" className="form-input" defaultValue={selectedClientForContract?.contactName || ''} />
+                                        <label className="form-label required">Gerente a Cargo</label>
+                                        <select name="manager" className="form-input form-select" defaultValue="">
+                                          <option value="">-- Seleccionar gerente --</option>
+                                          {GERENTES.map((g) => <option key={g} value={g}>{g}</option>)}
+                                        </select>
                                         <span className="field-error">{contractErrors.manager}</span>
                                     </div>
                                     <div className="form-group full-width">
@@ -1516,10 +1631,18 @@ export default function FormulariosSQF({ onBack }) {
                                                     <td>{c?.clientName || ''}</td>
                                                     <td><span className="type-chip">{c?.contractType || ''}</span></td>
                                                     <td><span className="card-value">{c?.valueFormatted || formatCurrencyDisplay(c?.value)}</span></td>
-                                                    <td>{c?.startDate || ''} a {c?.endDate || ''}</td>
+                                                    <td className="td-nowrap">
+                                                        {c?.startDate ? (
+                                                            <span className="vigencia-range">
+                                                                <span>{formatDateOnly(c.startDate)}</span>
+                                                                <span className="vigencia-sep">–</span>
+                                                                <span>{c?.endDate ? formatDateOnly(c.endDate) : 'Indefinida'}</span>
+                                                            </span>
+                                                        ) : '—'}
+                                                    </td>
                                                     <td>
-                                                        {canSee('billing') && <button type="button" className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); sendContractToBilling(c); }} style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '14px', height: '14px' }}><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
+                                                        {canSee('billing') && <button type="button" className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); sendContractToBilling(c); }}>
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="btn-icon"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
                                                             Enviar a Facturar
                                                         </button>}
                                                     </td>
@@ -1580,11 +1703,11 @@ export default function FormulariosSQF({ onBack }) {
                                                 })
                                                 .map((c, i) => (
                                                     <tr key={i}>
-                                                        <td style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{i + 1}</td>
+                                                        <td className="td-muted">{i + 1}</td>
                                                         <td className="td-wrap"><strong>{c?.name || '—'}</strong></td>
                                                         <td>{c?.clientName || '—'}</td>
                                                         <td>{c?.solicitante_nombre || '—'}</td>
-                                                        <td style={{ whiteSpace: 'nowrap' }}>{formatDateSafe(c?.createdAt) || '—'}</td>
+                                                        <td className="td-nowrap">{formatDateSafe(c?.createdAt) || '—'}</td>
                                                         <td><span className={`status-badge ${c?.status === 'Validado' ? 'validated' : 'pending'}`}>{c?.status || '—'}</span></td>
                                                     </tr>
                                                 ))
@@ -1625,33 +1748,35 @@ export default function FormulariosSQF({ onBack }) {
                         {billingReqType === 'facturacion' ? (
                             <>
                                 <div className="billing-step-card">
-                                    <h2 className="billing-step-title"><span className="step-pill">2</span> Modalidad de Facturación</h2>
-                                    <div className="radio-group radio-group-col">
-                                        <label className="radio-option"><input type="radio" value="Proyecto" checked={billingModality === 'Proyecto'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Proyecto</strong><small>Factura única vez</small></span></label>
-                                        <label className="radio-option"><input type="radio" value="Mensual" checked={billingModality === 'Mensual'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Se incluye en la facturación mensual</small></span></label>
-                                    </div>
-                                    <span className="field-error">{billingErrors.billingModality}</span>
-                                </div>
-
-                                <div className="billing-step-card">
-                                    <h2 className="billing-step-title"><span className="step-pill">3</span> Detalles de la Facturación</h2>
+                                    <h2 className="billing-step-title"><span className="step-pill">2</span> Detalles de la Facturación</h2>
                                     <div className="form-grid">
-                                        <div className="form-group">
+                                        <div className="form-group full-width">
                                             <label className="form-label required">Tipo de Facturación</label>
                                             <div className="radio-group radio-group-col">
                                                 <label className="radio-option"><input type="radio" value="Servicio nuevo" checked={billingType === 'Servicio nuevo'} onChange={(e) => setBillingType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Servicio Nuevo</strong></span></label>
                                                 <label className="radio-option"><input type="radio" value="Servicio actual" checked={billingType === 'Servicio actual'} onChange={(e) => setBillingType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Servicio Actual</strong></span></label>
                                                 <label className="radio-option"><input type="radio" value="Otro" checked={billingType === 'Otro'} onChange={(e) => setBillingType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Otro</strong></span></label>
                                             </div>
+                                            <span className="field-error">{billingErrors.billingType}</span>
                                         </div>
-                                        <div className="form-group">
+                                        <div className="form-group full-width">
                                             <label className="form-label required">Tipo de Cliente</label>
                                             <div className="radio-group radio-group-col">
                                                 <label className="radio-option"><input type="radio" value="Cliente nuevo" checked={billingClientType === 'Cliente nuevo'} onChange={(e) => setBillingClientType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Cliente Nuevo</strong></span></label>
                                                 <label className="radio-option"><input type="radio" value="Cliente antiguo" checked={billingClientType === 'Cliente antiguo'} onChange={(e) => setBillingClientType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Cliente Antiguo</strong></span></label>
                                             </div>
+                                            <span className="field-error">{billingErrors.billingClientType}</span>
                                         </div>
                                     </div>
+                                </div>
+
+                                <div className="billing-step-card">
+                                    <h2 className="billing-step-title"><span className="step-pill">3</span> Modalidad de Facturación</h2>
+                                    <div className="radio-group radio-group-col">
+                                        <label className="radio-option"><input type="radio" value="Proyecto" checked={billingModality === 'Proyecto'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Proyecto</strong><small>Factura única vez</small></span></label>
+                                        <label className="radio-option"><input type="radio" value="Mensual" checked={billingModality === 'Mensual'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Se incluye en la facturación mensual</small></span></label>
+                                    </div>
+                                    <span className="field-error">{billingErrors.billingModality}</span>
                                 </div>
 
                                 <div className="form-card">
@@ -1667,14 +1792,11 @@ export default function FormulariosSQF({ onBack }) {
                                                 <label className="form-label">NIT / Documento</label>
                                                 <input type="text" className="form-input" value={billingClientDocument} onChange={(e) => setBillingClientDocument(e.target.value)} />
                                             </div>
-                                            <div className="form-group">
-                                                <label className="form-label">Referencia</label>
-                                                <input type="text" className="form-input" value={billingReference} readOnly placeholder="Se completa al elegir concepto" style={{ background: '#f5f9ff', cursor: 'default', color: billingReference ? 'var(--color-text)' : 'var(--color-text-light)' }} />
-                                            </div>
                                             <div className="form-group full-width">
                                                 <label className="form-label">Observaciones</label>
                                                 <textarea className="form-input form-textarea" rows={2} value={billingObservations} onChange={(e) => setBillingObservations(e.target.value)} />
                                             </div>
+                                            {/* Items deshabilitado temporalmente (no se usa por ahora)
                                             <div className="form-group full-width">
                                                 <label className="form-label">Items</label>
                                                 <div className="items-table">
@@ -1722,6 +1844,7 @@ export default function FormulariosSQF({ onBack }) {
                                                     </div>
                                                 </div>
                                             </div>
+                                            */}
                                             <div className="form-group">
                                                 <label className="form-label required">Empresa Facturadora</label>
                                                 <select className="form-input form-select" value={billingCompany} onChange={(e) => setBillingCompany(e.target.value)}>
@@ -1732,12 +1855,13 @@ export default function FormulariosSQF({ onBack }) {
                                                 <span className="field-error">{billingErrors.billingCompany}</span>
                                             </div>
                                             <div className="form-group">
-                                                <label className="form-label">Mes corriente o vencido</label>
+                                                <label className="form-label required">Mes corriente o vencido</label>
                                                 <select className="form-input form-select" value={billingMonthType} onChange={(e) => setBillingMonthType(e.target.value)}>
                                                     <option value="">Seleccione...</option>
                                                     <option value="MES CORRIENTE">MES CORRIENTE</option>
                                                     <option value="MES VENCIDO">MES VENCIDO</option>
                                                 </select>
+                                                <span className="field-error">{billingErrors.billingMonthType}</span>
                                             </div>
                                             <div className="form-group">
                                                 <label className="form-label required">Tipo de Venta</label>
@@ -1750,41 +1874,44 @@ export default function FormulariosSQF({ onBack }) {
                                                 </select>
                                                 <span className="field-error">{billingErrors.saleType}</span>
                                             </div>
-                                            
-                                            {saleType === 'Venta cruzada' && (
-                                                <div className="form-group full-width">
-                                                    <label className="form-label required">Persona que Generó la Venta Cruzada</label>
-                                                    <input type="text" className="form-input" value={crossSalePerson} onChange={(e) => setCrossSalePerson(e.target.value)} />
-                                                </div>
+
+                                            {isCrossSale && (
+                                                <>
+                                                    <div className="form-group">
+                                                        <label className="form-label required">Persona que generó la venta cruzada</label>
+                                                        <input
+                                                            type="text"
+                                                            className="form-input"
+                                                            value={crossSalePersonName}
+                                                            onChange={(e) => setCrossSalePersonName(e.target.value)}
+                                                        />
+                                                        <span className="field-error">{billingErrors.crossSalePersonName}</span>
+                                                    </div>
+                                                </>
                                             )}
 
                                             <div className="form-group">
                                                 <label className="form-label required">Tipo de Servicio</label>
-                                                <select className="form-input form-select" value={serviceType} onChange={(e) => setServiceType(e.target.value)}>
+                                                <select className="form-input form-select" value={serviceType} onChange={(e) => handleServiceTypeChange(e.target.value)}>
                                                     <option value="">Seleccione...</option>
-                                                    <option value="Fee mensual">Fee mensual</option>
-                                                    <option value="Proyecto">Proyecto</option>
-                                                    <option value="Otro">Otro</option>
+                                                    {(saleType === 'Venta cruzada'
+                                                        ? SERVICE_TYPES.filter(s => ['0303', '0404'].includes(String(s.code)))
+                                                        : SERVICE_TYPES
+                                                    ).map(s => (
+                                                        <option key={s.code} value={s.code}>{s.code} {s.label}</option>
+                                                    ))}
+                                                    {saleType !== 'Venta cruzada' && <option value="Otro">Otro</option>}
                                                 </select>
                                                 <span className="field-error">{billingErrors.serviceType}</span>
                                             </div>
-                                            
-                                            {serviceType === 'Fee mensual' && (
+
+                                            {['0101', '0303'].includes(serviceType) && (
                                                 <div className="form-group">
                                                     <label className="form-label required">Valor Mes (antes de IVA)</label>
                                                     <div className="input-currency-wrapper"><span className="currency-prefix">$</span>
                                                         <input type="text" className="form-input currency-input" value={billingValorMes} onChange={(e) => handleCurrencyChange(e, setBillingValorMes)} />
                                                     </div>
                                                     <span className="field-error">{billingErrors.billingValorMes}</span>
-                                                </div>
-                                            )}
-                                            {(serviceType === 'Proyecto' || serviceType === 'Otro') && (
-                                                <div className="form-group">
-                                                    <label className="form-label required">Valor Proyecto 100% (antes de IVA)</label>
-                                                    <div className="input-currency-wrapper"><span className="currency-prefix">$</span>
-                                                        <input type="text" className="form-input currency-input" value={billingValorProyecto} onChange={(e) => handleCurrencyChange(e, setBillingValorProyecto)} />
-                                                    </div>
-                                                    <span className="field-error">{billingErrors.billingValorProyecto}</span>
                                                 </div>
                                             )}
 
@@ -1801,7 +1928,7 @@ export default function FormulariosSQF({ onBack }) {
                                                 <span className="field-error">{billingErrors.origin}</span>
                                             </div>
 
-                                            {['Cliente antiguo', 'Referido externo', 'Referido empleado'].includes(origin) && (
+                                            {['Referido externo', 'Referido empleado'].includes(origin) && (
                                                 <div className="form-group">
                                                     <label className="form-label required">Nombre Referente / Cliente Antiguo</label>
                                                     <input type="text" className="form-input" value={originRef} onChange={(e) => setOriginRef(e.target.value)} />
@@ -1809,12 +1936,23 @@ export default function FormulariosSQF({ onBack }) {
                                             )}
 
                                             <div className="form-group">
-                                                <label className="form-label">Identificación del Vendedor</label>
-                                                <input type="text" inputMode="numeric" className="form-input" placeholder="Ej: 1234567890" value={billingSellerDocument} onChange={(e) => setBillingSellerDocument(e.target.value.replace(/\D/g, ''))} />
+                                                <label className="form-label required">Identificación del Vendedor</label>
+                                                <input
+                                                    type="text" inputMode="numeric" className="form-input"
+                                                    placeholder="Ej: 1234567890"
+                                                    value={billingSellerDocument}
+                                                    onChange={(e) => setBillingSellerDocument(e.target.value.replace(/\D/g, ''))}
+                                                    readOnly={SERVICE_TYPES.some(s => s.code === serviceType)}
+                                                    style={SERVICE_TYPES.some(s => s.code === serviceType) ? { background: '#f5f9ff', cursor: 'default' } : undefined}
+                                                />
+                                                <span className="field-error">{billingErrors.billingSellerDocument}</span>
                                             </div>
                                             <div className="form-group full-width">
-                                                <label className="form-label required">Persona Encargada del Cierre de Negocio</label>
-                                                <input type="text" className="form-input" value={billingCloser} onChange={(e) => setBillingCloser(e.target.value)} />
+                                                <label className="form-label required">Gerente Encargado del Cierre de Negocio</label>
+                                                <select className="form-input form-select" value={billingCloser} onChange={(e) => setBillingCloser(e.target.value)}>
+                                                    <option value="">-- Seleccionar gerente --</option>
+                                                    {GERENTES.map((g) => <option key={g} value={g}>{g}</option>)}
+                                                </select>
                                                 <span className="field-error">{billingErrors.billingCloser}</span>
                                             </div>
                                         </div>
@@ -1835,22 +1973,26 @@ export default function FormulariosSQF({ onBack }) {
                                                             <span className="area-block-label">{area.id}° Área – Centro de Costos</span>
                                                             {index > 0 && <button type="button" className="btn-remove-area" onClick={() => removeAreaBlock(area.id)}>✕ Eliminar</button>}
                                                         </div>
-                                                        <div className="form-grid" style={{ gridTemplateColumns: '1fr 1.5fr 1fr', padding: 0 }}>
+                                                        <div className="form-grid" style={{ gridTemplateColumns: '1fr 1.5fr 1fr 1fr', padding: 0 }}>
                                                             <div className="form-group">
-                                                                <label className="form-label required">Centro</label>
+                                                                <label className="form-label required">Centro de costos</label>
                                                                 <select className="form-input form-select" value={area.centro} onChange={(e) => updateArea(area.id, 'centro', e.target.value)}>
                                                                     <option value="">-- Seleccionar --</option>
-                                                                    {Object.keys(BILLING_CENTERS).map(c => <option key={c} value={c}>{c}</option>)}
+                                                                    {Object.keys(CENTROS_FACTURACION).map(c => <option key={c} value={c}>{c}</option>)}
                                                                 </select>
                                                             </div>
                                                             <div className="form-group">
                                                                 <label className="form-label required">Concepto</label>
                                                                 <select className="form-input form-select" value={area.concepto} onChange={(e) => updateArea(area.id, 'concepto', e.target.value)} disabled={!area.centro}>
                                                                     <option value="">-- Seleccionar --</option>
-                                                                    {(BILLING_CENTERS[area.centro] || []).map(c => <option key={c.code} value={c.label}>{c.label}</option>)}
+                                                                    {(CENTROS_FACTURACION[area.centro]?.productos || []).map(p => <option key={p.codigo} value={p.concepto}>{p.concepto}</option>)}
                                                                 </select>
                                                             </div>
                                                             <div className="form-group"><label className="form-label required">Valor</label><div className="input-currency-wrapper"><span className="currency-prefix">$</span><input type="text" className="form-input currency-input" value={area.valor} onChange={(e) => updateArea(area.id, 'valor', formatCurrency(e.target.value))} /></div></div>
+                                                            <div className="form-group">
+                                                                <label className="form-label">Código Centro / Producto</label>
+                                                                <input type="text" className="form-input" value={area.codigoCentro && area.codigoProducto ? `${area.codigoCentro} / ${area.codigoProducto}` : (area.codigoCentro || '')} readOnly placeholder="Se completa al elegir concepto" style={{ background: '#f5f9ff', cursor: 'default', color: area.codigoProducto ? 'var(--color-text)' : 'var(--color-text-light)' }} />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -1901,7 +2043,7 @@ export default function FormulariosSQF({ onBack }) {
                             <p className="section-subtitle">Visualice y valide los procesos de creación de clientes y contratos.</p>
                         </div>
                     </div>
-                    <div className="form-grid">
+                    <div className="auditor-columns">
                         <div className="list-card">
                             <div className="list-header"><h2 className="list-title">Solicitudes de Clientes</h2></div>
                             <div>
@@ -1914,7 +2056,7 @@ export default function FormulariosSQF({ onBack }) {
                                             return (
                                                 <div key={i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('client'); }}>
                                                     <div className="auditor-card-header">
-                                                        <div><h4 className="auditor-item-title">{c?.name || ''}</h4><p className="auditor-item-subtitle">NIT: {c?.document || ''}</p></div>
+                                                        <div className="auditor-card-heading"><h4 className="auditor-item-title">{c?.name || ''}</h4><p className="auditor-item-subtitle">NIT: {c?.document || ''}</p></div>
                                                         <span className={`status-badge ${isPending ? 'pending' : 'validated'}`}>{c?.status || 'Pendiente'}</span>
                                                     </div>
                                                     <div className="auditor-card-footer">
@@ -1959,7 +2101,7 @@ export default function FormulariosSQF({ onBack }) {
                                             return (
                                                 <div key={i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('contract'); }}>
                                                     <div className="auditor-card-header">
-                                                        <div>
+                                                        <div className="auditor-card-heading">
                                                             <h4 className="auditor-item-title">{contractName}</h4>
                                                             <p className="auditor-item-subtitle">
                                                                 <strong>{clientName}</strong>
@@ -1968,7 +2110,7 @@ export default function FormulariosSQF({ onBack }) {
                                                         </div>
                                                         <span className={`status-badge ${isPending ? 'pending' : 'validated'}`}>{c?.status || 'Pendiente'}</span>
                                                     </div>
-                                                    <div style={{ padding: '8px 12px', borderTop: '1px solid #e5e7eb', fontSize: '13px', color: '#666' }}>
+                                                    <div className="auditor-card-details">
                                                         {contractType && <div><strong>Tipo:</strong> {contractType}</div>}
                                                         {service && <div><strong>Servicio:</strong> {service}</div>}
                                                     </div>
@@ -2044,16 +2186,16 @@ export default function FormulariosSQF({ onBack }) {
             {/* ========== TOAST GLOBAL ========== */}
             <div className={`toast ${toast.type} ${toast.show ? 'show' : ''}`}>
                 {toast.type === 'success-discrete' ? (
-                    <div className="toast-content" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '14px', height: '14px', flexShrink: 0, color: '#fff' }}><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        <span className="toast-msg" style={{ fontSize: '12px', fontWeight: '600', color: '#fff', margin: 0 }}>{toast.message}</span>
+                    <div className="toast-content">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="toast-icon"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span className="toast-msg">{toast.message}</span>
                     </div>
                 ) : (
                     <>
-                        {toast.type === 'success' && <svg viewBox="0 0 24 24" fill="none" className="toast-icon success" stroke="currentColor" strokeWidth="2" style={{ width: '24px', height: '24px' }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>}
-                        {toast.type === 'error' && <svg viewBox="0 0 24 24" fill="none" className="toast-icon error" stroke="currentColor" strokeWidth="2" style={{ width: '24px', height: '24px' }}><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>}
+                        {toast.type === 'success' && <svg viewBox="0 0 24 24" fill="none" className="toast-icon" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>}
+                        {toast.type === 'error' && <svg viewBox="0 0 24 24" fill="none" className="toast-icon" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>}
                         <div className="toast-content">
-                            <div className="toast-title" style={{ fontWeight: 'bold' }}>{toast.title}</div>
+                            <div className="toast-title">{toast.title}</div>
                             <div className="toast-msg">{toast.message}</div>
                         </div>
                     </>

@@ -4,7 +4,7 @@
 from sistema.models import SuperAdmin, SuperAdminManager, ApiKey, Alerta, SolicitudesPassword, N8nLog
 from empleados.models import (
     DatosArea, DatosCargo,
-    Persona, DatosContacto, DatosAcademicos,
+    Persona, DatosContacto, DatosAcademicos, Hijo,
     DatosEmpleado,
     MovimientoLaboral,
 )
@@ -14,7 +14,7 @@ from contratos.models import (
     AfiliacionSeguridadSocial,
 )
 from formacion.models import (
-    Curso, CursoContenido, CursoProgreso, CuestionarioIntento,
+    Curso, CursoModulo, CursoContenido, CursoProgreso, CuestionarioIntento,
     CursoHistorial, NotificacionCurso,
     AsignacionFormacion, ExclusionFormacion,
     PlanOnboarding, PasoOnboarding, AsignacionOnboarding,
@@ -24,11 +24,11 @@ from tareas.models import TareasCalendario, SugerenciaEmpleado
 
 __all__ = [
     'SuperAdmin', 'SuperAdminManager', 'ApiKey', 'Alerta', 'SolicitudesPassword', 'N8nLog',
-    'DatosArea', 'DatosCargo', 'Persona', 'DatosContacto', 'DatosAcademicos',
+    'DatosArea', 'DatosCargo', 'Persona', 'DatosContacto', 'DatosAcademicos', 'Hijo',
     'DatosEmpleado', 'MovimientoLaboral',
     'EntidadEPS', 'EntidadAFP', 'EntidadARL', 'CajaCompensacion',
     'Contrato', 'ContratoRenovacion', 'AfiliacionSeguridadSocial',
-    'Curso', 'CursoContenido', 'CursoProgreso', 'CuestionarioIntento',
+    'Curso', 'CursoModulo', 'CursoContenido', 'CursoProgreso', 'CuestionarioIntento',
     'CursoHistorial', 'NotificacionCurso',
     'AsignacionFormacion', 'ExclusionFormacion',
     'PlanOnboarding', 'PasoOnboarding', 'AsignacionOnboarding',

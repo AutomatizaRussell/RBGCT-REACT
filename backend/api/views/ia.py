@@ -1,5 +1,5 @@
 """
-Integraciones con IA: proxy a Gemini y proxy n8n.
+Integraciones externas: proxy n8n.
 """
 import hashlib
 import logging
@@ -19,55 +19,10 @@ from ._utils import (
     N8N_EXECUTIONS_CACHE_TTL,
     N8N_FAILURE_COOLDOWN,
     _es_superadmin,
-    _persistir_ejecuciones_n8n_async,
 )
+from ..n8n_gateway import sincronizar_ejecuciones_async
 
 logger = logging.getLogger(__name__)
-
-
-@api_view(['POST'])
-@permission_classes([IsAdminOrSuperAdmin])
-def gemini_chat(request):
-    import os
-    import requests as req
-    api_key = os.environ.get('GEMINI_API_KEY', '').strip()
-    if api_key in {'', 'TU_CLAVE_GEMINI_AQUI', 'CAMBIAR_POR_API_KEY_REAL'}:
-        return Response({'error': 'GEMINI_API_KEY no configurada.'}, status=500)
-
-    message = request.data.get('message', '').strip()
-    history = request.data.get('history', [])
-    if not message:
-        return Response({'error': 'Mensaje vacío.'}, status=400)
-
-    system_prompt = (
-        "Eres un asistente virtual de GCT (Russell Bedford Colombia), especializado en apoyar "
-        "a los administradores con dudas sobre empleados, usuarios del sistema, gestión de recursos "
-        "humanos, contratos, certificados laborales y funcionalidades del panel de administración. "
-        "Responde siempre en español, de forma clara, concisa y profesional."
-    )
-
-    contents = [
-        {'role': h['role'], 'parts': [{'text': h['text']}]}
-        for h in history
-        if h.get('role') in ('user', 'model') and h.get('text')
-    ]
-    contents.append({'role': 'user', 'parts': [{'text': message}]})
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-    payload = {
-        'system_instruction': {'parts': [{'text': system_prompt}]},
-        'contents': contents,
-        'generationConfig': {'maxOutputTokens': 1024, 'temperature': 0.7},
-    }
-
-    try:
-        resp = req.post(url, json=payload, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-        reply = data['candidates'][0]['content']['parts'][0]['text']
-        return Response({'reply': reply})
-    except Exception as e:
-        return Response({'error': str(e)}, status=502)
 
 
 @api_view(['GET', 'POST'])
@@ -99,7 +54,6 @@ def n8n_proxy(request):
         fail_key = f'{cache_key}:fail'
         cached_payload = cache.get(cache_key)
 
-        # Si sabemos que n8n está fallando, devolvemos datos recientes sin golpear n8n.
         if cached_payload and cache.get(fail_key):
             return Response({**cached_payload, 'cached': True, 'stale': True})
 
@@ -118,22 +72,14 @@ def n8n_proxy(request):
         except requests.exceptions.ConnectionError:
             cache.set(fail_key, True, timeout=N8N_FAILURE_COOLDOWN)
             if cached_payload:
-                return Response({
-                    **cached_payload,
-                    'cached': True,
-                    'stale': True,
-                    'warning': 'n8n no disponible; mostrando último estado exitoso',
-                })
+                return Response({**cached_payload, 'cached': True, 'stale': True,
+                                 'warning': 'n8n no disponible; mostrando último estado exitoso'})
             return Response({'error': f'No se pudo conectar con n8n en {base_url}'}, status=503)
         except requests.exceptions.Timeout:
             cache.set(fail_key, True, timeout=N8N_FAILURE_COOLDOWN)
             if cached_payload:
-                return Response({
-                    **cached_payload,
-                    'cached': True,
-                    'stale': True,
-                    'warning': 'n8n tardó en responder; mostrando último estado exitoso',
-                })
+                return Response({**cached_payload, 'cached': True, 'stale': True,
+                                 'warning': 'n8n tardó en responder; mostrando último estado exitoso'})
             return Response({'error': 'n8n tardó demasiado en responder'}, status=504)
         except Exception as e:
             logger.error(f"[N8N PROXY] Error en status: {e}")
@@ -142,26 +88,21 @@ def n8n_proxy(request):
             return Response({'error': 'Error interno consultando estado de n8n'}, status=500)
 
     if action == 'pendientes':
-        # Webhook público que retorna solicitudes pendientes (clientes/contratos).
         webhook_url = f'{base_url}/webhook/Pendientes' if base_url else 'https://n8n.rbgct.cloud/webhook/Pendientes'
         try:
             if request.method == 'POST':
                 resp = requests.post(webhook_url, json=request.data, timeout=(3, 12))
             else:
                 resp = requests.get(webhook_url, timeout=(3, 12))
-            # n8n puede ejecutar el workflow pero responder 500 si falta "Respond to Webhook".
             if resp.status_code == 500 and 'No Respond to Webhook node found' in (resp.text or ''):
-                return Response({
-                    'ok': True,
-                    'warning': 'n8n ejecutó el webhook sin nodo de respuesta (Respond to Webhook).',
-                }, status=200)
-
+                return Response({'ok': True,
+                                 'warning': 'n8n ejecutó el webhook sin nodo de respuesta.'}, status=200)
             if resp.status_code >= 400:
                 detail = ''
                 try:
                     detail = resp.text[:2000]
                 except Exception:
-                    detail = ''
+                    pass
                 payload = {'error': f'n8n devolvió HTTP {resp.status_code} en Pendientes'}
                 if detail:
                     payload['detail'] = detail
@@ -183,7 +124,7 @@ def n8n_proxy(request):
 
     if action == 'clientes_sqf':
         webhook_url = f'{base_url}/webhook/clientes-crud' if base_url else 'https://n8n.rbgct.cloud/webhook/clientes-crud'
-        cache_key = f'api:n8n:clientes_sqf:v1'
+        cache_key = 'api:n8n:clientes_sqf:v1'
         cached = cache.get(cache_key)
         if cached:
             return Response(cached)
@@ -219,21 +160,17 @@ def n8n_proxy(request):
         limit = max(1, min(limit, 100))
 
         if sync_logs and not _es_superadmin(request.user):
-            return Response(
-                {'error': 'Solo SuperAdmin puede sincronizar logs de n8n'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({'error': 'Solo SuperAdmin puede sincronizar logs de n8n'},
+                            status=status.HTTP_403_FORBIDDEN)
 
         status_key = (status_filter or 'ALL').upper()
         cache_key = f'api:n8n:executions:v2:{base_hash}:{status_key}:{limit}'
         fail_key = f'{cache_key}:fail'
         cached_payload = cache.get(cache_key)
 
-        # Durante cooldown de fallas, responder stale sin bloquear workers.
         if cached_payload and cache.get(fail_key) and not sync_logs:
             return Response({**cached_payload, 'cached': True, 'stale': True})
 
-        # Respuesta inmediata desde cache para evitar presión por polling.
         if cached_payload and not sync_logs:
             return Response({**cached_payload, 'cached': True})
 
@@ -251,32 +188,20 @@ def n8n_proxy(request):
         except requests.exceptions.ConnectionError:
             cache.set(fail_key, True, timeout=N8N_FAILURE_COOLDOWN)
             if cached_payload and not sync_logs:
-                return Response({
-                    **cached_payload,
-                    'cached': True,
-                    'stale': True,
-                    'warning': 'n8n no disponible; mostrando último resultado exitoso',
-                })
+                return Response({**cached_payload, 'cached': True, 'stale': True,
+                                 'warning': 'n8n no disponible; mostrando último resultado exitoso'})
             return Response({'error': f'No se pudo conectar con n8n en {base_url}'}, status=503)
         except requests.exceptions.Timeout:
             cache.set(fail_key, True, timeout=N8N_FAILURE_COOLDOWN)
             if cached_payload and not sync_logs:
-                return Response({
-                    **cached_payload,
-                    'cached': True,
-                    'stale': True,
-                    'warning': 'n8n tardó en responder; mostrando último resultado exitoso',
-                })
+                return Response({**cached_payload, 'cached': True, 'stale': True,
+                                 'warning': 'n8n tardó en responder; mostrando último resultado exitoso'})
             return Response({'error': 'n8n tardó demasiado en responder'}, status=504)
 
         if resp.status_code != 200:
             if cached_payload and not sync_logs:
-                return Response({
-                    **cached_payload,
-                    'cached': True,
-                    'stale': True,
-                    'warning': f'n8n devolvió HTTP {resp.status_code}; mostrando último resultado exitoso',
-                })
+                return Response({**cached_payload, 'cached': True, 'stale': True,
+                                 'warning': f'n8n devolvió HTTP {resp.status_code}; mostrando último resultado exitoso'})
             return Response({'error': f'n8n respondió con HTTP {resp.status_code}'}, status=resp.status_code)
 
         try:
@@ -288,7 +213,7 @@ def n8n_proxy(request):
 
         synced = 0
         if sync_logs and execs:
-            _persistir_ejecuciones_n8n_async(execs[:100])
+            sincronizar_ejecuciones_async(execs[:100])
             synced = 'enqueued'
 
         payload = {'data': execs, 'synced': synced}
