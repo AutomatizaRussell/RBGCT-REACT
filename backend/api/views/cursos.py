@@ -180,6 +180,14 @@ class CursoViewSet(viewsets.ModelViewSet):
 
     # ── Acciones extras ──────────────────────────────────────────────────────────
 
+    @action(detail=True, methods=['get'], url_path='modulos')
+    def modulos(self, request, pk=None):
+        """Devuelve los módulos de un curso específico. Equivalente a /api/curso-modulos/?curso_id=\u003cpk\u003e"""
+        curso = self.get_object()
+        modulos = CursoModulo.objects.filter(curso=curso).order_by('orden')
+        serializer = CursoModuloSerializer(modulos, many=True)
+        return Response(serializer.data)
+
     @action(detail=False, methods=['get'], url_path='por-area')
     def por_area(self, request):
         """Cursos/capacitaciones visibles en un área (para tabla de usuarios admin)."""

@@ -48,6 +48,15 @@ class SolicitudesPasswordViewSet(viewsets.ModelViewSet):
 class ReglamentoItemViewSet(viewsets.ModelViewSet):
     queryset = ReglamentoItem.objects.all().order_by('orden')
     serializer_class = ReglamentoItemSerializer
+    pagination_class = None  # Listado corto, sin paginación por defecto
+
+    def get_queryset(self):
+        """Limitar items cargados en memoria para operaciones de reordenamiento."""
+        qs = super().get_queryset()
+        # Si es acción de mover, solo necesitamos los IDs y órdenes
+        if self.action == 'mover':
+            return qs.only('id', 'orden')
+        return qs
 
     def create(self, request, *args, **kwargs):
         # Asignar orden al final si no se especifica

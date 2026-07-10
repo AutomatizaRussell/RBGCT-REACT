@@ -238,6 +238,7 @@ const Login = () => {
           src={heroImg}
           alt=""
           className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-30"
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-[#001871]/80 via-[#001871]/60 to-[#00a9ce]/30" />
         <div className="relative z-10 flex flex-col items-center text-center px-12">
@@ -245,6 +246,7 @@ const Login = () => {
             src={logoImg}
             alt="Russell Bedford"
             className="w-52 mb-8 brightness-0 invert drop-shadow-xl"
+            loading="lazy"
           />
           <h2 className="text-white text-2xl font-bold tracking-wide">
             Gestión de Capital de Talento
@@ -268,7 +270,7 @@ const Login = () => {
 
           {/* Logo mobile / top */}
           <div className="flex items-center gap-3 mb-10">
-            <img src={logoImg} alt="Russell Bedford" className="h-7 object-contain" />
+            <img src={logoImg} alt="Russell Bedford" className="h-7 object-contain" loading="lazy" />
           </div>
 
           <h1 className="text-[1.75rem] font-bold text-[#001d4a] mb-8 leading-tight">

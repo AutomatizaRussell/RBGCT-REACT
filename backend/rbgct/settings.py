@@ -21,10 +21,14 @@ def _env_int(name: str, default: int) -> int:
 # SECURITY
 # =============================================================================
 
-SECRET_KEY = os.getenv(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-change-this-in-production'
-)
+from django.core.exceptions import ImproperlyConfigured
+
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY debe estar configurado en las variables de entorno. "
+        "Ejecuta: export DJANGO_SECRET_KEY=$(python -c 'import secrets; print(secrets.token_urlsafe(50))')"
+    )
 
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
@@ -279,6 +283,19 @@ if not CORS_ALLOWED_ORIGINS:
 # al dominio viejo (mismo criterio que ALLOWED_HOSTS).
 if 'https://conecta.rbgct.cloud' not in CORS_ALLOWED_ORIGINS:
     CORS_ALLOWED_ORIGINS.append('https://conecta.rbgct.cloud')
+
+# En producción: eliminar cualquier origen localhost para evitar
+# que un atacante local abuse de CORS con credenciales.
+if not DEBUG:
+    CORS_ALLOWED_ORIGINS = [
+        o for o in CORS_ALLOWED_ORIGINS
+        if 'localhost' not in o and '127.0.0.1' not in o
+    ]
+    if not CORS_ALLOWED_ORIGINS:
+        raise ImproperlyConfigured(
+            "CORS_ALLOWED_ORIGINS no puede estar vacío en producción. "
+            "Configura al menos el dominio de producción en la variable de entorno."
+        )
 
 CORS_ALLOW_ALL_ORIGINS = False
 

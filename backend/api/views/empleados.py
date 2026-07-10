@@ -67,6 +67,10 @@ class SuperAdminViewSet(viewsets.ModelViewSet):
 class DatosEmpleadoViewSet(viewsets.ModelViewSet):
     queryset = DatosEmpleado.objects.select_related(
         'persona', 'persona__contacto', 'area', 'cargo'
+    ).prefetch_related(
+        'persona__hijos',           # Evita N+1 en hijos
+        'persona__academicos',      # Evita N+1 en académicos
+        'movimientos',              # Evita N+1 en historial laboral
     ).defer('password_hash').order_by('-estado', 'persona__primer_apellido', 'persona__primer_nombre')
     serializer_class = DatosEmpleadoSerializer
     permission_classes = [IsAuthenticated]
@@ -190,6 +194,33 @@ class DatosEmpleadoViewSet(viewsets.ModelViewSet):
         movimientos = MovimientoLaboral.objects.filter(empleado=empleado).order_by('-fecha_movimiento', '-created_at')
         serializer = MovimientoLaboralSerializer(movimientos, many=True)
         return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def empleado_me(request):
+    """Devuelve el empleado del usuario autenticado."""
+    user = request.user
+    if _es_superadmin(user):
+        return Response({
+            'id': str(user.id),
+            'email': user.email,
+            'nombre': user.nombre,
+            'apellido': user.apellido,
+            'type': 'superadmin',
+        })
+    if _es_empleado(user):
+        try:
+            empleado = DatosEmpleado.objects.select_related(
+                'persona', 'persona__contacto', 'area', 'cargo'
+            ).prefetch_related(
+                'persona__hijos', 'persona__academicos', 'movimientos'
+            ).get(id_empleado=user.id_empleado)
+            serializer = DatosEmpleadoSerializer(empleado)
+            return Response(serializer.data)
+        except DatosEmpleado.DoesNotExist:
+            return Response({'error': 'Empleado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+    return Response({'error': 'Usuario no reconocido'}, status=status.HTTP_403_FORBIDDEN)
 
 
 @api_view(['PATCH'])
@@ -418,6 +449,63 @@ def ping_actividad(request):
         })
 
     return Response({'error': 'Usuario no autorizado'}, status=status.HTTP_403_FORBIDDEN)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def organigrama_general(request):
+    """Devuelve el organigrama completo de TODAS las áreas con sus empleados."""
+    if not _es_empleado(request.user) and not _es_superadmin(request.user):
+        return Response({'error': 'Solo empleados'}, status=status.HTTP_403_FORBIDDEN)
+
+    # Obtener todas las áreas activas con empleados activos
+    areas = DatosArea.objects.filter(
+        datosempleado__estado='ACTIVA'
+    ).distinct().order_by('nombre_area')
+
+    resultado = []
+
+    for area in areas:
+        # Empleados activos de esta área
+        empleados = DatosEmpleado.objects.filter(
+            estado='ACTIVA',
+            area=area
+        ).select_related('persona', 'cargo').order_by('cargo__nombre_cargo')
+
+        if not empleados.exists():
+            continue
+
+        # Agrupar por nivel de cargo
+        niveles = {}
+        for e in empleados:
+            if not e.cargo or not e.persona:
+                continue
+            niv = _nivel_cargo(e.cargo.nombre_cargo)
+            if niv == 99:
+                continue
+            niveles.setdefault(niv, []).append({
+                'id': e.id_empleado,
+                'nombre': e.persona.nombre_completo,
+                'cargo': e.cargo.nombre_cargo,
+                'correo': e.correo_corporativo,
+            })
+
+        cadena = [
+            {'nivel': niv, 'label': _NIVEL_LABEL.get(niv, 'Otro'), 'personas': personas}
+            for niv, personas in sorted(niveles.items())
+        ]
+
+        if cadena:
+            resultado.append({
+                'id': area.id_area,
+                'nombre': area.nombre_area,
+                'cadena': cadena,
+            })
+
+    return Response({
+        'areas': resultado,
+        'total_areas': len(resultado),
+    })
 
 
 @api_view(['GET'])

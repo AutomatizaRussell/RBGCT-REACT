@@ -5,6 +5,7 @@ import jwt
 from django.conf import settings
 from rest_framework import authentication, exceptions
 from .models import SuperAdmin, DatosEmpleado, ApiKey
+from .jwt_utils import is_token_revoked
 
 
 class JWTAuthentication(authentication.BaseAuthentication):
@@ -35,6 +36,12 @@ class JWTAuthentication(authentication.BaseAuthentication):
             # Solo aceptar access tokens
             if payload.get('token_type') != 'access':
                 return None
+
+            # Verificar blacklist de tokens revocados
+            if is_token_revoked(token):
+                raise exceptions.AuthenticationFailed(
+                    {'error': 'Token revocado', 'code': 'TOKEN_REVOKED'}
+                )
 
             # Setear usuario según tipo
             user_type = payload.get('type')

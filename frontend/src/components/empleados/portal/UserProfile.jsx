@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../../../hooks/useAuth';
 import {
   UserCircle, Mail, Building2, Briefcase, CalendarDays, Phone,
   MapPin, Shield, RefreshCw, Edit3, Save, X, Heart, User, Hash,
@@ -9,11 +10,11 @@ import {
 import {
   getEmpleadoById, actualizarMiContacto, actualizarMiPersona,
   getMisAcademicos, crearDatoAcademico, actualizarDatoAcademico, eliminarDatoAcademico,
-  getMiOrganigrama, getHistorialEmpleado,
+  getMiOrganigrama, getOrganigramaGeneral, getHistorialEmpleado,
   subirCertificadoDiscapacidad, eliminarCertificadoDiscapacidad,
   getMisHijos, crearHijo, actualizarHijo, eliminarHijo,
 } from '../../../lib/api';
-import { useAuth } from '../../../hooks/useAuth';
+import OrganigramaModerno from './OrganigramaModerno';
 import { COLOMBIA } from '../../../lib/colombiaData';
 
 const NIVEL_LABELS = {
@@ -58,6 +59,7 @@ const UserProfile = () => {
   const [showOrganigrama, setShowOrganigrama] = useState(false);
   const [organigrama, setOrganigrama] = useState(null);
   const [loadingOrg, setLoadingOrg] = useState(false);
+  const [vistaOrganigrama, setVistaOrganigrama] = useState('area');
   // Datos académicos
   const [academicos, setAcademicos] = useState([]);
   const [academicoStatus, setAcademicoStatus] = useState(null);
@@ -323,6 +325,25 @@ const UserProfile = () => {
     }
   };
 
+  const handleCambiarVistaOrganigrama = async (nuevaVista) => {
+    setVistaOrganigrama(nuevaVista);
+    setOrganigrama(null);
+    setLoadingOrg(true);
+    try {
+      if (nuevaVista === 'area') {
+        const data = await getMiOrganigrama();
+        setOrganigrama(data);
+      } else {
+        const data = await getOrganigramaGeneral();
+        setOrganigrama(data);
+      }
+    } catch {
+      setOrganigrama(null);
+    } finally {
+      setLoadingOrg(false);
+    }
+  };
+
   const [diplomaFile, setDiplomaFile] = useState(null);
 
   const ACADEMICO_VACIO = {
@@ -477,10 +498,12 @@ const UserProfile = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {showOrganigrama && (
-        <OrganigramaModal
+        <OrganigramaModerno
           data={organigrama}
           loading={loadingOrg}
           onClose={() => setShowOrganigrama(false)}
+          vista={vistaOrganigrama}
+          onCambiarVista={handleCambiarVistaOrganigrama}
         />
       )}
       {/* Controles */}
@@ -1335,93 +1358,6 @@ const NIVEL_COLORS = {
   3: { bg: 'bg-[#00bfb3]', text: 'text-white', border: 'border-[#00bfb3]', dot: 'bg-[#00bfb3]' },
   4: { bg: 'bg-[#ed8b00]', text: 'text-white', border: 'border-[#ed8b00]', dot: 'bg-[#ed8b00]' },
 };
-
-const OrganigramaModal = ({ data, loading, onClose }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-    <div
-      className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto"
-      onClick={e => e.stopPropagation()}
-    >
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-base font-bold text-[#001871] flex items-center gap-2">
-            <Network size={16} /> Mi Organigrama
-          </h3>
-          {data?.area && <p className="text-xs text-slate-400 mt-0.5">Área: {data.area}</p>}
-        </div>
-        <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
-          <X size={16} />
-        </button>
-      </div>
-
-      {loading && (
-        <div className="flex flex-col items-center gap-3 py-10">
-          <RefreshCw size={22} className="text-indigo-500 animate-spin" />
-          <p className="text-xs text-slate-400">Cargando estructura...</p>
-        </div>
-      )}
-
-      {!loading && !data && (
-        <p className="text-sm text-slate-400 text-center py-8">No se pudo cargar el organigrama.</p>
-      )}
-
-      {!loading && data && (
-        <div className="flex flex-col items-center gap-0">
-          {data.cadena.map((nivel, i) => {
-            const colors = NIVEL_COLORS[nivel.nivel] || NIVEL_COLORS[4];
-            const esMiNivel = nivel.nivel === data.mi_nivel;
-            return (
-              <div key={nivel.nivel} className="flex flex-col items-center w-full">
-                {/* Línea conectora superior */}
-                {i > 0 && (
-                  <div className="w-0.5 h-6 bg-slate-300" />
-                )}
-                {/* Nodo */}
-                <div className={`w-full rounded-2xl border-2 p-3 transition-all ${
-                  esMiNivel
-                    ? `${colors.border} shadow-lg ring-2 ring-offset-2 ring-opacity-30`
-                    : 'border-slate-200 bg-slate-50'
-                }`}>
-                  {/* Header del nivel */}
-                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide mb-2 ${
-                    esMiNivel ? `${colors.bg} ${colors.text}` : 'bg-slate-200 text-slate-600'
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${esMiNivel ? 'bg-white' : colors.dot}`} />
-                    {nivel.label}
-                    {esMiNivel && <span className="ml-1 opacity-80">← Tú</span>}
-                  </div>
-                  {/* Personas */}
-                  <div className="space-y-1">
-                    {nivel.personas.map(p => (
-                      <div key={p.id} className={`flex items-center gap-2 px-2 py-1 rounded-lg ${
-                        p.es_yo ? `${colors.bg} ${colors.text}` : 'text-slate-700'
-                      }`}>
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
-                          p.es_yo ? 'bg-white/20' : 'bg-slate-200 text-slate-600'
-                        }`}>
-                          {p.nombre.charAt(0)}
-                        </div>
-                        <span className={`text-xs font-medium truncate ${p.es_yo ? 'font-bold' : ''}`}>
-                          {p.nombre}
-                        </span>
-                        {p.es_yo && <span className="ml-auto text-[9px] opacity-70 flex-shrink-0">Tú</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <p className="text-center text-[10px] text-slate-300 mt-5 uppercase tracking-widest">
-        Organigrama del área · {data?.area || '—'}
-      </p>
-    </div>
-  </div>
-);
 
 const MOVIMIENTO_CONFIG = {
   INGRESO:          { color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500', Icon: LogIn,         label: 'Ingreso' },

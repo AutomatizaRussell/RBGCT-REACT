@@ -176,7 +176,9 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setUserRole(null);
     setEmpleadoData(null);
-    localStorage.clear();
+    // Solo limpiar keys de GCT, no todo el localStorage
+    const gctKeys = Object.keys(localStorage).filter(k => k.startsWith('gct_'));
+    gctKeys.forEach(k => localStorage.removeItem(k));
     sessionStorage.clear();
   };
 

@@ -6,8 +6,13 @@ django.setup()
 
 from sistema.models import SuperAdmin
 
-EMAIL = os.getenv('SUPERADMIN_EMAIL', 'admin@rbgct.cloud')
-PASSWORD = os.getenv('SUPERADMIN_PASSWORD', 'Admin2026Seguro')
+EMAIL = os.getenv('SUPERADMIN_EMAIL')
+if not EMAIL:
+    raise ValueError("SUPERADMIN_EMAIL debe estar configurado en las variables de entorno")
+
+PASSWORD = os.getenv('SUPERADMIN_PASSWORD')
+if not PASSWORD:
+    raise ValueError("SUPERADMIN_PASSWORD debe estar configurado en las variables de entorno")
 
 if SuperAdmin.objects.filter(email=EMAIL).exists():
     print(f'SuperAdmin {EMAIL} ya existe')
@@ -20,4 +25,4 @@ else:
         role='superadmin',
         estado='ACTIVA',
     )
-    print(f'SuperAdmin creado: {EMAIL} / {PASSWORD}')
+    print(f'SuperAdmin creado: {EMAIL}')

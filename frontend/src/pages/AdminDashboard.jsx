@@ -412,7 +412,7 @@ const Admin2Dashboard = () => {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               <KpiCard
                 label="Personal Total"
                 value={employeeStats.loading ? '…' : employeeStats.totalCount}
@@ -455,7 +455,7 @@ const Admin2Dashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
               {/* Distribución por área */}
-              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5 shadow-rb-sm hover:shadow-rb-md transition-shadow duration-200">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                   <div>
                     <h3 className="font-bold text-[#001871]">Distribución por Área</h3>
@@ -490,7 +490,7 @@ const Admin2Dashboard = () => {
               {/* Estado del equipo + Acciones */}
               <div className="space-y-5">
                 {/* Donut visual estado */}
-                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-rb-sm hover:shadow-rb-md transition-shadow duration-200">
                   <h3 className="font-bold text-[#001871] mb-4 text-sm">Estado del Equipo</h3>
                   <div className="flex items-center gap-4">
                     <div className="relative w-20 h-20 flex-shrink-0">
@@ -533,7 +533,7 @@ const Admin2Dashboard = () => {
                 </div>
 
                 {/* Acciones rápidas */}
-                <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-rb-sm hover:shadow-rb-md transition-shadow duration-200">
                   <h3 className="font-bold text-[#001871] mb-4 text-sm">Acciones Rápidas</h3>
                   <div className="space-y-2">
                     {[
@@ -557,7 +557,7 @@ const Admin2Dashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
               {/* Resumen de tareas */}
-              <div className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-rb-sm hover:shadow-rb-md transition-shadow duration-200">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                   <h3 className="font-bold text-[#001871]">Resumen de Tareas</h3>
                   <button onClick={() => setActiveTab('tasks')}
@@ -593,7 +593,7 @@ const Admin2Dashboard = () => {
               </div>
 
               {/* Actividad reciente */}
-              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5 shadow-rb-sm hover:shadow-rb-md transition-shadow duration-200">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                   <div>
                     <h3 className="font-bold text-[#001871]">Actividad Reciente</h3>
@@ -878,7 +878,7 @@ const AdminNotifDropdown = ({ alertasCount, solicitudesCount, sugerenciasCount, 
 const KpiCard = ({ label, value, sub, icon, iconBg, iconColor, highlight, onClick, clickable }) => (
   <div
     onClick={onClick}
-    className={`bg-white rounded-xl border border-slate-100 p-5 shadow-sm transition-all duration-300 ${clickable ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : 'hover:shadow-md'}`}
+    className={`bg-white rounded-2xl border border-slate-100 p-6 shadow-rb-sm transition-all duration-200 ${clickable ? 'cursor-pointer hover:shadow-rb-md hover:scale-[1.02]' : 'hover:shadow-rb-md'}`}
   >
     <div className="flex items-start justify-between mb-3">
       <div className={`p-2 rounded-lg ${iconBg}`}>
@@ -1251,7 +1251,7 @@ const HerramientasTab = () => {
           : <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
             {/* Áreas */}
-            <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-rb-sm hover:shadow-rb-md transition-shadow duration-200">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
                 <div className="p-3 bg-blue-50 rounded-xl"><Building2 size={20} className="text-blue-600" /></div>
                 <div>
@@ -1304,7 +1304,7 @@ const HerramientasTab = () => {
             </div>
 
             {/* Cargos */}
-            <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-rb-sm hover:shadow-rb-md transition-shadow duration-200">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
                 <div className="p-3 bg-emerald-50 rounded-xl"><Briefcase size={20} className="text-emerald-600" /></div>
                 <div>
@@ -1487,7 +1487,7 @@ const ReglamentoTab = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm flex items-center justify-between">
+      <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-rb-sm hover:shadow-rb-md transition-shadow duration-200 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-indigo-50 rounded-xl"><BookOpen size={22} className="text-indigo-600" /></div>
           <div>
@@ -1612,7 +1612,7 @@ const ReglamentoTab = () => {
                       {item.archivo_url && (
                         <div className="mb-5">
                           <div className="mb-3">
-                            <a href={item.archivo_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors">
+                            <a href={item.archivo_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 !text-black text-xs rounded-lg hover:bg-blue-700 transition-colors">
                               Abrir PDF
                             </a>
                           </div>

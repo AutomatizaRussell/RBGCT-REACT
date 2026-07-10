@@ -13,7 +13,7 @@ from django.core.cache import cache
 import bcrypt
 
 from ..models import SuperAdmin, DatosEmpleado, Persona, DatosContacto
-from ..jwt_utils import generate_tokens, decode_token, build_superadmin_payload, build_empleado_payload
+from ..jwt_utils import generate_tokens, decode_token, build_superadmin_payload, build_empleado_payload, revoke_token
 from ..permissions import IsSuperAdminUser, IsAdminOrSuperAdmin
 from ..throttles import LoginThrottle, EnviarCodigoThrottle, VerificarCodigoThrottle
 
@@ -25,6 +25,28 @@ from ._utils import (
 from ..n8n_gateway import enviar_bienvenida, enviar_codigo_login
 
 logger = logging.getLogger(__name__)
+
+
+# Endpoint para cerrar sesión (revocar token)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    """
+    Revoca el token JWT actual agregándolo a la blacklist.
+    Body opcional: { "refreshToken": "..." } para revocar también el refresh token.
+    """
+    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+    if auth_header.startswith('Bearer '):
+        access_token = auth_header.split(' ', 1)[1]
+        revoke_token(access_token)
+        logger.info(f"[LOGOUT] Access token revocado para usuario {request.user}")
+
+    refresh_token = request.data.get('refreshToken')
+    if refresh_token:
+        revoke_token(refresh_token)
+        logger.info(f"[LOGOUT] Refresh token revocado para usuario {request.user}")
+
+    return Response({'message': 'Sesión cerrada exitosamente'}, status=status.HTTP_200_OK)
 
 
 # Endpoint de Login - PÚBLICO
@@ -62,7 +84,7 @@ def login_view(request):
         empleado = DatosEmpleado.objects.select_related('persona').only(
             'id_empleado', 'correo_corporativo', 'id_permisos', 'estado',
             'area_id', 'cargo_id', 'primer_login', 'datos_completados',
-            'permitir_edicion_datos', 'acceso_formularios_sqf',
+            'permitir_edicion_datos',
             'acceso_sqf_clientes', 'acceso_sqf_contratos',
             'acceso_sqf_facturacion', 'acceso_sqf_auditoria', 'password_hash', 'persona',
             'persona__primer_nombre', 'persona__segundo_nombre',

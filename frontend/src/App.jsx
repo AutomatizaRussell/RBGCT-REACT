@@ -46,18 +46,20 @@ const MicrosoftCallback = () => {
   const { setEmpleadoDataVerify } = useAuth();
 
   useEffect(() => {
+    let cancelled = false;
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const msError = params.get('error');
 
-    if (msError) { setStatus('error'); setMsg('Microsoft canceló la autenticación.'); return; }
-    if (!code)    { setStatus('error'); setMsg('No se recibió código de autorización.'); return; }
+    if (msError) { if (!cancelled) { setStatus('error'); setMsg('Microsoft canceló la autenticación.'); } return; }
+    if (!code)    { if (!cancelled) { setStatus('error'); setMsg('No se recibió código de autorización.'); } return; }
 
     fetchApi('/auth/microsoft/', {
       method: 'POST',
       body: JSON.stringify({ code, redirect_uri: `${window.location.origin}/auth/microsoft/callback` }),
     })
       .then((res) => {
+        if (cancelled) return;
         if (!res.access_token) {
           setStatus('error');
           setMsg(res.error || 'Tu cuenta de Microsoft no está registrada en GCT.');
@@ -80,9 +82,12 @@ const MicrosoftCallback = () => {
         }
       })
       .catch((err) => {
+        if (cancelled) return;
         setStatus('error');
         setMsg(err.message || 'Error al procesar el inicio de sesión.');
       });
+
+    return () => { cancelled = true; };
   }, []);
 
   return (

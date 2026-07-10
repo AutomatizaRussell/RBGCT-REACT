@@ -300,6 +300,7 @@ export const actualizarMiPersona = (data) => fetchApi('/mi-persona/', {
 });
 
 export const getMiOrganigrama = () => fetchApi('/mi-organigrama/');
+export const getOrganigramaGeneral = () => fetchApi('/organigrama/general/');
 export const getHistorialEmpleado = (id) => fetchApi(`/empleados/${id}/historial/`);
 export const getMiProgresoCurso = (cursoId) => fetchApi(`/cursos/${cursoId}/mi-progreso/`);
 export const marcarProgresoCurso = (cursoId, contenidoId) => fetchApi(`/cursos/${cursoId}/marcar-progreso/`, {

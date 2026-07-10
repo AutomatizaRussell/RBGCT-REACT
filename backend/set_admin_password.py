@@ -2,6 +2,10 @@
 """
 Script para establecer la contraseña del SuperAdmin.
 Ejecutar: python set_admin_password.py
+
+Requiere variables de entorno:
+  - ADMIN_EMAIL: Email del SuperAdmin
+  - ADMIN_PASSWORD: Nueva contraseña
 """
 
 import os
@@ -15,6 +19,7 @@ django.setup()
 
 import bcrypt
 from api.models import SuperAdmin
+
 
 def set_superadmin_password(email, new_password):
     """Establece la contraseña de un SuperAdmin"""
@@ -36,10 +41,17 @@ def set_superadmin_password(email, new_password):
         print(f"❌ Error: {e}")
         return False
 
+
 if __name__ == '__main__':
-    # Cambiar estos valores según necesites
-    ADMIN_EMAIL = "test-admin@rbcol.co"  # Email del SuperAdmin
-    NEW_PASSWORD = "admin123"  # Nueva contraseña
+    ADMIN_EMAIL = os.getenv('ADMIN_EMAIL')
+    if not ADMIN_EMAIL:
+        print("❌ ADMIN_EMAIL no está configurado. Ejecuta: export ADMIN_EMAIL=admin@ejemplo.com")
+        sys.exit(1)
+    
+    NEW_PASSWORD = os.getenv('ADMIN_PASSWORD')
+    if not NEW_PASSWORD:
+        print("❌ ADMIN_PASSWORD no está configurado. Ejecuta: export ADMIN_PASSWORD=tu_clave_segura")
+        sys.exit(1)
     
     print("=" * 50)
     print("CONFIGURACIÓN DE CONTRASEÑA SUPERADMIN")
@@ -48,9 +60,7 @@ if __name__ == '__main__':
     success = set_superadmin_password(ADMIN_EMAIL, NEW_PASSWORD)
     
     if success:
-        print("\n✅ Listo! Ahora puedes usar 'Cambiar Contraseña' con estas credenciales:")
-        print(f"   Email: {ADMIN_EMAIL}")
-        print(f"   Contraseña: {NEW_PASSWORD}")
+        print(f"\n✅ Listo! Contraseña actualizada para: {ADMIN_EMAIL}")
     else:
         print("\n❌ No se pudo actualizar la contraseña")
         sys.exit(1)

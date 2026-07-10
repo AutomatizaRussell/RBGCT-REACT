@@ -8,6 +8,7 @@ from .views.empleados import (
     DatosCargoViewSet,
     SuperAdminViewSet,
     DatosEmpleadoViewSet,
+    empleado_me,
     ping_actividad,
     actualizar_mi_contacto,
     actualizar_mi_persona,
@@ -15,6 +16,7 @@ from .views.empleados import (
     mis_hijos,
     mi_hijo_detalle,
     mi_organigrama,
+    organigrama_general,
     mis_academicos,
     mis_academicos_detalle,
 )
@@ -52,6 +54,7 @@ from .views.contratos import (
 )
 from .views.auth import (
     login_view,
+    logout_view,
     crear_usuario_superadmin,
     completar_datos_empleado,
     habilitar_edicion_datos,
@@ -113,6 +116,8 @@ router.register(r'contratos-renovaciones', ContratoRenovacionViewSet)
 urlpatterns = [
     # Actualizar contraseña de empleado - ANTES del router para prioridad
     path('empleados/<int:empleado_id>/actualizar-password/', actualizar_password_empleado, name='actualizar_password'),
+    # Perfil propio del usuario autenticado - ANTES del router para prioridad
+    path('empleados/me/', empleado_me, name='empleado_me'),
     # Alertas de recuperación de contraseña - ANTES del router
     path('alertas-recuperacion/', get_alertas_recuperacion, name='alertas_recuperacion'),
     path('registrar-intento-recuperacion/', registrar_intento_recuperacion, name='registrar_intento_recuperacion'),
@@ -123,6 +128,7 @@ urlpatterns = [
     path('auth/microsoft/url/', microsoft_auth_url, name='microsoft_auth_url'),
     path('auth/microsoft/', microsoft_auth_callback, name='microsoft_auth'),
     path('login/', login_view, name='login'),
+    path('logout/', logout_view, name='logout'),
     path('crear-usuario/', crear_usuario_superadmin, name='crear_usuario'),
     path('completar-datos/', completar_datos_empleado, name='completar_datos'),
     path('habilitar-edicion/', habilitar_edicion_datos, name='habilitar_edicion'),
@@ -145,6 +151,7 @@ urlpatterns = [
     path('mis-hijos/', mis_hijos, name='mis_hijos'),
     path('mis-hijos/<int:hijo_id>/', mi_hijo_detalle, name='mi_hijo_detalle'),
     path('mi-organigrama/', mi_organigrama, name='mi_organigrama'),
+    path('organigrama/general/', organigrama_general, name='organigrama_general'),
     path('mis-academicos/', mis_academicos, name='mis_academicos'),
     path('mis-academicos/<int:pk>/', mis_academicos_detalle, name='mis_academicos_detalle'),
     # Admin: académicos de cualquier empleado

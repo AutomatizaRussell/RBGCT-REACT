@@ -12,10 +12,10 @@ function SidebarNavItem({ item, activeTab, onNavigate, isCollapsed }) {
   const Icon = item.icon
   const isActive = activeTab === item.tab
 
-  const btnPadding = isCollapsed ? 'justify-center px-2 py-2' : 'px-4 py-3'
+  const btnPadding = isCollapsed ? 'justify-center px-2 py-2.5' : 'px-4 py-3'
   const iconWrapperClass = isCollapsed
-    ? 'h-5 w-5 md:h-6 md:w-6 lg:h-7 lg:w-7'
-    : 'h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6'
+    ? 'h-5 w-5 md:h-6 md:w-6'
+    : 'h-4 w-4 md:h-5 md:w-5'
 
   return (
     <button
@@ -23,15 +23,19 @@ function SidebarNavItem({ item, activeTab, onNavigate, isCollapsed }) {
       onClick={() => onNavigate(item.tab)}
       title={item.label}
       className={cn(
-        'group flex w-full items-center rounded-xl text-left text-sm font-bold transition focus:outline-none',
+        'group flex w-full items-center rounded-xl text-left text-sm font-semibold transition-all duration-200 focus:outline-none',
         btnPadding,
         isActive ? 'rb-sidebar-item-active' : 'rb-sidebar-item'
       )}
     >
-      <span className={cn('flex items-center justify-center', iconWrapperClass)}>
+      <span className={cn('flex items-center justify-center transition-transform duration-200 group-hover:scale-110', iconWrapperClass)}>
         {Icon ? <Icon className="h-full w-full" /> : item.iconNode}
       </span>
-      {!isCollapsed && <span className="truncate ml-3">{item.label}</span>}
+      {!isCollapsed && (
+        <span className="truncate ml-3 transition-opacity duration-200">
+          {item.label}
+        </span>
+      )}
     </button>
   )
 }
@@ -90,6 +94,7 @@ export function SidebarShell({
                     src={rbLogo}
                     alt="Russell Bedford GCT"
                     className="h-full w-full object-contain"
+                    loading="lazy"
                   />
                 </button>
               ) : (
@@ -103,6 +108,7 @@ export function SidebarShell({
                     src={rbLogo}
                     alt="Russell Bedford GCT"
                     className="h-auto w-[240px] max-w-full object-contain"
+                    loading="lazy"
                   />
                 </button>
               )}

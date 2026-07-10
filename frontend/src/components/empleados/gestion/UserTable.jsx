@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useContext, useCallback } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import { Trash2, Shield, ShieldCheck, UserX, UserCheck, X, Check, Loader2, Search, Mail, Calendar, Hash, Briefcase, Info, AlertTriangle, Activity, Edit3, Save, UserPlus, Lock, KeyRound, FileSpreadsheet, Download, MessageSquareText, CheckCheck, History, ArrowRight, TrendingUp, DollarSign, FileText, RefreshCw, GraduationCap, HeartPulse, FileSignature, Plus, Trash } from 'lucide-react';
 import {
   updateEmpleado, cambiarEstadoEmpleado, deleteEmpleado, actualizarPasswordEmpleado,
@@ -504,9 +504,12 @@ const UserTable = () => {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center p-20 text-slate-400">
-      <Loader2 className="animate-spin mb-4" size={40} />
-      <p className="font-bold uppercase tracking-widest text-[10px]">Cargando Panel de Control...</p>
+    <div className="p-8 space-y-6 animate-in fade-in duration-500">
+      {<div className="rb-skeleton h-8 w-48 rounded-lg mb-8" />}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1,2,3,4].map(i => <div key={i} className="rb-skeleton h-28 rounded-2xl" />)}
+      </div>
+      <div className="rb-skeleton h-96 rounded-2xl" />
     </div>
   );
 
@@ -1149,7 +1152,12 @@ const UserTable = () => {
               <div style={{display: activeEditTab === 'contrato' ? '' : 'none'}}>
                 <div className="space-y-4">
                   {loadingContrato ? (
-                    <div className="flex items-center justify-center py-16"><Loader2 size={28} className="animate-spin text-[#001871]"/></div>
+                    <div className="py-16 space-y-4 px-6">
+                      {<div className="rb-skeleton h-6 w-1/2 rounded-lg" />}
+                      {<div className="rb-skeleton h-4 w-3/4 rounded-md" />}
+                      {<div className="rb-skeleton h-4 w-2/3 rounded-md" />}
+                      {<div className="rb-skeleton h-4 w-1/2 rounded-md" />}
+                    </div>
                   ) : (
                     <>
                       <div className="flex items-center justify-between mb-2">
@@ -1250,7 +1258,11 @@ const UserTable = () => {
               <div style={{display: activeEditTab === 'ss' ? '' : 'none'}}>
                 <div className="space-y-6">
                   {loadingSS ? (
-                    <div className="flex items-center justify-center py-16"><Loader2 size={28} className="animate-spin text-[#00bfb3]"/></div>
+                    <div className="py-16 space-y-4 px-6">
+                      {<div className="rb-skeleton h-6 w-1/2 rounded-lg" />}
+                      {<div className="rb-skeleton h-4 w-3/4 rounded-md" />}
+                      {<div className="rb-skeleton h-4 w-2/3 rounded-md" />}
+                    </div>
                   ) : (
                     <>
                       {[
