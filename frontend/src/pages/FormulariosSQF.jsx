@@ -747,7 +747,7 @@ export default function FormulariosSQF({ onBack }) {
         setBillingAreas(prev => prev.map(area => {
             if (area.id !== id) return area;
             if (field === 'centro') {
-                return { ...area, centro: value, concepto: '', codigoCentro: CENTROS_FACTURACION[value]?.codigoCentro || '', codigoProducto: '' };
+                return { ...area, centro: value, concepto: '', valor: value ? '0' : '', codigoCentro: CENTROS_FACTURACION[value]?.codigoCentro || '', codigoProducto: '' };
             }
             if (field === 'concepto') {
                 const found = (CENTROS_FACTURACION[area.centro]?.productos || []).find(p => p.concepto === value);
@@ -848,8 +848,9 @@ export default function FormulariosSQF({ onBack }) {
         if (!billingCloser.trim()) { errors.billingCloser = 'Requerido'; isValid = false; }
 
         billingAreas.forEach(area => {
-            if (!area.centro.trim() || !area.concepto.trim() || !area.valor.trim()) {
-                showToastMsg('error', 'Campo Faltante', `Faltan datos en el área ${area.id}.`);
+            const valorNumerico = parseInt(String(area.valor).replace(/\D/g, '') || '0', 10);
+            if (!area.centro.trim() || !area.concepto.trim() || !area.valor.trim() || valorNumerico <= 0) {
+                showToastMsg('error', 'Campo Faltante', `Falta ingresar el valor del área ${area.id}.`);
                 isValid = false;
             }
         });
