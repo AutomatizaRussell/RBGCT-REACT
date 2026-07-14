@@ -815,13 +815,12 @@ export default function FormulariosSQF({ onBack }) {
 
         setBillingClientDocument(clientNit || '');
 
-        const val = contract?.value ? formatCurrency(contract.value) : '';
         setServiceType('');
         setBillingSellerDocument('');
         setBillingValorMes('');
 
         setBillingCloser(contract?.manager || '');
-        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val, codigoCentro: '', codigoProducto: '' }]);
+        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '', codigoCentro: '', codigoProducto: '' }]);
         setBillingMonthType('');
 
         showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
