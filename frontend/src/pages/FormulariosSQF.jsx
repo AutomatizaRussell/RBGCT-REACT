@@ -83,7 +83,8 @@ const CENTROS_FACTURACION = {
         codigoCentro: '01 - 0102',
         productos: [
             { codigo: '600', concepto: 'AE- HONORARIOS AUDITORÍA EXTERNA' },
-            { codigo: '601', concepto: 'AE- HONORARIOS AUDITORÍA FINANCIERA' }
+            { codigo: '601', concepto: 'AE- HONORARIOS AUDITORÍA FINANCIERA' },
+            { codigo: '602', concepto: 'AE- DICTAMEN PERICIAL' }
         ],
     },
     'CONTABILIDAD': {
