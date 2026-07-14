@@ -148,7 +148,8 @@ const CENTROS_FACTURACION = {
         codigoCentro: '07 - 0701',
         productos: [
             { codigo: '1100', concepto: 'FIN- OUTSOURCING FINANCIERO' },
-            { codigo: '1101', concepto: 'FIN- PRECIOS DE TRANSFERENCIA' }
+            { codigo: '1101', concepto: 'FIN- PRECIOS DE TRANSFERENCIA' },
+            { codigo: '1102', concepto: 'FIN- DICTAMEN PERICIAL' }
         ],
     },
     'ADMON': {
