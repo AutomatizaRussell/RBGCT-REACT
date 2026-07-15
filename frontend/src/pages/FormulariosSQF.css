@@ -736,6 +736,7 @@
   padding: 16px;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   gap: 12px;
   transition: all var(--transition);
   cursor: pointer;
