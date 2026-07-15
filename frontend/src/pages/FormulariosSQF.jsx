@@ -640,15 +640,96 @@ export default function FormulariosSQF({ onBack }) {
         return dv ? `${doc}-${dv}` : doc;
     };
 
+    const normalizeForSearch = (str) => String(str || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const levenshteinDistance = (a, b) => {
+        const m = a.length, n = b.length;
+        if (m === 0) return n;
+        if (n === 0) return m;
+        const row = Array.from({ length: n + 1 }, (_, j) => j);
+        for (let i = 1; i <= m; i++) {
+            let prevDiag = row[0];
+            row[0] = i;
+            for (let j = 1; j <= n; j++) {
+                const temp = row[j];
+                row[j] = a[i - 1] === b[j - 1] ? prevDiag : 1 + Math.min(prevDiag, row[j], row[j - 1]);
+                prevDiag = temp;
+            }
+        }
+        return row[n];
+    };
+
+    const wordSimilarity = (a, b) => {
+        const maxLen = Math.max(a.length, b.length);
+        return maxLen ? 1 - (levenshteinDistance(a, b) / maxLen) : 0;
+    };
+
+    const scoreClientNameMatch = (query, client) => {
+        const name = normalizeForSearch(client?.name);
+        if (!name) return 0;
+        if (name === query) return 100;
+        if (name.startsWith(query)) return 85;
+        if (name.includes(query)) return 65;
+
+        const queryWords = query.split(' ').filter(Boolean);
+        const nameWords = name.split(' ').filter(Boolean);
+        if (queryWords.length === 0 || nameWords.length === 0) return 0;
+
+        // Mejor coincidencia por palabra (exacta, prefijo, substring o similitud tipo-tolerante),
+        // en vez de comparar la consulta contra el nombre completo: así una errata en una sola
+        // palabra no se diluye entre el resto de palabras del nombre (p. ej. razones sociales largas).
+        const perWordScores = queryWords.map((qw) => {
+            let best = 0;
+            nameWords.forEach((nw) => {
+                if (nw === qw) best = Math.max(best, 1);
+                else if (nw.startsWith(qw) || nw.includes(qw)) best = Math.max(best, 0.85);
+                else best = Math.max(best, wordSimilarity(qw, nw));
+            });
+            return best;
+        });
+
+        const avgScore = perWordScores.reduce((sum, s) => sum + s, 0) / perWordScores.length;
+        return avgScore >= 0.5 ? avgScore * 60 : 0;
+    };
+
+    const findBestClientMatches = (rawQuery, clients) => {
+        const cleanDoc = String(rawQuery).replace(/\D/g, '');
+        if (cleanDoc.length >= 5) {
+            const exactDoc = clients.find((c) => {
+                const doc = String(c?.document || '').replace(/\D/g, '');
+                return doc && (doc === cleanDoc || cleanDoc.startsWith(doc));
+            });
+            if (exactDoc) return [{ client: exactDoc, score: 100 }];
+        }
+        const query = normalizeForSearch(rawQuery);
+        if (!query) return [];
+        return clients
+            .map(client => ({ client, score: scoreClientNameMatch(query, client) }))
+            .filter(m => m.score >= 30)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 5);
+    };
+
     const triggerLookup = () => {
         if (!String(nitLookupValue).trim()) {
             setNitLookupResult({ type: 'empty' });
             return;
         }
-        const cleanDoc = String(nitLookupValue).replace(/\D/g, '');
-        const found = validClients.find(c => String(c?.document || '').replace(/\D/g, '') === cleanDoc);
-        if (found) { setNitLookupResult({ type: 'found', client: found }); } 
-        else { setNitLookupResult({ type: 'error' }); }
+        const matches = findBestClientMatches(nitLookupValue, validClients);
+        if (matches.length === 0) {
+            setNitLookupResult({ type: 'error' });
+            return;
+        }
+        const isConfident = matches.length === 1 || (matches[0].score - (matches[1]?.score || 0) >= 25 && matches[0].score >= 65);
+        if (isConfident) {
+            setNitLookupResult({ type: 'found', client: matches[0].client });
+        } else {
+            setNitLookupResult({ type: 'multiple', matches: matches.map(m => m.client) });
+        }
     };
 
     const startContractForClient = (client) => {
@@ -1473,11 +1554,11 @@ export default function FormulariosSQF({ onBack }) {
                                     <button className="nit-modal-close" onClick={() => setIsNitModalOpen(false)}>✕</button>
                                 </div>
                                 <div className="lookup-body nit-modal-body">
-                                    <p className="nit-modal-desc">Para generar un contrato, es obligatorio verificar primero la existencia del cliente asociado.</p>
+                                    <p className="nit-modal-desc">Para generar un contrato, es obligatorio verificar primero la existencia del cliente asociado. Puede buscar por NIT o por nombre.</p>
                                     <div className="lookup-input-row nit-modal-input-row">
                                         <div className="lookup-input-wrapper">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="lookup-input-icon"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
-                                            <input type="text" className="form-input lookup-input" placeholder="Ingrese NIT o número..." value={nitLookupValue} onChange={(e) => { setNitLookupValue(e.target.value); setNitLookupResult(null); }} />
+                                            <input type="text" className="form-input lookup-input" placeholder="Ingrese NIT o nombre del cliente..." value={nitLookupValue} onChange={(e) => { setNitLookupValue(e.target.value); setNitLookupResult(null); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); triggerLookup(); } }} />
                                         </div>
                                         <button className="btn-primary btn-lookup" onClick={triggerLookup}>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="btn-icon"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg> Buscar
@@ -1491,6 +1572,22 @@ export default function FormulariosSQF({ onBack }) {
                                             </div>
                                         </div>
                                     )}
+                                    {nitLookupResult?.type === 'multiple' && (
+                                        <div className="lookup-result multiple">
+                                            <strong>Varias coincidencias, seleccione el cliente correcto:</strong>
+                                            <div className="lookup-match-list">
+                                                {nitLookupResult.matches.map((c) => (
+                                                    <button type="button" key={c.id} className="lookup-match-item" onClick={() => startContractForClient(c)}>
+                                                        <span className="table-avatar">{getInitials(c?.name)}</span>
+                                                        <span className="lookup-match-info">
+                                                            <strong>{c?.name || ''}</strong>
+                                                            <small>NIT: {formatNitDv(c)}</small>
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                     {nitLookupResult?.type === 'error' && (
                                         <div className="lookup-result error">
                                             <strong>✖ Cliente No Encontrado</strong><p style={{ marginTop: '5px', fontSize: '14px' }}>Registre el cliente primero en el menú superior de Clientes.</p>
@@ -1498,7 +1595,7 @@ export default function FormulariosSQF({ onBack }) {
                                     )}
                                     {nitLookupResult?.type === 'empty' && (
                                         <div className="lookup-result error">
-                                            <strong>✖ Ingrese un documento válido.</strong>
+                                            <strong>✖ Ingrese un NIT o nombre válido.</strong>
                                         </div>
                                     )}
                                 </div>
