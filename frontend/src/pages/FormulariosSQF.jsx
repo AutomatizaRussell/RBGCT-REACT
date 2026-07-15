@@ -212,7 +212,7 @@ export default function FormulariosSQF({ onBack }) {
     const [contracts, setContracts] = useState([]);
     const [pendingClients, setPendingClients] = useState([]);
     const [pendingContracts, setPendingContracts] = useState([]);
-    const [pendingValidationNit, setPendingValidationNit] = useState(null);
+    const [pendingValidationId, setPendingValidationId] = useState(null);
     const [selectedClientForContract, setSelectedClientForContract] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -232,7 +232,7 @@ export default function FormulariosSQF({ onBack }) {
     const [nitLookupValue, setNitLookupValue] = useState('');
     const [nitLookupResult, setNitLookupResult] = useState(null);
 
-    const [billingReqType, setBillingReqType] = useState('facturacion');
+    const [billingReqType, setBillingReqType] = useState('');
     const [billingModality, setBillingModality] = useState('');
     const [billingType, setBillingType] = useState('');
     const [billingClientType, setBillingClientType] = useState('');
@@ -577,7 +577,7 @@ export default function FormulariosSQF({ onBack }) {
         let errors = {};
         let isValid = true;
 
-        const reqFields = ['document', 'name', 'contactName', 'contactRole', 'economicGroup', 'email', 'phone', 'address'];
+        const reqFields = ['clientType', 'document', 'name', 'contactName', 'contactRole', 'economicGroup', 'email', 'phone', 'address'];
         reqFields.forEach(f => {
             if (!formData.get(f)?.trim()) { errors[f] = 'Este campo es requerido'; isValid = false; }
         });
@@ -759,7 +759,7 @@ export default function FormulariosSQF({ onBack }) {
         
         const form = e.target;
         const formData = new FormData(form);
-        const reqFields = ['economicGroup', 'name', 'value', 'manager', 'service'];
+        const reqFields = ['contractType', 'economicGroup', 'name', 'value', 'manager', 'service'];
         reqFields.forEach(f => {
             if (!formData.get(f)?.trim()) { errors[f] = 'Este campo es requerido'; isValid = false; }
         });
@@ -854,7 +854,7 @@ export default function FormulariosSQF({ onBack }) {
     };
 
     const resetBillingForm = () => {
-        setBillingReqType('facturacion'); setBillingModality(''); setBillingType(''); setBillingClientType('');
+        setBillingReqType(''); setBillingModality(''); setBillingType(''); setBillingClientType('');
         setBillingClientName(''); setBillingCompany(''); setSaleType('');
         setBillingClientDocument(''); setBillingObservations('');
         setServiceType(''); setBillingValorMes('');
@@ -1089,7 +1089,7 @@ export default function FormulariosSQF({ onBack }) {
         }
 
         const loggedUserMeta = getLoggedUserMeta();
-        setPendingValidationNit(nit);
+        setPendingValidationId(clientItem?.id);
         try {
             await fetchApi('/n8n-proxy/?action=pendientes', {
                 method: 'POST',
@@ -1106,12 +1106,15 @@ export default function FormulariosSQF({ onBack }) {
             });
             showToastMsg('success', 'Validación enviada', 'Se envió la validación de creación.');
 
-            setPendingClients((prev) => prev.filter((p) => String(p?.document || p?.Documento || '') !== nit));
+            // Se filtra por id (no por NIT): dos solicitudes pendientes pueden compartir
+            // el mismo NIT o venir sin NIT, y filtrar por ese valor borraba de la lista
+            // local cualquier otra solicitud que calzara, no solo la que se validó.
+            setPendingClients((prev) => prev.filter((p) => p?.id !== clientItem?.id));
             await refreshPendings();
         } catch (e) {
             showToastMsg('error', 'Error de Conexión', e?.message || 'No se pudo validar la creación.');
         } finally {
-            setPendingValidationNit(null);
+            setPendingValidationId(null);
         }
     };
 
@@ -1119,13 +1122,13 @@ export default function FormulariosSQF({ onBack }) {
         const nombre = String(contractItem?.clientName || contractItem?.name || contractItem?.Nombre || '').trim();
         const nit = String(contractItem?.clientDocument || contractItem?.document || contractItem?.Documento || '').trim();
 
-        if (!nombre) {
-            showToastMsg('error', 'Datos incompletos', 'No se encontró el nombre del cliente para validar el contrato.');
+        if (!nombre || !nit) {
+            showToastMsg('error', 'Datos incompletos', 'No se encontró el NIT del cliente para validar el contrato. Verifique el cliente asociado antes de validar.');
             return;
         }
 
         const loggedUserMeta = getLoggedUserMeta();
-        setPendingValidationNit(nit);
+        setPendingValidationId(contractItem?.id);
         try {
             const payload = new FormData();
             payload.append('nit', nit);
@@ -1144,12 +1147,15 @@ export default function FormulariosSQF({ onBack }) {
             });
 
             showToastMsg('success', 'Validación enviada', 'Se envió la validación de contrato.');
-            setPendingContracts((prev) => prev.filter((p) => String(p?.clientDocument || p?.document || p?.Documento || '') !== nit));
+            // Se filtra por id, no por NIT: varios contratos pendientes pueden compartir
+            // el NIT del mismo cliente, o venir sin NIT, y antes eso hacía que "Validar"
+            // hiciera desaparecer de la lista TODOS los que calzaran, no solo el elegido.
+            setPendingContracts((prev) => prev.filter((p) => p?.id !== contractItem?.id));
             await refreshPendings();
         } catch (e) {
             showToastMsg('error', 'Error de Conexión', e?.message || 'No se pudo validar el contrato.');
         } finally {
-            setPendingValidationNit(null);
+            setPendingValidationId(null);
         }
     };
 
@@ -1317,9 +1323,10 @@ export default function FormulariosSQF({ onBack }) {
                                     <div className="form-group full-width">
                                         <label className="form-label required">Tipo de Contribuyente</label>
                                         <div className="radio-group">
-                                            <label className="radio-option"><input type="radio" name="clientType" value="natural" defaultChecked /><span className="radio-custom"></span><span className="radio-text"><strong>Persona Natural</strong><small>Cédula de ciudadanía</small></span></label>
+                                            <label className="radio-option"><input type="radio" name="clientType" value="natural" /><span className="radio-custom"></span><span className="radio-text"><strong>Persona Natural</strong><small>Cédula de ciudadanía</small></span></label>
                                             <label className="radio-option"><input type="radio" name="clientType" value="juridica" /><span className="radio-custom"></span><span className="radio-text"><strong>Persona Jurídica</strong><small>NIT de empresa</small></span></label>
                                         </div>
+                                        <span className="field-error">{clientErrors.clientType}</span>
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label required">NIT Empresa / Documento</label>
@@ -1622,13 +1629,14 @@ export default function FormulariosSQF({ onBack }) {
                                     <div className="form-group full-width">
                                         <label className="form-label required">Tipo de Contrato</label>
                                         <div className="radio-group radio-group-col">
-                                            <label className="radio-option"><input type="radio" name="contractType" value="Mensual" defaultChecked /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Facturación recurrente mensual fija</small></span></label>
+                                            <label className="radio-option"><input type="radio" name="contractType" value="Mensual" /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Facturación recurrente mensual fija</small></span></label>
                                             <label className="radio-option"><input type="radio" name="contractType" value="Proyecto" /><span className="radio-custom"></span><span className="radio-text"><strong>Proyecto</strong><small>Alcance y entregables definidos</small></span></label>
                                             <label className="radio-option"><input type="radio" name="contractType" value="Horas trabajadas" /><span className="radio-custom"></span><span className="radio-text"><strong>Horas Trabajadas</strong><small>Facturación por horas consumidas</small></span></label>
                                             <label className="radio-option"><input type="radio" name="contractType" value="Mensual + horas" /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual + Horas</strong><small>Base fija más horas adicionales</small></span></label>
                                             <label className="radio-option"><input type="radio" name="contractType" value="Horas trabajadas por cargo" /><span className="radio-custom"></span><span className="radio-text"><strong>Horas por Cargo</strong><small>Horas diferenciadas por tipo de cargo</small></span></label>
                                             <label className="radio-option"><input type="radio" name="contractType" value="Cantidad vs Precio unitario" /><span className="radio-custom"></span><span className="radio-text"><strong>Cantidad vs. Precio Unitario</strong><small>Cantidad de unidades por precio</small></span></label>
                                         </div>
+                                        <span className="field-error">{contractErrors.contractType}</span>
                                     </div>
 
                                     <div className="form-group full-width">
@@ -1884,7 +1892,7 @@ export default function FormulariosSQF({ onBack }) {
 
                     <div id="billing-content" className={validContracts.length === 0 ? 'is-hidden' : ''}>
                         <div className="billing-step-card">
-                            <h2 className="billing-step-title">{renderStepPill(1, true)} ¿Qué deseas solicitar?</h2>
+                            <h2 className="billing-step-title">{renderStepPill(1, Boolean(billingReqType))} ¿Qué deseas solicitar?</h2>
                             <div className="radio-group radio-group-col">
                                 <label className="radio-option"><input type="radio" value="facturacion" checked={billingReqType === 'facturacion'} onChange={(e) => setBillingReqType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Facturación</strong><small>Solicitud de factura por servicio nuevo o actual</small></span></label>
                                 <label className="radio-option"><input type="radio" value="nota-credito" checked={billingReqType === 'nota-credito'} onChange={(e) => setBillingReqType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Nota Crédito</strong><small>Aplicar nota crédito a una factura existente</small></span></label>
@@ -2107,7 +2115,7 @@ export default function FormulariosSQF({ onBack }) {
                                     </form>
                                 </div>
                             </>
-                        ) : (
+                        ) : billingReqType === 'nota-credito' ? (
                             <div className="form-card">
                                 <div className="form-card-header">
                                     <h2 className="form-card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="form-card-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="12" y1="17" x2="8" y2="17" /><line x1="12" y1="13" x2="8" y2="13" /></svg> Solicitud de Nota Crédito</h2>
@@ -2128,6 +2136,10 @@ export default function FormulariosSQF({ onBack }) {
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        ) : (
+                            <div className="billing-step-card">
+                                <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', margin: 0 }}>Selecciona una opción arriba para continuar.</p>
                             </div>
                         )}
                     </div>
@@ -2152,7 +2164,7 @@ export default function FormulariosSQF({ onBack }) {
                                         {auditClients.map((c, i) => {
                                             const isPending = c?.status !== 'Validado';
                                             return (
-                                                <div key={i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('client'); }}>
+                                                <div key={c?.id || i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('client'); }}>
                                                     <div className="auditor-card-header">
                                                         <div className="auditor-card-heading"><h4 className="auditor-item-title">{c?.name || ''}</h4><p className="auditor-item-subtitle">NIT: {c?.document || ''}</p></div>
                                                         <span className={`status-badge ${isPending ? 'pending' : 'validated'}`}>{c?.status || 'Pendiente'}</span>
@@ -2163,10 +2175,10 @@ export default function FormulariosSQF({ onBack }) {
                                                             <button
                                                                 className="btn-validate"
                                                                 type="button"
-                                                                disabled={pendingValidationNit === String(c?.document || c?.Documento || '')}
+                                                                disabled={pendingValidationId === c?.id}
                                                                 onClick={(e) => { e.stopPropagation(); validateClientCreation(c); }}
                                                             >
-                                                                {pendingValidationNit === String(c?.document || c?.Documento || '') ? 'Validando...' : 'Validar creación'}
+                                                                {pendingValidationId === c?.id ? 'Validando...' : 'Validar creación'}
                                                             </button>
                                                         ) : (
                                                             <span className="validated-info">Validado</span>
@@ -2196,7 +2208,7 @@ export default function FormulariosSQF({ onBack }) {
                                             const clientName = c?.clientName || c?.Cliente || '';
 
                                             return (
-                                                <div key={i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('contract'); }}>
+                                                <div key={c?.id || i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('contract'); }}>
                                                     <div className="auditor-card-header">
                                                         <div className="auditor-card-heading">
                                                             <h4 className="auditor-item-title">{contractName}</h4>
@@ -2217,10 +2229,10 @@ export default function FormulariosSQF({ onBack }) {
                                                             <button
                                                                 className="btn-validate"
                                                                 type="button"
-                                                                disabled={pendingValidationNit === String(clientDoc)}
+                                                                disabled={pendingValidationId === c?.id}
                                                                 onClick={(e) => { e.stopPropagation(); validateContractCreation(c); }}
                                                             >
-                                                                {pendingValidationNit === String(clientDoc) ? 'Validando...' : 'Validar'}
+                                                                {pendingValidationId === c?.id ? 'Validando...' : 'Validar'}
                                                             </button>
                                                         ) : (
                                                             <span className="validated-info">Validado</span>
@@ -2284,7 +2296,7 @@ export default function FormulariosSQF({ onBack }) {
                                 <button
                                     type="button"
                                     className="btn-primary"
-                                    disabled={pendingValidationNit === String(auditorModalItem?.clientDocument || auditorModalItem?.document || '')}
+                                    disabled={pendingValidationId === auditorModalItem?.id}
                                     onClick={() => {
                                         if (auditorModalType === 'client') {
                                             validateClientCreation(auditorModalItem);
@@ -2294,7 +2306,7 @@ export default function FormulariosSQF({ onBack }) {
                                         setAuditorModalItem(null);
                                     }}
                                 >
-                                    {pendingValidationNit === String(auditorModalItem?.clientDocument || auditorModalItem?.document || '') ? 'Validando...' : 'Validar'}
+                                    {pendingValidationId === auditorModalItem?.id ? 'Validando...' : 'Validar'}
                                 </button>
                             )}
                         </div>
