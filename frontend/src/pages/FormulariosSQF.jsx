@@ -253,6 +253,9 @@ export default function FormulariosSQF({ onBack }) {
     const [crossSalePersonName, setCrossSalePersonName] = useState('');
 
     const isCrossSale = saleType === 'Venta cruzada' || ['0303', '0404'].includes(serviceType);
+    const billingAreasTotal = billingAreas.reduce((sum, a) => sum + (parseInt(String(a.valor).replace(/\D/g, '') || '0', 10)), 0);
+    const isBillingStep2Complete = Boolean(billingType && billingClientType);
+    const isBillingStep3Complete = Boolean(billingModality);
 
     const [auditorModalItem, setAuditorModalItem] = useState(null);
     const [auditorModalType, setAuditorModalType] = useState('');
@@ -519,6 +522,16 @@ export default function FormulariosSQF({ onBack }) {
         if (!isoStr) return '';
         const d = new Date(`${isoStr}T00:00:00`);
         return isNaN(d) ? String(isoStr) : d.toLocaleDateString('es-CO');
+    };
+
+    const getVigenciaStatus = (endDate) => {
+        if (!endDate) return { label: 'Indefinida', className: 'indefinida' };
+        const end = new Date(`${endDate}T00:00:00`);
+        if (isNaN(end)) return { label: 'Indefinida', className: 'indefinida' };
+        const diffDays = Math.ceil((end - new Date()) / 86400000);
+        if (diffDays < 0) return { label: 'Vencido', className: 'vencido' };
+        if (diffDays <= 30) return { label: 'Por vencer', className: 'por-vencer' };
+        return { label: 'Vigente', className: 'vigente' };
     };
 
     const getLoggedUserMeta = () => {
@@ -1147,6 +1160,22 @@ export default function FormulariosSQF({ onBack }) {
         return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
     };
 
+    const renderStepPill = (number, isComplete) => (
+        <span className={`step-pill ${isComplete ? 'complete' : ''}`}>
+            {isComplete ? '✓' : number}
+        </span>
+    );
+
+    const renderSkeletonRows = (columnCount, rows = 4) => (
+        Array.from({ length: rows }).map((_, i) => (
+            <tr key={`skeleton-${i}`}>
+                {Array.from({ length: columnCount }).map((__, j) => (
+                    <td key={j}><div className="loading-skeleton skeleton-bar" style={{ width: `${60 + ((i + j) % 3) * 12}%` }}></div></td>
+                ))}
+            </tr>
+        ))
+    );
+
     // ==========================================
     // RENDERIZADO PRINCIPAL
     // ==========================================
@@ -1317,10 +1346,19 @@ export default function FormulariosSQF({ onBack }) {
                             </div>
                         </div>
                         <div>
-                            {filteredClients.length === 0 ? (
+                            {isLoading ? (
+                                <div className="profile-scroll history-scroll-container">
+                                    <table className="profile-table">
+                                        <thead>
+                                            <tr><th>Cliente / Razón Social</th><th>NIT / Documento</th><th>Correo Electrónico</th><th>Teléfono</th></tr>
+                                        </thead>
+                                        <tbody>{renderSkeletonRows(4)}</tbody>
+                                    </table>
+                                </div>
+                            ) : filteredClients.length === 0 ? (
                                 <div className="empty-state">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="empty-icon"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                                    <p>{isLoading ? 'Cargando datos...' : 'No hay clientes registrados.'}</p>
+                                    <p>No hay clientes registrados.</p>
                                 </div>
                             ) : (
                                 <div className="profile-scroll history-scroll-container">
@@ -1331,7 +1369,12 @@ export default function FormulariosSQF({ onBack }) {
                                         <tbody>
                                             {filteredClients.map((c, i) => (
                                                 <tr key={i} onClick={() => { setAuditorModalItem(c); setAuditorModalType('client'); }} style={{ cursor: 'pointer' }} title="Haga clic para ver detalles">
-                                                    <td className="td-wrap"><strong>{c?.name || ''}</strong> {c?.source === 'historico' && <span className="type-chip historico" title="Cliente Histórico">H</span>}</td>
+                                                    <td className="td-wrap">
+                                                        <div className="table-identity">
+                                                            <span className="table-avatar">{getInitials(c?.name)}</span>
+                                                            <span><strong>{c?.name || ''}</strong> {c?.source === 'historico' && <span className="type-chip historico" title="Cliente Histórico">H</span>}</span>
+                                                        </div>
+                                                    </td>
                                                     <td>{c?.document || ''}</td>
                                                     <td>{c?.email || ''}</td>
                                                     <td>{c?.phone || ''}</td>
@@ -1607,10 +1650,19 @@ export default function FormulariosSQF({ onBack }) {
                             </div>
                         </div>
                         <div>
-                            {filteredContracts.length === 0 ? (
+                            {isLoading ? (
+                                <div className="profile-scroll history-scroll-container">
+                                    <table className="profile-table">
+                                        <thead>
+                                            <tr><th>Nombre del Contrato</th><th>Cliente Vinculado</th><th>Tipo</th><th>Valor (COP)</th><th>Vigencia</th><th>Acciones</th></tr>
+                                        </thead>
+                                        <tbody>{renderSkeletonRows(6)}</tbody>
+                                    </table>
+                                </div>
+                            ) : filteredContracts.length === 0 ? (
                                 <div className="empty-state">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="empty-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
-                                    <p>{isLoading ? 'Cargando contratos...' : 'No hay contratos registrados aún.'}</p>
+                                    <p>No hay contratos registrados aún.</p>
                                 </div>
                             ) : (
                                 <div className="profile-scroll history-scroll-container">
@@ -1627,11 +1679,14 @@ export default function FormulariosSQF({ onBack }) {
                                                     <td><span className="card-value">{c?.valueFormatted || formatCurrencyDisplay(c?.value)}</span></td>
                                                     <td className="td-nowrap">
                                                         {c?.startDate ? (
-                                                            <span className="vigencia-range">
-                                                                <span>{formatDateOnly(c.startDate)}</span>
-                                                                <span className="vigencia-sep">–</span>
-                                                                <span>{c?.endDate ? formatDateOnly(c.endDate) : 'Indefinida'}</span>
-                                                            </span>
+                                                            <div className="vigencia-cell">
+                                                                <span className="vigencia-range">
+                                                                    <span>{formatDateOnly(c.startDate)}</span>
+                                                                    <span className="vigencia-sep">–</span>
+                                                                    <span>{c?.endDate ? formatDateOnly(c.endDate) : 'Indefinida'}</span>
+                                                                </span>
+                                                                <span className={`status-badge ${getVigenciaStatus(c?.endDate).className}`}>{getVigenciaStatus(c?.endDate).label}</span>
+                                                            </div>
                                                         ) : '—'}
                                                     </td>
                                                     <td>
@@ -1732,7 +1787,7 @@ export default function FormulariosSQF({ onBack }) {
 
                     <div id="billing-content" className={validContracts.length === 0 ? 'is-hidden' : ''}>
                         <div className="billing-step-card">
-                            <h2 className="billing-step-title"><span className="step-pill">1</span> ¿Qué deseas solicitar?</h2>
+                            <h2 className="billing-step-title">{renderStepPill(1, true)} ¿Qué deseas solicitar?</h2>
                             <div className="radio-group radio-group-col">
                                 <label className="radio-option"><input type="radio" value="facturacion" checked={billingReqType === 'facturacion'} onChange={(e) => setBillingReqType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Facturación</strong><small>Solicitud de factura por servicio nuevo o actual</small></span></label>
                                 <label className="radio-option"><input type="radio" value="nota-credito" checked={billingReqType === 'nota-credito'} onChange={(e) => setBillingReqType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Nota Crédito</strong><small>Aplicar nota crédito a una factura existente</small></span></label>
@@ -1741,8 +1796,8 @@ export default function FormulariosSQF({ onBack }) {
 
                         {billingReqType === 'facturacion' ? (
                             <>
-                                <div className="billing-step-card">
-                                    <h2 className="billing-step-title"><span className="step-pill">2</span> Detalles de la Facturación</h2>
+                                <div className={`billing-step-card ${!isBillingStep2Complete ? 'current' : ''}`}>
+                                    <h2 className="billing-step-title">{renderStepPill(2, isBillingStep2Complete)} Detalles de la Facturación</h2>
                                     <div className="form-grid">
                                         <div className="form-group full-width">
                                             <label className="form-label required">Tipo de Facturación</label>
@@ -1764,8 +1819,8 @@ export default function FormulariosSQF({ onBack }) {
                                     </div>
                                 </div>
 
-                                <div className="billing-step-card">
-                                    <h2 className="billing-step-title"><span className="step-pill">3</span> Modalidad de Facturación</h2>
+                                <div className={`billing-step-card ${isBillingStep2Complete && !isBillingStep3Complete ? 'current' : ''}`}>
+                                    <h2 className="billing-step-title">{renderStepPill(3, isBillingStep3Complete)} Modalidad de Facturación</h2>
                                     <div className="radio-group radio-group-col">
                                         <label className="radio-option"><input type="radio" value="Proyecto" checked={billingModality === 'Proyecto'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Proyecto</strong><small>Factura única vez</small></span></label>
                                         <label className="radio-option"><input type="radio" value="Mensual" checked={billingModality === 'Mensual'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Se incluye en la facturación mensual</small></span></label>
@@ -1942,6 +1997,7 @@ export default function FormulariosSQF({ onBack }) {
                                                     </div>
                                                 ))}
                                             </div>
+                                            <div className="areas-subtotal">Subtotal áreas: <strong>{formatCurrencyDisplay(billingAreasTotal)}</strong></div>
                                         </div>
 
                                         <div className="form-actions">
@@ -1990,7 +2046,7 @@ export default function FormulariosSQF({ onBack }) {
                     </div>
                     <div className="auditor-columns">
                         <div className="list-card">
-                            <div className="list-header"><h2 className="list-title">Solicitudes de Clientes</h2></div>
+                            <div className="list-header"><h2 className="list-title">Solicitudes de Clientes <span className="count-badge">{auditClients.length}</span></h2></div>
                             <div>
                                 {auditClients.length === 0 ? (
                                     <div className="empty-state"><p>No hay solicitudes nuevas de clientes.</p></div>
@@ -2028,7 +2084,7 @@ export default function FormulariosSQF({ onBack }) {
                         </div>
 
                         <div className="list-card">
-                            <div className="list-header"><h2 className="list-title">Solicitudes de Contratos</h2></div>
+                            <div className="list-header"><h2 className="list-title">Solicitudes de Contratos <span className="count-badge">{auditContracts.length}</span></h2></div>
                             <div>
                                 {auditContracts.length === 0 ? (
                                     <div className="empty-state"><p>No hay solicitudes de contratos.</p></div>
