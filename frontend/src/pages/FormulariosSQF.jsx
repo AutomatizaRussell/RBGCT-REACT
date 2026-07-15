@@ -866,7 +866,7 @@ export default function FormulariosSQF({ onBack }) {
 
     const sendContractToBilling = (contract) => {
         setActiveSection('billing');
-        setBillingReqType('facturacion');
+        setBillingReqType('');
 
         const clientName = contract?.clientName || '';
         setBillingClientName(clientName);
