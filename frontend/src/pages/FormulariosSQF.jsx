@@ -1263,6 +1263,12 @@ export default function FormulariosSQF({ onBack }) {
         ))
     );
 
+    const renderColGroup = (widths) => (
+        <colgroup>
+            {widths.map((w, i) => <col key={i} style={{ width: w }} />)}
+        </colgroup>
+    );
+
     // ==========================================
     // RENDERIZADO PRINCIPAL
     // ==========================================
@@ -1437,6 +1443,7 @@ export default function FormulariosSQF({ onBack }) {
                             {isLoading ? (
                                 <div className="profile-scroll history-scroll-container">
                                     <table className="profile-table">
+                                        {renderColGroup(['32%', '16%', '34%', '18%'])}
                                         <thead>
                                             <tr><th>Cliente / Razón Social</th><th>NIT / Documento</th><th>Correo Electrónico</th><th>Teléfono</th></tr>
                                         </thead>
@@ -1451,6 +1458,7 @@ export default function FormulariosSQF({ onBack }) {
                             ) : (
                                 <div className="profile-scroll history-scroll-container">
                                     <table className="profile-table">
+                                        {renderColGroup(['32%', '16%', '34%', '18%'])}
                                         <thead>
                                             <tr><th>Cliente / Razón Social</th><th>NIT / Documento</th><th>Correo Electrónico</th><th>Teléfono</th></tr>
                                         </thead>
@@ -1463,9 +1471,9 @@ export default function FormulariosSQF({ onBack }) {
                                                             <span><strong>{c?.name || ''}</strong> {c?.source === 'historico' && <span className="type-chip historico" title="Cliente Histórico">H</span>}</span>
                                                         </div>
                                                     </td>
-                                                    <td>{c?.document || ''}</td>
-                                                    <td>{c?.email || ''}</td>
-                                                    <td>{c?.phone || ''}</td>
+                                                    <td className="td-truncate" title={c?.document || ''}>{c?.document || ''}</td>
+                                                    <td className="td-truncate" title={c?.email || ''}>{c?.email || ''}</td>
+                                                    <td className="td-truncate" title={c?.phone || ''}>{c?.phone || ''}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -1502,6 +1510,7 @@ export default function FormulariosSQF({ onBack }) {
                             ) : (
                                 <div className="history-scroll-container">
                                     <table className="profile-table">
+                                        {renderColGroup(['6%', '30%', '26%', '20%', '18%'])}
                                         <thead>
                                             <tr>
                                                 <th>#</th>
@@ -1524,7 +1533,7 @@ export default function FormulariosSQF({ onBack }) {
                                                     <tr key={i}>
                                                         <td className="td-muted">{i + 1}</td>
                                                         <td className="td-wrap"><strong>{c?.name || '—'}</strong></td>
-                                                        <td>{c?.solicitante_nombre || '—'}</td>
+                                                        <td className="td-truncate" title={c?.solicitante_nombre || ''}>{c?.solicitante_nombre || '—'}</td>
                                                         <td className="td-nowrap">{formatDateSafe(c?.createdAt) || '—'}</td>
                                                         <td><span className={`status-badge ${c?.status === 'Validado' ? 'validated' : 'pending'}`}>{c?.status || '—'}</span></td>
                                                     </tr>
@@ -1758,6 +1767,7 @@ export default function FormulariosSQF({ onBack }) {
                             {isLoading ? (
                                 <div className="profile-scroll history-scroll-container">
                                     <table className="profile-table">
+                                        {renderColGroup(['22%', '18%', '12%', '14%', '18%', '16%'])}
                                         <thead>
                                             <tr><th>Nombre del Contrato</th><th>Cliente Vinculado</th><th>Tipo</th><th>Valor (COP)</th><th>Vigencia</th><th>Acciones</th></tr>
                                         </thead>
@@ -1772,6 +1782,7 @@ export default function FormulariosSQF({ onBack }) {
                             ) : (
                                 <div className="profile-scroll history-scroll-container">
                                     <table className="profile-table">
+                                        {renderColGroup(['22%', '18%', '12%', '14%', '18%', '16%'])}
                                         <thead>
                                             <tr><th>Nombre del Contrato</th><th>Cliente Vinculado</th><th>Tipo</th><th>Valor (COP)</th><th>Vigencia</th><th>Acciones</th></tr>
                                         </thead>
@@ -1779,7 +1790,7 @@ export default function FormulariosSQF({ onBack }) {
                                             {filteredContracts.map((c, i) => (
                                                 <tr key={i} onClick={() => { setAuditorModalItem(c); setAuditorModalType('contract'); }} style={{ cursor: 'pointer' }} title="Haga clic para ver detalles">
                                                     <td className="td-wrap"><strong>{c?.name || ''}</strong></td>
-                                                    <td>{c?.clientName || ''}</td>
+                                                    <td className="td-truncate" title={c?.clientName || ''}>{c?.clientName || ''}</td>
                                                     <td><span className="type-chip">{c?.contractType || ''}</span></td>
                                                     <td><span className="card-value">{c?.valueFormatted || formatCurrencyDisplay(c?.value)}</span></td>
                                                     <td className="td-nowrap">
@@ -1836,6 +1847,7 @@ export default function FormulariosSQF({ onBack }) {
                             ) : (
                                 <div className="history-scroll-container">
                                     <table className="profile-table">
+                                        {renderColGroup(['5%', '22%', '20%', '20%', '18%', '15%'])}
                                         <thead>
                                             <tr>
                                                 <th>#</th>
@@ -1859,8 +1871,8 @@ export default function FormulariosSQF({ onBack }) {
                                                     <tr key={i}>
                                                         <td className="td-muted">{i + 1}</td>
                                                         <td className="td-wrap"><strong>{c?.name || '—'}</strong></td>
-                                                        <td>{c?.clientName || '—'}</td>
-                                                        <td>{c?.solicitante_nombre || '—'}</td>
+                                                        <td className="td-truncate" title={c?.clientName || ''}>{c?.clientName || '—'}</td>
+                                                        <td className="td-truncate" title={c?.solicitante_nombre || ''}>{c?.solicitante_nombre || '—'}</td>
                                                         <td className="td-nowrap">{formatDateSafe(c?.createdAt) || '—'}</td>
                                                         <td><span className={`status-badge ${c?.status === 'Validado' ? 'validated' : 'pending'}`}>{c?.status || '—'}</span></td>
                                                     </tr>

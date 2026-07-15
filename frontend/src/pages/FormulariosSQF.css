@@ -536,6 +536,7 @@
   width: 100%;
   min-width: 560px;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 13px;
 }
 .profile-table thead th {
@@ -546,7 +547,8 @@
   text-transform: uppercase;
   letter-spacing: .04em;
   padding: 12px 14px;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: break-word;
   border-bottom: 2px solid var(--color-blue-light);
   text-align: left;
   /* Encabezado fijo: no se pierde de vista al hacer scroll dentro de la tabla */
@@ -591,6 +593,7 @@
   letter-spacing: 0.2px;
 }
 .td-muted { color: var(--color-text-muted); font-weight: 600; }
+.td-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .td-nowrap { white-space: nowrap; }
 .vigencia-range { display: inline-flex; align-items: baseline; gap: 6px; }
 .vigencia-sep { color: var(--color-text-light); }
