@@ -22,9 +22,6 @@
   --color-text-light:  #8892b0;
   --gradient-header:   linear-gradient(135deg, #001871 0%, #003fa7 50%, #001560 100%);
   --gradient-btn:      linear-gradient(135deg, #00a9ce 0%, #001871 100%);
-  --gradient-accent:   linear-gradient(90deg, #00bfb3, #00a9ce);
-  --gradient-orange:   linear-gradient(135deg, #e67e22, #d35400);
-  --gradient-purple:   linear-gradient(135deg, #981d97, #c2185b);
   --radius-sm:  8px;
   --radius-md:  14px;
   --radius-lg:  20px;
@@ -974,48 +971,6 @@
 }
 
 /* ============================================================
-   ITEMS TABLE BILLING OPTIMIZATION
-   ============================================================ */
-.items-table .item-row {
-    padding: 12px;
-    background: var(--color-surface);
-    border: 1.5px solid var(--color-border);
-    border-radius: var(--radius-md);
-    transition: all var(--transition);
-}
-
-.items-table .item-row:hover {
-    border-color: var(--color-blue-light);
-    background: var(--color-surface-2);
-}
-
-.items-table .form-select {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238892b0' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 16px;
-    padding-right: 36px !important;
-    cursor: pointer;
-}
-
-.items-table .btn-ghost {
-    background: none;
-    border: 1px solid rgba(229,62,62,.2);
-    color: var(--color-danger);
-    padding: 6px 8px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-weight: 600;
-    transition: all var(--transition);
-}
-
-.items-table .btn-ghost:hover {
-    background: rgba(229,62,62,.1);
-    border-color: var(--color-danger);
-}
-
-/* ============================================================
    HISTÓRICO CON SCROLL INTERNO Y FILTROS DE FECHA
    ============================================================ */
 .history-scroll-container {
@@ -1083,7 +1038,6 @@
     from { opacity: 0; transform: translateX(120px) translateY(0); }
     to { opacity: 1; transform: translateX(0) translateY(0); }
 }
-@keyframes nitModalFadeIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }

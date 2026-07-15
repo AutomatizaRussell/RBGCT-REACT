@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FormulariosSQF.css';
 import { useAuth } from '../hooks/useAuth';
@@ -46,23 +46,6 @@ const calculateBusinessDaysDate = (startDate, businessDays) => {
 
     return date.toISOString().split('T')[0];
 };
-
-const BILLING_DESCRIPTIONS = [
-    { name: 'Auditoría Financiera', code: 'AUD-001' },
-    { name: 'Asesoría Fiscal', code: 'ASE-002' },
-    { name: 'Asesoría Laboral', code: 'ASE-003' },
-    { name: 'Asesoría Contable', code: 'ASE-004' },
-    { name: 'Consultoría Empresarial', code: 'CON-005' },
-    { name: 'Auditoría de Nómina', code: 'AUD-006' },
-    { name: 'Revisoría Fiscal', code: 'REV-007' },
-    { name: 'Asesoría Administrativa', code: 'ASE-008' },
-    { name: 'Servicios de Outsourcing', code: 'OUT-009' },
-    { name: 'Servicios Legales', code: 'SLG-010' },
-    { name: 'Valoración de empresas', code: 'VAL-011' },
-    { name: 'Dictamen Pericianl', code: 'DIP-012' },
-    { name: 'Auditoría Forense', code: 'AUF-013' },
-    { name: 'Otros Servicios', code: 'OTR-010' }
-]; 
 
 const CONTRACT_ROLES = [
     'Socio',
@@ -256,10 +239,7 @@ export default function FormulariosSQF({ onBack }) {
     const [billingClientName, setBillingClientName] = useState('');
     const [billingCompany, setBillingCompany] = useState('');
     const [billingClientDocument, setBillingClientDocument] = useState('');
-    const [billingDueDate, setBillingDueDate] = useState('');
     const [billingObservations, setBillingObservations] = useState('');
-    // Items deshabilitado temporalmente (no se usa por ahora)
-    // const [billingItems, setBillingItems] = useState([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
     const [saleType, setSaleType] = useState('');
     const [serviceType, setServiceType] = useState('');
     const [billingValorMes, setBillingValorMes] = useState('');
@@ -782,8 +762,7 @@ export default function FormulariosSQF({ onBack }) {
     const resetBillingForm = () => {
         setBillingReqType('facturacion'); setBillingModality(''); setBillingType(''); setBillingClientType('');
         setBillingClientName(''); setBillingCompany(''); setSaleType('');
-        setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations('');
-        // setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]); // Items deshabilitado temporalmente
+        setBillingClientDocument(''); setBillingObservations('');
         setServiceType(''); setBillingValorMes('');
         setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType(''); setBillingSellerDocument('');
         setCrossSalePersonName('');
@@ -831,21 +810,22 @@ export default function FormulariosSQF({ onBack }) {
         setBillingErrors({});
         let errors = {};
         let isValid = true;
+        const failRequired = (key) => { errors[key] = 'Requerido'; isValid = false; };
 
-        if (!billingModality) { errors.billingModality = 'Requerido'; isValid = false; }
-        if (!billingType) { errors.billingType = 'Requerido'; isValid = false; }
-        if (!billingClientType) { errors.billingClientType = 'Requerido'; isValid = false; }
-        if (!billingClientName.trim()) { errors.billingClientName = 'Requerido'; isValid = false; }
-        if (!billingCompany) { errors.billingCompany = 'Requerido'; isValid = false; }
-        if (!saleType) { errors.saleType = 'Requerido'; isValid = false; }
-        if (!serviceType) { errors.serviceType = 'Requerido'; isValid = false; }
-        if (isCrossSale && !crossSalePersonName.trim()) { errors.crossSalePersonName = 'Requerido'; isValid = false; }
-        if (['0101', '0303'].includes(serviceType) && !billingValorMes.trim()) { errors.billingValorMes = 'Requerido'; isValid = false; }
-        if (!origin) { errors.origin = 'Requerido'; isValid = false; }
+        if (!billingModality) failRequired('billingModality');
+        if (!billingType) failRequired('billingType');
+        if (!billingClientType) failRequired('billingClientType');
+        if (!billingClientName.trim()) failRequired('billingClientName');
+        if (!billingCompany) failRequired('billingCompany');
+        if (!saleType) failRequired('saleType');
+        if (!serviceType) failRequired('serviceType');
+        if (isCrossSale && !crossSalePersonName.trim()) failRequired('crossSalePersonName');
+        if (['0101', '0303'].includes(serviceType) && !billingValorMes.trim()) failRequired('billingValorMes');
+        if (!origin) failRequired('origin');
         if (['Referido externo', 'Referido empleado'].includes(origin) && !originRef.trim()) { showToastMsg('error', 'Campo Faltante', 'Especifique el nombre del referente.'); isValid = false; }
-        if (!billingMonthType) { errors.billingMonthType = 'Requerido'; isValid = false; }
-        if (!billingSellerDocument.trim()) { errors.billingSellerDocument = 'Requerido'; isValid = false; }
-        if (!billingCloser.trim()) { errors.billingCloser = 'Requerido'; isValid = false; }
+        if (!billingMonthType) failRequired('billingMonthType');
+        if (!billingSellerDocument.trim()) failRequired('billingSellerDocument');
+        if (!billingCloser.trim()) failRequired('billingCloser');
 
         billingAreas.forEach(area => {
             const valorNumerico = parseInt(String(area.valor).replace(/\D/g, '') || '0', 10);
@@ -858,15 +838,6 @@ export default function FormulariosSQF({ onBack }) {
         if (!isValid) { setBillingErrors(errors); return; }
 
         setIsSubmittingBilling(true);
-        // Items deshabilitado temporalmente (no se usa por ahora)
-        // const parsedItems = (Array.isArray(billingItems) ? billingItems : []).map(it => {
-        //     const code = String(it.code || '').trim();
-        //     const quantity = parseInt(String(it.quantity || '').replace(/\D/g, '') || '0', 10) || 0;
-        //     const unitPrice = parseInt(String(it.unitPrice || '').replace(/\D/g, '') || '0', 10) || 0;
-        //     const description = String(it.description || '').trim();
-        //     return { code, quantity, unitPrice, description, total: quantity * unitPrice };
-        // }).filter(it => it.code || it.quantity || it.unitPrice || it.description);
-
         const autoDueDate = calculateBusinessDaysDate(new Date().toISOString().split('T')[0], 3);
 
         const payload = {
@@ -886,8 +857,6 @@ export default function FormulariosSQF({ onBack }) {
             fechaVencimiento: autoDueDate,
             observations: billingObservations || '',
             observaciones: billingObservations || '',
-            // items: JSON.stringify(parsedItems), // Items deshabilitado temporalmente
-            // items_json: JSON.stringify(parsedItems),
             origin, originRef: ['Referido externo', 'Referido empleado'].includes(origin) ? originRef.toUpperCase() : '',
             closer: billingCloser.toUpperCase(),
             mes_tipo: billingMonthType,
@@ -902,19 +871,6 @@ export default function FormulariosSQF({ onBack }) {
         try {
             const formData = new FormData();
             Object.keys(payload).forEach(k => formData.append(k, payload[k]));
-            // Items deshabilitado temporalmente (no se usa por ahora)
-            // parsedItems.forEach((item, index) => {
-            //     formData.append(`items[${index}][code]`, item.code);
-            //     formData.append(`items[${index}][quantity]`, String(item.quantity));
-            //     formData.append(`items[${index}][unitPrice]`, String(item.unitPrice));
-            //     formData.append(`items[${index}][description]`, item.description);
-            //     formData.append(`items[${index}][total]`, String(item.total));
-            //     formData.append(`items[${index}][codigo]`, item.code);
-            //     formData.append(`items[${index}][cantidad]`, String(item.quantity));
-            //     formData.append(`items[${index}][precio]`, String(item.unitPrice));
-            //     formData.append(`items[${index}][descripcion]`, item.description);
-            //     formData.append(`items[${index}][observaciones]`, billingObservations || '');
-            // });
             await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
 
             const datatableForm = new FormData();
@@ -949,21 +905,6 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('observations', payload.observations);
             datatableForm.append('observaciones', payload.observaciones);
             datatableForm.append('fechaVencimiento', payload.fechaVencimiento);
-            // Items deshabilitado temporalmente (no se usa por ahora)
-            // datatableForm.append('items', payload.items);
-            // datatableForm.append('items_json', payload.items_json);
-            // parsedItems.forEach((item, index) => {
-            //     datatableForm.append(`items[${index}][code]`, item.code);
-            //     datatableForm.append(`items[${index}][quantity]`, String(item.quantity));
-            //     datatableForm.append(`items[${index}][unitPrice]`, String(item.unitPrice));
-            //     datatableForm.append(`items[${index}][description]`, item.description);
-            //     datatableForm.append(`items[${index}][total]`, String(item.total));
-            //     datatableForm.append(`items[${index}][codigo]`, item.code);
-            //     datatableForm.append(`items[${index}][cantidad]`, String(item.quantity));
-            //     datatableForm.append(`items[${index}][precio]`, String(item.unitPrice));
-            //     datatableForm.append(`items[${index}][descripcion]`, item.description);
-            //     datatableForm.append(`items[${index}][observaciones]`, billingObservations || '');
-            // });
             datatableForm.append('nc_invoice', '');
             datatableForm.append('nc_value', 0);
             datatableForm.append('nc_reason', '');
@@ -1043,8 +984,6 @@ export default function FormulariosSQF({ onBack }) {
             setIsSubmittingBilling(false);
         }
     };
-
-    const markAsValidated = () => { showToastMsg('success', 'Validación Exitosa', 'El proceso ha sido marcado como validado.'); };
 
     const validateClientCreation = async (clientItem) => {
         const nombre = String(clientItem?.name || clientItem?.Nombre || '').trim();
@@ -1798,55 +1737,6 @@ export default function FormulariosSQF({ onBack }) {
                                                 <label className="form-label">Observaciones</label>
                                                 <textarea className="form-input form-textarea" rows={2} value={billingObservations} onChange={(e) => setBillingObservations(e.target.value)} />
                                             </div>
-                                            {/* Items deshabilitado temporalmente (no se usa por ahora)
-                                            <div className="form-group full-width">
-                                                <label className="form-label">Items</label>
-                                                <div className="items-table">
-                                                    {billingItems.map((it, idx) => (
-                                                        <div key={idx} className="item-row" style={{display: 'grid', gridTemplateColumns: '2fr 120px 40px', gap: '8px', alignItems: 'center', marginBottom: '8px'}}>
-                                                            <select
-                                                                className="form-input form-select"
-                                                                value={it.description}
-                                                                onChange={(e) => {
-                                                                    const selectedDesc = e.target.value;
-                                                                    const selectedItem = BILLING_DESCRIPTIONS.find(d => d.name === selectedDesc);
-                                                                    const arr = [...billingItems];
-                                                                    arr[idx] = {
-                                                                        ...arr[idx],
-                                                                        description: selectedDesc,
-                                                                        code: selectedItem?.code || ''
-                                                                    };
-                                                                    setBillingItems(arr);
-                                                                }}
-                                                            >
-                                                                <option value="">Seleccione descripción...</option>
-                                                                {BILLING_DESCRIPTIONS.map((desc) => (
-                                                                    <option key={desc.code} value={desc.name}>{desc.name}</option>
-                                                                ))}
-                                                            </select>
-                                                            <div className="input-currency-wrapper" style={{margin: 0}}>
-                                                                <span className="currency-prefix">$</span>
-                                                                <input
-                                                                    type="text"
-                                                                    className="form-input currency-input"
-                                                                    placeholder="Valor"
-                                                                    value={it.unitPrice}
-                                                                    onChange={(e) => {
-                                                                        const arr = [...billingItems];
-                                                                        arr[idx] = { ...arr[idx], unitPrice: formatCurrency(e.target.value), quantity: '1' };
-                                                                        setBillingItems(arr);
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                            <button type="button" className="btn-ghost" onClick={() => { setBillingItems(billingItems.filter((_,i) => i !== idx)); }} aria-label="Eliminar">✕</button>
-                                                        </div>
-                                                    ))}
-                                                    <div style={{marginTop:8}}>
-                                                        <button type="button" className="btn-secondary" onClick={() => setBillingItems([...billingItems, { code: '', quantity: '1', unitPrice: '', description: '' }])}>Agregar ítem</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            */}
                                             <div className="form-group">
                                                 <label className="form-label required">Empresa Facturadora</label>
                                                 <select className="form-input form-select" value={billingCompany} onChange={(e) => setBillingCompany(e.target.value)}>
@@ -2094,7 +1984,6 @@ export default function FormulariosSQF({ onBack }) {
                                         {auditContracts.map((c, i) => {
                                             const isPending = c?.status !== 'Validado';
                                             const clientDoc = c?.clientDocument || c?.document || '';
-                                            const requester = c?.solicitante_nombre || c?.requestedBy || '';
                                             const contractName = c?.name || c?.Nombre || '';
                                             const contractType = c?.contractType || c?.TipoContrato || '';
                                             const service = c?.service || c?.Servicio || '';
