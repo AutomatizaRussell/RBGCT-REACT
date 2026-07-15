@@ -209,6 +209,7 @@ const UserDashboard = () => {
         setActiveTab={setActiveTab}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        collapsed={isSQF}
       />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f1f5f9]">

@@ -18,7 +18,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { getCertPermisosBackend } from '../../lib/api'
 import { SidebarShell } from './SidebarShell'
 
-export const Admin2Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
+export const Admin2Sidebar = ({ activeTab, setActiveTab, isOpen, onClose, collapsed }) => {
   const navigate = useNavigate()
   const { logout, empleadoData } = useAuth()
   const [puedeExpedirCert, setPuedeExpedirCert] = useState(false)
@@ -94,6 +94,7 @@ export const Admin2Sidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
       onClose={onClose}
       onNavigate={handleNavigation}
       sections={sections}
+      collapsed={collapsed}
       footer={
         <button
           type="button"

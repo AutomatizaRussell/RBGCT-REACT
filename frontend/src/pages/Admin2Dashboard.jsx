@@ -625,7 +625,7 @@ const Admin2Dashboard = () => {
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
-      <Admin2Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Admin2Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} collapsed={activeTab === 'formularios-sqf'} />
 
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Topbar

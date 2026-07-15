@@ -33,7 +33,7 @@ import { SidebarShell } from './SidebarShell'
  *   el estilo del proyecto Next.js. Por eso debe validarse el layout
  *   del dashboard contenedor.
  */
-export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
+export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose, collapsed }) => {
   const navigate = useNavigate()
   const { logout, empleadoData } = useAuth()
 
@@ -211,6 +211,7 @@ export const UserSidebar = ({ activeTab, setActiveTab, isOpen, onClose }) => {
       onClose={onClose}
       onNavigate={handleNavigation}
       sections={sections}
+      collapsed={collapsed}
       userCard={
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
           <div className="flex items-center gap-3">
