@@ -1094,6 +1094,59 @@ export default function FormulariosSQF({ onBack }) {
         return map[key] || String(key);
     };
 
+    const FIELD_ICON_CATEGORY = {
+        id: 'tag', clientType: 'tag', contractType: 'tag', solicitante_id: 'tag',
+        document: 'idcard', clientDocument: 'idcard',
+        contactName: 'user', manager: 'user', solicitante_nombre: 'user',
+        contactRole: 'briefcase', service: 'briefcase', roles: 'briefcase',
+        economicGroup: 'layers', source: 'layers',
+        email: 'mail', solicitante_correo: 'mail',
+        phone: 'phone',
+        address: 'pin',
+        page: 'globe',
+        value: 'dollar', valueFormatted: 'dollar',
+        startDate: 'calendar', endDate: 'calendar', createdAt: 'calendar', updatedAt: 'calendar',
+        notes: 'notes',
+    };
+
+    const renderFieldIcon = (key) => {
+        const common = { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2' };
+        switch (FIELD_ICON_CATEGORY[key] || 'info') {
+            case 'tag':
+                return <svg {...common}><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2.59 12.58a2 2 0 0 1 0-2.83l7.17-7.17a2 2 0 0 1 2.83 0l8 8a2 2 0 0 1 0 2.83z" /><circle cx="7.5" cy="7.5" r="1.5" /></svg>;
+            case 'idcard':
+                return <svg {...common}><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="6" y1="9" x2="10" y2="9" /><line x1="6" y1="13" x2="14" y2="13" /><line x1="15" y1="9" x2="18" y2="9" /></svg>;
+            case 'user':
+                return <svg {...common}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
+            case 'briefcase':
+                return <svg {...common}><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /></svg>;
+            case 'layers':
+                return <svg {...common}><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>;
+            case 'mail':
+                return <svg {...common}><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 6-10 7L2 6" /></svg>;
+            case 'phone':
+                return <svg {...common}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" /></svg>;
+            case 'pin':
+                return <svg {...common}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>;
+            case 'globe':
+                return <svg {...common}><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>;
+            case 'dollar':
+                return <svg {...common}><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>;
+            case 'calendar':
+                return <svg {...common}><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>;
+            case 'notes':
+                return <svg {...common}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>;
+            default:
+                return <svg {...common}><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>;
+        }
+    };
+
+    const getInitials = (fullName) => {
+        const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length === 0) return '?';
+        return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+    };
+
     // ==========================================
     // RENDERIZADO PRINCIPAL
     // ==========================================
@@ -2032,23 +2085,45 @@ export default function FormulariosSQF({ onBack }) {
             </main>
 
             {/* ========== MODAL DETALLE AUDITORÍA ========== */}
-            {auditorModalItem && (
+            {auditorModalItem && (() => {
+                const modalName = auditorModalItem?.name || auditorModalItem?.clientName || (auditorModalType === 'client' ? 'Cliente' : 'Contrato');
+                const modalDocument = auditorModalItem?.document || auditorModalItem?.clientDocument || '';
+                const modalClientName = auditorModalType === 'contract' ? (auditorModalItem?.clientName || '') : '';
+                const modalStatus = auditorModalItem?.status || 'Pendiente';
+                const isModalValidated = modalStatus === 'Validado';
+                return (
                 <div className="auditor-overlay" onClick={() => setAuditorModalItem(null)}>
                     <div className="auditor-detail-modal" onClick={e => e.stopPropagation()}>
                         <div className="auditor-detail-header">
-                            <h3>{auditorModalType === 'client' ? 'Detalle del Cliente' : 'Detalle del Contrato'}</h3>
+                            <div className="auditor-detail-identity">
+                                <div className="auditor-detail-avatar">{getInitials(modalName)}</div>
+                                <div className="auditor-detail-heading">
+                                    <h3>{modalName}</h3>
+                                    <div className="auditor-detail-meta">
+                                        {modalClientName && <span className="auditor-detail-meta-item">{modalClientName}</span>}
+                                        {modalDocument && <span className="auditor-detail-meta-item">NIT {modalDocument}</span>}
+                                        <span className={`status-badge on-dark ${isModalValidated ? 'validated' : 'pending'}`}>{modalStatus}</span>
+                                    </div>
+                                </div>
+                            </div>
                             <button className="auditor-detail-close" onClick={() => setAuditorModalItem(null)}>✕</button>
                         </div>
                         <div className="auditor-detail-body">
-                            {Object.entries(auditorModalItem).map(([key, value]) => {
-                                if (value === undefined || value === null || value === '' || typeof value === 'object') return null;
-                                return (
-                                    <div className="detail-row" key={key}>
-                                        <span className="detail-label">{getSpanishFieldLabel(key)}</span>
-                                        <span className="detail-value">{key.includes('Date') || key.includes('At') ? formatDateSafe(value) : String(value)}</span>
-                                    </div>
-                                );
-                            })}
+                            <div className="detail-grid">
+                                {Object.entries(auditorModalItem).map(([key, value]) => {
+                                    if (value === undefined || value === null || value === '' || typeof value === 'object') return null;
+                                    if (['name', 'clientName', 'status'].includes(key)) return null;
+                                    return (
+                                        <div className="detail-tile" key={key}>
+                                            <span className="detail-tile-icon">{renderFieldIcon(key)}</span>
+                                            <div className="detail-tile-body">
+                                                <span className="detail-label">{getSpanishFieldLabel(key)}</span>
+                                                <span className="detail-value">{key.includes('Date') || key.includes('At') ? formatDateSafe(value) : String(value)}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                         <div className="auditor-detail-footer">
                             <button type="button" className="btn-secondary" onClick={() => setAuditorModalItem(null)}>Cerrar</button>
@@ -2072,7 +2147,8 @@ export default function FormulariosSQF({ onBack }) {
                         </div>
                     </div>
                 </div>
-            )}
+                );
+            })()}
 
             {/* ========== TOAST GLOBAL ========== */}
             <div className={`toast ${toast.type} ${toast.show ? 'show' : ''}`}>
