@@ -1242,7 +1242,7 @@ export default function FormulariosSQF({ onBack }) {
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label required">NIT Empresa / Documento</label>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
+                                        <div className="doc-dv-grid">
                                             <input type="text" name="document" className="form-input" placeholder="Ej: 900.123.456" />
                                             <input type="text" name="documentDv" className="form-input" placeholder="DV" maxLength="1" inputMode="numeric" />
                                         </div>
@@ -1608,7 +1608,7 @@ export default function FormulariosSQF({ onBack }) {
                                                         <button type="button" className="btn-remove-area" onClick={() => removeContractRole(role.id)}>✕ Quitar</button>
                                                     )}
                                                 </div>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                <div className="role-fields-grid">
                                                     <div className="form-group">
                                                         <label className="form-label required">Cargo / Rol</label>
                                                         <select className="form-input form-select" value={role.cargo} onChange={(e) => updateContractRole(role.id, 'cargo', e.target.value)}>
@@ -1973,7 +1973,7 @@ export default function FormulariosSQF({ onBack }) {
                                                             <span className="area-block-label">{area.id}° Área – Centro de Costos</span>
                                                             {index > 0 && <button type="button" className="btn-remove-area" onClick={() => removeAreaBlock(area.id)}>✕ Eliminar</button>}
                                                         </div>
-                                                        <div className="form-grid" style={{ gridTemplateColumns: '1fr 1.5fr 1fr 1fr', padding: 0 }}>
+                                                        <div className="area-fields-grid">
                                                             <div className="form-group">
                                                                 <label className="form-label required">Centro de costos</label>
                                                                 <select className="form-input form-select" value={area.centro} onChange={(e) => updateArea(area.id, 'centro', e.target.value)}>

@@ -203,7 +203,7 @@
 .content-section.active { display: block; }
 
 .section-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; animation: slideDown .4s ease-out; }
-.section-title { font-size: 26px; font-weight: 800; color: var(--color-blue-dark); letter-spacing: -0.5px; }
+.section-title { font-size: clamp(18px, 4.5vw, 26px); font-weight: 800; color: var(--color-blue-dark); letter-spacing: -0.5px; }
 .section-subtitle { font-size: 14px; color: var(--color-text-muted); margin-top: 2px; }
 
 /* ============================================================
@@ -328,7 +328,10 @@
   transform: rotate(90deg);
 }
 
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 28px; padding: 28px 30px; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px 28px; padding: 28px 30px; }
+.doc-dv-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+.role-fields-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.area-fields-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px 20px; }
 .form-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .form-group.full-width { grid-column: 1 / -1; }
 .form-label { font-size: 13px; font-weight: 600; color: var(--color-text); letter-spacing: 0.2px; }
@@ -571,7 +574,8 @@
   white-space: normal;
   max-width: 240px;
 }
-.table-identity { display: flex; align-items: center; gap: 10px; }
+.table-identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.table-identity > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .table-avatar {
   display: flex;
   align-items: center;
@@ -750,7 +754,6 @@
 .step-pill { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--gradient-btn); color: #fff; font-size: 13px; font-weight: 800; flex-shrink: 0; transition: background var(--transition); }
 .step-pill.complete { background: var(--color-teal); }
 .areas-section { padding: 24px 30px 24px; border-top: 1px solid var(--color-border); }
-.area-block .form-grid { grid-template-columns: 1fr 1.5fr 1fr; gap: 16px 20px; padding: 0; }
 .areas-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
 .areas-title { font-size: 14px; font-weight: 700; color: var(--color-blue-dark); }
 .areas-subtotal {
@@ -926,7 +929,7 @@
 .auditor-detail-heading { min-width: 0; }
 
 .auditor-detail-header h3 {
-  font-size: 19px;
+  font-size: clamp(16px, 4vw, 19px);
   font-weight: 700;
   color: #fff;
   margin: 0;
@@ -1154,10 +1157,6 @@
    Sin esto, los grids de 2-3 columnas y las tablas desbordan la pantalla.
    ============================================================================= */
 
-@media (max-width: 1024px) {
-  .area-block .form-grid { grid-template-columns: 1fr 1fr; }
-}
-
 @media (max-width: 900px) {
   .auditor-columns { grid-template-columns: 1fr; }
 }
@@ -1183,12 +1182,10 @@
 
   /* Contenido */
   .app-main { padding: 20px 14px; }
-  .section-title { font-size: 21px; }
   .section-header { margin-bottom: 20px; }
 
-  /* Formularios: una sola columna */
-  .form-grid { grid-template-columns: 1fr; gap: 16px; padding: 20px 16px; }
-  .area-block .form-grid { grid-template-columns: 1fr; }
+  /* Formularios: los grids con auto-fit ya se reacomodan solos; solo ajustamos espaciado */
+  .form-grid { gap: 16px; padding: 20px 16px; }
   .form-card-header { padding: 16px; }
   .form-actions { padding: 16px; flex-wrap: wrap; gap: 10px; }
   .form-actions .btn-primary,
@@ -1217,7 +1214,6 @@
 
 @media (max-width: 480px) {
   .app-main { padding: 16px 10px; }
-  .section-title { font-size: 18px; }
   .form-grid { padding: 16px 12px; }
   .brand-text { display: none; } /* solo logo en pantallas muy pequeñas */
   .nit-modal-dialog { width: 94%; padding: 18px; }
