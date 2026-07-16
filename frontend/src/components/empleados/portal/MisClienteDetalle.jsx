@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Building2, Loader2, AlertTriangle, Mail, Phone, MapPin,
-  Users, Briefcase,
+  ArrowLeft,
+  Building2,
+  Loader2,
+  AlertTriangle,
+  Mail,
+  Phone,
+  MapPin,
+  Users,
+  Briefcase,
 } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { getMisClientes, getEmpresa } from '../../../lib/api';
@@ -16,17 +23,22 @@ const Badge = ({ children, className = '' }) => (
 );
 
 const ESTADO_STYLES = {
-  activo:     'border-blue-200 bg-blue-50 text-blue-700',
-  prospecto:  'border-slate-200 bg-slate-100 text-slate-700',
-  inactivo:   'border-slate-200 bg-slate-50 text-slate-600',
+  activo: 'border-blue-200 bg-blue-50 text-blue-700',
+  prospecto: 'border-slate-200 bg-slate-100 text-slate-700',
+  inactivo: 'border-slate-200 bg-slate-50 text-slate-600',
   suspendido: 'border-blue-200 bg-blue-100 text-blue-800',
-  retirado:   'border-slate-200 bg-slate-50 text-slate-600',
+  retirado: 'border-slate-200 bg-slate-50 text-slate-600',
 };
 
+/**
+ * Vista detalle de un cliente asignado al empleado logueado.
+ * Valida que el cliente pertenezca a la cartera antes de mostrarlo.
+ */
 export default function MisClienteDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { empleadoData } = useAuth();
+
   const [empresa, setEmpresa] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -46,6 +58,7 @@ export default function MisClienteDetalle() {
 
         const mis = await getMisClientes(empleadoData.id_empleado);
         const permitidos = new Set((mis?.clientes || []).map((c) => String(c.id)));
+
         if (!permitidos.has(String(id))) {
           setForbidden(true);
           setEmpresa(null);
@@ -71,7 +84,9 @@ export default function MisClienteDetalle() {
         <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white shadow-sm">
           <Loader2 size={22} className="animate-spin text-blue-600" strokeWidth={2} />
         </div>
-        <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Cargando ficha</p>
+        <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+          Cargando ficha
+        </p>
         <p className="mt-1 text-sm text-slate-600">Obteniendo datos del cliente…</p>
       </div>
     );
@@ -128,6 +143,7 @@ export default function MisClienteDetalle() {
       </button>
 
       <div className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
+        {/* Encabezado: identidad y estado */}
         <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50/80 to-white px-6 py-6 sm:px-8">
           <div className="flex flex-wrap items-start gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-blue-50 text-lg font-bold text-blue-600 shadow-sm">
@@ -135,8 +151,12 @@ export default function MisClienteDetalle() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-lg font-bold tracking-tight text-[#001871] sm:text-xl">{empresa.razon_social}</h2>
-                <Badge className={estadoClass}>{empresa.estado_display || estadoKey}</Badge>
+                <h2 className="text-lg font-bold tracking-tight text-[#001871] sm:text-xl">
+                  {empresa.razon_social}
+                </h2>
+                <Badge className={estadoClass}>
+                  {empresa.estado_display || estadoKey}
+                </Badge>
                 {empresa.nivel_riesgo && empresa.nivel_riesgo !== 'bajo' && (
                   <Badge className="border-blue-200 bg-blue-50 text-blue-700">
                     <AlertTriangle size={10} strokeWidth={2.5} />
@@ -155,6 +175,7 @@ export default function MisClienteDetalle() {
         </div>
 
         <div className="grid gap-8 p-6 sm:grid-cols-2 sm:p-8">
+          {/* Datos generales */}
           <div>
             <h3 className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
               <Building2 size={14} className="text-blue-600" strokeWidth={2} />
@@ -165,7 +186,9 @@ export default function MisClienteDetalle() {
                 <div className="flex gap-3">
                   <MapPin size={16} className="mt-0.5 shrink-0 text-blue-600/70" strokeWidth={2} />
                   <div>
-                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Ubicación</dt>
+                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Ubicación
+                    </dt>
                     <dd className="mt-0.5 text-slate-800">
                       {[empresa.ciudad, empresa.departamento].filter(Boolean).join(', ')}
                     </dd>
@@ -174,7 +197,9 @@ export default function MisClienteDetalle() {
               )}
               {empresa.direccion && (
                 <div>
-                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Dirección</dt>
+                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    Dirección
+                  </dt>
                   <dd className="mt-0.5 text-slate-800">{empresa.direccion}</dd>
                 </div>
               )}
@@ -182,9 +207,14 @@ export default function MisClienteDetalle() {
                 <div className="flex gap-3">
                   <Mail size={16} className="mt-0.5 shrink-0 text-blue-600/70" strokeWidth={2} />
                   <div>
-                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Correo</dt>
+                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Correo
+                    </dt>
                     <dd className="mt-0.5">
-                      <a href={`mailto:${empresa.email_principal}`} className="font-medium text-blue-600 hover:text-[#001871] hover:underline">
+                      <a
+                        href={`mailto:${empresa.email_principal}`}
+                        className="font-medium text-blue-600 hover:text-[#001871] hover:underline"
+                      >
                         {empresa.email_principal}
                       </a>
                     </dd>
@@ -195,14 +225,18 @@ export default function MisClienteDetalle() {
                 <div className="flex gap-3">
                   <Phone size={16} className="mt-0.5 shrink-0 text-blue-600/70" strokeWidth={2} />
                   <div>
-                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Teléfono</dt>
+                    <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Teléfono
+                    </dt>
                     <dd className="mt-0.5 text-slate-800">{empresa.telefono}</dd>
                   </div>
                 </div>
               )}
               {empresa.fecha_inicio_relacion && (
                 <div>
-                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Inicio de relación</dt>
+                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    Inicio de relación
+                  </dt>
                   <dd className="mt-0.5 text-slate-800">
                     {new Date(empresa.fecha_inicio_relacion).toLocaleDateString('es-CO', {
                       day: '2-digit',
@@ -215,6 +249,7 @@ export default function MisClienteDetalle() {
             </dl>
           </div>
 
+          {/* Contactos */}
           {Array.isArray(empresa.contactos) && empresa.contactos.length > 0 && (
             <div>
               <h3 className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
@@ -222,24 +257,34 @@ export default function MisClienteDetalle() {
                 Contactos
               </h3>
               <ul className="space-y-3">
-                {empresa.contactos.filter((c) => c.activo !== false).map((c) => (
-                  <li key={c.id} className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 text-sm">
-                    <p className="font-semibold text-[#001871]">
-                      {c.nombre}
-                      {c.es_principal && (
-                        <Badge className="ml-2 border-blue-200 bg-blue-50 text-blue-700">Principal</Badge>
-                      )}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-600">{c.cargo_display || c.cargo}</p>
-                    {c.email && <p className="mt-1 text-xs text-blue-600">{c.email}</p>}
-                    {c.telefono && <p className="mt-0.5 text-xs text-slate-600">{c.telefono}</p>}
-                  </li>
-                ))}
+                {empresa.contactos
+                  .filter((c) => c.activo !== false)
+                  .map((c) => (
+                    <li
+                      key={c.id}
+                      className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 text-sm"
+                    >
+                      <p className="font-semibold text-[#001871]">
+                        {c.nombre}
+                        {c.es_principal && (
+                          <Badge className="ml-2 border-blue-200 bg-blue-50 text-blue-700">
+                            Principal
+                          </Badge>
+                        )}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-600">
+                        {c.cargo_display || c.cargo}
+                      </p>
+                      {c.email && <p className="mt-1 text-xs text-blue-600">{c.email}</p>}
+                      {c.telefono && <p className="mt-0.5 text-xs text-slate-600">{c.telefono}</p>}
+                    </li>
+                  ))}
               </ul>
             </div>
           )}
         </div>
 
+        {/* Servicios contratados */}
         {Array.isArray(empresa.servicios) && empresa.servicios.length > 0 && (
           <div className="border-t border-slate-100 px-6 py-6 sm:px-8">
             <h3 className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
@@ -248,7 +293,10 @@ export default function MisClienteDetalle() {
             </h3>
             <ul className="divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200">
               {empresa.servicios.map((s) => (
-                <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 bg-white px-4 py-3 text-sm">
+                <li
+                  key={s.id}
+                  className="flex flex-wrap items-center justify-between gap-2 bg-white px-4 py-3 text-sm"
+                >
                   <span className="text-slate-800">
                     {(s.descripcion && s.descripcion.trim()) || s.area_nombre || 'Servicio contratado'}
                   </span>

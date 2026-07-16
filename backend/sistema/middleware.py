@@ -37,7 +37,7 @@ class JWTMiddleware(MiddlewareMixin):
                     pass
             elif user_type == 'empleado' and user_id:
                 try:
-                    request.user = DatosEmpleado.objects.get(id_empleado=user_id)
+                    request.user = DatosEmpleado.objects.select_related('cargo', 'area').get(id_empleado=user_id)
                     request.user._is_empleado = True
                 except DatosEmpleado.DoesNotExist:
                     pass

@@ -1,4 +1,4 @@
-from django.db import migrations
+from django.db import connection, migrations
 
 
 AREAS = [
@@ -59,6 +59,23 @@ def seed(apps, schema_editor):
             changed = True
         if changed:
             obj.save(update_fields=['nombre_cargo', 'nivel'])
+
+    # PostgreSQL IDENTITY / serial sequences must be reset after inserting
+    # fixed IDs; otherwise the next .create() will try to reuse id 1..N and
+    # raise a duplicate key violation.
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT setval(
+                pg_get_serial_sequence('empleados.datos_area', 'id_area'),
+                COALESCE((SELECT MAX(id_area) FROM empleados.datos_area), 0)
+            );
+        """)
+        cursor.execute("""
+            SELECT setval(
+                pg_get_serial_sequence('empleados.datos_cargo', 'id_cargo'),
+                COALESCE((SELECT MAX(id_cargo) FROM empleados.datos_cargo), 0)
+            );
+        """)
 
 
 def noop(apps, schema_editor):

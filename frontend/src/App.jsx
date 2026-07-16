@@ -27,6 +27,7 @@ const ManualesCargo = lazy(() => import('./components/formacion/portal/ManualesC
 const ComunicadosInternos = lazy(() => import('./components/empleados/portal/ComunicadosInternos'));
 const MisClientes = lazy(() => import('./components/empleados/portal/MisClientes'));
 const MisClienteDetalle = lazy(() => import('./components/empleados/portal/MisClienteDetalle'));
+const OrganigramaClientes = lazy(() => import('./components/clientes/OrganigramaClientes'));
 const EditorCursos = lazy(() => import('./components/formacion/editor/EditorCursos'));
 const EditorHistorial = lazy(() => import('./components/editor/EditorHistorial'));
 
@@ -217,6 +218,7 @@ function App() {
               <Route path="sqf" element={<WelcomeUser />} />
               <Route path="gestor-pdf" element={<GestorPDFPage />} />
               <Route path="mis-clientes" element={<MisClientes />} />
+              <Route path="clientes/organigrama" element={<OrganigramaClientes />} />
               <Route path="cliente/:id" element={<MisClienteDetalle />} />
 
 

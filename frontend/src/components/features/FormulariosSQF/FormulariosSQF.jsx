@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FormulariosSQF.css';
-import { useAuth } from '@/hooks/useAuth';
-import { fetchApi } from '@/lib/api';
+import { useAuth } from '../../../hooks/useAuth';
+import { fetchApi } from '../../../lib/api';
 
 const N8N_WEBHOOKS = {
     client: 'https://n8n.rbgct.cloud/webhook/clientes-crud',
@@ -47,23 +47,6 @@ const calculateBusinessDaysDate = (startDate, businessDays) => {
     return date.toISOString().split('T')[0];
 };
 
-const BILLING_DESCRIPTIONS = [
-    { name: 'Auditoría Financiera', code: 'AUD-001' },
-    { name: 'Asesoría Fiscal', code: 'ASE-002' },
-    { name: 'Asesoría Laboral', code: 'ASE-003' },
-    { name: 'Asesoría Contable', code: 'ASE-004' },
-    { name: 'Consultoría Empresarial', code: 'CON-005' },
-    { name: 'Auditoría de Nómina', code: 'AUD-006' },
-    { name: 'Revisoría Fiscal', code: 'REV-007' },
-    { name: 'Asesoría Administrativa', code: 'ASE-008' },
-    { name: 'Servicios de Outsourcing', code: 'OUT-009' },
-    { name: 'Servicios Legales', code: 'SLG-010' },
-    { name: 'Valoración de empresas', code: 'VAL-011' },
-    { name: 'Dictamen Pericianl', code: 'DIP-012' },
-    { name: 'Auditoría Forense', code: 'AUF-013' },
-    { name: 'Otros Servicios', code: 'OTR-010' }
-]; 
-
 const CONTRACT_ROLES = [
     'Socio',
     'Gerente 1', 'Gerente 2', 'Gerente 3',
@@ -83,7 +66,8 @@ const CENTROS_FACTURACION = {
         codigoCentro: '01 - 0102',
         productos: [
             { codigo: '600', concepto: 'AE- HONORARIOS AUDITORÍA EXTERNA' },
-            { codigo: '601', concepto: 'AE- HONORARIOS AUDITORÍA FINANCIERA' }
+            { codigo: '601', concepto: 'AE- HONORARIOS AUDITORÍA FINANCIERA' },
+            { codigo: '602', concepto: 'AE- DICTAMEN PERICIAL' }
         ],
     },
     'CONTABILIDAD': {
@@ -148,7 +132,8 @@ const CENTROS_FACTURACION = {
         codigoCentro: '07 - 0701',
         productos: [
             { codigo: '1100', concepto: 'FIN- OUTSOURCING FINANCIERO' },
-            { codigo: '1101', concepto: 'FIN- PRECIOS DE TRANSFERENCIA' }
+            { codigo: '1101', concepto: 'FIN- PRECIOS DE TRANSFERENCIA' },
+            { codigo: '1102', concepto: 'FIN- DICTAMEN PERICIAL' }
         ],
     },
     'ADMON': {
@@ -227,7 +212,7 @@ export default function FormulariosSQF({ onBack }) {
     const [contracts, setContracts] = useState([]);
     const [pendingClients, setPendingClients] = useState([]);
     const [pendingContracts, setPendingContracts] = useState([]);
-    const [pendingValidationNit, setPendingValidationNit] = useState(null);
+    const [pendingValidationId, setPendingValidationId] = useState(null);
     const [selectedClientForContract, setSelectedClientForContract] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -247,17 +232,14 @@ export default function FormulariosSQF({ onBack }) {
     const [nitLookupValue, setNitLookupValue] = useState('');
     const [nitLookupResult, setNitLookupResult] = useState(null);
 
-    const [billingReqType, setBillingReqType] = useState('facturacion');
+    const [billingReqType, setBillingReqType] = useState('');
     const [billingModality, setBillingModality] = useState('');
     const [billingType, setBillingType] = useState('');
     const [billingClientType, setBillingClientType] = useState('');
     const [billingClientName, setBillingClientName] = useState('');
     const [billingCompany, setBillingCompany] = useState('');
     const [billingClientDocument, setBillingClientDocument] = useState('');
-    const [billingDueDate, setBillingDueDate] = useState('');
     const [billingObservations, setBillingObservations] = useState('');
-    // Items deshabilitado temporalmente (no se usa por ahora)
-    // const [billingItems, setBillingItems] = useState([{ code: '', quantity: '1', unitPrice: '', description: '' }]);
     const [saleType, setSaleType] = useState('');
     const [serviceType, setServiceType] = useState('');
     const [billingValorMes, setBillingValorMes] = useState('');
@@ -271,6 +253,9 @@ export default function FormulariosSQF({ onBack }) {
     const [crossSalePersonName, setCrossSalePersonName] = useState('');
 
     const isCrossSale = saleType === 'Venta cruzada' || ['0303', '0404'].includes(serviceType);
+    const billingAreasTotal = billingAreas.reduce((sum, a) => sum + (parseInt(String(a.valor).replace(/\D/g, '') || '0', 10)), 0);
+    const isBillingStep2Complete = Boolean(billingType && billingClientType);
+    const isBillingStep3Complete = Boolean(billingModality);
 
     const [auditorModalItem, setAuditorModalItem] = useState(null);
     const [auditorModalType, setAuditorModalType] = useState('');
@@ -539,6 +524,16 @@ export default function FormulariosSQF({ onBack }) {
         return isNaN(d) ? String(isoStr) : d.toLocaleDateString('es-CO');
     };
 
+    const getVigenciaStatus = (endDate) => {
+        if (!endDate) return { label: 'Indefinida', className: 'indefinida' };
+        const end = new Date(`${endDate}T00:00:00`);
+        if (isNaN(end)) return { label: 'Indefinida', className: 'indefinida' };
+        const diffDays = Math.ceil((end - new Date()) / 86400000);
+        if (diffDays < 0) return { label: 'Vencido', className: 'vencido' };
+        if (diffDays <= 30) return { label: 'Por vencer', className: 'por-vencer' };
+        return { label: 'Vigente', className: 'vigente' };
+    };
+
     const getLoggedUserMeta = () => {
         const fullNameEmpleado = [
             empleadoData?.primer_nombre,
@@ -582,7 +577,7 @@ export default function FormulariosSQF({ onBack }) {
         let errors = {};
         let isValid = true;
 
-        const reqFields = ['document', 'name', 'contactName', 'contactRole', 'economicGroup', 'email', 'phone', 'address'];
+        const reqFields = ['clientType', 'document', 'name', 'contactName', 'contactRole', 'economicGroup', 'email', 'phone', 'address'];
         reqFields.forEach(f => {
             if (!formData.get(f)?.trim()) { errors[f] = 'Este campo es requerido'; isValid = false; }
         });
@@ -645,15 +640,96 @@ export default function FormulariosSQF({ onBack }) {
         return dv ? `${doc}-${dv}` : doc;
     };
 
+    const normalizeForSearch = (str) => String(str || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const levenshteinDistance = (a, b) => {
+        const m = a.length, n = b.length;
+        if (m === 0) return n;
+        if (n === 0) return m;
+        const row = Array.from({ length: n + 1 }, (_, j) => j);
+        for (let i = 1; i <= m; i++) {
+            let prevDiag = row[0];
+            row[0] = i;
+            for (let j = 1; j <= n; j++) {
+                const temp = row[j];
+                row[j] = a[i - 1] === b[j - 1] ? prevDiag : 1 + Math.min(prevDiag, row[j], row[j - 1]);
+                prevDiag = temp;
+            }
+        }
+        return row[n];
+    };
+
+    const wordSimilarity = (a, b) => {
+        const maxLen = Math.max(a.length, b.length);
+        return maxLen ? 1 - (levenshteinDistance(a, b) / maxLen) : 0;
+    };
+
+    const scoreClientNameMatch = (query, client) => {
+        const name = normalizeForSearch(client?.name);
+        if (!name) return 0;
+        if (name === query) return 100;
+        if (name.startsWith(query)) return 85;
+        if (name.includes(query)) return 65;
+
+        const queryWords = query.split(' ').filter(Boolean);
+        const nameWords = name.split(' ').filter(Boolean);
+        if (queryWords.length === 0 || nameWords.length === 0) return 0;
+
+        // Mejor coincidencia por palabra (exacta, prefijo, substring o similitud tipo-tolerante),
+        // en vez de comparar la consulta contra el nombre completo: así una errata en una sola
+        // palabra no se diluye entre el resto de palabras del nombre (p. ej. razones sociales largas).
+        const perWordScores = queryWords.map((qw) => {
+            let best = 0;
+            nameWords.forEach((nw) => {
+                if (nw === qw) best = Math.max(best, 1);
+                else if (nw.startsWith(qw) || nw.includes(qw)) best = Math.max(best, 0.85);
+                else best = Math.max(best, wordSimilarity(qw, nw));
+            });
+            return best;
+        });
+
+        const avgScore = perWordScores.reduce((sum, s) => sum + s, 0) / perWordScores.length;
+        return avgScore >= 0.5 ? avgScore * 60 : 0;
+    };
+
+    const findBestClientMatches = (rawQuery, clients) => {
+        const cleanDoc = String(rawQuery).replace(/\D/g, '');
+        if (cleanDoc.length >= 5) {
+            const exactDoc = clients.find((c) => {
+                const doc = String(c?.document || '').replace(/\D/g, '');
+                return doc && (doc === cleanDoc || cleanDoc.startsWith(doc));
+            });
+            if (exactDoc) return [{ client: exactDoc, score: 100 }];
+        }
+        const query = normalizeForSearch(rawQuery);
+        if (!query) return [];
+        return clients
+            .map(client => ({ client, score: scoreClientNameMatch(query, client) }))
+            .filter(m => m.score >= 30)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 5);
+    };
+
     const triggerLookup = () => {
         if (!String(nitLookupValue).trim()) {
             setNitLookupResult({ type: 'empty' });
             return;
         }
-        const cleanDoc = String(nitLookupValue).replace(/\D/g, '');
-        const found = validClients.find(c => String(c?.document || '').replace(/\D/g, '') === cleanDoc);
-        if (found) { setNitLookupResult({ type: 'found', client: found }); } 
-        else { setNitLookupResult({ type: 'error' }); }
+        const matches = findBestClientMatches(nitLookupValue, validClients);
+        if (matches.length === 0) {
+            setNitLookupResult({ type: 'error' });
+            return;
+        }
+        const isConfident = matches.length === 1 || (matches[0].score - (matches[1]?.score || 0) >= 25 && matches[0].score >= 65);
+        if (isConfident) {
+            setNitLookupResult({ type: 'found', client: matches[0].client });
+        } else {
+            setNitLookupResult({ type: 'multiple', matches: matches.map(m => m.client) });
+        }
     };
 
     const startContractForClient = (client) => {
@@ -683,7 +759,7 @@ export default function FormulariosSQF({ onBack }) {
         
         const form = e.target;
         const formData = new FormData(form);
-        const reqFields = ['economicGroup', 'name', 'value', 'manager', 'service'];
+        const reqFields = ['contractType', 'economicGroup', 'name', 'value', 'manager', 'service'];
         reqFields.forEach(f => {
             if (!formData.get(f)?.trim()) { errors[f] = 'Este campo es requerido'; isValid = false; }
         });
@@ -746,7 +822,7 @@ export default function FormulariosSQF({ onBack }) {
         setBillingAreas(prev => prev.map(area => {
             if (area.id !== id) return area;
             if (field === 'centro') {
-                return { ...area, centro: value, concepto: '', codigoCentro: CENTROS_FACTURACION[value]?.codigoCentro || '', codigoProducto: '' };
+                return { ...area, centro: value, concepto: '', valor: value ? '0' : '', codigoCentro: CENTROS_FACTURACION[value]?.codigoCentro || '', codigoProducto: '' };
             }
             if (field === 'concepto') {
                 const found = (CENTROS_FACTURACION[area.centro]?.productos || []).find(p => p.concepto === value);
@@ -778,10 +854,9 @@ export default function FormulariosSQF({ onBack }) {
     };
 
     const resetBillingForm = () => {
-        setBillingReqType('facturacion'); setBillingModality(''); setBillingType(''); setBillingClientType('');
+        setBillingReqType(''); setBillingModality(''); setBillingType(''); setBillingClientType('');
         setBillingClientName(''); setBillingCompany(''); setSaleType('');
-        setBillingClientDocument(''); setBillingDueDate(''); setBillingObservations('');
-        // setBillingItems([{ code: '', quantity: '1', unitPrice: '', description: '' }]); // Items deshabilitado temporalmente
+        setBillingClientDocument(''); setBillingObservations('');
         setServiceType(''); setBillingValorMes('');
         setOrigin(''); setOriginRef(''); setBillingCloser(''); setBillingMonthType(''); setBillingSellerDocument('');
         setCrossSalePersonName('');
@@ -791,7 +866,7 @@ export default function FormulariosSQF({ onBack }) {
 
     const sendContractToBilling = (contract) => {
         setActiveSection('billing');
-        setBillingReqType('facturacion');
+        setBillingReqType('');
 
         const clientName = contract?.clientName || '';
         setBillingClientName(clientName);
@@ -813,13 +888,12 @@ export default function FormulariosSQF({ onBack }) {
 
         setBillingClientDocument(clientNit || '');
 
-        const val = contract?.value ? formatCurrency(contract.value) : '';
         setServiceType('');
         setBillingSellerDocument('');
         setBillingValorMes('');
 
         setBillingCloser(contract?.manager || '');
-        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: val, codigoCentro: '', codigoProducto: '' }]);
+        setBillingAreas([{ id: 1, centro: '', concepto: '', valor: '', codigoCentro: '', codigoProducto: '' }]);
         setBillingMonthType('');
 
         showToastMsg('success-discrete', '', `Contrato "${contract?.name || ''}" cargado para facturar.`);
@@ -830,25 +904,27 @@ export default function FormulariosSQF({ onBack }) {
         setBillingErrors({});
         let errors = {};
         let isValid = true;
+        const failRequired = (key) => { errors[key] = 'Requerido'; isValid = false; };
 
-        if (!billingModality) { errors.billingModality = 'Requerido'; isValid = false; }
-        if (!billingType) { errors.billingType = 'Requerido'; isValid = false; }
-        if (!billingClientType) { errors.billingClientType = 'Requerido'; isValid = false; }
-        if (!billingClientName.trim()) { errors.billingClientName = 'Requerido'; isValid = false; }
-        if (!billingCompany) { errors.billingCompany = 'Requerido'; isValid = false; }
-        if (!saleType) { errors.saleType = 'Requerido'; isValid = false; }
-        if (!serviceType) { errors.serviceType = 'Requerido'; isValid = false; }
-        if (isCrossSale && !crossSalePersonName.trim()) { errors.crossSalePersonName = 'Requerido'; isValid = false; }
-        if (['0101', '0303'].includes(serviceType) && !billingValorMes.trim()) { errors.billingValorMes = 'Requerido'; isValid = false; }
-        if (!origin) { errors.origin = 'Requerido'; isValid = false; }
+        if (!billingModality) failRequired('billingModality');
+        if (!billingType) failRequired('billingType');
+        if (!billingClientType) failRequired('billingClientType');
+        if (!billingClientName.trim()) failRequired('billingClientName');
+        if (!billingCompany) failRequired('billingCompany');
+        if (!saleType) failRequired('saleType');
+        if (!serviceType) failRequired('serviceType');
+        if (isCrossSale && !crossSalePersonName.trim()) failRequired('crossSalePersonName');
+        if (['0101', '0303'].includes(serviceType) && !billingValorMes.trim()) failRequired('billingValorMes');
+        if (!origin) failRequired('origin');
         if (['Referido externo', 'Referido empleado'].includes(origin) && !originRef.trim()) { showToastMsg('error', 'Campo Faltante', 'Especifique el nombre del referente.'); isValid = false; }
-        if (!billingMonthType) { errors.billingMonthType = 'Requerido'; isValid = false; }
-        if (!billingSellerDocument.trim()) { errors.billingSellerDocument = 'Requerido'; isValid = false; }
-        if (!billingCloser.trim()) { errors.billingCloser = 'Requerido'; isValid = false; }
+        if (!billingMonthType) failRequired('billingMonthType');
+        if (!billingSellerDocument.trim()) failRequired('billingSellerDocument');
+        if (!billingCloser.trim()) failRequired('billingCloser');
 
         billingAreas.forEach(area => {
-            if (!area.centro.trim() || !area.concepto.trim() || !area.valor.trim()) {
-                showToastMsg('error', 'Campo Faltante', `Faltan datos en el área ${area.id}.`);
+            const valorNumerico = parseInt(String(area.valor).replace(/\D/g, '') || '0', 10);
+            if (!area.centro.trim() || !area.concepto.trim() || !area.valor.trim() || valorNumerico <= 0) {
+                showToastMsg('error', 'Campo Faltante', `Falta ingresar el valor del área ${area.id}.`);
                 isValid = false;
             }
         });
@@ -856,15 +932,6 @@ export default function FormulariosSQF({ onBack }) {
         if (!isValid) { setBillingErrors(errors); return; }
 
         setIsSubmittingBilling(true);
-        // Items deshabilitado temporalmente (no se usa por ahora)
-        // const parsedItems = (Array.isArray(billingItems) ? billingItems : []).map(it => {
-        //     const code = String(it.code || '').trim();
-        //     const quantity = parseInt(String(it.quantity || '').replace(/\D/g, '') || '0', 10) || 0;
-        //     const unitPrice = parseInt(String(it.unitPrice || '').replace(/\D/g, '') || '0', 10) || 0;
-        //     const description = String(it.description || '').trim();
-        //     return { code, quantity, unitPrice, description, total: quantity * unitPrice };
-        // }).filter(it => it.code || it.quantity || it.unitPrice || it.description);
-
         const autoDueDate = calculateBusinessDaysDate(new Date().toISOString().split('T')[0], 3);
 
         const payload = {
@@ -884,8 +951,6 @@ export default function FormulariosSQF({ onBack }) {
             fechaVencimiento: autoDueDate,
             observations: billingObservations || '',
             observaciones: billingObservations || '',
-            // items: JSON.stringify(parsedItems), // Items deshabilitado temporalmente
-            // items_json: JSON.stringify(parsedItems),
             origin, originRef: ['Referido externo', 'Referido empleado'].includes(origin) ? originRef.toUpperCase() : '',
             closer: billingCloser.toUpperCase(),
             mes_tipo: billingMonthType,
@@ -900,19 +965,6 @@ export default function FormulariosSQF({ onBack }) {
         try {
             const formData = new FormData();
             Object.keys(payload).forEach(k => formData.append(k, payload[k]));
-            // Items deshabilitado temporalmente (no se usa por ahora)
-            // parsedItems.forEach((item, index) => {
-            //     formData.append(`items[${index}][code]`, item.code);
-            //     formData.append(`items[${index}][quantity]`, String(item.quantity));
-            //     formData.append(`items[${index}][unitPrice]`, String(item.unitPrice));
-            //     formData.append(`items[${index}][description]`, item.description);
-            //     formData.append(`items[${index}][total]`, String(item.total));
-            //     formData.append(`items[${index}][codigo]`, item.code);
-            //     formData.append(`items[${index}][cantidad]`, String(item.quantity));
-            //     formData.append(`items[${index}][precio]`, String(item.unitPrice));
-            //     formData.append(`items[${index}][descripcion]`, item.description);
-            //     formData.append(`items[${index}][observaciones]`, billingObservations || '');
-            // });
             await fetch(N8N_WEBHOOKS.billing, { method: 'POST', mode: 'no-cors', body: formData });
 
             const datatableForm = new FormData();
@@ -947,21 +999,6 @@ export default function FormulariosSQF({ onBack }) {
             datatableForm.append('observations', payload.observations);
             datatableForm.append('observaciones', payload.observaciones);
             datatableForm.append('fechaVencimiento', payload.fechaVencimiento);
-            // Items deshabilitado temporalmente (no se usa por ahora)
-            // datatableForm.append('items', payload.items);
-            // datatableForm.append('items_json', payload.items_json);
-            // parsedItems.forEach((item, index) => {
-            //     datatableForm.append(`items[${index}][code]`, item.code);
-            //     datatableForm.append(`items[${index}][quantity]`, String(item.quantity));
-            //     datatableForm.append(`items[${index}][unitPrice]`, String(item.unitPrice));
-            //     datatableForm.append(`items[${index}][description]`, item.description);
-            //     datatableForm.append(`items[${index}][total]`, String(item.total));
-            //     datatableForm.append(`items[${index}][codigo]`, item.code);
-            //     datatableForm.append(`items[${index}][cantidad]`, String(item.quantity));
-            //     datatableForm.append(`items[${index}][precio]`, String(item.unitPrice));
-            //     datatableForm.append(`items[${index}][descripcion]`, item.description);
-            //     datatableForm.append(`items[${index}][observaciones]`, billingObservations || '');
-            // });
             datatableForm.append('nc_invoice', '');
             datatableForm.append('nc_value', 0);
             datatableForm.append('nc_reason', '');
@@ -1042,8 +1079,6 @@ export default function FormulariosSQF({ onBack }) {
         }
     };
 
-    const markAsValidated = () => { showToastMsg('success', 'Validación Exitosa', 'El proceso ha sido marcado como validado.'); };
-
     const validateClientCreation = async (clientItem) => {
         const nombre = String(clientItem?.name || clientItem?.Nombre || '').trim();
         const nit = String(clientItem?.document || clientItem?.Documento || '').trim();
@@ -1054,7 +1089,7 @@ export default function FormulariosSQF({ onBack }) {
         }
 
         const loggedUserMeta = getLoggedUserMeta();
-        setPendingValidationNit(nit);
+        setPendingValidationId(clientItem?.id);
         try {
             await fetchApi('/n8n-proxy/?action=pendientes', {
                 method: 'POST',
@@ -1071,12 +1106,15 @@ export default function FormulariosSQF({ onBack }) {
             });
             showToastMsg('success', 'Validación enviada', 'Se envió la validación de creación.');
 
-            setPendingClients((prev) => prev.filter((p) => String(p?.document || p?.Documento || '') !== nit));
+            // Se filtra por id (no por NIT): dos solicitudes pendientes pueden compartir
+            // el mismo NIT o venir sin NIT, y filtrar por ese valor borraba de la lista
+            // local cualquier otra solicitud que calzara, no solo la que se validó.
+            setPendingClients((prev) => prev.filter((p) => p?.id !== clientItem?.id));
             await refreshPendings();
         } catch (e) {
             showToastMsg('error', 'Error de Conexión', e?.message || 'No se pudo validar la creación.');
         } finally {
-            setPendingValidationNit(null);
+            setPendingValidationId(null);
         }
     };
 
@@ -1084,13 +1122,13 @@ export default function FormulariosSQF({ onBack }) {
         const nombre = String(contractItem?.clientName || contractItem?.name || contractItem?.Nombre || '').trim();
         const nit = String(contractItem?.clientDocument || contractItem?.document || contractItem?.Documento || '').trim();
 
-        if (!nombre) {
-            showToastMsg('error', 'Datos incompletos', 'No se encontró el nombre del cliente para validar el contrato.');
+        if (!nombre || !nit) {
+            showToastMsg('error', 'Datos incompletos', 'No se encontró el NIT del cliente para validar el contrato. Verifique el cliente asociado antes de validar.');
             return;
         }
 
         const loggedUserMeta = getLoggedUserMeta();
-        setPendingValidationNit(nit);
+        setPendingValidationId(contractItem?.id);
         try {
             const payload = new FormData();
             payload.append('nit', nit);
@@ -1109,12 +1147,15 @@ export default function FormulariosSQF({ onBack }) {
             });
 
             showToastMsg('success', 'Validación enviada', 'Se envió la validación de contrato.');
-            setPendingContracts((prev) => prev.filter((p) => String(p?.clientDocument || p?.document || p?.Documento || '') !== nit));
+            // Se filtra por id, no por NIT: varios contratos pendientes pueden compartir
+            // el NIT del mismo cliente, o venir sin NIT, y antes eso hacía que "Validar"
+            // hiciera desaparecer de la lista TODOS los que calzaran, no solo el elegido.
+            setPendingContracts((prev) => prev.filter((p) => p?.id !== contractItem?.id));
             await refreshPendings();
         } catch (e) {
             showToastMsg('error', 'Error de Conexión', e?.message || 'No se pudo validar el contrato.');
         } finally {
-            setPendingValidationNit(null);
+            setPendingValidationId(null);
         }
     };
 
@@ -1152,6 +1193,81 @@ export default function FormulariosSQF({ onBack }) {
         };
         return map[key] || String(key);
     };
+
+    const FIELD_ICON_CATEGORY = {
+        id: 'tag', clientType: 'tag', contractType: 'tag', solicitante_id: 'tag',
+        document: 'idcard', clientDocument: 'idcard',
+        contactName: 'user', manager: 'user', solicitante_nombre: 'user',
+        contactRole: 'briefcase', service: 'briefcase', roles: 'briefcase',
+        economicGroup: 'layers', source: 'layers',
+        email: 'mail', solicitante_correo: 'mail',
+        phone: 'phone',
+        address: 'pin',
+        page: 'globe',
+        value: 'dollar', valueFormatted: 'dollar',
+        startDate: 'calendar', endDate: 'calendar', createdAt: 'calendar', updatedAt: 'calendar',
+        notes: 'notes',
+    };
+
+    const renderFieldIcon = (key) => {
+        const common = { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2' };
+        switch (FIELD_ICON_CATEGORY[key] || 'info') {
+            case 'tag':
+                return <svg {...common}><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2.59 12.58a2 2 0 0 1 0-2.83l7.17-7.17a2 2 0 0 1 2.83 0l8 8a2 2 0 0 1 0 2.83z" /><circle cx="7.5" cy="7.5" r="1.5" /></svg>;
+            case 'idcard':
+                return <svg {...common}><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="6" y1="9" x2="10" y2="9" /><line x1="6" y1="13" x2="14" y2="13" /><line x1="15" y1="9" x2="18" y2="9" /></svg>;
+            case 'user':
+                return <svg {...common}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
+            case 'briefcase':
+                return <svg {...common}><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /></svg>;
+            case 'layers':
+                return <svg {...common}><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>;
+            case 'mail':
+                return <svg {...common}><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 6-10 7L2 6" /></svg>;
+            case 'phone':
+                return <svg {...common}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" /></svg>;
+            case 'pin':
+                return <svg {...common}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>;
+            case 'globe':
+                return <svg {...common}><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>;
+            case 'dollar':
+                return <svg {...common}><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>;
+            case 'calendar':
+                return <svg {...common}><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>;
+            case 'notes':
+                return <svg {...common}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>;
+            default:
+                return <svg {...common}><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>;
+        }
+    };
+
+    const getInitials = (fullName) => {
+        const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length === 0) return '?';
+        return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+    };
+
+    const renderStepPill = (number, isComplete) => (
+        <span className={`step-pill ${isComplete ? 'complete' : ''}`}>
+            {isComplete ? '✓' : number}
+        </span>
+    );
+
+    const renderSkeletonRows = (columnCount, rows = 4) => (
+        Array.from({ length: rows }).map((_, i) => (
+            <tr key={`skeleton-${i}`}>
+                {Array.from({ length: columnCount }).map((__, j) => (
+                    <td key={j}><div className="loading-skeleton skeleton-bar" style={{ width: `${60 + ((i + j) % 3) * 12}%` }}></div></td>
+                ))}
+            </tr>
+        ))
+    );
+
+    const renderColGroup = (widths) => (
+        <colgroup>
+            {widths.map((w, i) => <col key={i} style={{ width: w }} />)}
+        </colgroup>
+    );
 
     // ==========================================
     // RENDERIZADO PRINCIPAL
@@ -1213,13 +1329,14 @@ export default function FormulariosSQF({ onBack }) {
                                     <div className="form-group full-width">
                                         <label className="form-label required">Tipo de Contribuyente</label>
                                         <div className="radio-group">
-                                            <label className="radio-option"><input type="radio" name="clientType" value="natural" defaultChecked /><span className="radio-custom"></span><span className="radio-text"><strong>Persona Natural</strong><small>Cédula de ciudadanía</small></span></label>
+                                            <label className="radio-option"><input type="radio" name="clientType" value="natural" /><span className="radio-custom"></span><span className="radio-text"><strong>Persona Natural</strong><small>Cédula de ciudadanía</small></span></label>
                                             <label className="radio-option"><input type="radio" name="clientType" value="juridica" /><span className="radio-custom"></span><span className="radio-text"><strong>Persona Jurídica</strong><small>NIT de empresa</small></span></label>
                                         </div>
+                                        <span className="field-error">{clientErrors.clientType}</span>
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label required">NIT Empresa / Documento</label>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
+                                        <div className="doc-dv-grid">
                                             <input type="text" name="document" className="form-input" placeholder="Ej: 900.123.456" />
                                             <input type="text" name="documentDv" className="form-input" placeholder="DV" maxLength="1" inputMode="numeric" />
                                         </div>
@@ -1323,24 +1440,40 @@ export default function FormulariosSQF({ onBack }) {
                             </div>
                         </div>
                         <div>
-                            {filteredClients.length === 0 ? (
+                            {isLoading ? (
+                                <div className="profile-scroll history-scroll-container">
+                                    <table className="profile-table">
+                                        {renderColGroup(['32%', '16%', '34%', '18%'])}
+                                        <thead>
+                                            <tr><th>Cliente / Razón Social</th><th>NIT / Documento</th><th>Correo Electrónico</th><th>Teléfono</th></tr>
+                                        </thead>
+                                        <tbody>{renderSkeletonRows(4)}</tbody>
+                                    </table>
+                                </div>
+                            ) : filteredClients.length === 0 ? (
                                 <div className="empty-state">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="empty-icon"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                                    <p>{isLoading ? 'Cargando datos...' : 'No hay clientes registrados.'}</p>
+                                    <p>No hay clientes registrados.</p>
                                 </div>
                             ) : (
                                 <div className="profile-scroll history-scroll-container">
                                     <table className="profile-table">
+                                        {renderColGroup(['32%', '16%', '34%', '18%'])}
                                         <thead>
                                             <tr><th>Cliente / Razón Social</th><th>NIT / Documento</th><th>Correo Electrónico</th><th>Teléfono</th></tr>
                                         </thead>
                                         <tbody>
                                             {filteredClients.map((c, i) => (
                                                 <tr key={i} onClick={() => { setAuditorModalItem(c); setAuditorModalType('client'); }} style={{ cursor: 'pointer' }} title="Haga clic para ver detalles">
-                                                    <td className="td-wrap"><strong>{c?.name || ''}</strong> {c?.source === 'historico' && <span className="type-chip historico" title="Cliente Histórico">H</span>}</td>
-                                                    <td>{c?.document || ''}</td>
-                                                    <td>{c?.email || ''}</td>
-                                                    <td>{c?.phone || ''}</td>
+                                                    <td className="td-wrap">
+                                                        <div className="table-identity">
+                                                            <span className="table-avatar">{getInitials(c?.name)}</span>
+                                                            <span><strong>{c?.name || ''}</strong> {c?.source === 'historico' && <span className="type-chip historico" title="Cliente Histórico">H</span>}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="td-truncate" title={c?.document || ''}>{c?.document || ''}</td>
+                                                    <td className="td-truncate" title={c?.email || ''}>{c?.email || ''}</td>
+                                                    <td className="td-truncate" title={c?.phone || ''}>{c?.phone || ''}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -1377,6 +1510,7 @@ export default function FormulariosSQF({ onBack }) {
                             ) : (
                                 <div className="history-scroll-container">
                                     <table className="profile-table">
+                                        {renderColGroup(['6%', '30%', '26%', '20%', '18%'])}
                                         <thead>
                                             <tr>
                                                 <th>#</th>
@@ -1399,7 +1533,7 @@ export default function FormulariosSQF({ onBack }) {
                                                     <tr key={i}>
                                                         <td className="td-muted">{i + 1}</td>
                                                         <td className="td-wrap"><strong>{c?.name || '—'}</strong></td>
-                                                        <td>{c?.solicitante_nombre || '—'}</td>
+                                                        <td className="td-truncate" title={c?.solicitante_nombre || ''}>{c?.solicitante_nombre || '—'}</td>
                                                         <td className="td-nowrap">{formatDateSafe(c?.createdAt) || '—'}</td>
                                                         <td><span className={`status-badge ${c?.status === 'Validado' ? 'validated' : 'pending'}`}>{c?.status || '—'}</span></td>
                                                     </tr>
@@ -1436,11 +1570,11 @@ export default function FormulariosSQF({ onBack }) {
                                     <button className="nit-modal-close" onClick={() => setIsNitModalOpen(false)}>✕</button>
                                 </div>
                                 <div className="lookup-body nit-modal-body">
-                                    <p className="nit-modal-desc">Para generar un contrato, es obligatorio verificar primero la existencia del cliente asociado.</p>
+                                    <p className="nit-modal-desc">Para generar un contrato, es obligatorio verificar primero la existencia del cliente asociado. Puede buscar por NIT o por nombre.</p>
                                     <div className="lookup-input-row nit-modal-input-row">
                                         <div className="lookup-input-wrapper">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="lookup-input-icon"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
-                                            <input type="text" className="form-input lookup-input" placeholder="Ingrese NIT o número..." value={nitLookupValue} onChange={(e) => { setNitLookupValue(e.target.value); setNitLookupResult(null); }} />
+                                            <input type="text" className="form-input lookup-input" placeholder="Ingrese NIT o nombre del cliente..." value={nitLookupValue} onChange={(e) => { setNitLookupValue(e.target.value); setNitLookupResult(null); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); triggerLookup(); } }} />
                                         </div>
                                         <button className="btn-primary btn-lookup" onClick={triggerLookup}>
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="btn-icon"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg> Buscar
@@ -1454,6 +1588,22 @@ export default function FormulariosSQF({ onBack }) {
                                             </div>
                                         </div>
                                     )}
+                                    {nitLookupResult?.type === 'multiple' && (
+                                        <div className="lookup-result multiple">
+                                            <strong>Varias coincidencias, seleccione el cliente correcto:</strong>
+                                            <div className="lookup-match-list">
+                                                {nitLookupResult.matches.map((c) => (
+                                                    <button type="button" key={c.id} className="lookup-match-item" onClick={() => startContractForClient(c)}>
+                                                        <span className="table-avatar">{getInitials(c?.name)}</span>
+                                                        <span className="lookup-match-info">
+                                                            <strong>{c?.name || ''}</strong>
+                                                            <small>NIT: {formatNitDv(c)}</small>
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                     {nitLookupResult?.type === 'error' && (
                                         <div className="lookup-result error">
                                             <strong>✖ Cliente No Encontrado</strong><p style={{ marginTop: '5px', fontSize: '14px' }}>Registre el cliente primero en el menú superior de Clientes.</p>
@@ -1461,7 +1611,7 @@ export default function FormulariosSQF({ onBack }) {
                                     )}
                                     {nitLookupResult?.type === 'empty' && (
                                         <div className="lookup-result error">
-                                            <strong>✖ Ingrese un documento válido.</strong>
+                                            <strong>✖ Ingrese un NIT o nombre válido.</strong>
                                         </div>
                                     )}
                                 </div>
@@ -1488,13 +1638,14 @@ export default function FormulariosSQF({ onBack }) {
                                     <div className="form-group full-width">
                                         <label className="form-label required">Tipo de Contrato</label>
                                         <div className="radio-group radio-group-col">
-                                            <label className="radio-option"><input type="radio" name="contractType" value="Mensual" defaultChecked /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Facturación recurrente mensual fija</small></span></label>
+                                            <label className="radio-option"><input type="radio" name="contractType" value="Mensual" /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Facturación recurrente mensual fija</small></span></label>
                                             <label className="radio-option"><input type="radio" name="contractType" value="Proyecto" /><span className="radio-custom"></span><span className="radio-text"><strong>Proyecto</strong><small>Alcance y entregables definidos</small></span></label>
                                             <label className="radio-option"><input type="radio" name="contractType" value="Horas trabajadas" /><span className="radio-custom"></span><span className="radio-text"><strong>Horas Trabajadas</strong><small>Facturación por horas consumidas</small></span></label>
                                             <label className="radio-option"><input type="radio" name="contractType" value="Mensual + horas" /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual + Horas</strong><small>Base fija más horas adicionales</small></span></label>
                                             <label className="radio-option"><input type="radio" name="contractType" value="Horas trabajadas por cargo" /><span className="radio-custom"></span><span className="radio-text"><strong>Horas por Cargo</strong><small>Horas diferenciadas por tipo de cargo</small></span></label>
                                             <label className="radio-option"><input type="radio" name="contractType" value="Cantidad vs Precio unitario" /><span className="radio-custom"></span><span className="radio-text"><strong>Cantidad vs. Precio Unitario</strong><small>Cantidad de unidades por precio</small></span></label>
                                         </div>
+                                        <span className="field-error">{contractErrors.contractType}</span>
                                     </div>
 
                                     <div className="form-group full-width">
@@ -1571,7 +1722,7 @@ export default function FormulariosSQF({ onBack }) {
                                                         <button type="button" className="btn-remove-area" onClick={() => removeContractRole(role.id)}>✕ Quitar</button>
                                                     )}
                                                 </div>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                <div className="role-fields-grid">
                                                     <div className="form-group">
                                                         <label className="form-label required">Cargo / Rol</label>
                                                         <select className="form-input form-select" value={role.cargo} onChange={(e) => updateContractRole(role.id, 'cargo', e.target.value)}>
@@ -1613,14 +1764,25 @@ export default function FormulariosSQF({ onBack }) {
                             </div>
                         </div>
                         <div>
-                            {filteredContracts.length === 0 ? (
+                            {isLoading ? (
+                                <div className="profile-scroll history-scroll-container">
+                                    <table className="profile-table">
+                                        {renderColGroup(['22%', '18%', '12%', '14%', '18%', '16%'])}
+                                        <thead>
+                                            <tr><th>Nombre del Contrato</th><th>Cliente Vinculado</th><th>Tipo</th><th>Valor (COP)</th><th>Vigencia</th><th>Acciones</th></tr>
+                                        </thead>
+                                        <tbody>{renderSkeletonRows(6)}</tbody>
+                                    </table>
+                                </div>
+                            ) : filteredContracts.length === 0 ? (
                                 <div className="empty-state">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="empty-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
-                                    <p>{isLoading ? 'Cargando contratos...' : 'No hay contratos registrados aún.'}</p>
+                                    <p>No hay contratos registrados aún.</p>
                                 </div>
                             ) : (
                                 <div className="profile-scroll history-scroll-container">
                                     <table className="profile-table">
+                                        {renderColGroup(['22%', '18%', '12%', '14%', '18%', '16%'])}
                                         <thead>
                                             <tr><th>Nombre del Contrato</th><th>Cliente Vinculado</th><th>Tipo</th><th>Valor (COP)</th><th>Vigencia</th><th>Acciones</th></tr>
                                         </thead>
@@ -1628,16 +1790,19 @@ export default function FormulariosSQF({ onBack }) {
                                             {filteredContracts.map((c, i) => (
                                                 <tr key={i} onClick={() => { setAuditorModalItem(c); setAuditorModalType('contract'); }} style={{ cursor: 'pointer' }} title="Haga clic para ver detalles">
                                                     <td className="td-wrap"><strong>{c?.name || ''}</strong></td>
-                                                    <td>{c?.clientName || ''}</td>
+                                                    <td className="td-truncate" title={c?.clientName || ''}>{c?.clientName || ''}</td>
                                                     <td><span className="type-chip">{c?.contractType || ''}</span></td>
                                                     <td><span className="card-value">{c?.valueFormatted || formatCurrencyDisplay(c?.value)}</span></td>
                                                     <td className="td-nowrap">
                                                         {c?.startDate ? (
-                                                            <span className="vigencia-range">
-                                                                <span>{formatDateOnly(c.startDate)}</span>
-                                                                <span className="vigencia-sep">–</span>
-                                                                <span>{c?.endDate ? formatDateOnly(c.endDate) : 'Indefinida'}</span>
-                                                            </span>
+                                                            <div className="vigencia-cell">
+                                                                <span className="vigencia-range">
+                                                                    <span>{formatDateOnly(c.startDate)}</span>
+                                                                    <span className="vigencia-sep">–</span>
+                                                                    <span>{c?.endDate ? formatDateOnly(c.endDate) : 'Indefinida'}</span>
+                                                                </span>
+                                                                <span className={`status-badge ${getVigenciaStatus(c?.endDate).className}`}>{getVigenciaStatus(c?.endDate).label}</span>
+                                                            </div>
                                                         ) : '—'}
                                                     </td>
                                                     <td>
@@ -1682,6 +1847,7 @@ export default function FormulariosSQF({ onBack }) {
                             ) : (
                                 <div className="history-scroll-container">
                                     <table className="profile-table">
+                                        {renderColGroup(['5%', '22%', '20%', '20%', '18%', '15%'])}
                                         <thead>
                                             <tr>
                                                 <th>#</th>
@@ -1705,8 +1871,8 @@ export default function FormulariosSQF({ onBack }) {
                                                     <tr key={i}>
                                                         <td className="td-muted">{i + 1}</td>
                                                         <td className="td-wrap"><strong>{c?.name || '—'}</strong></td>
-                                                        <td>{c?.clientName || '—'}</td>
-                                                        <td>{c?.solicitante_nombre || '—'}</td>
+                                                        <td className="td-truncate" title={c?.clientName || ''}>{c?.clientName || '—'}</td>
+                                                        <td className="td-truncate" title={c?.solicitante_nombre || ''}>{c?.solicitante_nombre || '—'}</td>
                                                         <td className="td-nowrap">{formatDateSafe(c?.createdAt) || '—'}</td>
                                                         <td><span className={`status-badge ${c?.status === 'Validado' ? 'validated' : 'pending'}`}>{c?.status || '—'}</span></td>
                                                     </tr>
@@ -1738,7 +1904,7 @@ export default function FormulariosSQF({ onBack }) {
 
                     <div id="billing-content" className={validContracts.length === 0 ? 'is-hidden' : ''}>
                         <div className="billing-step-card">
-                            <h2 className="billing-step-title"><span className="step-pill">1</span> ¿Qué deseas solicitar?</h2>
+                            <h2 className="billing-step-title">{renderStepPill(1, Boolean(billingReqType))} ¿Qué deseas solicitar?</h2>
                             <div className="radio-group radio-group-col">
                                 <label className="radio-option"><input type="radio" value="facturacion" checked={billingReqType === 'facturacion'} onChange={(e) => setBillingReqType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Facturación</strong><small>Solicitud de factura por servicio nuevo o actual</small></span></label>
                                 <label className="radio-option"><input type="radio" value="nota-credito" checked={billingReqType === 'nota-credito'} onChange={(e) => setBillingReqType(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Nota Crédito</strong><small>Aplicar nota crédito a una factura existente</small></span></label>
@@ -1747,8 +1913,8 @@ export default function FormulariosSQF({ onBack }) {
 
                         {billingReqType === 'facturacion' ? (
                             <>
-                                <div className="billing-step-card">
-                                    <h2 className="billing-step-title"><span className="step-pill">2</span> Detalles de la Facturación</h2>
+                                <div className={`billing-step-card ${!isBillingStep2Complete ? 'current' : ''}`}>
+                                    <h2 className="billing-step-title">{renderStepPill(2, isBillingStep2Complete)} Detalles de la Facturación</h2>
                                     <div className="form-grid">
                                         <div className="form-group full-width">
                                             <label className="form-label required">Tipo de Facturación</label>
@@ -1770,8 +1936,8 @@ export default function FormulariosSQF({ onBack }) {
                                     </div>
                                 </div>
 
-                                <div className="billing-step-card">
-                                    <h2 className="billing-step-title"><span className="step-pill">3</span> Modalidad de Facturación</h2>
+                                <div className={`billing-step-card ${isBillingStep2Complete && !isBillingStep3Complete ? 'current' : ''}`}>
+                                    <h2 className="billing-step-title">{renderStepPill(3, isBillingStep3Complete)} Modalidad de Facturación</h2>
                                     <div className="radio-group radio-group-col">
                                         <label className="radio-option"><input type="radio" value="Proyecto" checked={billingModality === 'Proyecto'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Proyecto</strong><small>Factura única vez</small></span></label>
                                         <label className="radio-option"><input type="radio" value="Mensual" checked={billingModality === 'Mensual'} onChange={(e) => setBillingModality(e.target.value)} /><span className="radio-custom"></span><span className="radio-text"><strong>Mensual</strong><small>Se incluye en la facturación mensual</small></span></label>
@@ -1796,55 +1962,6 @@ export default function FormulariosSQF({ onBack }) {
                                                 <label className="form-label">Observaciones</label>
                                                 <textarea className="form-input form-textarea" rows={2} value={billingObservations} onChange={(e) => setBillingObservations(e.target.value)} />
                                             </div>
-                                            {/* Items deshabilitado temporalmente (no se usa por ahora)
-                                            <div className="form-group full-width">
-                                                <label className="form-label">Items</label>
-                                                <div className="items-table">
-                                                    {billingItems.map((it, idx) => (
-                                                        <div key={idx} className="item-row" style={{display: 'grid', gridTemplateColumns: '2fr 120px 40px', gap: '8px', alignItems: 'center', marginBottom: '8px'}}>
-                                                            <select
-                                                                className="form-input form-select"
-                                                                value={it.description}
-                                                                onChange={(e) => {
-                                                                    const selectedDesc = e.target.value;
-                                                                    const selectedItem = BILLING_DESCRIPTIONS.find(d => d.name === selectedDesc);
-                                                                    const arr = [...billingItems];
-                                                                    arr[idx] = {
-                                                                        ...arr[idx],
-                                                                        description: selectedDesc,
-                                                                        code: selectedItem?.code || ''
-                                                                    };
-                                                                    setBillingItems(arr);
-                                                                }}
-                                                            >
-                                                                <option value="">Seleccione descripción...</option>
-                                                                {BILLING_DESCRIPTIONS.map((desc) => (
-                                                                    <option key={desc.code} value={desc.name}>{desc.name}</option>
-                                                                ))}
-                                                            </select>
-                                                            <div className="input-currency-wrapper" style={{margin: 0}}>
-                                                                <span className="currency-prefix">$</span>
-                                                                <input
-                                                                    type="text"
-                                                                    className="form-input currency-input"
-                                                                    placeholder="Valor"
-                                                                    value={it.unitPrice}
-                                                                    onChange={(e) => {
-                                                                        const arr = [...billingItems];
-                                                                        arr[idx] = { ...arr[idx], unitPrice: formatCurrency(e.target.value), quantity: '1' };
-                                                                        setBillingItems(arr);
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                            <button type="button" className="btn-ghost" onClick={() => { setBillingItems(billingItems.filter((_,i) => i !== idx)); }} aria-label="Eliminar">✕</button>
-                                                        </div>
-                                                    ))}
-                                                    <div style={{marginTop:8}}>
-                                                        <button type="button" className="btn-secondary" onClick={() => setBillingItems([...billingItems, { code: '', quantity: '1', unitPrice: '', description: '' }])}>Agregar ítem</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            */}
                                             <div className="form-group">
                                                 <label className="form-label required">Empresa Facturadora</label>
                                                 <select className="form-input form-select" value={billingCompany} onChange={(e) => setBillingCompany(e.target.value)}>
@@ -1973,7 +2090,7 @@ export default function FormulariosSQF({ onBack }) {
                                                             <span className="area-block-label">{area.id}° Área – Centro de Costos</span>
                                                             {index > 0 && <button type="button" className="btn-remove-area" onClick={() => removeAreaBlock(area.id)}>✕ Eliminar</button>}
                                                         </div>
-                                                        <div className="form-grid" style={{ gridTemplateColumns: '1fr 1.5fr 1fr 1fr', padding: 0 }}>
+                                                        <div className="area-fields-grid">
                                                             <div className="form-group">
                                                                 <label className="form-label required">Centro de costos</label>
                                                                 <select className="form-input form-select" value={area.centro} onChange={(e) => updateArea(area.id, 'centro', e.target.value)}>
@@ -1997,6 +2114,7 @@ export default function FormulariosSQF({ onBack }) {
                                                     </div>
                                                 ))}
                                             </div>
+                                            <div className="areas-subtotal">Subtotal áreas: <strong>{formatCurrencyDisplay(billingAreasTotal)}</strong></div>
                                         </div>
 
                                         <div className="form-actions">
@@ -2009,7 +2127,7 @@ export default function FormulariosSQF({ onBack }) {
                                     </form>
                                 </div>
                             </>
-                        ) : (
+                        ) : billingReqType === 'nota-credito' ? (
                             <div className="form-card">
                                 <div className="form-card-header">
                                     <h2 className="form-card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="form-card-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="12" y1="17" x2="8" y2="17" /><line x1="12" y1="13" x2="8" y2="13" /></svg> Solicitud de Nota Crédito</h2>
@@ -2031,6 +2149,10 @@ export default function FormulariosSQF({ onBack }) {
                                     </div>
                                 </form>
                             </div>
+                        ) : (
+                            <div className="billing-step-card">
+                                <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', margin: 0 }}>Selecciona una opción arriba para continuar.</p>
+                            </div>
                         )}
                     </div>
                 </section>
@@ -2045,7 +2167,7 @@ export default function FormulariosSQF({ onBack }) {
                     </div>
                     <div className="auditor-columns">
                         <div className="list-card">
-                            <div className="list-header"><h2 className="list-title">Solicitudes de Clientes</h2></div>
+                            <div className="list-header"><h2 className="list-title">Solicitudes de Clientes <span className="count-badge">{auditClients.length}</span></h2></div>
                             <div>
                                 {auditClients.length === 0 ? (
                                     <div className="empty-state"><p>No hay solicitudes nuevas de clientes.</p></div>
@@ -2054,7 +2176,7 @@ export default function FormulariosSQF({ onBack }) {
                                         {auditClients.map((c, i) => {
                                             const isPending = c?.status !== 'Validado';
                                             return (
-                                                <div key={i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('client'); }}>
+                                                <div key={c?.id || i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('client'); }}>
                                                     <div className="auditor-card-header">
                                                         <div className="auditor-card-heading"><h4 className="auditor-item-title">{c?.name || ''}</h4><p className="auditor-item-subtitle">NIT: {c?.document || ''}</p></div>
                                                         <span className={`status-badge ${isPending ? 'pending' : 'validated'}`}>{c?.status || 'Pendiente'}</span>
@@ -2065,10 +2187,10 @@ export default function FormulariosSQF({ onBack }) {
                                                             <button
                                                                 className="btn-validate"
                                                                 type="button"
-                                                                disabled={pendingValidationNit === String(c?.document || c?.Documento || '')}
+                                                                disabled={pendingValidationId === c?.id}
                                                                 onClick={(e) => { e.stopPropagation(); validateClientCreation(c); }}
                                                             >
-                                                                {pendingValidationNit === String(c?.document || c?.Documento || '') ? 'Validando...' : 'Validar creación'}
+                                                                {pendingValidationId === c?.id ? 'Validando...' : 'Validar creación'}
                                                             </button>
                                                         ) : (
                                                             <span className="validated-info">Validado</span>
@@ -2083,7 +2205,7 @@ export default function FormulariosSQF({ onBack }) {
                         </div>
 
                         <div className="list-card">
-                            <div className="list-header"><h2 className="list-title">Solicitudes de Contratos</h2></div>
+                            <div className="list-header"><h2 className="list-title">Solicitudes de Contratos <span className="count-badge">{auditContracts.length}</span></h2></div>
                             <div>
                                 {auditContracts.length === 0 ? (
                                     <div className="empty-state"><p>No hay solicitudes de contratos.</p></div>
@@ -2092,14 +2214,13 @@ export default function FormulariosSQF({ onBack }) {
                                         {auditContracts.map((c, i) => {
                                             const isPending = c?.status !== 'Validado';
                                             const clientDoc = c?.clientDocument || c?.document || '';
-                                            const requester = c?.solicitante_nombre || c?.requestedBy || '';
                                             const contractName = c?.name || c?.Nombre || '';
                                             const contractType = c?.contractType || c?.TipoContrato || '';
                                             const service = c?.service || c?.Servicio || '';
                                             const clientName = c?.clientName || c?.Cliente || '';
 
                                             return (
-                                                <div key={i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('contract'); }}>
+                                                <div key={c?.id || i} className="auditor-card" onClick={() => { setAuditorModalItem(c); setAuditorModalType('contract'); }}>
                                                     <div className="auditor-card-header">
                                                         <div className="auditor-card-heading">
                                                             <h4 className="auditor-item-title">{contractName}</h4>
@@ -2120,10 +2241,10 @@ export default function FormulariosSQF({ onBack }) {
                                                             <button
                                                                 className="btn-validate"
                                                                 type="button"
-                                                                disabled={pendingValidationNit === String(clientDoc)}
+                                                                disabled={pendingValidationId === c?.id}
                                                                 onClick={(e) => { e.stopPropagation(); validateContractCreation(c); }}
                                                             >
-                                                                {pendingValidationNit === String(clientDoc) ? 'Validando...' : 'Validar'}
+                                                                {pendingValidationId === c?.id ? 'Validando...' : 'Validar'}
                                                             </button>
                                                         ) : (
                                                             <span className="validated-info">Validado</span>
@@ -2141,23 +2262,45 @@ export default function FormulariosSQF({ onBack }) {
             </main>
 
             {/* ========== MODAL DETALLE AUDITORÍA ========== */}
-            {auditorModalItem && (
+            {auditorModalItem && (() => {
+                const modalName = auditorModalItem?.name || auditorModalItem?.clientName || (auditorModalType === 'client' ? 'Cliente' : 'Contrato');
+                const modalDocument = auditorModalItem?.document || auditorModalItem?.clientDocument || '';
+                const modalClientName = auditorModalType === 'contract' ? (auditorModalItem?.clientName || '') : '';
+                const modalStatus = auditorModalItem?.status || 'Pendiente';
+                const isModalValidated = modalStatus === 'Validado';
+                return (
                 <div className="auditor-overlay" onClick={() => setAuditorModalItem(null)}>
                     <div className="auditor-detail-modal" onClick={e => e.stopPropagation()}>
                         <div className="auditor-detail-header">
-                            <h3>{auditorModalType === 'client' ? 'Detalle del Cliente' : 'Detalle del Contrato'}</h3>
+                            <div className="auditor-detail-identity">
+                                <div className="auditor-detail-avatar">{getInitials(modalName)}</div>
+                                <div className="auditor-detail-heading">
+                                    <h3>{modalName}</h3>
+                                    <div className="auditor-detail-meta">
+                                        {modalClientName && <span className="auditor-detail-meta-item">{modalClientName}</span>}
+                                        {modalDocument && <span className="auditor-detail-meta-item">NIT {modalDocument}</span>}
+                                        <span className={`status-badge on-dark ${isModalValidated ? 'validated' : 'pending'}`}>{modalStatus}</span>
+                                    </div>
+                                </div>
+                            </div>
                             <button className="auditor-detail-close" onClick={() => setAuditorModalItem(null)}>✕</button>
                         </div>
                         <div className="auditor-detail-body">
-                            {Object.entries(auditorModalItem).map(([key, value]) => {
-                                if (value === undefined || value === null || value === '' || typeof value === 'object') return null;
-                                return (
-                                    <div className="detail-row" key={key}>
-                                        <span className="detail-label">{getSpanishFieldLabel(key)}</span>
-                                        <span className="detail-value">{key.includes('Date') || key.includes('At') ? formatDateSafe(value) : String(value)}</span>
-                                    </div>
-                                );
-                            })}
+                            <div className="detail-grid">
+                                {Object.entries(auditorModalItem).map(([key, value]) => {
+                                    if (value === undefined || value === null || value === '' || typeof value === 'object') return null;
+                                    if (['name', 'clientName', 'status'].includes(key)) return null;
+                                    return (
+                                        <div className="detail-tile" key={key}>
+                                            <span className="detail-tile-icon">{renderFieldIcon(key)}</span>
+                                            <div className="detail-tile-body">
+                                                <span className="detail-label">{getSpanishFieldLabel(key)}</span>
+                                                <span className="detail-value">{key.includes('Date') || key.includes('At') ? formatDateSafe(value) : String(value)}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                         <div className="auditor-detail-footer">
                             <button type="button" className="btn-secondary" onClick={() => setAuditorModalItem(null)}>Cerrar</button>
@@ -2165,7 +2308,7 @@ export default function FormulariosSQF({ onBack }) {
                                 <button
                                     type="button"
                                     className="btn-primary"
-                                    disabled={pendingValidationNit === String(auditorModalItem?.clientDocument || auditorModalItem?.document || '')}
+                                    disabled={pendingValidationId === auditorModalItem?.id}
                                     onClick={() => {
                                         if (auditorModalType === 'client') {
                                             validateClientCreation(auditorModalItem);
@@ -2175,13 +2318,14 @@ export default function FormulariosSQF({ onBack }) {
                                         setAuditorModalItem(null);
                                     }}
                                 >
-                                    {pendingValidationNit === String(auditorModalItem?.clientDocument || auditorModalItem?.document || '') ? 'Validando...' : 'Validar'}
+                                    {pendingValidationId === auditorModalItem?.id ? 'Validando...' : 'Validar'}
                                 </button>
                             )}
                         </div>
                     </div>
                 </div>
-            )}
+                );
+            })()}
 
             {/* ========== TOAST GLOBAL ========== */}
             <div className={`toast ${toast.type} ${toast.show ? 'show' : ''}`}>

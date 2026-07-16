@@ -16,6 +16,7 @@ from ..models import DatosEmpleado, SolicitudesPassword
 
 from ._utils import generar_codigo_verificacion
 from ..n8n_gateway import enviar_recuperacion_password, notificar_password_restablecida
+from ..password_validation import validate_password, PasswordValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -150,8 +151,10 @@ def restablecer_password(request):
     if not token or not nueva_password:
         return Response({'error': 'Token y nueva contraseña requeridos'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if len(nueva_password) < 6:
-        return Response({'error': 'La contraseña debe tener al menos 6 caracteres'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        validate_password(nueva_password)
+    except PasswordValidationError as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     # Verificar token temporal
     cache_key_token = f"reset_token_{token}"

@@ -18,6 +18,7 @@ from ..serializers import (
     CuestionarioIntentoSerializer, AsignacionFormacionSerializer,
 )
 from ..permissions import IsAdminOrSuperAdmin, IsEditorOrAbove
+from ..file_validation import validate_office_document
 from ._utils import get_usuario_nombre, _es_empleado, _es_superadmin
 
 logger = logging.getLogger(__name__)
@@ -540,6 +541,10 @@ class CursoContenidoViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         archivo = request.FILES.get('archivo')
         if archivo:
+            try:
+                validate_office_document(archivo)
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
             archivo.seek(0)
             archivo_bytes = archivo.read()
             archivo.seek(0)

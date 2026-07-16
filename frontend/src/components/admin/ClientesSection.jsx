@@ -1,553 +1,211 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area,
-} from 'recharts';
-import {
-  Building2, Plus, Search, X, ChevronRight, Users,
-  BookOpen, Phone, Mail, Globe, MapPin, AlertTriangle, Pencil,
-  ExternalLink, UserPlus, DollarSign,
-  ShieldAlert, LayoutDashboard, List, ArrowRight, ChevronDown,
-  ChevronUp, Briefcase, Clock, Download, Sheet, Trash2,
+  Building2, Plus, Search, X, List, Users, BookOpen, Phone, Mail, Globe, MapPin,
+  AlertTriangle, ExternalLink, Briefcase, ChevronDown, ChevronUp,
+  Clock, Download, Sheet, Trash2, RefreshCw, Network, GitBranch, User,
 } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import OrganigramaClientes from '../clientes/OrganigramaClientes';
 import {
-  exportClientesListaExcel, exportClientesListaPDF,
-  exportClienteExcel, exportClientePDF,
-  exportDashboardExcel, exportDashboardPDF,
-} from '../../lib/exports';
-import {
-  getClientesSQF,
-  getClientesStats, getEmpresas, getEmpresa, updateEmpresa,
-  getEmpresaPorAreas, getEmpresaContactos, getEmpresaBitacora,
-  createContacto, deleteContacto,
-  updateServicio, deleteServicio,
-  createAsignacion, updateAsignacion,
-  createBitacora, deleteBitacora,
-  getAllAreas, getAllEmpleados,
+  fetchApi,
+  getEmpresas,
+  getEmpresaPorAreas,
+  getEmpresaContactos,
+  getEmpresaBitacora,
+  getAllAreas,
+  getAllEmpleados,
+  getEmpleadoById,
+  createContacto,
+  deleteContacto,
+  updateServicio,
+  deleteServicio,
+  createBitacora,
+  deleteBitacora,
 } from '../../lib/api';
+import {
+  exportClientesListaExcel,
+  exportClientesListaPDF,
+  exportClienteExcel,
+  exportClientePDF,
+} from '../../lib/exports';
 
-// ── Palettes ──────────────────────────────────────────────────────────────────
+// ── Helpers de API que no están exportados en api.js ─────────────────────────
+// Se infieren los endpoints del bundle; ajustar si el backend usa rutas distintas.
+
+const createServicio = (data) =>
+  fetchApi('/clientes/servicios/', { method: 'POST', body: JSON.stringify(data) });
+
+const createEquipo = (data) =>
+  fetchApi('/clientes/equipos/', { method: 'POST', body: JSON.stringify(data) });
+
+const createEquipoMiembro = (equipoId, data) =>
+  fetchApi(`/clientes/equipos/${equipoId}/agregar_miembro/`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+const deactivateEquipoMiembro = (equipoId, miembroId) =>
+  fetchApi(`/clientes/equipos/${equipoId}/quitar_miembro/`, {
+    method: 'POST',
+    body: JSON.stringify({ miembro_id: miembroId }),
+  });
+
+const deleteEquipo = (id) =>
+  fetchApi(`/clientes/equipos/${id}/`, { method: 'DELETE' });
+
+const assignAreasToCliente = (empresaId, areaIds) =>
+  fetchApi(`/clientes/empresas/${empresaId}/asignar_areas/`, {
+    method: 'POST',
+    body: JSON.stringify({ area_ids: areaIds }),
+  });
+
+const desasignarArea = (empresaId, areaId) =>
+  fetchApi(`/clientes/empresas/${empresaId}/desasignar_area/`, {
+    method: 'POST',
+    body: JSON.stringify({ area_id: areaId }),
+  });
+
+const importarClientesDesdeSQF = (soloNuevos = true) =>
+  fetchApi(`/clientes/empresas/importar_desde_n8n/`, {
+    method: 'POST',
+    body: JSON.stringify({ solo_nuevos: soloNuevos }),
+  });
+
+// ── Paletas y constantes ──────────────────────────────────────────────────────
 
 const ESTADO_C = {
-  activo:     { bg: 'bg-emerald-100', text: 'text-emerald-700', hex: '#10b981' },
-  prospecto:  { bg: 'bg-blue-100',    text: 'text-blue-700',    hex: '#3b82f6' },
-  inactivo:   { bg: 'bg-slate-100',   text: 'text-slate-500',   hex: '#94a3b8' },
-  suspendido: { bg: 'bg-amber-100',   text: 'text-amber-700',   hex: '#f59e0b' },
-  retirado:   { bg: 'bg-red-100',     text: 'text-red-600',     hex: '#ef4444' },
+  activo: { bg: 'bg-emerald-100', text: 'text-emerald-700', hex: '#10b981' },
+  prospecto: { bg: 'bg-blue-100', text: 'text-blue-700', hex: '#3b82f6' },
+  inactivo: { bg: 'bg-slate-100', text: 'text-slate-500', hex: '#94a3b8' },
+  suspendido: { bg: 'bg-amber-100', text: 'text-amber-700', hex: '#f59e0b' },
+  retirado: { bg: 'bg-red-100', text: 'text-red-600', hex: '#ef4444' },
 };
+
 const RIESGO_C = {
-  bajo:    { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', hex: '#10b981' },
-  medio:   { bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-200',   hex: '#f59e0b' },
-  alto:    { bg: 'bg-orange-50',  text: 'text-orange-600',  border: 'border-orange-200',  hex: '#f97316' },
-  critico: { bg: 'bg-red-50',     text: 'text-red-600',     border: 'border-red-200',     hex: '#ef4444' },
+  bajo: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200', hex: '#10b981' },
+  medio: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', hex: '#f59e0b' },
+  alto: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200', hex: '#f97316' },
+  critico: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', hex: '#ef4444' },
 };
-const AREA_PAL = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899','#6366f1'];
-const TIPO_EMP = { microempresa:'Microempresa', pyme:'PYME', grande:'Empresa Grande', grupo_empresarial:'Grupo Emp.' };
-const ROL_LABELS = { responsable_principal:'Responsable Principal', gerente:'Gerente', senior:'Senior', analista:'Analista/Asistente', revisor:'Revisor', apoyo:'Apoyo' };
-const SERV_ESTADO_C = { activo:'bg-emerald-100 text-emerald-700', pausado:'bg-amber-100 text-amber-700', terminado:'bg-slate-100 text-slate-600' };
-const BIT_C = { reunion:'bg-blue-100 text-blue-700', llamada:'bg-emerald-100 text-emerald-700', visita:'bg-purple-100 text-purple-700', email:'bg-slate-100 text-slate-600', entrega:'bg-amber-100 text-amber-700', novedad:'bg-orange-100 text-orange-700', otro:'bg-slate-100 text-slate-500' };
-const BIT_L = { reunion:'Reunión', llamada:'Llamada', visita:'Visita', email:'Correo', entrega:'Entrega', novedad:'Novedad', otro:'Otro' };
+
+const AREA_PAL = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#6366f1'];
+
+const ROL_LABELS = {
+  gerente: 'Gerente',
+  senior: 'Senior',
+  lider_equipo: 'Líder de contrato',
+  semi_senior: 'Semi-senior',
+  analista: 'Analista',
+  asistente: 'Asistente',
+  revisor: 'Revisor',
+  apoyo: 'Apoyo',
+};
+
+const SERV_ESTADO_C = {
+  activo: 'bg-emerald-100 text-emerald-700',
+  pausado: 'bg-amber-100 text-amber-700',
+  terminado: 'bg-slate-100 text-slate-600',
+};
+
+const BIT_C = {
+  reunion: 'bg-blue-100 text-blue-700',
+  llamada: 'bg-emerald-100 text-emerald-700',
+  visita: 'bg-purple-100 text-purple-700',
+  email: 'bg-slate-100 text-slate-600',
+  entrega: 'bg-amber-100 text-amber-700',
+  novedad: 'bg-orange-100 text-orange-700',
+  otro: 'bg-slate-100 text-slate-500',
+};
+
+const BIT_L = {
+  reunion: 'Reunión',
+  llamada: 'Llamada',
+  visita: 'Visita',
+  email: 'Correo',
+  entrega: 'Entrega',
+  novedad: 'Novedad',
+  otro: 'Otro',
+};
+
+const CARGOS_OPTIONS = [
+  ['representante_legal', 'Representante Legal'],
+  ['gerente', 'Gerente General'],
+  ['contador', 'Contador'],
+  ['auxiliar_contable', 'Auxiliar Contable'],
+  ['abogado', 'Abogado'],
+  ['tesoreria', 'Tesorería'],
+  ['rrhh', 'RRHH'],
+  ['revisor_fiscal', 'Revisor Fiscal'],
+  ['otro', 'Otro'],
+];
+
+// ── Utilidades ────────────────────────────────────────────────────────────────
 
 function Badge({ children, className = '' }) {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${className}`}>{children}</span>;
 }
 
-// ── KpiCard ───────────────────────────────────────────────────────────────────
-
-const KPI_PAL = {
-  blue:    ['ring-blue-100',    'bg-blue-50',    'text-blue-500',    'text-blue-700'],
-  emerald: ['ring-emerald-100', 'bg-emerald-50', 'text-emerald-500', 'text-emerald-700'],
-  amber:   ['ring-amber-100',   'bg-amber-50',   'text-amber-500',   'text-amber-700'],
-  red:     ['ring-red-100',     'bg-red-50',     'text-red-400',     'text-red-700'],
-  purple:  ['ring-purple-100',  'bg-purple-50',  'text-purple-500',  'text-purple-700'],
-};
-function KpiCard({ icon: Icon, label, value, sub, color = 'blue' }) {
-  const [ring, bg, ic, val] = KPI_PAL[color] || KPI_PAL.blue;
-  return (
-    <div className={`bg-white rounded-2xl p-5 ring-1 ${ring} flex items-start gap-4`}>
-      <div className={`w-11 h-11 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
-        <Icon size={20} className={ic} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs text-slate-500 font-medium">{label}</p>
-        <p className={`text-2xl font-black mt-0.5 ${val}`}>{value}</p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5 truncate">{sub}</p>}
-      </div>
-    </div>
-  );
+function isGerenteOSocio(empleado) {
+  const cargo = (empleado?.nombre_cargo || empleado?.cargo_nombre || '').toLowerCase();
+  const nivel = (empleado?.cargo_nivel || '').toLowerCase();
+  return cargo.includes('gerente') || nivel.includes('gerente') || cargo.includes('socio') || nivel.includes('socio');
 }
 
-const CTip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-slate-100 rounded-xl shadow-lg px-3 py-2 text-xs">
-      {label && <p className="font-semibold text-slate-700 mb-1">{label}</p>}
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color || p.fill }}>
-          {p.name}: <span className="font-bold">{typeof p.value === 'number' && p.value > 9999 ? `$${p.value.toLocaleString('es-CO')}` : p.value}</span>
-        </p>
-      ))}
-    </div>
-  );
-};
-
-// ── EmpresaPicker (autocomplete compacto para el filtro del dashboard) ────────
-
-function EmpresaPicker({ empresas, value, onChange }) {
-  const [q, setQ]       = useState('');
-  const [open, setOpen] = useState(false);
-  const selected = empresas.find(e => String(e.id) === String(value));
-
-  const lista = empresas
-    .filter(e => !q ||
-      e.razon_social.toLowerCase().includes(q.toLowerCase()) ||
-      (e.nit || '').includes(q))
-    .slice(0, 8);
-
-  const pick  = (id) => { onChange(String(id)); setQ(''); setOpen(false); };
-  const clear = ()   => { onChange(''); setQ(''); };
-
-  return (
-    <div className="relative">
-      <div className={`flex items-center gap-1 border rounded-lg px-2 py-1.5 bg-white text-xs transition-all
-        ${open ? 'border-blue-400 ring-2 ring-blue-500/20' : 'border-slate-200'}`}>
-        <Search size={11} className="text-slate-400 flex-shrink-0"/>
-        {selected && !open
-          ? <span className="flex-1 truncate text-slate-700 font-medium max-w-[140px]">{selected.razon_social}</span>
-          : <input
-              value={q}
-              placeholder={selected ? selected.razon_social : 'Buscar cliente…'}
-              onChange={e => { setQ(e.target.value); setOpen(true); }}
-              onFocus={() => setOpen(true)}
-              onBlur={() => setTimeout(() => setOpen(false), 150)}
-              className="flex-1 outline-none bg-transparent placeholder:text-slate-400 min-w-0 w-32"
-            />
-        }
-        {selected
-          ? <button onClick={clear} className="text-slate-400 hover:text-red-400 flex-shrink-0"><X size={11}/></button>
-          : <ChevronDown size={11} className="text-slate-400 flex-shrink-0"/>
-        }
-      </div>
-      {open && (
-        <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden">
-          {lista.length === 0
-            ? <p className="text-xs text-slate-400 px-3 py-2.5">Sin resultados</p>
-            : lista.map(e => (
-              <button key={e.id} onMouseDown={() => pick(e.id)}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 flex items-center justify-between gap-2 border-b border-slate-50 last:border-0">
-                <span className="truncate font-medium text-slate-700">{e.razon_social}</span>
-                <span className="text-slate-400 flex-shrink-0 text-[10px]">{e.nit}</span>
-              </button>
-            ))
-          }
-        </div>
-      )}
-    </div>
-  );
+function isGerente(empleado) {
+  const t = (empleado?.cargo_nivel || '').toLowerCase();
+  const n = (empleado?.nombre_cargo || empleado?.cargo_nombre || '').toLowerCase();
+  return t.includes('gerente') || n.includes('gerente');
 }
 
-// ── Dashboard CRM ─────────────────────────────────────────────────────────────
-
-function ChartCard({ title, sub, children, isEmpty, emptyMsg }) {
-  if (isEmpty) return null;
-  return (
-    <div className="bg-white rounded-2xl p-5 ring-1 ring-slate-100">
-      <h3 className="text-sm font-bold text-slate-800">{title}</h3>
-      {sub && <p className="text-xs text-slate-400 mb-3">{sub}</p>}
-      {children}
-    </div>
-  );
+function inferRole(empleado) {
+  const t = (empleado?.cargo_nivel || '').toLowerCase();
+  const n = (empleado?.nombre_cargo || '').toLowerCase();
+  if (t.includes('gerente') || n.includes('gerente')) return 'gerente';
+  if (n.includes('lider') || n.includes('líder')) return 'lider_equipo';
+  if (n.includes('semi')) return 'semi_senior';
+  if (n.includes('senior')) return 'senior';
+  if (n.includes('analista')) return 'analista';
+  if (n.includes('asistente')) return 'asistente';
+  if (n.includes('revisor')) return 'revisor';
+  return 'apoyo';
 }
 
-function ProgressList({ data, total }) {
-  if (!data.length) return null;
-  return (
-    <div className="space-y-2.5">
-      {data.map((d, i) => {
-        const pct = total > 0 ? Math.round((d.value / total) * 100) : 0;
-        return (
-          <div key={d.name}>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="font-medium" style={{ color: d.color || '#64748b' }}>{d.name}</span>
-              <span className="text-slate-400">{d.value} ({pct}%)</span>
-            </div>
-            <div className="w-full bg-slate-100 rounded-full h-1.5">
-              <div className="h-1.5 rounded-full transition-all duration-500"
-                style={{ width: `${pct}%`, backgroundColor: d.color || AREA_PAL[i] }} />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+function countRoles(roles) {
+  const counts = {
+    gerente: 0, senior: 0, analista: 0, asistente: 0, lider_equipo: 0,
+    semi_senior: 0, revisor: 0, apoyo: 0,
+  };
+  roles.forEach((r) => { counts[r] = (counts[r] || 0) + 1; });
+  return counts;
 }
 
-function CrmDashboard({ onGo }) {
-  const [stats, setStats]         = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [areas, setAreas]         = useState([]);
-  const [empleados, setEmpleados] = useState([]);
-  const [empresas, setEmpresas]   = useState([]);
-  const [filtroArea, setFiltroArea]         = useState('');
-  const [filtroEmpleado, setFiltroEmpleado] = useState('');
-  const [filtroEmpresa, setFiltroEmpresa]   = useState('');
-
-  // Catálogos: carga única al montar
-  useEffect(() => {
-    Promise.all([getAllAreas(), getAllEmpleados(), getEmpresas()])
-      .then(([a, e, em]) => { setAreas(a); setEmpleados(e); setEmpresas(em); })
-      .catch(console.error);
-  }, []);
-
-  // Stats: recarga al cambiar filtros
-  const loadStats = useCallback(async () => {
-    setLoading(true);
-    const params = {};
-    if (filtroArea)     params.area_id     = filtroArea;
-    if (filtroEmpleado) params.empleado_id = filtroEmpleado;
-    if (filtroEmpresa)  params.empresa_id  = filtroEmpresa;
-    try {
-      setStats(await getClientesStats(params));
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  }, [filtroArea, filtroEmpleado, filtroEmpresa]);
-
-  useEffect(() => { loadStats(); }, [loadStats]);
-
-  const resetFiltros = () => { setFiltroArea(''); setFiltroEmpleado(''); setFiltroEmpresa(''); };
-  const hayFiltro    = filtroArea || filtroEmpleado || filtroEmpresa;
-
-  // Empleados visibles en el dropdown: solo los del área seleccionada (o todos si no hay área)
-  const empleadosVisibles = filtroArea
-    ? empleados.filter(em => em.area == filtroArea)
-    : empleados;
-
-  // ── Preparar datos solo con valores reales ──────────────────────────────
-  const estadoData = Object.entries(stats?.por_estado || {})
-    .map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: v, fill: ESTADO_C[k]?.hex || '#94a3b8' }));
-
-  const riesgoList = Object.entries(stats?.por_riesgo || {})
-    .map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: v, color: RIESGO_C[k]?.hex }));
-
-  const tipoList = Object.entries(stats?.por_tipo || {})
-    .map(([k, v]) => ({ name: TIPO_EMP[k] || k, value: v }));
-
-  const areaData = (stats?.por_area || [])
-    .map((a, i) => ({ name: a.area__nombre_area || 'Sin área', clientes: a.total, fill: AREA_PAL[i % AREA_PAL.length] }));
-
-  const facData = (stats?.facturacion_area || [])
-    .filter(a => Number(a.total) > 0)
-    .map((a, i) => ({ name: a.area__nombre_area || 'Sin área', valor: Number(a.total), fill: AREA_PAL[i % AREA_PAL.length] }));
-
-  const mesData = (stats?.por_mes || []).map(m => ({ name: m.mes, nuevos: m.total }));
-
-  const riesgoAlto = (stats?.por_riesgo?.alto || 0) + (stats?.por_riesgo?.critico || 0);
-  const totalScope = stats?.total ?? 0;
-
-  const fi = stats?.filtro_info || {};
-  const contextParts = [
-    fi.empresa_nombre  && `Cliente: ${fi.empresa_nombre}`,
-    fi.area_nombre     && `Área: ${fi.area_nombre}`,
-    fi.empleado_nombre && `Colaborador: ${fi.empleado_nombre}`,
-  ].filter(Boolean);
-  const contextLabel = contextParts.length ? contextParts.join(' · ') : 'Vista global';
-
-  return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Barra de filtros */}
-      <div className="flex items-center gap-2 px-6 py-2.5 bg-white border-b border-slate-100 flex-wrap">
-        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mr-1">Ver por:</span>
-
-        {/* Área */}
-        <select value={filtroArea}
-          onChange={e => { setFiltroArea(e.target.value); setFiltroEmpleado(''); }}
-          className={`text-xs border rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-colors
-            ${filtroArea ? 'border-blue-400 text-blue-700 bg-blue-50' : 'border-slate-200 text-slate-600'}`}>
-          <option value="">Todas las áreas</option>
-          {areas.map(a => <option key={a.id_area} value={a.id_area}>{a.nombre_area}</option>)}
-        </select>
-
-        {/* Colaborador — filtrado por área si hay una seleccionada */}
-        <div className="relative">
-          <select value={filtroEmpleado}
-            onChange={e => setFiltroEmpleado(e.target.value)}
-            className={`text-xs border rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-colors
-              ${filtroEmpleado ? 'border-blue-400 text-blue-700 bg-blue-50' : 'border-slate-200 text-slate-600'}`}>
-            <option value="">
-              {filtroArea && empleadosVisibles.length > 0
-                ? `Todo el equipo del área (${empleadosVisibles.length})`
-                : 'Todo el equipo'}
-            </option>
-            {empleadosVisibles.map(em => (
-              <option key={em.id_empleado} value={em.id_empleado}>
-                {em.primer_nombre} {em.primer_apellido}
-              </option>
-            ))}
-          </select>
-          {filtroArea && empleadosVisibles.length === 0 && (
-            <span className="absolute -top-4 left-0 text-[10px] text-amber-500 whitespace-nowrap">Sin empleados en esta área</span>
-          )}
-        </div>
-
-        {/* Separador */}
-        <div className="h-5 w-px bg-slate-200 mx-0.5"/>
-
-        {/* Cliente */}
-        <EmpresaPicker
-          empresas={empresas}
-          value={filtroEmpresa}
-          onChange={setFiltroEmpresa}
-        />
-
-        {/* Reset */}
-        {hayFiltro && (
-          <button onClick={resetFiltros}
-            className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:border-red-200 hover:bg-red-50 transition-colors">
-            <X size={11}/> Limpiar
-          </button>
-        )}
-
-        {/* Contexto activo */}
-        {hayFiltro && (
-          <span className="text-[11px] text-blue-600 font-medium bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
-            {contextLabel}
-          </span>
-        )}
-
-        {/* Exportar dashboard */}
-        <div className="ml-auto flex items-center gap-1">
-          <button
-            onClick={() => exportDashboardExcel(stats, contextLabel)}
-            disabled={!stats}
-            title="Exportar dashboard a Excel"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Sheet size={12}/> Excel
-          </button>
-          <button
-            onClick={() => exportDashboardPDF(stats, contextLabel)}
-            disabled={!stats}
-            title="Exportar dashboard a PDF con gráficas"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Download size={12}/> PDF
-          </button>
-        </div>
-      </div>
-
-      {/* Contenido scrolleable */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-5">
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center text-slate-400">
-              <div className="w-7 h-7 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"/>
-              <p className="text-sm">Actualizando...</p>
-            </div>
-          </div>
-        ) : !stats || totalScope === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-            <Building2 size={32} className="mb-3 opacity-20"/>
-            <p className="text-sm font-medium">Sin datos para este filtro</p>
-            {hayFiltro && <button onClick={resetFiltros} className="mt-2 text-xs text-blue-500 hover:underline">Ver todos los clientes</button>}
-          </div>
-        ) : (
-          <>
-            {/* Alerta: activos sin área */}
-            {(stats.sin_area_count > 0) && (
-              <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
-                <AlertTriangle size={16} className="text-amber-500 flex-shrink-0 mt-0.5"/>
-                <div>
-                  <p className="text-sm font-semibold text-amber-800">
-                    {stats.sin_area_count} cliente{stats.sin_area_count > 1 ? 's' : ''} activo{stats.sin_area_count > 1 ? 's' : ''} sin área asignada
-                  </p>
-                  <p className="text-xs text-amber-600 mt-0.5">Los clientes activos deben tener al menos un área de servicio. Revísalos en el Directorio.</p>
-                </div>
-                <button onClick={() => onGo('directorio')} className="ml-auto text-xs text-amber-700 font-medium hover:underline whitespace-nowrap">Ver directorio →</button>
-              </div>
-            )}
-
-            {/* KPIs */}
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-              <KpiCard icon={Building2}   label="Clientes en alcance"   value={totalScope}
-                sub={`${stats.por_estado?.activo || 0} activos · ${stats.por_estado?.prospecto || 0} prospectos`} color="blue"/>
-              <KpiCard icon={DollarSign}  label="Facturación Mensual"   value={`$${(stats.ingresos_total || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}`}
-                sub="servicios activos" color="emerald"/>
-              <KpiCard icon={ShieldAlert} label="Riesgo Alto/Crítico"   value={riesgoAlto}
-                sub="clientes en vigilancia" color={riesgoAlto > 0 ? 'red' : 'emerald'}/>
-              <KpiCard icon={Users}       label="Colaboradores activos" value={(stats.top_equipo || []).length}
-                sub="con clientes asignados" color="purple"/>
-            </div>
-
-            {/* Fila: área + estado */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              {areaData.length > 0 && (
-                <ChartCard title="Clientes por Área" sub="Empresas con servicios activos por área" isEmpty={false}>
-                  <ResponsiveContainer width="100%" height={Math.max(120, areaData.length * 36)}>
-                    <BarChart data={areaData} layout="vertical" margin={{ left: 8, right: 32 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9"/>
-                      <XAxis type="number" tick={{ fontSize: 11 }} tickLine={false} axisLine={false}/>
-                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={120}/>
-                      <Tooltip content={<CTip/>}/>
-                      <Bar dataKey="clientes" radius={[0, 6, 6, 0]} label={{ position: 'right', fontSize: 10, fill: '#64748b' }}>
-                        {areaData.map((d, i) => <Cell key={i} fill={d.fill}/>)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartCard>
-              )}
-
-              {estadoData.length > 0 && (
-                <ChartCard title="Estado de Clientes" sub="Distribución actual" isEmpty={false}>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie data={estadoData} cx="50%" cy="44%" innerRadius={48} outerRadius={74} paddingAngle={3} dataKey="value">
-                        {estadoData.map((d, i) => <Cell key={i} fill={d.fill}/>)}
-                      </Pie>
-                      <Tooltip content={<CTip/>}/>
-                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }}/>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartCard>
-              )}
-            </div>
-
-            {/* Facturación — solo si hay datos */}
-            {facData.length > 0 && (
-              <ChartCard title="Facturación Estimada por Área (COP)" sub="Suma de valores mensuales de servicios activos" isEmpty={false}>
-                <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={facData} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
-                    <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} axisLine={false}/>
-                    <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v / 1e6).toFixed(1)}M`}/>
-                    <Tooltip content={<CTip/>}/>
-                    <Bar dataKey="valor" radius={[6, 6, 0, 0]}>
-                      {facData.map((d, i) => <Cell key={i} fill={d.fill}/>)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            )}
-
-            {/* Riesgo + Tipo en paralelo — solo si hay datos */}
-            {(riesgoList.some(d => d.value > 0) || tipoList.some(d => d.value > 0)) && (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {riesgoList.some(d => d.value > 0) && (
-                  <ChartCard title="Nivel de Riesgo" isEmpty={false}>
-                    <ProgressList data={riesgoList} total={totalScope}/>
-                  </ChartCard>
-                )}
-                {tipoList.some(d => d.value > 0) && (
-                  <ChartCard title="Tipo de Empresa" isEmpty={false}>
-                    <ProgressList data={tipoList} total={totalScope}/>
-                  </ChartCard>
-                )}
-              </div>
-            )}
-
-            {/* Nuevos por mes — solo si hay entradas */}
-            {mesData.length > 0 && (
-              <ChartCard title="Nuevos Clientes — Últimos 6 Meses" sub="Incorporaciones al portafolio" isEmpty={false}>
-                <ResponsiveContainer width="100%" height={130}>
-                  <AreaChart data={mesData} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
-                    <defs>
-                      <linearGradient id="gNuevos" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.18}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
-                    <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} axisLine={false}/>
-                    <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false}/>
-                    <Tooltip content={<CTip/>}/>
-                    <Area type="monotone" dataKey="nuevos" stroke="#3b82f6" strokeWidth={2} fill="url(#gNuevos)"/>
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            )}
-
-            {/* Actividad + equipo + alertas */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              {(stats.actividad_reciente || []).length > 0 && (
-                <div className="xl:col-span-2 bg-white rounded-2xl p-5 ring-1 ring-slate-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-800">Actividad Reciente</h3>
-                      <p className="text-xs text-slate-400">Últimos registros de bitácora</p>
-                    </div>
-                    <button onClick={() => onGo('directorio')} className="text-xs text-blue-500 hover:underline flex items-center gap-1">
-                      Ver directorio <ArrowRight size={11}/>
-                    </button>
-                  </div>
-                  <div className="space-y-1">
-                    {(stats.actividad_reciente || []).map(e => (
-                      <div key={e.id} className="flex items-start gap-2.5 px-2 py-2 rounded-xl hover:bg-slate-50 transition-colors">
-                        <Badge className={BIT_C[e.tipo] || 'bg-slate-100 text-slate-600'}>{BIT_L[e.tipo] || e.tipo}</Badge>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-slate-700 truncate">{e.empresa_nombre}</p>
-                          <p className="text-xs text-slate-400 truncate">{e.descripcion}</p>
-                        </div>
-                        <span className="text-[10px] text-slate-300 whitespace-nowrap">
-                          {e.fecha ? new Date(e.fecha).toLocaleDateString('es-CO') : ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                {(stats.top_equipo || []).length > 0 && (
-                  <div className="bg-white rounded-2xl p-5 ring-1 ring-slate-100">
-                    <h3 className="text-sm font-bold text-slate-800 mb-3">Equipo más Activo</h3>
-                    <div className="space-y-2.5">
-                      {(stats.top_equipo || []).map((e, i) => (
-                        <div key={e.id || i} className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-                            {(e.nombre || '?').charAt(0)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-slate-700 truncate">{e.nombre}</p>
-                            <p className="text-[10px] text-slate-400 truncate">{e.cargo}</p>
-                          </div>
-                          <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{e.clientes}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {(stats.clientes_riesgo || []).length > 0 && (
-                  <div className="bg-white rounded-2xl p-5 ring-1 ring-red-100">
-                    <div className="flex items-center gap-2 mb-3">
-                      <AlertTriangle size={14} className="text-red-500"/>
-                      <h3 className="text-sm font-bold text-slate-800">Alertas de Riesgo</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {(stats.clientes_riesgo || []).slice(0, 5).map(c => (
-                        <div key={c.id} className="flex items-center justify-between p-2 bg-red-50 rounded-xl">
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-slate-700 truncate">{c.razon_social}</p>
-                            <p className="text-[10px] text-slate-400">{c.ciudad || 'Sin ciudad'}</p>
-                          </div>
-                          <Badge className={`${RIESGO_C[c.nivel_riesgo]?.bg} ${RIESGO_C[c.nivel_riesgo]?.text} border ${RIESGO_C[c.nivel_riesgo]?.border} ml-2 whitespace-nowrap`}>
-                            {c.nivel_riesgo}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
+function checkTriarchy(roles) {
+  const counts = countRoles(roles);
+  const missing = [];
+  if (counts.gerente < 1) missing.push('1 gerente');
+  if (counts.senior < 1) missing.push('1 senior');
+  if (counts.analista + counts.asistente < 1) missing.push('1 analista o asistente');
+  return { ok: missing.length === 0, missing, counts };
 }
 
-// ── AreasTab ──────────────────────────────────────────────────────────────────
-// Vista principal del cliente: cada área que lo atiende, con sus servicios y equipo
+function checkTriarchyForEmpleados(empleados) {
+  return checkTriarchy(empleados.map(inferRole));
+}
+
+function triarchyMessage(missing) {
+  return `El contrato no cumple la triarquía mínima. Faltan: ${missing.join(', ')}. Activa “Contrato especial” si es una excepción.`;
+}
+
+function initials(name) {
+  return (name || '?')
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+// ── ServicioRow ───────────────────────────────────────────────────────────────
 
 function ServicioRow({ s, onDelete, onToggle }) {
   return (
@@ -560,131 +218,783 @@ function ServicioRow({ s, onDelete, onToggle }) {
         </div>
         <div className="flex gap-3 mt-0.5 text-slate-400">
           <span>Inicio: {s.fecha_inicio}</span>
-          {s.valor_mensual && <span className="text-emerald-600 font-semibold">$ {Number(s.valor_mensual).toLocaleString('es-CO')}</span>}
+          {s.valor_mensual && (
+            <span className="text-emerald-600 font-semibold">$ {Number(s.valor_mensual).toLocaleString('es-CO')}</span>
+          )}
         </div>
       </div>
       <div className="flex gap-1 ml-2 flex-shrink-0">
-        <button onClick={() => onToggle(s)} title={s.estado==='activo'?'Pausar':'Activar'}
-          className="p-1 text-slate-300 hover:text-amber-500 rounded hover:bg-amber-50 transition-colors"><Clock size={13}/></button>
-        <button onClick={() => onDelete(s.id)}
-          className="p-1 text-slate-300 hover:text-red-400 rounded hover:bg-red-50 transition-colors"><Trash2 size={13}/></button>
+        <button
+          onClick={() => onToggle(s)}
+          title={s.estado === 'activo' ? 'Pausar' : 'Activar'}
+          className="p-1 text-slate-300 hover:text-amber-500 rounded hover:bg-amber-50 transition-colors"
+        >
+          <Clock size={13} />
+        </button>
+        <button
+          onClick={() => onDelete(s.id)}
+          className="p-1 text-slate-300 hover:text-red-400 rounded hover:bg-red-50 transition-colors"
+        >
+          <Trash2 size={13} />
+        </button>
       </div>
     </div>
   );
 }
 
-function EmpleadoRow({ a, onRemove }) {
-  const initials = (a.empleado_nombre||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  return (
-    <div className="flex items-center justify-between py-2 px-3 bg-white rounded-xl border border-slate-100">
-      <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-          {initials}
-        </div>
-        <div>
-          <p className="text-xs font-medium text-slate-700">{a.empleado_nombre || `Empleado #${a.empleado}`}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <Badge className="bg-purple-100 text-purple-700">{ROL_LABELS[a.rol]||a.rol}</Badge>
-            {a.empleado_cargo && <span className="text-[10px] text-slate-400">{a.empleado_cargo}</span>}
-          </div>
-        </div>
-      </div>
-      <button onClick={() => onRemove(a.id)} className="p-1 text-slate-300 hover:text-red-400 rounded hover:bg-red-50 transition-colors ml-2"><X size={13}/></button>
-    </div>
-  );
-}
+// ── NuevoServicioModal ────────────────────────────────────────────────────────
 
-function AgregarEmpleadoForm({ areaId, empresaId, onSaved, onCancel, empleados, assignedIds = new Set() }) {
-  const [form, setForm]       = useState({ empleado:'', rol:'', fecha_inicio:'' });
-  const [busqueda, setBusqueda] = useState('');
-  const [saving, setSaving]   = useState(false);
-  const set = (k,v) => setForm(f=>({...f,[k]:v}));
-
-  // Solo empleados del área seleccionada, excluyendo los ya asignados a este cliente
-  const delArea  = empleados.filter(em => em.area == areaId);
-  const libres   = delArea.filter(em => !assignedIds.has(em.id_empleado));
-  const filtrados = libres.filter(em =>
-    !busqueda ||
-    `${em.primer_nombre} ${em.primer_apellido}`.toLowerCase().includes(busqueda.toLowerCase())
-  );
+function NuevoServicioModal({ empresaId, areaId, areaNombre, onCreated, onClose }) {
+  const [nombre, setNombre] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!nombre.trim()) {
+      alert('El nombre del servicio es obligatorio.');
+      return;
+    }
     setSaving(true);
     try {
-      await createAsignacion({ ...form, empresa: empresaId, area: areaId });
-      onSaved();
-    } catch (err) { alert(err.message); }
-    finally { setSaving(false); }
+      const nuevo = await createServicio({
+        empresa: empresaId,
+        area: areaId,
+        nombre: nombre.trim(),
+        descripcion: descripcion.trim() || undefined,
+        fecha_inicio: new Date().toISOString().slice(0, 10),
+        estado: 'activo',
+        periodicidad: 'mensual',
+      });
+      onCreated(nuevo);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const sinEmpleados = delArea.length === 0;
-  const todosAsignados = !sinEmpleados && libres.length === 0;
-
   return (
-    <form onSubmit={handleSubmit} className="mt-2 p-3 bg-purple-50 border border-purple-100 rounded-xl space-y-2">
-      <p className="text-xs font-semibold text-purple-700">Asignar empleado del área</p>
-
-      {sinEmpleados ? (
-        <p className="text-xs text-amber-600 py-1 flex items-center gap-1.5">
-          <AlertTriangle size={11}/> Esta área no tiene empleados registrados en el sistema.
-        </p>
-      ) : todosAsignados ? (
-        <p className="text-xs text-amber-600 py-1 flex items-center gap-1.5">
-          <AlertTriangle size={11}/> Todos los empleados de esta área ya están asignados a este cliente.
-        </p>
-      ) : (
-        <>
-          {/* Búsqueda dentro del área */}
-          <div className="relative">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
-            <input type="text" placeholder={`Buscar en ${delArea.length} empleados del área…`}
-              value={busqueda} onChange={e=>setBusqueda(e.target.value)}
-              className="w-full pl-7 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"/>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <h3 className="text-sm font-bold text-slate-800">Nuevo servicio · {areaNombre}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-4 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Nombre del servicio *</label>
+            <input
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              required
+              placeholder="Ej. Outsourcing de nómina"
+              className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            />
           </div>
-
-          <select value={form.empleado} onChange={e=>set('empleado',e.target.value)} required
-            size={Math.min(filtrados.length + 1, 6)}
-            className="w-full px-3 py-1 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/30">
-            <option value="">— Seleccionar —</option>
-            {filtrados.map(em => (
-              <option key={em.id_empleado} value={em.id_empleado}>
-                {em.primer_nombre} {em.primer_apellido}{em.nombre_cargo ? ` · ${em.nombre_cargo}` : ''}
-              </option>
-            ))}
-          </select>
-          {filtrados.length === 0 && busqueda && (
-            <p className="text-xs text-slate-400 text-center">Sin resultados para "{busqueda}"</p>
-          )}
-        </>
-      )}
-
-      <div className="grid grid-cols-2 gap-2">
-        <select value={form.rol} onChange={e=>set('rol',e.target.value)} required
-          className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/30">
-          <option value="">Rol en este cliente *</option>
-          {Object.entries(ROL_LABELS).map(([v,l])=><option key={v} value={v}>{l}</option>)}
-        </select>
-        <input type="date" required value={form.fecha_inicio} onChange={e=>set('fecha_inicio',e.target.value)}
-          className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/30"/>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Descripción</label>
+            <textarea
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              rows={2}
+              placeholder="Detalle del servicio"
+              className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 resize-none"
+            />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={saving || !nombre.trim()}
+              className="flex-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? 'Guardando…' : 'Crear servicio'}
+            </button>
+            <button type="button" onClick={onClose} className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg hover:bg-slate-50">Cancelar</button>
+          </div>
+        </form>
       </div>
-      <div className="flex gap-2">
-        <button type="submit" disabled={saving || sinEmpleados || todosAsignados}
-          className="px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50">
-          {saving ? 'Asignando…' : 'Asignar'}
-        </button>
-        <button type="button" onClick={onCancel}
-          className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg hover:bg-slate-50">Cancelar</button>
-      </div>
-    </form>
+    </div>
   );
 }
 
-function AreaCard({ bloque, empresaId, empleados, onRefresh, colorIdx }) {
-  const [open, setOpen]     = useState(true);
-  const [addEmp, setAddEmp] = useState(false);
-  const [addServ, setAddServ] = useState(false);
+// ── CrearContratoModal ───────────────────────────────────────────────────────
+
+function CrearContratoModal({ empresaId, bloque, equipoPadreId = null, equipoPadreNombre = '', empleados, puedeGestionar, onSaved, onClose, onRefresh }) {
+  const esSubcontrato = !!equipoPadreId;
+  const [nombre, setNombre] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [seleccionados, setSeleccionados] = useState(new Set());
+  const [busqueda, setBusqueda] = useState('');
+  const [servicios, setServicios] = useState(bloque.servicios || []);
+  const [servicioSeleccionado, setServicioSeleccionado] = useState('');
+  const [showNuevoServicio, setShowNuevoServicio] = useState(false);
+  const [fechaInicio, setFechaInicio] = useState(() => new Date().toISOString().slice(0, 10));
+  const [especial, setEspecial] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setServicios(bloque.servicios || []);
+  }, [bloque.servicios]);
+
+  const filtrados = empleados.filter((em) =>
+    em.area == bloque.area_id &&
+    (!busqueda || `${em.primer_nombre} ${em.primer_apellido}`.toLowerCase().includes(busqueda.toLowerCase()))
+  );
+
+  const toggle = (id) => {
+    setSeleccionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const idsFiltrados = filtrados.map((e) => e.id_empleado);
+  const todosSeleccionados = idsFiltrados.length > 0 && idsFiltrados.every((id) => seleccionados.has(id));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!nombre.trim()) { alert('Escribe un nombre para el contrato.'); return; }
+    if (seleccionados.size === 0) { alert('Selecciona al menos un empleado.'); return; }
+
+    const seleccionadosList = Array.from(seleccionados)
+      .map((id) => empleados.find((em) => em.id_empleado == id))
+      .filter(Boolean);
+
+    if (!especial) {
+      const { ok, missing } = checkTriarchyForEmpleados(seleccionadosList);
+      if (!ok) { alert(triarchyMessage(missing)); return; }
+    }
+
+    setSaving(true);
+    try {
+      const empleadosMap = new Map(empleados.map((em) => [em.id_empleado, em]));
+      const nuevoEquipo = await createEquipo({
+        empresa: empresaId,
+        area: bloque.area_id,
+        servicio: servicioSeleccionado || null,
+        equipo_padre: equipoPadreId || null,
+        nombre: nombre.trim(),
+        descripcion: descripcion.trim() || undefined,
+        estado: 'activo',
+        fecha_inicio: fechaInicio,
+        activo: true,
+        especial,
+      });
+
+      let agregados = 0;
+      for (const id of seleccionados) {
+        const em = empleadosMap.get(id) || {};
+        try {
+          await createEquipoMiembro(nuevoEquipo.id, {
+            empleado: id,
+            rol: inferRole(em),
+            fecha_inicio: fechaInicio,
+            activo: true,
+          });
+          agregados += 1;
+        } catch (err) {
+          console.error('Error agregando miembro', id, err);
+        }
+      }
+      if (agregados < seleccionados.size) {
+        alert(`Contrato creado, pero solo se agregaron ${agregados} de ${seleccionados.size} miembros.`);
+      }
+      onSaved();
+      onRefresh?.();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <h3 className="text-sm font-bold text-slate-800">
+            {esSubcontrato ? `Crear sub-contrato · ${equipoPadreNombre || ''}` : `Crear contrato · ${bloque.area_nombre}`}
+          </h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-4 space-y-3 max-h-[80vh] overflow-y-auto">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Nombre del contrato *</label>
+            <input
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              required
+              placeholder="Ej. Contrato de contabilidad gerente A"
+              className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Descripción</label>
+            <textarea
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              rows={2}
+              placeholder="Propósito o proceso del contrato"
+              className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/30 resize-none"
+            />
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-medium text-slate-500">Empleados</label>
+              <span className="text-[11px] text-purple-600 font-medium">Pueden pertenecer a varios contratos</span>
+            </div>
+            <div className="relative mb-2">
+              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder={`Buscar en ${filtrados.length} empleados…`}
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="w-full pl-7 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+              />
+            </div>
+            {filtrados.length === 0 ? (
+              <p className="text-xs text-amber-600 py-2 flex items-center gap-1.5">
+                <AlertTriangle size={11} /> No hay empleados disponibles para asignar.
+              </p>
+            ) : (
+              <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2 space-y-1">
+                <label className="flex items-center gap-2 text-xs font-medium text-slate-600 pb-1 border-b border-slate-100 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={todosSeleccionados}
+                    onChange={() => {
+                      setSeleccionados((prev) => {
+                        const next = new Set(prev);
+                        if (todosSeleccionados) idsFiltrados.forEach((id) => next.delete(id));
+                        else idsFiltrados.forEach((id) => next.add(id));
+                        return next;
+                      });
+                    }}
+                  />
+                  Seleccionar todos
+                </label>
+                {filtrados.map((em) => {
+                  const esDelArea = em.area == bloque.area_id;
+                  return (
+                    <label key={em.id_empleado} className={`flex items-center gap-2 text-xs p-1.5 rounded cursor-pointer ${esDelArea ? 'bg-purple-50/60 hover:bg-purple-50' : 'hover:bg-slate-50'}`}>
+                      <input
+                        type="checkbox"
+                        checked={seleccionados.has(em.id_empleado)}
+                        onChange={() => toggle(em.id_empleado)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-slate-700 truncate">{em.primer_nombre} {em.primer_apellido}</p>
+                        <p className="text-[10px] text-slate-400 truncate">
+                          {em.nombre_cargo || 'Sin cargo'}
+                          {em.area_nombre ? ` · ${em.area_nombre}` : ''}
+                          {esDelArea && <span className="ml-1 text-purple-600 font-medium">· área</span>}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            {seleccionados.size > 0 && (
+              <p className="text-[11px] text-purple-600 mt-1">{seleccionados.size} seleccionado(s)</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Fecha de inicio *</label>
+            <input
+              type="date"
+              required
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+              className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+            />
+          </div>
+          {seleccionados.size > 0 && (
+            <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
+              <p className="text-[11px] font-medium text-slate-500 mb-1">Roles asignados según cargo actual:</p>
+              <div className="space-y-1">
+                {Array.from(seleccionados).map((id) => {
+                  const em = empleados.find((x) => x.id_empleado == id);
+                  return (
+                    <div key={id} className="flex justify-between text-xs">
+                      <span className="text-slate-700">{em?.primer_nombre} {em?.primer_apellido}</span>
+                      <Badge className="bg-purple-100 text-purple-700">{ROL_LABELS[inferRole(em)]}</Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Servicio (opcional)</label>
+            <select
+              value={servicioSeleccionado}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === '__crear__') { setShowNuevoServicio(true); setServicioSeleccionado(''); }
+                else setServicioSeleccionado(v);
+              }}
+              className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+            >
+              <option value="">— Sin servicio específico —</option>
+              {servicios.map((s) => (
+                <option key={s.id} value={s.id}>{s.descripcion || s.nombre || `Servicio #${s.id}`}</option>
+              ))}
+              {puedeGestionar && <option value="__crear__">+ Agregar nuevo servicio…</option>}
+            </select>
+          </div>
+          <label className="flex items-start gap-2 text-xs text-slate-600 cursor-pointer">
+            <input type="checkbox" checked={especial} onChange={(e) => setEspecial(e.target.checked)} className="mt-0.5" />
+            <span>
+              <span className="font-medium">Contrato especial</span>
+              {' — no requiere la triarquía mínima (1 gerente, 1 senior y 1 analista/asistente).'}
+            </span>
+          </label>
+          <div className="flex gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={saving || !nombre.trim() || seleccionados.size === 0}
+              className="flex-1 px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50"
+            >
+              {saving
+                ? 'Guardando…'
+                : `${esSubcontrato ? 'Crear sub-contrato' : 'Crear contrato'} ${seleccionados.size ? `(${seleccionados.size})` : ''}`
+              }
+            </button>
+            <button type="button" onClick={onClose} className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg hover:bg-slate-50">Cancelar</button>
+          </div>
+        </form>
+      </div>
+      {showNuevoServicio && (
+        <NuevoServicioModal
+          empresaId={empresaId}
+          areaId={bloque.area_id}
+          areaNombre={bloque.area_nombre}
+          onCreated={(nuevo) => {
+            setServicios((prev) => [nuevo, ...prev]);
+            setServicioSeleccionado(String(nuevo.id));
+            setShowNuevoServicio(false);
+            onRefresh?.();
+          }}
+          onClose={() => setShowNuevoServicio(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── AgregarMiembrosForm ──────────────────────────────────────────────────────
+
+function AgregarMiembrosForm({ equipo, empleados, onSaved, onClose }) {
+  const [seleccionados, setSeleccionados] = useState(new Set());
+  const [busqueda, setBusqueda] = useState('');
+  const [fechaInicio, setFechaInicio] = useState(() => new Date().toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
+
+  const filtrados = empleados.filter((em) =>
+    em.area == equipo.area_id &&
+    (!busqueda || `${em.primer_nombre} ${em.primer_apellido}`.toLowerCase().includes(busqueda.toLowerCase()))
+  );
+
+  const toggle = (id) => {
+    setSeleccionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const idsFiltrados = filtrados.map((e) => e.id_empleado);
+  const todosSeleccionados = idsFiltrados.length > 0 && idsFiltrados.every((id) => seleccionados.has(id));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (seleccionados.size === 0) { alert('Selecciona al menos un empleado.'); return; }
+
+    const seleccionadosList = Array.from(seleccionados)
+      .map((id) => empleados.find((em) => em.id_empleado == id))
+      .filter(Boolean);
+
+    if (!equipo.especial) {
+      const actuales = (equipo.miembros || []).map((m) => m.rol);
+      const nuevos = seleccionadosList.map(inferRole);
+      const { ok, missing } = checkTriarchy([...actuales, ...nuevos]);
+      if (!ok) { alert(triarchyMessage(missing)); return; }
+    }
+
+    setSaving(true);
+    const empleadosMap = new Map(empleados.map((em) => [em.id_empleado, em]));
+    let agregados = 0;
+    try {
+      for (const id of seleccionados) {
+        const em = empleadosMap.get(id) || {};
+        try {
+          await createEquipoMiembro(equipo.id, {
+            empleado: id,
+            rol: inferRole(em),
+            fecha_inicio: fechaInicio,
+            activo: true,
+          });
+          agregados += 1;
+        } catch (err) {
+          console.error('Error agregando miembro', id, err);
+        }
+      }
+      setSaving(false);
+      if (agregados < seleccionados.size) alert(`Se agregaron ${agregados} de ${seleccionados.size} miembros.`);
+      onSaved();
+    } catch (err) {
+      setSaving(false);
+      alert(err.message);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <h3 className="text-sm font-bold text-slate-800">Agregar miembros al contrato</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-4 space-y-3">
+          <div>
+            <label className="text-xs font-medium text-slate-500">Empleados</label>
+            <div className="relative my-1.5">
+              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Buscar empleado…"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="w-full pl-7 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+              />
+            </div>
+            {filtrados.length === 0 ? (
+              <p className="text-xs text-slate-400">Sin empleados disponibles.</p>
+            ) : (
+              <div className="max-h-56 overflow-y-auto border border-slate-200 rounded-lg p-2 space-y-1">
+                <label className="flex items-center gap-2 text-xs font-medium text-slate-600 pb-1 border-b border-slate-100 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={todosSeleccionados}
+                    onChange={() => {
+                      setSeleccionados((prev) => {
+                        const next = new Set(prev);
+                        if (todosSeleccionados) idsFiltrados.forEach((id) => next.delete(id));
+                        else idsFiltrados.forEach((id) => next.add(id));
+                        return next;
+                      });
+                    }}
+                  />
+                  Seleccionar todos
+                </label>
+                {filtrados.map((em) => (
+                  <label key={em.id_empleado} className="flex items-center gap-2 text-xs p-1.5 rounded cursor-pointer hover:bg-purple-50">
+                    <input
+                      type="checkbox"
+                      checked={seleccionados.has(em.id_empleado)}
+                      onChange={() => toggle(em.id_empleado)}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-slate-700 truncate">{em.primer_nombre} {em.primer_apellido}</p>
+                      <p className="text-[10px] text-slate-400 truncate">
+                        {em.nombre_cargo || 'Sin cargo'}
+                        {em.area_nombre ? ` · ${em.area_nombre}` : ''}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Fecha de inicio *</label>
+            <input
+              type="date"
+              required
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+              className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+            />
+          </div>
+          {seleccionados.size > 0 && (
+            <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
+              <p className="text-[11px] font-medium text-slate-500 mb-1">Roles inferidos:</p>
+              <div className="space-y-1">
+                {Array.from(seleccionados).map((id) => {
+                  const em = empleados.find((x) => x.id_empleado == id);
+                  return (
+                    <div key={id} className="flex justify-between text-xs">
+                      <span className="text-slate-700">{em?.primer_nombre} {em?.primer_apellido}</span>
+                      <Badge className="bg-purple-100 text-purple-700">{ROL_LABELS[inferRole(em)]}</Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <div className="flex gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={saving || seleccionados.size === 0}
+              className="flex-1 px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50"
+            >
+              {saving ? 'Guardando…' : `Agregar ${seleccionados.size ? `(${seleccionados.size})` : ''}`}
+            </button>
+            <button type="button" onClick={onClose} className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg hover:bg-slate-50">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── EmpleadoModal ─────────────────────────────────────────────────────────────-
+
+function EmpleadoModal({ empleado, onClose }) {
+  const [detalle, setDetalle] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getEmpleadoById(empleado.empleado_id || empleado.id)
+      .then((data) => { if (!cancelled) setDetalle(data); })
+      .catch((err) => { if (!cancelled) alert(err.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [empleado]);
+
+  const o = detalle?.empleado || {};
+  const clientes = detalle?.clientes || [];
+  const nombre = o.nombre || empleado.empleado_nombre || `Empleado #${empleado.empleado_id}`;
+  const cargo = o.cargo || empleado.empleado_cargo || 'Sin cargo';
+  const area = o.area || empleado.area_nombre || '';
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <h3 className="text-sm font-bold text-slate-800">Tarjeta del colaborador</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+        </div>
+        <div className="p-4 overflow-y-auto">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+              {initials(nombre)}
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-800">{nombre}</p>
+              <p className="text-xs text-slate-500">{cargo}{area ? ` · ${area}` : ''}</p>
+              {o.correo && <p className="text-[11px] text-slate-400">{o.correo}</p>}
+            </div>
+          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-8"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
+          ) : clientes.length === 0 ? (
+            <div className="text-center py-6 text-slate-400">
+              <User size={28} className="mx-auto mb-2 opacity-30" />
+              <p className="text-xs">Sin clientes asignados</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Clientes asignados</p>
+              {clientes.map(({ empresa: emp, contratos: cts }) => (
+                <div key={emp.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-bold text-slate-700">{emp.razon_social}</p>
+                    <Badge className={`${ESTADO_C[emp.estado]?.bg} ${ESTADO_C[emp.estado]?.text}`}>{emp.estado_display}</Badge>
+                  </div>
+                  <div className="space-y-1">
+                    {cts.map((ct) => (
+                      <div key={ct.id} className="flex items-center justify-between text-xs bg-white rounded-lg px-2 py-1.5 border border-slate-100">
+                        <span className="text-slate-700 truncate">{ct.nombre}</span>
+                        <Badge className="bg-purple-100 text-purple-700">{ROL_LABELS[ct.rol] || ct.rol}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── EquipoTree (contrato recursivo) ───────────────────────────────────────────
+
+function EquipoTree({ equipo, bloque, empresaId, empleados, onRefresh, puedeGestionar, nivel = 0 }) {
+  const [open, setOpen] = useState(true);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [showSubcontract, setShowSubcontract] = useState(false);
+  const [selectedEmpleado, setSelectedEmpleado] = useState(null);
+
+  const handleDeactivateMember = async (miembroId) => {
+    if (!confirm('¿Desactivar este miembro del contrato?')) return;
+    try {
+      await deactivateEquipoMiembro(equipo.id, miembroId);
+      onRefresh();
+    } catch (err) { alert(err.message); }
+  };
+
+  const handleDeleteContract = async () => {
+    if (!confirm('¿Eliminar este contrato? También se desactivarán sus sub-contratos.')) return;
+    try { await deleteEquipo(equipo.id); onRefresh(); } catch (err) { alert(err.message); }
+  };
+
+  const miembros = equipo.miembros || [];
+  const subEquipos = equipo.sub_equipos || [];
+
+  return (
+    <div className={`rounded-xl border border-slate-100 bg-white overflow-hidden ${nivel > 0 ? 'ml-4' : ''}`}>
+      <div className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 gap-2">
+        <button type="button" onClick={() => setOpen((o) => !o)} className="flex-1 flex items-center gap-2 text-left min-w-0">
+          <Briefcase size={14} className={`flex-shrink-0 ${nivel > 0 ? 'text-teal-600' : 'text-purple-600'}`} />
+          <span className="text-xs font-semibold text-slate-700 truncate">{equipo.nombre}</span>
+          {equipo.especial && <Badge className="bg-amber-100 text-amber-700 border border-amber-200 flex-shrink-0">Especial</Badge>}
+          <span className="text-[10px] text-slate-400 flex-shrink-0">
+            {miembros.length} miembro{miembros.length === 1 ? '' : 's'}
+            {subEquipos.length > 0 && ` · ${subEquipos.length} sub-contrato${subEquipos.length === 1 ? '' : 's'}`}
+          </span>
+        </button>
+        <div className="flex items-center justify-end gap-1 flex-shrink-0">
+          {puedeGestionar && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowAddMembers(true)}
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-md whitespace-nowrap"
+                title="Agregar miembro"
+              >
+                <Plus size={12} />
+                <span>Miembro</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSubcontract(true)}
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-teal-600 hover:text-teal-800 hover:bg-teal-50 rounded-md whitespace-nowrap"
+                title="Crear sub-contrato"
+              >
+                <GitBranch size={12} />
+                <span>Sub-contrato</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteContract}
+                className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md"
+                title="Eliminar contrato"
+              >
+                <Trash2 size={12} />
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            className="p-1 text-slate-400 hover:text-slate-600 rounded-md"
+            title={open ? 'Contraer' : 'Expandir'}
+          >
+            {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        </div>
+      </div>
+      {open && (
+        <div className="px-3 pb-3 space-y-1.5">
+          {miembros.length === 0 && subEquipos.length === 0 && (
+            <p className="text-xs text-slate-300 italic">Sin miembros ni sub-contratos</p>
+          )}
+          {miembros.map((m) => (
+            <div key={m.id} className="flex items-center justify-between py-1.5 px-2 bg-slate-50 rounded-lg">
+              <button type="button" onClick={() => setSelectedEmpleado(m)} className="flex items-center gap-2 text-left">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-[9px] font-bold">
+                  {initials(m.empleado_nombre)}
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-700">{m.empleado_nombre}</p>
+                  <Badge className="bg-purple-100 text-purple-700">{ROL_LABELS[m.rol] || m.rol}</Badge>
+                </div>
+              </button>
+              {puedeGestionar && (
+                <button
+                  type="button"
+                  onClick={() => handleDeactivateMember(m.id)}
+                  className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded"
+                  title="Quitar miembro"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          ))}
+          {subEquipos.map((sub) => (
+            <EquipoTree
+              key={sub.id}
+              equipo={sub}
+              bloque={bloque}
+              empresaId={empresaId}
+              empleados={empleados}
+              onRefresh={onRefresh}
+              puedeGestionar={puedeGestionar}
+              nivel={nivel + 1}
+            />
+          ))}
+        </div>
+      )}
+      {showAddMembers && (
+        <AgregarMiembrosForm
+          equipo={equipo}
+          empleados={empleados}
+          onSaved={() => { setShowAddMembers(false); onRefresh(); }}
+          onClose={() => setShowAddMembers(false)}
+        />
+      )}
+      {showSubcontract && (
+        <CrearContratoModal
+          empresaId={empresaId}
+          bloque={bloque}
+          equipoPadreId={equipo.id}
+          equipoPadreNombre={equipo.nombre}
+          empleados={empleados}
+          puedeGestionar={puedeGestionar}
+          onSaved={() => { setShowSubcontract(false); onRefresh(); }}
+          onClose={() => setShowSubcontract(false)}
+          onRefresh={onRefresh}
+        />
+      )}
+      {selectedEmpleado && (
+        <EmpleadoModal
+          empleado={selectedEmpleado}
+          onClose={() => setSelectedEmpleado(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── AreaCard ──────────────────────────────────────────────────────────────────
+
+function AreaCard({ bloque, empresaId, empleados, onRefresh, colorIdx, puedeGestionarGlobal, empleadoData }) {
+  const [open, setOpen] = useState(true);
+  const [showCrearContrato, setShowCrearContrato] = useState(false);
+  const [showNuevoServicio, setShowNuevoServicio] = useState(false);
   const color = AREA_PAL[colorIdx % AREA_PAL.length];
+
+  const puedeGestionar = puedeGestionarGlobal || (isGerente(empleadoData) && empleadoData.area == bloque.area_id);
+
+  const handleDesasignarArea = async (e) => {
+    e.stopPropagation();
+    if (!confirm(`¿Desasignar el área "${bloque.area_nombre}"? Se terminarán sus servicios y se desactivarán sus contratos.`)) return;
+    try {
+      await desasignarArea(empresaId, bloque.area_id);
+      onRefresh();
+    } catch (err) { alert(err.message); }
+  };
 
   const handleToggleServicio = async (s) => {
     const nuevo = s.estado === 'activo' ? 'pausado' : 'activo';
@@ -698,111 +1008,206 @@ function AreaCard({ bloque, empresaId, empleados, onRefresh, colorIdx }) {
     onRefresh();
   };
 
-  const handleRemoveEmpleado = async (id) => {
-    if (!confirm('¿Remover del equipo?')) return;
-    await updateAsignacion(id, { activo: false });
-    onRefresh();
-  };
-
-  const totalFac = bloque.servicios
-    .filter(s => s.estado === 'activo' && s.valor_mensual)
+  const totalFacturacion = bloque.servicios
+    .filter((s) => s.estado === 'activo' && s.valor_mensual)
     .reduce((sum, s) => sum + Number(s.valor_mensual), 0);
+
+  const equipos = bloque.equipos || [];
 
   return (
     <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-      {/* Header del área */}
       <div
         className="flex items-center justify-between px-4 py-3 cursor-pointer select-none hover:bg-slate-50 transition-colors"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
       >
         <div className="flex items-center gap-3">
           <div className="w-2.5 h-8 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
           <div>
             <p className="text-sm font-bold text-slate-800">{bloque.area_nombre}</p>
             <p className="text-[11px] text-slate-400">
-              {bloque.servicios.length} servicio(s) · {bloque.equipo.length} empleado(s)
-              {totalFac > 0 && <span className="ml-2 text-emerald-600 font-semibold">· ${totalFac.toLocaleString('es-CO')}/mes</span>}
+              {bloque.servicios.length} servicio(s) · {equipos.length} contrato(s)
+              {totalFacturacion > 0 && <span className="ml-2 text-emerald-600 font-semibold">· ${totalFacturacion.toLocaleString('es-CO')}/mes</span>}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {bloque.servicios.some(s=>s.estado==='activo') && <Badge className="bg-emerald-100 text-emerald-700">Activo</Badge>}
-          {open ? <ChevronUp size={15} className="text-slate-400"/> : <ChevronDown size={15} className="text-slate-400"/>}
+          {puedeGestionar && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowCrearContrato(true); }}
+                className="flex items-center gap-1 text-[11px] text-purple-600 hover:text-purple-800 font-medium"
+              >
+                <Plus size={11} /> Crear contrato
+              </button>
+              <button
+                onClick={handleDesasignarArea}
+                className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded"
+                title="Desasignar área"
+              >
+                <Trash2 size={13} />
+              </button>
+            </>
+          )}
+          {bloque.servicios.some((s) => s.estado === 'activo') && <Badge className="bg-emerald-100 text-emerald-700">Activo</Badge>}
+          {open ? <ChevronUp size={15} className="text-slate-400" /> : <ChevronDown size={15} className="text-slate-400" />}
         </div>
       </div>
-
       {open && (
         <div className="px-4 pb-4 border-t border-slate-50">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-3">
-
-            {/* Servicios */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
-                  <Briefcase size={11}/> Servicios
+                  <Briefcase size={11} /> Servicios
                 </p>
+                {puedeGestionar && (
+                  <button onClick={() => setShowNuevoServicio(true)} className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium">
+                    <Plus size={11} /> Agregar servicio
+                  </button>
+                )}
               </div>
-
               <div className="space-y-1.5">
                 {bloque.servicios.length === 0
                   ? <p className="text-xs text-slate-300 italic py-2">Sin servicios registrados</p>
-                  : bloque.servicios.map(s => (
-                    <ServicioRow key={s.id} s={s} onDelete={handleDeleteServicio} onToggle={handleToggleServicio}/>
-                  ))
+                  : bloque.servicios.map((s) => <ServicioRow key={s.id} s={s} onDelete={handleDeleteServicio} onToggle={handleToggleServicio} />)
                 }
               </div>
             </div>
-
-            {/* Equipo */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
-                  <Users size={11}/> Equipo Asignado
+                  <Users size={11} /> Contratos
                 </p>
-                <button onClick={e=>{e.stopPropagation();setAddEmp(v=>!v);setAddServ(false);}}
-                  className="flex items-center gap-1 text-[11px] text-purple-600 hover:text-purple-800 font-medium">
-                  <UserPlus size={11}/> Asignar
-                </button>
               </div>
-
-              <div className="space-y-1.5">
-                {bloque.equipo.length === 0
-                  ? <p className="text-xs text-slate-300 italic py-2">Sin empleados asignados</p>
-                  : bloque.equipo.map(a => (
-                    <EmpleadoRow key={a.id} a={a} onRemove={handleRemoveEmpleado}/>
+              <div className="space-y-2">
+                {equipos.length === 0
+                  ? <p className="text-xs text-slate-300 italic py-2">Sin contratos creados</p>
+                  : equipos.map((eq) => (
+                    <EquipoTree
+                      key={eq.id}
+                      equipo={eq}
+                      bloque={bloque}
+                      empresaId={empresaId}
+                      empleados={empleados}
+                      onRefresh={onRefresh}
+                      puedeGestionar={puedeGestionar}
+                    />
                   ))
                 }
               </div>
-
-              {addEmp && (
-                <AgregarEmpleadoForm
-                  areaId={bloque.area_id}
-                  empresaId={empresaId}
-                  empleados={empleados}
-                  assignedIds={new Set(bloque.equipo.map(a => a.empleado))}
-                  onSaved={() => { setAddEmp(false); onRefresh(); }}
-                  onCancel={() => setAddEmp(false)}
-                />
-              )}
             </div>
           </div>
         </div>
+      )}
+      {showCrearContrato && (
+        <CrearContratoModal
+          empresaId={empresaId}
+          bloque={bloque}
+          empleados={empleados}
+          puedeGestionar={puedeGestionar}
+          onSaved={() => { setShowCrearContrato(false); onRefresh(); }}
+          onClose={() => setShowCrearContrato(false)}
+          onRefresh={onRefresh}
+        />
+      )}
+      {showNuevoServicio && (
+        <NuevoServicioModal
+          empresaId={empresaId}
+          areaId={bloque.area_id}
+          areaNombre={bloque.area_nombre}
+          onCreated={() => { setShowNuevoServicio(false); onRefresh(); }}
+          onClose={() => setShowNuevoServicio(false)}
+        />
       )}
     </div>
   );
 }
 
-function AreasTab({ empresaId, empresaEstado }) {
-  const [bloques, setBloques]     = useState([]);
+// ── AsignarAreasModal ────────────────────────────────────────────────────────
+
+function AsignarAreasModal({ empresaId, areasAsignadas, todasLasAreas, onSaved, onClose }) {
+  const [seleccionadas, setSeleccionadas] = useState(new Set());
+  const [saving, setSaving] = useState(false);
+
+  const disponibles = (todasLasAreas || []).filter((a) => !areasAsignadas.includes(a.id_area));
+
+  const toggle = (id) => {
+    setSeleccionadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (seleccionadas.size === 0) { alert('Selecciona al menos un área.'); return; }
+    setSaving(true);
+    try {
+      await assignAreasToCliente(empresaId, Array.from(seleccionadas));
+      onSaved();
+    } catch (err) { alert(err.message); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <h3 className="text-sm font-bold text-slate-800">Asignar áreas al cliente</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-4 space-y-3">
+          {disponibles.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-4">No hay áreas disponibles para asignar.</p>
+          ) : (
+            <div className="max-h-56 overflow-y-auto border border-slate-200 rounded-lg p-2 space-y-1">
+              {disponibles.map((a) => (
+                <label key={a.id_area} className="flex items-center gap-2 text-xs p-1.5 rounded cursor-pointer hover:bg-slate-50">
+                  <input
+                    type="checkbox"
+                    checked={seleccionadas.has(a.id_area)}
+                    onChange={() => toggle(a.id_area)}
+                  />
+                  <span className="text-slate-700">{a.nombre_area}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={saving || seleccionadas.size === 0 || disponibles.length === 0}
+              className="flex-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? 'Guardando…' : `Asignar ${seleccionadas.size ? `(${seleccionadas.size})` : ''}`}
+            </button>
+            <button type="button" onClick={onClose} className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg hover:bg-slate-50">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── AreasTab ───────────────────────────────────────────────────────────────────
+
+function AreasTab({ empresaId, empresaEstado, onAreasCount, areaId = null }) {
+  const { isAdmin, isSuperAdmin, empleadoData } = useAuth();
+  const puedeGestionarGlobal = isAdmin || isSuperAdmin || isGerente(empleadoData);
+
+  const [bloques, setBloques] = useState([]);
+  const [todasLasAreas, setTodasLasAreas] = useState([]);
   const [empleados, setEmpleados] = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [showAsignarAreas, setShowAsignarAreas] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [b, , e] = await Promise.all([
         getEmpresaPorAreas(empresaId),
-        getAllAreas(),
+        getAllAreas().then(setTodasLasAreas),
         getAllEmpleados(),
       ]);
       setBloques(b);
@@ -813,41 +1218,53 @@ function AreasTab({ empresaId, empresaEstado }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const bloquesFiltrados = useMemo(() =>
+    areaId ? bloques.filter((b) => String(b.area_id) === String(areaId)) : bloques,
+  [bloques, areaId]);
+
+  useEffect(() => { onAreasCount?.(bloquesFiltrados.length); }, [bloquesFiltrados, onAreasCount]);
+
   if (loading) return (
     <div className="flex items-center justify-center py-10">
-      <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"/>
+      <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   const esActivo = empresaEstado === 'activo';
-  const sinAreas = bloques.length === 0;
+  const sinAreas = bloquesFiltrados.length === 0;
+  const idsAsignados = bloques.map((b) => b.area_id);
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-slate-500">{sinAreas ? 'Sin áreas asignadas.' : `${bloquesFiltrados.length} área(s) prestando servicios`}</p>
+        {puedeGestionarGlobal && (
+          <button onClick={() => setShowAsignarAreas(true)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">
+            <Plus size={13} /> Asignar áreas
+          </button>
+        )}
+      </div>
       {esActivo && sinAreas && (
         <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-          <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5"/>
-          <div>
+          <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
             <p className="text-xs font-semibold text-amber-700">Cliente activo sin área asignada</p>
-            <p className="text-[11px] text-amber-600 mt-0.5">
-              Los servicios se registran desde el Formulario SQF.
-            </p>
+            <p className="text-[11px] text-amber-600 mt-0.5">Asigna una o varias áreas para poder gestionar el contrato de este cliente.</p>
           </div>
+          {puedeGestionarGlobal && (
+            <button onClick={() => setShowAsignarAreas(true)} className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-100 text-amber-700 text-[11px] font-medium rounded-lg hover:bg-amber-200 flex-shrink-0">
+              <Plus size={12} /> Asignar
+            </button>
+          )}
         </div>
       )}
-
-      <p className="text-xs text-slate-500">
-        {sinAreas ? 'Sin áreas asignadas. Los servicios llegan desde FormulariosSQF.' : `${bloques.length} área(s) prestando servicios`}
-      </p>
-
       {sinAreas && (
         <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-          <Briefcase size={28} className="mb-2 opacity-30"/>
+          <Briefcase size={28} className="mb-2 opacity-30" />
           <p className="text-sm">Sin áreas de servicio</p>
         </div>
       )}
-
-      {bloques.map((bloque, idx) => (
+      {bloquesFiltrados.map((bloque, idx) => (
         <AreaCard
           key={bloque.area_id}
           bloque={bloque}
@@ -855,8 +1272,19 @@ function AreasTab({ empresaId, empresaEstado }) {
           empleados={empleados}
           onRefresh={load}
           colorIdx={idx}
+          puedeGestionarGlobal={puedeGestionarGlobal}
+          empleadoData={empleadoData}
         />
       ))}
+      {showAsignarAreas && (
+        <AsignarAreasModal
+          empresaId={empresaId}
+          areasAsignadas={idsAsignados}
+          todasLasAreas={todasLasAreas}
+          onSaved={() => { setShowAsignarAreas(false); load(); }}
+          onClose={() => setShowAsignarAreas(false)}
+        />
+      )}
     </div>
   );
 }
@@ -865,18 +1293,22 @@ function AreasTab({ empresaId, empresaEstado }) {
 
 function ContactosTab({ empresaId }) {
   const [contactos, setContactos] = useState([]);
-  const [showForm, setShowForm]   = useState(false);
-  const [form, setForm]           = useState({ nombre:'', cargo:'', email:'', telefono:'', es_principal:false });
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ nombre: '', cargo: '', email: '', telefono: '', es_principal: false });
 
-  useEffect(() => { getEmpresaContactos(empresaId).then(setContactos).catch(console.error); }, [empresaId]);
+  const load = useCallback(() => {
+    getEmpresaContactos(empresaId).then(setContactos).catch(console.error);
+  }, [empresaId]);
+
+  useEffect(() => { load(); }, [load]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
       await createContacto({ ...form, empresa: empresaId });
-      setForm({ nombre:'', cargo:'', email:'', telefono:'', es_principal:false });
+      setForm({ nombre: '', cargo: '', email: '', telefono: '', es_principal: false });
       setShowForm(false);
-      getEmpresaContactos(empresaId).then(setContactos);
+      load();
     } catch (err) { alert(err.message); }
   };
 
@@ -884,30 +1316,58 @@ function ContactosTab({ empresaId }) {
     <div className="space-y-3">
       <div className="flex justify-between items-center">
         <span className="text-sm font-medium text-slate-700">{contactos.length} contacto(s)</span>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-xl hover:bg-blue-700"><Plus size={13}/> Agregar</button>
+        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-xl hover:bg-blue-700">
+          <Plus size={13} /> Agregar
+        </button>
       </div>
       {showForm && (
         <form onSubmit={handleCreate} className="p-3 bg-blue-50 border border-blue-100 rounded-xl space-y-2">
           <div className="grid grid-cols-2 gap-2">
-            <input placeholder="Nombre *" required value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30"/>
-            <select value={form.cargo} onChange={e=>setForm(f=>({...f,cargo:e.target.value}))} required className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30">
+            <input
+              placeholder="Nombre *"
+              required
+              value={form.nombre}
+              onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            />
+            <select
+              value={form.cargo}
+              onChange={(e) => setForm((f) => ({ ...f, cargo: e.target.value }))}
+              required
+              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            >
               <option value="">Cargo *</option>
-              {[['representante_legal','Representante Legal'],['gerente','Gerente General'],['contador','Contador'],['auxiliar_contable','Auxiliar Contable'],['abogado','Abogado'],['tesoreria','Tesorería'],['rrhh','RRHH'],['revisor_fiscal','Revisor Fiscal'],['otro','Otro']].map(([v,l])=><option key={v} value={v}>{l}</option>)}
+              {CARGOS_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
-            <input placeholder="Email" type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30"/>
-            <input placeholder="Teléfono" value={form.telefono} onChange={e=>setForm(f=>({...f,telefono:e.target.value}))} className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30"/>
+            <input
+              placeholder="Email"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            />
+            <input
+              placeholder="Teléfono"
+              value={form.telefono}
+              onChange={(e) => setForm((f) => ({ ...f, telefono: e.target.value }))}
+              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            />
           </div>
           <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-            <input type="checkbox" checked={form.es_principal} onChange={e=>setForm(f=>({...f,es_principal:e.target.checked}))}/>
+            <input
+              type="checkbox"
+              checked={form.es_principal}
+              onChange={(e) => setForm((f) => ({ ...f, es_principal: e.target.checked }))}
+            />
             Contacto Principal
           </label>
           <div className="flex gap-2">
             <button type="submit" className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">Guardar</button>
-            <button type="button" onClick={()=>setShowForm(false)} className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg hover:bg-slate-50">Cancelar</button>
+            <button type="button" onClick={() => setShowForm(false)} className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg hover:bg-slate-50">Cancelar</button>
           </div>
         </form>
       )}
-      {contactos.map(c => (
+      {contactos.map((c) => (
         <div key={c.id} className="flex items-start justify-between p-3 bg-white border border-slate-100 rounded-xl">
           <div>
             <div className="flex items-center gap-2">
@@ -916,11 +1376,16 @@ function ContactosTab({ empresaId }) {
             </div>
             <p className="text-xs text-slate-500 mt-0.5">{c.cargo_display}</p>
             <div className="flex gap-3 mt-1">
-              {c.email    && <span className="flex items-center gap-1 text-xs text-slate-400"><Mail size={10}/>{c.email}</span>}
-              {c.telefono && <span className="flex items-center gap-1 text-xs text-slate-400"><Phone size={10}/>{c.telefono}</span>}
+              {c.email && <span className="flex items-center gap-1 text-xs text-slate-400"><Mail size={10} />{c.email}</span>}
+              {c.telefono && <span className="flex items-center gap-1 text-xs text-slate-400"><Phone size={10} />{c.telefono}</span>}
             </div>
           </div>
-          <button onClick={async()=>{if(!confirm('¿Eliminar?'))return;await deleteContacto(c.id);setContactos(x=>x.filter(i=>i.id!==c.id));}} className="text-slate-300 hover:text-red-400 p-1 rounded hover:bg-red-50"><Trash2 size={13}/></button>
+          <button
+            onClick={async () => { if (!confirm('¿Eliminar?')) return; await deleteContacto(c.id); setContactos((x) => x.filter((i) => i.id !== c.id)); }}
+            className="text-slate-300 hover:text-red-400 p-1 rounded hover:bg-red-50"
+          >
+            <Trash2 size={13} />
+          </button>
         </div>
       ))}
       {!contactos.length && !showForm && <p className="text-sm text-slate-400 text-center py-6">Sin contactos registrados</p>}
@@ -933,17 +1398,21 @@ function ContactosTab({ empresaId }) {
 function BitacoraTab({ empresaId }) {
   const [entradas, setEntradas] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm]         = useState({ tipo:'', descripcion:'', fecha:'' });
+  const [form, setForm] = useState({ tipo: '', descripcion: '', fecha: '' });
 
-  useEffect(() => { getEmpresaBitacora(empresaId).then(setEntradas).catch(console.error); }, [empresaId]);
+  const load = useCallback(() => {
+    getEmpresaBitacora(empresaId).then(setEntradas).catch(console.error);
+  }, [empresaId]);
+
+  useEffect(() => { load(); }, [load]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
       await createBitacora({ ...form, empresa: empresaId });
       setShowForm(false);
-      setForm({ tipo:'', descripcion:'', fecha:'' });
-      getEmpresaBitacora(empresaId).then(setEntradas);
+      setForm({ tipo: '', descripcion: '', fecha: '' });
+      load();
     } catch (err) { alert(err.message); }
   };
 
@@ -951,36 +1420,61 @@ function BitacoraTab({ empresaId }) {
     <div className="space-y-3">
       <div className="flex justify-between items-center">
         <span className="text-sm font-medium text-slate-700">{entradas.length} registro(s)</span>
-        <button onClick={()=>setShowForm(!showForm)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-xl hover:bg-blue-700"><Plus size={13}/> Registrar</button>
+        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-xl hover:bg-blue-700">
+          <Plus size={13} /> Registrar
+        </button>
       </div>
       {showForm && (
         <form onSubmit={handleCreate} className="p-3 bg-blue-50 border border-blue-100 rounded-xl space-y-2">
           <div className="grid grid-cols-2 gap-2">
-            <select value={form.tipo} onChange={e=>setForm(f=>({...f,tipo:e.target.value}))} required className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white">
+            <select
+              value={form.tipo}
+              onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value }))}
+              required
+              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white"
+            >
               <option value="">Tipo *</option>
-              {Object.entries(BIT_L).map(([v,l])=><option key={v} value={v}>{l}</option>)}
+              {Object.entries(BIT_L).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
-            <input type="datetime-local" required value={form.fecha} onChange={e=>setForm(f=>({...f,fecha:e.target.value}))} className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg"/>
+            <input
+              type="datetime-local"
+              required
+              value={form.fecha}
+              onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))}
+              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg"
+            />
           </div>
-          <textarea placeholder="Descripción *" required rows={3} value={form.descripcion} onChange={e=>setForm(f=>({...f,descripcion:e.target.value}))} className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg resize-none"/>
+          <textarea
+            placeholder="Descripción *"
+            required
+            rows={3}
+            value={form.descripcion}
+            onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
+            className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg resize-none"
+          />
           <div className="flex gap-2">
             <button type="submit" className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg">Guardar</button>
-            <button type="button" onClick={()=>setShowForm(false)} className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg">Cancelar</button>
+            <button type="button" onClick={() => setShowForm(false)} className="px-3 py-1.5 border border-slate-200 text-xs rounded-lg">Cancelar</button>
           </div>
         </form>
       )}
-      {entradas.map(e => (
+      {entradas.map((e) => (
         <div key={e.id} className="p-3 bg-white border border-slate-100 rounded-xl">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <Badge className={BIT_C[e.tipo]||'bg-slate-100 text-slate-600'}>{e.tipo_display}</Badge>
+                <Badge className={BIT_C[e.tipo] || 'bg-slate-100 text-slate-600'}>{e.tipo_display}</Badge>
                 <span className="text-xs text-slate-400">{new Date(e.fecha).toLocaleString('es-CO')}</span>
               </div>
               <p className="text-sm text-slate-700 mt-1 leading-snug">{e.descripcion}</p>
               {e.empleado_nombre && <p className="text-xs text-slate-400 mt-0.5">Por: {e.empleado_nombre}</p>}
             </div>
-            <button onClick={async()=>{if(!confirm('¿Eliminar?'))return;await deleteBitacora(e.id);setEntradas(x=>x.filter(i=>i.id!==e.id));}} className="text-slate-300 hover:text-red-400 p-1 ml-2 rounded hover:bg-red-50"><Trash2 size={13}/></button>
+            <button
+              onClick={async () => { if (!confirm('¿Eliminar?')) return; await deleteBitacora(e.id); setEntradas((x) => x.filter((i) => i.id !== e.id)); }}
+              className="text-slate-300 hover:text-red-400 p-1 ml-2 rounded hover:bg-red-50"
+            >
+              <Trash2 size={13} />
+            </button>
           </div>
         </div>
       ))}
@@ -989,490 +1483,292 @@ function BitacoraTab({ empresaId }) {
   );
 }
 
-// ── EmpresaForm ───────────────────────────────────────────────────────────────
-
-function EmpresaForm({ empresa, onSave, onCancel }) {
-  const [form, setForm] = useState({
-    razon_social:'', nit:'', digito_verificacion:'', tipo_empresa:'pyme', tamano_empresa:'',
-    actividad_economica:'', descripcion_actividad:'', regimen_tributario:'',
-    ciudad:'', departamento:'', direccion:'', telefono:'', email_principal:'', website:'',
-    estado:'activo', nivel_riesgo:'bajo', fecha_inicio_relacion:'', observaciones:'',
-    ...empresa,
-  });
-  const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState({});
-  const set = (k,v) => { setForm(f=>({...f,[k]:v})); setErrors(e=>({...e,[k]:null})); };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrors({});
-    setSaving(true);
-    try {
-      const p = Object.fromEntries(
-        Object.entries(form).filter(([, v]) => v !== '' && v !== null && v !== undefined)
-      );
-      await updateEmpresa(empresa.id, p);
-      onSave();
-    } catch (err) {
-      if (err.fieldErrors) {
-        setErrors(err.fieldErrors);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        alert(err.message);
-      }
-    }
-    finally { setSaving(false); }
-  };
-
-  const err = (key) => errors[key]?.[0];
-
-  const F = (label, key, type='text', req=false, extra={}) => (
-    <div>
-      <label className="block text-xs font-medium text-slate-500 mb-1">{label}{req && <span className="text-red-400"> *</span>}</label>
-      <input type={type} value={form[key]||''} onChange={e=>set(key,e.target.value)} required={req}
-        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors
-          ${err(key) ? 'border-red-400 bg-red-50 focus:ring-red-500/20' : 'border-slate-200 focus:ring-blue-500/30 focus:border-blue-400'}`}
-        {...extra}/>
-      {err(key) && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertTriangle size={10}/>{err(key)}</p>}
-    </div>
-  );
-
-  const S = (label, key, opts, req=false) => (
-    <div>
-      <label className="block text-xs font-medium text-slate-500 mb-1">{label}{req && <span className="text-red-400"> *</span>}</label>
-      <select value={form[key]||''} onChange={e=>set(key,e.target.value)} required={req}
-        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white transition-colors
-          ${err(key) ? 'border-red-400 bg-red-50 focus:ring-red-500/20' : 'border-slate-200 focus:ring-blue-500/30'}`}>
-        {!req && <option value="">— Seleccionar —</option>}
-        {opts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
-      </select>
-      {err(key) && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertTriangle size={10}/>{err(key)}</p>}
-    </div>
-  );
-
-  const hasErrors = Object.values(errors).some(v => v);
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Banner de errores */}
-      {hasErrors && (
-        <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
-          <AlertTriangle size={13} className="flex-shrink-0 mt-0.5"/>
-          <div>
-            <p className="font-semibold">Hay campos con errores. Revísalos antes de guardar.</p>
-            <ul className="mt-1 space-y-0.5 list-disc list-inside text-red-500">
-              {Object.entries(errors).filter(([,v])=>v).map(([k,v])=>(
-                <li key={k}><span className="font-medium capitalize">{k.replace(/_/g,' ')}</span>: {Array.isArray(v) ? v[0] : v}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-3">
-        {F('Razón Social','razon_social','text',true)}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="col-span-2">{F('NIT','nit','text',true)}</div>
-          {F('DV','digito_verificacion','text',false,{ maxLength:1, placeholder:'0–9' })}
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {S('Tipo Empresa','tipo_empresa',[['microempresa','Microempresa'],['pyme','PYME'],['grande','Empresa Grande'],['grupo_empresarial','Grupo Empresarial']],true)}
-        {S('Tamaño','tamano_empresa',[['micro','Micro (< 10)'],['pequena','Pequeña (10–50)'],['mediana','Mediana (51–200)'],['grande','Grande (> 200)']])}
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {F('Actividad Económica (CIIU)','actividad_economica')}
-        {F('Descripción Actividad','descripcion_actividad')}
-      </div>
-      {S('Régimen Tributario','regimen_tributario',[['simplificado','Régimen Simplificado'],['comun','Régimen Común'],['gran_contribuyente','Gran Contribuyente'],['no_responsable','No Responsable de IVA'],['especial','Régimen Especial']])}
-      <div className="grid grid-cols-2 gap-3">
-        {F('Ciudad','ciudad')}
-        {F('Departamento','departamento')}
-      </div>
-      {F('Dirección','direccion')}
-      <div className="grid grid-cols-2 gap-3">
-        {F('Teléfono','telefono')}
-        {F('Email Principal','email_principal','email')}
-      </div>
-      {F('Sitio Web','website','url',false,{ placeholder:'https://...' })}
-      <div className="grid grid-cols-2 gap-3">
-        {S('Estado','estado',[['prospecto','Prospecto'],['activo','Activo'],['inactivo','Inactivo'],['suspendido','Suspendido'],['retirado','Retirado']],true)}
-        {S('Nivel de Riesgo','nivel_riesgo',[['bajo','Bajo'],['medio','Medio'],['alto','Alto'],['critico','Crítico']],true)}
-      </div>
-      {F('Fecha Inicio Relación','fecha_inicio_relacion','date')}
-      <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">Observaciones</label>
-        <textarea value={form.observaciones||''} onChange={e=>set('observaciones',e.target.value)} rows={3}
-          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 resize-none"/>
-      </div>
-      <div className="flex gap-2 pt-2">
-        <button type="submit" disabled={saving}
-          className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
-          {saving ? 'Guardando…' : 'Actualizar Cliente'}
-        </button>
-        <button type="button" onClick={onCancel}
-          className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition-colors">
-          Cancelar
-        </button>
-      </div>
-    </form>
-  );
-}
-
-// ── EmpresaPanel ──────────────────────────────────────────────────────────────
+// ── EmpresaPanel ─────────────────────────────────────────────────────────────
 
 const DETAIL_TABS = [
-  { id:'areas',     label:'Áreas & Servicios', icon:Briefcase },
-  { id:'contactos', label:'Contactos',          icon:Users     },
-  { id:'bitacora',  label:'Bitácora',            icon:BookOpen  },
+  { id: 'areas', label: 'Áreas & Servicios', icon: Briefcase },
+  { id: 'contactos', label: 'Contactos', icon: Users },
+  { id: 'bitacora', label: 'Bitácora', icon: BookOpen },
 ];
 
-function EmpresaPanel({ empresa, onClose, onUpdate }) {
-  const [tab, setTab]         = useState('areas');
-  const [editing, setEditing] = useState(false);
+function EmpresaPanel({ empresa, onClose, areaId }) {
+  const [tab, setTab] = useState('areas');
+  const [areasCount, setAreasCount] = useState(0);
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="px-5 py-4 border-b border-slate-100 bg-white">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold text-slate-900 truncate">{empresa.razon_social}</h2>
-            <p className="text-xs text-slate-500">NIT: {empresa.nit}{empresa.digito_verificacion?`-${empresa.digito_verificacion}`:''}</p>
+            <p className="text-xs text-slate-500">NIT: {empresa.nit}{empresa.digito_verificacion ? `-${empresa.digito_verificacion}` : ''}</p>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <Badge className={`${ESTADO_C[empresa.estado]?.bg} ${ESTADO_C[empresa.estado]?.text}`}>{empresa.estado_display}</Badge>
               <Badge className={`${RIESGO_C[empresa.nivel_riesgo]?.bg} ${RIESGO_C[empresa.nivel_riesgo]?.text} border ${RIESGO_C[empresa.nivel_riesgo]?.border}`}>{empresa.nivel_riesgo_display}</Badge>
               <Badge className="bg-slate-100 text-slate-600">{empresa.tipo_empresa_display}</Badge>
             </div>
-            {!editing && (
-              <div className="flex gap-3 mt-2 flex-wrap">
-                {empresa.ciudad       && <span className="flex items-center gap-1 text-xs text-slate-400"><MapPin size={10}/>{empresa.ciudad}</span>}
-                {empresa.email_principal && <span className="flex items-center gap-1 text-xs text-slate-400"><Mail size={10}/>{empresa.email_principal}</span>}
-                {empresa.telefono     && <span className="flex items-center gap-1 text-xs text-slate-400"><Phone size={10}/>{empresa.telefono}</span>}
-                {empresa.website      && <a href={empresa.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-500 hover:underline"><Globe size={10}/>Web</a>}
-              </div>
-            )}
+            <div className="flex gap-3 mt-2 flex-wrap">
+              {empresa.ciudad && <span className="flex items-center gap-1 text-xs text-slate-400"><MapPin size={10} />{empresa.ciudad}</span>}
+              {empresa.direccion && <span className="flex items-center gap-1 text-xs text-slate-400"><MapPin size={10} />{empresa.direccion}</span>}
+              {empresa.email_principal && <span className="flex items-center gap-1 text-xs text-slate-400"><Mail size={10} />{empresa.email_principal}</span>}
+              {empresa.telefono && <span className="flex items-center gap-1 text-xs text-slate-400"><Phone size={10} />{empresa.telefono}</span>}
+              {empresa.website && <a href={empresa.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-500 hover:underline"><Globe size={10} />Web</a>}
+            </div>
           </div>
           <div className="flex gap-1 ml-3 items-center">
             <button
               onClick={() => exportClienteExcel(empresa, `cliente_${empresa.nit}`)}
               title="Descargar Excel"
               className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
-            ><Sheet size={11}/> Excel</button>
+            >
+              <Sheet size={11} /> Excel
+            </button>
             <button
               onClick={() => exportClientePDF(empresa, `cliente_${empresa.nit}`)}
               title="Descargar PDF"
               className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors"
-            ><Download size={11}/> PDF</button>
-            <button onClick={()=>setEditing(!editing)} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"><Pencil size={14}/></button>
-            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"><X size={14}/></button>
+            >
+              <Download size={11} /> PDF
+            </button>
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"><X size={14} /></button>
           </div>
         </div>
       </div>
-
-      {editing ? (
-        <div className="flex-1 overflow-y-auto p-5 bg-slate-50">
-          <EmpresaForm empresa={empresa} onSave={()=>{setEditing(false);onUpdate();}} onCancel={()=>setEditing(false)}/>
-        </div>
-      ) : (
-        <>
-          <div className="flex border-b border-slate-100 bg-white overflow-x-auto">
-            {DETAIL_TABS.map(t => {
-              const Icon = t.icon;
-              return (
-                <button key={t.id} onClick={()=>setTab(t.id)}
-                  className={`flex items-center gap-1.5 px-4 py-3 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${tab===t.id?'text-blue-600 border-blue-600 bg-blue-50/50':'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'}`}>
-                  <Icon size={12}/>{t.label}
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50">
-            {tab==='areas'     && <AreasTab     empresaId={empresa.id} empresaEstado={empresa.estado}/>}
-            {tab==='contactos' && <ContactosTab empresaId={empresa.id}/>}
-            {tab==='bitacora'  && <BitacoraTab  empresaId={empresa.id}/>}
-          </div>
-        </>
-      )}
+      <div className="flex border-b border-slate-100 bg-white overflow-x-auto">
+        {DETAIL_TABS.map((t) => {
+          const Icon = t.icon;
+          const label = t.id === 'areas' ? `Áreas & Servicios · ${areasCount} área${areasCount === 1 ? '' : 's'}` : t.label;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-1.5 px-4 py-3 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${tab === t.id ? 'text-blue-600 border-blue-600 bg-blue-50/50' : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'}`}
+            >
+              <Icon size={12} /> {label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50">
+        {tab === 'areas' && <AreasTab empresaId={empresa.id} empresaEstado={empresa.estado} onAreasCount={setAreasCount} areaId={areaId} />}
+        {tab === 'contactos' && <ContactosTab empresaId={empresa.id} />}
+        {tab === 'bitacora' && <BitacoraTab empresaId={empresa.id} />}
+      </div>
     </div>
   );
 }
 
-// ── Directorio ────────────────────────────────────────────────────────────────
+// ── Directorio ───────────────────────────────────────────────────────────────
 
-function Directorio() {
+function Directorio({ areaId = null, readOnly = false }) {
+  const { isAdmin, isSuperAdmin } = useAuth();
+  const puedeImportar = isAdmin || isSuperAdmin;
+
   const [empresas, setEmpresas] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState('');
-  const [filterEstado, setFilterEstado] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filterEstado, setFilterEstado] = useState('activo');
   const [selected, setSelected] = useState(null);
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const p = {};
-      if (search)       p.search = search;
-      if (filterEstado) p.estado = filterEstado;
-      setEmpresas(await getEmpresas(p));
+      const params = {};
+      if (search) params.search = search;
+      if (filterEstado) params.estado = filterEstado;
+      if (areaId) params.area = areaId;
+      setEmpresas(await getEmpresas(params));
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, [search, filterEstado]);
+  }, [search, filterEstado, areaId]);
 
   useEffect(() => { load(); }, [load]);
 
-  const refreshSelected = async () => {
-    if (!selected) return;
-    try { setSelected(await getEmpresa(selected.id)); } catch {}
+  const handleImport = async () => {
+    if (!confirm('¿Importar clientes desde n8n? Se omitirán los NIT que ya existan.')) return;
+    setImporting(true);
+    try {
+      const res = await importarClientesDesdeSQF(true);
+      alert(
+        `Importación finalizada:\n- Recibidos: ${res.recibidos}\n- Creados: ${res.creados}\n- Actualizados: ${res.actualizados}\n- Contactos: ${res.contactos_creados}\n- Errores: ${res.errores}\n- Omitidos: ${res.omitidos}`
+      );
+      load();
+    } catch (err) { alert(err.message); }
+    finally { setImporting(false); }
   };
+
+  const filters = readOnly ? [['activo', 'Activos']] : [['activo', 'Activos'], ['inactivo', 'Inactivos']];
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* List */}
-      <div className={`flex flex-col bg-white border-r border-slate-100 transition-all ${selected?'w-96 min-w-[22rem]':'flex-1'}`}>
-        <div className="p-5 border-b border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-slate-800">Directorio</h3>
+      <div className={`flex flex-col bg-slate-50/60 border-r border-slate-200 transition-all ${selected ? 'w-[45%] min-w-[28rem] max-w-[45rem]' : 'flex-1'}`}>
+        <div className="px-6 py-4 bg-white border-b border-slate-100 flex-shrink-0">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">Directorio de clientes</h3>
+              <p className="text-xs text-slate-400 mt-0.5">{empresas.length} cliente{empresas.length === 1 ? '' : 's'} registrado{empresas.length === 1 ? '' : 's'}</p>
+            </div>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => exportClientesListaExcel(empresas)}
                 disabled={!empresas.length}
                 title={`Exportar Excel (${empresas.length})`}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-40"
-              ><Sheet size={11}/> Excel</button>
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-40"
+              >
+                <Sheet size={11} /> Excel
+              </button>
               <button
                 onClick={() => exportClientesListaPDF(empresas)}
                 disabled={!empresas.length}
                 title={`Exportar PDF (${empresas.length})`}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors disabled:opacity-40"
-              ><Download size={11}/> PDF</button>
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors disabled:opacity-40"
+              >
+                <Download size={11} /> PDF
+              </button>
+              {puedeImportar && !readOnly && (
+                <button
+                  onClick={handleImport}
+                  disabled={importing}
+                  title="Actualizar clientes desde n8n"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors disabled:opacity-40"
+                >
+                  <RefreshCw size={11} className={importing ? 'animate-spin' : ''} />
+                  {importing ? 'Importando…' : 'Actualizar'}
+                </button>
+              )}
             </div>
           </div>
           <div className="flex gap-1.5 mb-3 flex-wrap">
-            {[['','Todos'],['activo','Activos'],['prospecto','Prospectos'],['inactivo','Inactivos'],['suspendido','Suspendidos']].map(([v,l])=>(
-              <button key={v} onClick={()=>setFilterEstado(f=>f===v?'':v)}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${filterEstado===v?'bg-blue-600 text-white border-transparent':'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'}`}>
+            {filters.map(([v, l]) => (
+              <button
+                key={v}
+                onClick={() => setFilterEstado(v)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${filterEstado === v ? 'bg-blue-600 text-white border-transparent' : 'border-slate-200 text-slate-600 hover:border-slate-300 bg-white'}`}
+              >
                 {l}
               </button>
             ))}
           </div>
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar razón social, NIT, ciudad..."
-              className="w-full pl-8 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"/>
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar razón social, NIT, ciudad..."
+              className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+            />
           </div>
         </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {loading
-            ? <div className="flex items-center justify-center py-16"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"/></div>
-            : empresas.length === 0
-              ? <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-                  <Building2 size={28} className="mb-2 opacity-30"/>
-                  <p className="text-sm">Sin clientes</p>
-                </div>
-              : empresas.map(em => (
-                <div key={em.id}
-                  onClick={()=>setSelected(em)}
-                  className={`flex items-start gap-3 px-4 py-3.5 border-b border-slate-50 cursor-pointer transition-colors hover:bg-slate-50 ${selected?.id===em.id?'bg-blue-50/60 border-l-2 border-l-blue-500 pl-[14px]':''}`}>
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                    {(em.razon_social||'C').charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800 truncate">{em.razon_social}</p>
-                    <p className="text-xs text-slate-400">NIT: {em.nit}</p>
-                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                      <Badge className={`${ESTADO_C[em.estado]?.bg} ${ESTADO_C[em.estado]?.text}`}>{em.estado_display}</Badge>
-                      {em.nivel_riesgo !== 'bajo' && <Badge className={`${RIESGO_C[em.nivel_riesgo]?.bg} ${RIESGO_C[em.nivel_riesgo]?.text} border ${RIESGO_C[em.nivel_riesgo]?.border}`}>{em.nivel_riesgo_display}</Badge>}
-                      {em.estado === 'activo' && em.areas_count === 0 && (
-                        <Badge className="bg-amber-100 text-amber-700 border border-amber-200" title="Sin área asignada">
-                          <AlertTriangle size={9} className="inline mr-0.5"/>Sin área
-                        </Badge>
-                      )}
-                      {em.ciudad && <span className="text-[10px] text-slate-400">{em.ciudad}</span>}
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading ? (
+            <div className="flex items-center justify-center h-48">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : empresas.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 text-slate-400 text-center">
+              <Building2 size={36} className="mb-2 opacity-30" />
+              <p className="text-sm font-medium">Sin clientes</p>
+              <p className="text-xs text-slate-400 mt-1 max-w-xs">No hay clientes en el CRM. Puedes importarlos desde FormulariosSQF.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {empresas.map((em) => (
+                <div
+                  key={em.id}
+                  onClick={() => setSelected(em)}
+                  className={`bg-white rounded-2xl border p-4 cursor-pointer transition-all hover:shadow-md ${selected?.id === em.id ? 'border-blue-500 ring-1 ring-blue-500 shadow-sm' : 'border-slate-200'}`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-slate-800 truncate">{em.razon_social}</p>
+                      <p className="text-xs text-slate-400 truncate">NIT: {em.nit}</p>
                     </div>
-                    {em.contacto_principal && <p className="text-[10px] text-slate-400 mt-0.5 truncate">{em.contacto_principal.nombre} · {em.contacto_principal.cargo}</p>}
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${ESTADO_C[em.estado]?.bg} ${ESTADO_C[em.estado]?.text}`}>{em.estado_display}</span>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0 mt-0.5">
-                    <ChevronRight size={14} className="text-slate-300 mt-0.5"/>
+                  <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                    {em.nivel_riesgo !== 'bajo' && (
+                      <Badge className={`${RIESGO_C[em.nivel_riesgo]?.bg} ${RIESGO_C[em.nivel_riesgo]?.text} border ${RIESGO_C[em.nivel_riesgo]?.border}`}>{em.nivel_riesgo_display}</Badge>
+                    )}
+                    {em.estado === 'activo' && em.areas_count === 0 && (
+                      <Badge className="bg-amber-100 text-amber-700 border border-amber-200" title="Sin área asignada">
+                        <AlertTriangle size={9} className="inline mr-0.5" />Sin área
+                      </Badge>
+                    )}
+                    {em.ciudad && <span className="text-[10px] text-slate-400">{em.ciudad}</span>}
+                  </div>
+                  {em.contacto_principal && (
+                    <p className="text-[11px] text-slate-500 truncate mb-1">
+                      <span className="font-medium">Contacto:</span> {em.contacto_principal.nombre} · {em.contacto_principal.cargo}
+                    </p>
+                  )}
+                  <div className="flex flex-col gap-0.5">
+                    {em.email_principal && <p className="text-[11px] text-slate-400 truncate flex items-center gap-1"><Mail size={10} />{em.email_principal}</p>}
+                    {em.telefono && <p className="text-[11px] text-slate-400 truncate flex items-center gap-1"><Phone size={10} />{em.telefono}</p>}
                   </div>
                 </div>
-              ))
-          }
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Detail */}
       {selected && (
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <EmpresaPanel empresa={selected} onClose={()=>setSelected(null)} onUpdate={()=>{load();refreshSelected();}}/>
+        <div className="flex-1 flex flex-col overflow-hidden bg-white">
+          <EmpresaPanel empresa={selected} onClose={() => setSelected(null)} areaId={areaId} />
         </div>
       )}
     </div>
   );
 }
 
-// ── Root ──────────────────────────────────────────────────────────────────────
+// ── ClientesSection (root) ────────────────────────────────────────────────────
 
-// ── SQFPreview ────────────────────────────────────────────────────────────────
-function SQFPreview({ onGoToSQF }) {
-  const [clientes, setClientes] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
-  const [busqueda, setBusqueda] = useState('');
+export default function ClientesSection({ onGoToSQF, modoEmpleado }) {
+  const { empleadoData } = useAuth();
+  const esGerente = isGerente(empleadoData);
+  const esGerenteOSocio = isGerenteOSocio(empleadoData);
+  const [view, setView] = useState('directorio');
 
-  useEffect(() => {
-    setLoading(true);
-    getClientesSQF()
-      .then(data => {
-        const lista = Array.isArray(data) ? data : [];
-        setClientes(lista);
-        setError(null);
-      })
-      .catch(() => setError('No se pudieron cargar los clientes del formulario SQF.'))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const filtrados = clientes.filter(c => {
-    const q = busqueda.toLowerCase();
-    return !q ||
-      (c.name || c.Nombre || '').toLowerCase().includes(q) ||
-      (c.document || c.Documento || '').toLowerCase().includes(q) ||
-      (c.email || c.CorreoElectronico || '').toLowerCase().includes(q);
-  });
-
-  const ESTADO_COL = {
-    Validado:   'bg-emerald-100 text-emerald-700',
-    Pendiente:  'bg-amber-100 text-amber-700',
-    Rechazado:  'bg-red-100 text-red-600',
-  };
-
-  return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between gap-4 flex-shrink-0">
-        <div>
-          <p className="text-sm font-bold text-slate-800">Clientes registrados en el sistema SQF</p>
-          <p className="text-xs text-slate-400 mt-0.5">Solo lectura — datos sincronizados desde n8n vía webhook</p>
-        </div>
-        <button
-          onClick={() => onGoToSQF?.()}
-          className="flex items-center gap-2 px-4 py-2 bg-[#001871] text-white rounded-xl text-xs font-bold hover:bg-[#002a4a] transition-colors whitespace-nowrap"
-        >
-          <ExternalLink size={13}/> Abrir Formulario SQF
-        </button>
-      </div>
-
-      {/* Buscador */}
-      <div className="px-6 py-3 bg-slate-50 border-b border-slate-100 flex-shrink-0">
-        <div className="relative max-w-md">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
-          <input
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre, documento o email..."
-            className="w-full pl-8 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 ring-blue-500/20 outline-none"
-          />
-          {busqueda && (
-            <button onClick={() => setBusqueda('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-              <X size={13}/>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Lista */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3">
-            <div className="w-8 h-8 border-2 border-[#001871] border-t-transparent rounded-full animate-spin"/>
-            <p className="text-sm text-slate-400">Cargando clientes SQF...</p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3 text-center">
-            <AlertTriangle size={36} className="text-amber-400"/>
-            <p className="text-sm text-slate-500">{error}</p>
-            <button onClick={() => { setLoading(true); getClientesSQF().then(d=>{ setClientes(Array.isArray(d)?d:[]); setError(null); }).catch(()=>setError('Error al reconectar')).finally(()=>setLoading(false)); }} className="text-xs text-blue-600 hover:underline">Reintentar</button>
-          </div>
-        ) : filtrados.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-2 text-center">
-            <Building2 size={36} className="text-slate-300"/>
-            <p className="text-sm text-slate-400">{busqueda ? 'Sin resultados para esa búsqueda' : 'Sin clientes en el sistema SQF'}</p>
-          </div>
-        ) : (
-          <>
-            <p className="text-xs text-slate-400 mb-4">{filtrados.length} de {clientes.length} clientes</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filtrados.map((c, i) => {
-                const nombre   = c.name || c.Nombre || '(Sin nombre)';
-                const doc      = c.document || c.Documento || '—';
-                const tipo     = c.clientType === 'juridica' ? 'Jurídica' : c.clientType === 'natural' ? 'Natural' : c.Tipodocumento || '—';
-                const email    = c.email || c.CorreoElectronico || '';
-                const tel      = c.phone || c.Telefono || '';
-                const contacto = c.contactName || c.NombreContacto || '';
-                const cargo    = c.contactRole || c.CargoContacto || '';
-                const estado   = c.status || c.Estado || 'Validado';
-                const grupo    = c.economicGroup || c.GrupoEconomico || '';
-                return (
-                  <div key={c.id || i} className="bg-white rounded-2xl border border-slate-200 p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-slate-800 truncate">{nombre}</p>
-                        <p className="text-xs text-slate-400 truncate">{tipo} · {doc}</p>
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${ESTADO_COL[estado] || 'bg-slate-100 text-slate-500'}`}>{estado}</span>
-                    </div>
-                    {grupo && <p className="text-xs text-slate-500 mb-1.5 truncate"><span className="font-medium">Grupo:</span> {grupo}</p>}
-                    {contacto && <p className="text-xs text-slate-500 mb-1 truncate"><span className="font-medium">Contacto:</span> {contacto}{cargo ? ` · ${cargo}` : ''}</p>}
-                    <div className="flex flex-col gap-0.5 mt-2">
-                      {email && <p className="text-xs text-slate-400 truncate flex items-center gap-1"><Mail size={10}/>{email}</p>}
-                      {tel   && <p className="text-xs text-slate-400 truncate flex items-center gap-1"><Phone size={10}/>{tel}</p>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function ClientesSection({ onGoToSQF }) {
-  const [view, setView] = useState('dashboard');
+  const TABS = [
+    { id: 'directorio', label: 'Directorio', icon: List },
+    { id: 'organigrama', label: 'Organigrama', icon: Network },
+  ];
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-[#f8fafc]">
-      <div className="flex items-center gap-1 px-6 py-3 bg-white border-b border-slate-100 shadow-sm z-10">
-        <div className="flex items-center gap-2 mr-4">
-          <Building2 size={17} className="text-blue-600"/>
-          <span className="text-sm font-bold text-slate-800">CRM Clientes</span>
+      <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-slate-100 shadow-sm z-10">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 mr-4">
+            <Building2 size={17} className="text-blue-600" />
+            <span className="text-sm font-bold text-slate-800">Clientes</span>
+          </div>
+          <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+            {TABS.map((t) => {
+              const Icon = t.icon;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setView(t.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${view === t.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  <Icon size={12} /> {t.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        {[
-          { id:'dashboard',  label:'Dashboard',   icon:LayoutDashboard },
-          { id:'directorio', label:'Directorio',  icon:List },
-          { id:'sqf',        label:'Vista SQF',   icon:ExternalLink },
-        ].map(n => {
-          const Icon = n.icon;
-          return (
-            <button key={n.id} onClick={()=>setView(n.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all ${view===n.id?'bg-blue-600 text-white shadow-sm':'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}>
-              <Icon size={14}/>{n.label}
-            </button>
-          );
-        })}
-        <button
-          onClick={() => onGoToSQF?.()}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all text-slate-500 hover:text-slate-700 hover:bg-slate-100 ml-1"
-        >
-          <ArrowRight size={14}/> Abrir Formulario SQF
-        </button>
+        {!modoEmpleado && (
+          <button
+            onClick={() => onGoToSQF?.()}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all bg-slate-100 text-slate-600 hover:bg-slate-200"
+          >
+            <ExternalLink size={14} /> Abrir Formulario SQF
+          </button>
+        )}
       </div>
-
       <div className="flex-1 overflow-hidden">
-        {view==='dashboard'  && <CrmDashboard onGo={setView}/>}
-        {view==='directorio' && <Directorio/>}
-        {view==='sqf'        && <SQFPreview onGoToSQF={onGoToSQF}/>}
+        {view === 'directorio' && <Directorio areaId={null} readOnly={modoEmpleado && !esGerenteOSocio} />}
+        {view === 'organigrama' && <OrganigramaClientes areaId={esGerenteOSocio ? null : empleadoData?.area_id} />}
       </div>
     </div>
   );

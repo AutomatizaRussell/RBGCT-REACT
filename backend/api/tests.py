@@ -62,7 +62,7 @@ class LoginPrimerIngresoTests(APITestCase):
         cache.clear()
         self.empleado = crear_empleado('nuevo@rbcol.co')
 
-    @patch('api.views.auth.enviar_email_verificacion', return_value=(True, 'ok'))
+    @patch('api.views.auth.enviar_codigo_login', return_value=(True, 'ok'))
     def test_login_regenera_codigo_si_no_hay_en_cache(self, mock_email):
         """El código del alta dura 15 min; el login debe regenerarlo si expiró."""
         res = self.client.post('/api/login/', {'email': 'nuevo@rbcol.co', 'password': PASSWORD})
@@ -73,7 +73,7 @@ class LoginPrimerIngresoTests(APITestCase):
         self.assertTrue(datos['password_verificada'])
         mock_email.assert_called_once()
 
-    @patch('api.views.auth.enviar_email_verificacion', return_value=(True, 'ok'))
+    @patch('api.views.auth.enviar_codigo_login', return_value=(True, 'ok'))
     def test_verificar_codigo_sin_password_tras_login(self, _):
         """El frontend no reenvía la contraseña al verificar: no debe exigirla."""
         self.client.post('/api/login/', {'email': 'nuevo@rbcol.co', 'password': PASSWORD})
@@ -82,7 +82,7 @@ class LoginPrimerIngresoTests(APITestCase):
         self.assertEqual(res.status_code, 200)
         self.assertIn('accessToken', res.data)
 
-    @patch('api.views.auth.enviar_email_verificacion', return_value=(True, 'ok'))
+    @patch('api.views.auth.enviar_codigo_login', return_value=(True, 'ok'))
     def test_reenviar_codigo_preserva_password_verificada(self, _):
         self.client.post('/api/login/', {'email': 'nuevo@rbcol.co', 'password': PASSWORD})
         self.client.post('/api/enviar-codigo/', {'email': 'nuevo@rbcol.co'})
@@ -90,7 +90,7 @@ class LoginPrimerIngresoTests(APITestCase):
         self.assertTrue(datos['password_verificada'],
                         'el reenvío no debe exigir password que el frontend no envía')
 
-    @patch('api.views.auth.enviar_email_verificacion', return_value=(True, 'ok'))
+    @patch('api.views.auth.enviar_codigo_login', return_value=(True, 'ok'))
     def test_codigo_incorrecto_bloquea_a_los_3_intentos(self, _):
         self.client.post('/api/login/', {'email': 'nuevo@rbcol.co', 'password': PASSWORD})
         for _i in range(3):
@@ -109,7 +109,7 @@ class LoginPrimerIngresoTests(APITestCase):
         res = self.client.post('/api/login/', {})
         self.assertEqual(res.status_code, 400)
 
-    @patch('api.views.auth.enviar_email_verificacion', return_value=(True, 'ok'))
+    @patch('api.views.auth.enviar_codigo_login', return_value=(True, 'ok'))
     def test_login_superadmin_directo_sin_2fa(self, _):
         """SuperAdmin recibe token directo — sin flujo 2FA."""
         admin = SuperAdmin.objects.create_superuser(
@@ -130,7 +130,7 @@ class CompletarDatosTests(APITestCase):
         self.otro = crear_empleado('dos@rbcol.co')
 
     def _token(self, email):
-        with patch('api.views.auth.enviar_email_verificacion', return_value=(True, 'ok')):
+        with patch('api.views.auth.enviar_codigo_login', return_value=(True, 'ok')):
             self.client.post('/api/login/', {'email': email, 'password': PASSWORD})
             codigo = cache.get(f'verificacion_{email}')['codigo']
             res = self.client.post('/api/verificar-codigo/', {'email': email, 'codigo': codigo})
@@ -163,7 +163,7 @@ class CompletarDatosTests(APITestCase):
             'empleado_id': self.empleado.id_empleado,
             'primer_nombre': 'Uno', 'primer_apellido': 'Test',
             'tipo_documento': 'CC', 'numero_documento': '999000111',
-            'nueva_password': 'ClaveValida123',
+            'nueva_password': 'ClaveValida123!',
         }, token)
         self.assertEqual(res.status_code, 200, res.data)
         self.assertFalse(Persona.objects.filter(primer_nombre='Residuo').exists())
@@ -205,7 +205,7 @@ class CrearUsuarioTests(APITestCase):
         })
         self.assertEqual(res.status_code, 401)
 
-    @patch('api.views.auth.enviar_email_verificacion', return_value=(True, 'ok'))
+    @patch('api.views.auth.enviar_bienvenida', return_value=(True, 'ok'))
     def test_superadmin_crea_usuario_y_normaliza_email(self, _):
         token = self._token_superadmin()
         res = self.client.post('/api/crear-usuario/', {
@@ -366,12 +366,12 @@ class RecuperacionPasswordTests(APITestCase):
         token = res.data['token']
 
         res = self.client.post('/api/restablecer-password/',
-                               {'token': token, 'nueva_password': 'NuevaClave123'})
+                               {'token': token, 'nueva_password': 'NuevaClave123!'})
         self.assertEqual(res.status_code, 200)
 
         # La nueva contraseña funciona para login
         res = self.client.post('/api/login/',
-                               {'email': 'recupera@rbcol.co', 'password': 'NuevaClave123'})
+                               {'email': 'recupera@rbcol.co', 'password': 'NuevaClave123!'})
         self.assertEqual(res.status_code, 200)
         self.assertIn('accessToken', res.data)
 
@@ -392,9 +392,9 @@ class RecuperacionPasswordTests(APITestCase):
         token = res.data['token']
 
         self.client.post('/api/restablecer-password/',
-                         {'token': token, 'nueva_password': 'Primera123'})
+                         {'token': token, 'nueva_password': 'Primera123!'})
         res2 = self.client.post('/api/restablecer-password/',
-                                {'token': token, 'nueva_password': 'Segunda123'})
+                                {'token': token, 'nueva_password': 'Segunda123!'})
         self.assertNotEqual(res2.status_code, 200,
                             'el token de un solo uso no debe aceptarse dos veces')
 

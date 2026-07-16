@@ -20,3 +20,4 @@ Pillow>=10.0.0
 markitdown>=0.0.1
 mammoth>=1.6.0
 htmldocx>=0.0.6
+python-magic>=0.4.27

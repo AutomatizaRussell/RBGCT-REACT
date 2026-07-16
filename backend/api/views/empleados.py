@@ -17,6 +17,7 @@ from ..serializers import (
     DatosAcademicosSerializer, MovimientoLaboralSerializer,
 )
 from ..permissions import IsSuperAdminUser
+from ..file_validation import validate_pdf_image, validate_office_document
 
 from ._utils import _es_superadmin, _es_empleado
 
@@ -292,6 +293,11 @@ def certificado_discapacidad(request):
     archivo = request.FILES.get('certificado')
     if not archivo:
         return Response({'error': 'No se recibió ningún archivo'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        validate_pdf_image(archivo)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     if persona.certificado_discapacidad:
         persona.certificado_discapacidad.delete(save=False)
@@ -581,6 +587,10 @@ def mis_academicos(request):
 
     diploma = request.FILES.get('diploma')
     if diploma:
+        try:
+            validate_pdf_image(diploma)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         diploma.seek(0)
         diploma_bytes = diploma.read()
         diploma.seek(0)
@@ -654,6 +664,10 @@ def admin_academicos_empleado(request, empleado_id):
 
     diploma = request.FILES.get('diploma')
     if diploma:
+        try:
+            validate_pdf_image(diploma)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         diploma.seek(0)
         diploma_bytes = diploma.read()
         diploma.seek(0)

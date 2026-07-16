@@ -324,7 +324,7 @@ const Admin2Dashboard = () => {
       case 'clientes':
         return (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-full -m-8">
-            <ClientesSection onGoToSQF={() => setActiveTab('formularios-sqf')} />
+            <ClientesSection onGoToSQF={() => setActiveTab('formularios-sqf')} modoEmpleado={false} />
           </div>
         );
       case 'formularios-sqf':

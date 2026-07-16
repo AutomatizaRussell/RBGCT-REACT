@@ -92,6 +92,7 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
     # Campos calculados de relaciones laborales
     nombre_area = serializers.CharField(source='area.nombre_area', read_only=True)
     nombre_cargo = serializers.CharField(source='cargo.nombre_cargo', read_only=True)
+    cargo_nivel = serializers.CharField(source='cargo.nivel', read_only=True)
     area = serializers.PrimaryKeyRelatedField(queryset=DatosArea.objects.all(), required=False, allow_null=True)
     cargo = serializers.PrimaryKeyRelatedField(queryset=DatosCargo.objects.all(), required=False, allow_null=True)
 
@@ -169,7 +170,7 @@ class DatosEmpleadoSerializer(serializers.ModelSerializer):
             'nombre_contacto_emergencia', 'telefono_emergencia', 'parentesco_emergencia',
             # Laboral
             'correo_corporativo', 'area', 'cargo', 'area_id', 'cargo_id',
-            'nombre_area', 'nombre_cargo', 'fecha_ingreso', 'fecha_retiro', 'estado',
+            'nombre_area', 'nombre_cargo', 'cargo_nivel', 'fecha_ingreso', 'fecha_retiro', 'estado',
             # Acceso
             'id_permisos', 'permitir_edicion_datos', 'datos_persona_completados', 'datos_academicos_completados', 'acceso_formularios_sqf',
             'acceso_sqf_clientes', 'acceso_sqf_contratos',
@@ -637,15 +638,22 @@ class ApiKeySerializer(serializers.ModelSerializer):
             'creado_por', 'creado_por_nombre', 'created_at', 'last_used_at',
             'uso_count', 'is_active', 'permisos', 'ip_permitidas',
         ]
-        read_only_fields = ['id', 'key', 'created_at', 'last_used_at', 'uso_count', 'creado_por']
+        read_only_fields = [
+            'id', 'key', 'key_visible', 'created_at', 'last_used_at',
+            'uso_count', 'creado_por',
+        ]
 
     def get_key_visible(self, obj):
-        return f"{obj.key[:8]}..." if obj.key else None
+        return f"{obj.key_hash[:8]}..." if obj.key_hash else None
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        request = self.context.get('request')
-        if request and request.method not in ['POST', 'PUT']:
+        # La clave en texto plano solo se expone inmediatamente después de la
+        # creación, y el viewset la inyecta como _plain_key.
+        plain_key = getattr(instance, '_plain_key', None)
+        if plain_key:
+            data['key'] = plain_key
+        else:
             data.pop('key', None)
         return data
 

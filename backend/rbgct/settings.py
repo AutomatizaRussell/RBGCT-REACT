@@ -224,13 +224,21 @@ SHAREPOINT_BASE_URL = os.getenv('SHAREPOINT_BASE_URL', 'https://dsasas.sharepoin
 # EMAIL
 # =============================================================================
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# El backend de email se puede configurar por variable de entorno.
+# Ejemplos:
+#   EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend  # desarrollo
+#   EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend     # SMTP
+#   EMAIL_BACKEND=anymail.backends.resend.EmailBackend            # Resend
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.smtp.EmailBackend'
+)
 
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 
-EMAIL_PORT = 587
+EMAIL_PORT = _env_int('EMAIL_PORT', 587)
 
-EMAIL_USE_TLS = True
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
 
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 
@@ -445,3 +453,29 @@ N8N_BASE_URL = os.getenv(
     f"{_n8n_parsed.scheme}://{_n8n_parsed.netloc}"
     if _n8n_parsed.netloc else ''
 )
+
+# =============================================================================
+# PRODUCTION SECURITY HARDENING
+# =============================================================================
+
+# These settings are only enabled in production (DEBUG=False) because they
+# assume the site is served over HTTPS by a reverse proxy such as Nginx or
+# Traefik. The SECURE_PROXY_SSL_HEADER setting above lets Django trust the
+# X-Forwarded-Proto header from the proxy.
+if not DEBUG:
+    # SSL redirect is usually handled by the reverse proxy (Nginx/Traefik/Coolify).
+    # Only enable it in Django if the proxy does NOT perform the redirect, to
+    # avoid redirect loops. Set SECURE_SSL_REDIRECT=True explicitly when needed.
+    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
+
+    SECURE_HSTS_SECONDS = _env_int('SECURE_HSTS_SECONDS', 31536000)  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv(
+        'SECURE_HSTS_INCLUDE_SUBDOMAINS', 'True'
+    ).lower() == 'true'
+    SECURE_HSTS_PRELOAD = os.getenv('SECURE_HSTS_PRELOAD', 'True').lower() == 'true'
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+    X_FRAME_OPTIONS = "DENY"

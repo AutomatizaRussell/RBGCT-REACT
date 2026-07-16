@@ -23,6 +23,7 @@ from ._utils import (
     _es_empleado,
 )
 from ..n8n_gateway import enviar_bienvenida, enviar_codigo_login
+from ..password_validation import validate_password, PasswordValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ def login_view(request):
 
     # 2. Verificar si es Empleado
     try:
-        empleado = DatosEmpleado.objects.select_related('persona').only(
+        empleado = DatosEmpleado.objects.select_related('persona', 'area', 'cargo').only(
             'id_empleado', 'correo_corporativo', 'id_permisos', 'estado',
             'area_id', 'cargo_id', 'primer_login', 'datos_completados',
             'permitir_edicion_datos',
@@ -89,6 +90,8 @@ def login_view(request):
             'acceso_sqf_facturacion', 'acceso_sqf_auditoria', 'password_hash', 'persona',
             'persona__primer_nombre', 'persona__segundo_nombre',
             'persona__primer_apellido', 'persona__segundo_apellido',
+            'area__nombre_area',
+            'cargo__nombre_cargo', 'cargo__nivel',
         ).get(correo_corporativo=email, estado='ACTIVA')
         if empleado.password_hash and bcrypt.checkpw(password.encode('utf-8'), empleado.password_hash.encode('utf-8')):
 
@@ -126,6 +129,12 @@ def login_view(request):
                         'id_permisos': empleado.id_permisos,
                         'primer_login': True,
                         'datos_completados': empleado.datos_completados,
+                        'area_id': empleado.area_id,
+                        'cargo_id': empleado.cargo_id,
+                        'area': empleado.area_id,
+                        'nombre_area': empleado.area.nombre_area if empleado.area else '',
+                        'nombre_cargo': empleado.cargo.nombre_cargo if empleado.cargo else '',
+                        'cargo_nivel': empleado.cargo.nivel if empleado.cargo else '',
                         'acceso_formularios_sqf': empleado.acceso_formularios_sqf,
                         'acceso_sqf_clientes': empleado.acceso_sqf_clientes,
                         'acceso_sqf_contratos': empleado.acceso_sqf_contratos,
@@ -150,6 +159,10 @@ def login_view(request):
                     'estado': empleado.estado,
                     'area_id': empleado.area_id,
                     'cargo_id': empleado.cargo_id,
+                    'area': empleado.area_id,
+                    'nombre_area': empleado.area.nombre_area if empleado.area else '',
+                    'nombre_cargo': empleado.cargo.nombre_cargo if empleado.cargo else '',
+                    'cargo_nivel': empleado.cargo.nivel if empleado.cargo else '',
                     'primer_login': False,
                     'datos_completados': empleado.datos_completados,
                     'permitir_edicion_datos': empleado.permitir_edicion_datos,
@@ -206,6 +219,11 @@ def crear_usuario_superadmin(request):
     if not email or not password:
         logger.error(f"[CREAR USUARIO] Faltan datos del nuevo usuario: email={'Vacio' if not email else 'OK'}, password={'Vacio' if not password else 'OK'}")
         return Response({'error': 'Email y contraseña requeridos'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        validate_password(password)
+    except PasswordValidationError as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     # Verificar si el email ya existe
     if DatosEmpleado.objects.filter(correo_corporativo=email).exists():
@@ -316,9 +334,11 @@ def completar_datos_empleado(request):
 
     # Validar la nueva contraseña antes de tocar la base de datos
     nueva_password_solicitada = request.data.get('nueva_password')
-    if empleado.primer_login and nueva_password_solicitada and len(nueva_password_solicitada) < 6:
-        return Response({'error': 'La contraseña debe tener al menos 6 caracteres'},
-                        status=status.HTTP_400_BAD_REQUEST)
+    if empleado.primer_login and nueva_password_solicitada:
+        try:
+            validate_password(nueva_password_solicitada)
+        except PasswordValidationError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     # Resolver conflicto de número de documento ANTES de guardar
     numero_documento = request.data.get('numero_documento')
@@ -615,7 +635,9 @@ def verificar_codigo_login(request):
 
     # Código correcto - obtener empleado
     try:
-        empleado = DatosEmpleado.objects.get(id_empleado=datos_cache['empleado_id'])
+        empleado = DatosEmpleado.objects.select_related('persona', 'area', 'cargo').get(
+            id_empleado=datos_cache['empleado_id']
+        )
     except DatosEmpleado.DoesNotExist:
         return Response({'error': 'Usuario no encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -659,6 +681,13 @@ def verificar_codigo_login(request):
             'id_permisos': empleado.id_permisos,
             'primer_login': empleado.primer_login,
             'datos_completados': empleado.datos_completados,
+            'estado': empleado.estado,
+            'area_id': empleado.area_id,
+            'cargo_id': empleado.cargo_id,
+            'area': empleado.area_id,
+            'nombre_area': empleado.area.nombre_area if empleado.area else '',
+            'nombre_cargo': empleado.cargo.nombre_cargo if empleado.cargo else '',
+            'cargo_nivel': empleado.cargo.nivel if empleado.cargo else '',
             'acceso_formularios_sqf': empleado.acceso_formularios_sqf,
             'acceso_sqf_clientes': empleado.acceso_sqf_clientes,
             'acceso_sqf_contratos': empleado.acceso_sqf_contratos,
@@ -729,10 +758,12 @@ def actualizar_password_empleado(request, empleado_id):
                 'error': 'La nueva contraseña es requerida'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if len(nueva_password) < 6:
+        try:
+            validate_password(nueva_password)
+        except PasswordValidationError as exc:
             return Response({
                 'success': False,
-                'error': 'La contraseña debe tener al menos 6 caracteres'
+                'error': str(exc)
             }, status=status.HTTP_400_BAD_REQUEST)
 
         if not admin_password:

@@ -12,6 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ._utils import _convertir_markdown_fallback
+from ..file_validation import validate_office_document, validate_uploaded_file
 
 logger = logging.getLogger(__name__)
 
@@ -31,15 +32,12 @@ def convertir_markdown(request):
 
         archivo = request.FILES['archivo']
 
-        # Extensiones permitidas
-        extensiones_permitidas = ['.pdf', '.docx', '.xlsx', '.pptx', '.doc', '.xls', '.ppt', '.html', '.txt', '.csv', '.json', '.xml']
-        ext = os.path.splitext(archivo.name)[1].lower()
+        try:
+            validate_office_document(archivo)
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
 
-        if ext not in extensiones_permitidas:
-            return Response({
-                'error': f'Extensión no soportada: {ext}',
-                'soportadas': extensiones_permitidas
-            }, status=400)
+        ext = os.path.splitext(archivo.name)[1].lower()
 
         # Guardar archivo temporalmente
         with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp_input:
@@ -182,6 +180,11 @@ def convertir_archivo(request):
             return Response({'error': 'No se especificó formato de destino'}, status=400)
 
         archivo = request.FILES['archivo']
+        try:
+            validate_office_document(archivo)
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+
         formato_destino = request.POST['formato_destino'].lower().strip('.')
 
         # Detectar formato origen
@@ -652,6 +655,17 @@ def gestor_pdf(request):
         if not archivos_pdf:
             return Response({'error': 'No se encontraron archivos PDF'}, status=400)
 
+        for archivo in archivos_pdf:
+            try:
+                validate_uploaded_file(
+                    archivo,
+                    max_size_mb=50,
+                    allowed_mimetypes={'application/pdf': ['.pdf']},
+                    allowed_extensions=['.pdf'],
+                )
+            except Exception as e:
+                return Response({'error': str(e)}, status=400)
+
         logger.info(f"[GESTOR PDF] Herramienta: {herramienta}, Archivos: {len(archivos_pdf)}")
 
         try:
@@ -879,10 +893,12 @@ def descargar_archivo_intranet(request):
         return Response({'error': 'No se pudo conectar con el servicio de archivos'}, status=503)
 
     from django.http import HttpResponse
+    from ..file_validation import safe_content_disposition, sanitize_filename
+
     ext = archivo.rsplit('.', 1)[-1].lower() if '.' in archivo else ''
     mime_map = {'pdf': 'application/pdf', 'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}
     content_type = mime_map.get(ext, resp.headers.get('Content-Type', 'application/octet-stream'))
     response = HttpResponse(resp.content, content_type=content_type)
     # inline para que el iframe lo muestre en lugar de descargarlo
-    response['Content-Disposition'] = f'inline; filename="{archivo}"'
+    response['Content-Disposition'] = safe_content_disposition(sanitize_filename(archivo), inline=True)
     return response

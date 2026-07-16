@@ -70,7 +70,7 @@ const UserDashboard = () => {
     else if (path.includes('comunicados')) setActiveTab('reglamento')
     else if (path.includes('utilidades')) setActiveTab('utilidades')
     else if (path.includes('sqf')) setActiveTab('sqf')
-    else if (path.includes('mis-clientes') || path.includes('/app/cliente/')) {
+    else if (path.includes('mis-clientes') || path.includes('/app/cliente/') || path.includes('/app/clientes/')) {
       setActiveTab('clientes')
     } else {
       setActiveTab('dashboard')

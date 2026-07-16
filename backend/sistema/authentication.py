@@ -1,5 +1,6 @@
 import jwt
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from rest_framework import authentication, exceptions
 from sistema.models import SuperAdmin, ApiKey
 from empleados.models import DatosEmpleado
@@ -33,7 +34,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
             elif user_type == 'empleado' and user_id:
                 try:
-                    user = DatosEmpleado.objects.get(id_empleado=user_id)
+                    user = DatosEmpleado.objects.select_related('cargo', 'area').get(id_empleado=user_id)
                     user._is_empleado = True
                 except DatosEmpleado.DoesNotExist:
                     raise exceptions.AuthenticationFailed('Usuario no encontrado')
@@ -58,16 +59,36 @@ class ApiKeyAuthentication(authentication.BaseAuthentication):
         api_key = request.META.get('HTTP_X_API_KEY')
         if not api_key:
             return None
+
+        key_hash = ApiKey.hash_key(api_key)
         try:
-            key_obj = ApiKey.objects.get(key=api_key, is_active=True)
+            key_obj = ApiKey.objects.get(key_hash=key_hash, is_active=True)
         except ApiKey.DoesNotExist:
             raise exceptions.AuthenticationFailed('API Key inválida o inactiva')
+
+        # Validación opcional de IP permitida.
+        ip_permitidas = key_obj.ip_permitidas or []
+        if ip_permitidas:
+            client_ip = self._get_client_ip(request)
+            if client_ip not in ip_permitidas:
+                raise PermissionDenied('IP no autorizada para esta API Key')
 
         key_obj.mark_used()
         user = key_obj.creado_por
         if user is None:
             raise exceptions.AuthenticationFailed('API Key sin usuario asociado')
+
+        # Guardamos la key en el usuario para que los permisos puedan consultarla.
+        user._api_key = key_obj
         return (user, key_obj)
 
     def authenticate_header(self, request):
         return 'X-API-Key'
+
+    @staticmethod
+    def _get_client_ip(request):
+        """Obtiene la IP real del cliente considerando proxies."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            return x_forwarded_for.split(',')[0].strip()
+        return request.META.get('REMOTE_ADDR')

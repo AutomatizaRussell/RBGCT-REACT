@@ -888,6 +888,10 @@ export const getEmpresaContactos = (id) => fetchApi(`/clientes/empresas/${id}/co
 export const getEmpresaServicios = (id) => fetchApi(`/clientes/empresas/${id}/servicios/`);
 export const getEmpresaEquipo    = (id) => fetchApi(`/clientes/empresas/${id}/equipo/`);
 export const getEmpresaBitacora  = (id) => fetchApi(`/clientes/empresas/${id}/bitacora/`);
+export const getOrganigramaClientes = (params = {}) => {
+  const q = new URLSearchParams(params).toString();
+  return fetchApi(`/clientes/empresas/organigrama/${q ? '?' + q : ''}`);
+};
 
 export const createContacto = (data) =>
   fetchApi('/clientes/contactos/', { method: 'POST', body: JSON.stringify(data) });

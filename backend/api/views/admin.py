@@ -22,6 +22,7 @@ from ..serializers import (
 )
 from ..permissions import IsSuperAdminUser, IsAdminOrSuperAdmin
 from ..throttles import RecuperacionPasswordThrottle
+from ..file_validation import validate_office_document
 
 from ._utils import (
     CACHE_KEY_ACTIVIDAD_RECIENTE,
@@ -76,6 +77,10 @@ class ReglamentoItemViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             archivo = request.FILES.get('archivo')
             if archivo:
+                try:
+                    validate_office_document(archivo)
+                except Exception as e:
+                    return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
                 archivo.seek(0)
                 archivo_bytes = archivo.read()
                 archivo.seek(0)
@@ -135,6 +140,9 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
     """
     Gestión de API Keys para automatizaciones externas.
     Solo SuperAdmins pueden crear/ver/revocar API keys.
+
+    Las claves se almacenan únicamente como hash SHA-256. La clave en texto
+    plano se muestra una sola vez en la respuesta de creación.
     """
     queryset = ApiKey.objects.all().order_by('-created_at')
     serializer_class = ApiKeySerializer
@@ -149,12 +157,21 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        """Asignar el superadmin actual como creador"""
+        """Asignar el superadmin actual como creador y hashear la key."""
         user = self.request.user
         creado_por = None
         if hasattr(user, 'id') and SuperAdmin.objects.filter(id=user.id).exists():
             creado_por = user
-        serializer.save(creado_por=creado_por)
+
+        plain_key = ApiKey.generate_key()
+        key_hash = ApiKey.hash_key(plain_key)
+        instance = serializer.save(
+            creado_por=creado_por,
+            key_hash=key_hash,
+        )
+        # Guardamos la clave en texto plano de forma transitoria para mostrarla
+        # únicamente en la respuesta de creación.
+        instance._plain_key = plain_key
 
     def create(self, request, *args, **kwargs):
         """Override para devolver la key completa solo al crear"""
@@ -186,8 +203,10 @@ class ApiKeyViewSet(viewsets.ModelViewSet):
         key = request.data.get('key', '').strip()
         if not key:
             return Response({'error': 'Key requerida'}, status=status.HTTP_400_BAD_REQUEST)
+
+        key_hash = ApiKey.hash_key(key)
         try:
-            api_key = ApiKey.objects.get(key=key, is_active=True)
+            api_key = ApiKey.objects.get(key_hash=key_hash, is_active=True)
             api_key.mark_used()
             return Response({
                 'valid': True,

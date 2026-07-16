@@ -75,6 +75,23 @@ ROL_ASIGNACION_CHOICES = [
     ('apoyo',                 'Apoyo'),
 ]
 
+ESTADO_EQUIPO_CHOICES = [
+    ('activo',    'Activo'),
+    ('pausado',   'Pausado'),
+    ('terminado', 'Terminado'),
+]
+
+ROL_MIEMBRO_CHOICES = [
+    ('gerente',      'Gerente'),
+    ('senior',       'Senior'),
+    ('lider_equipo', 'Líder de equipo'),
+    ('semi_senior',  'Semi-senior'),
+    ('analista',     'Analista'),
+    ('asistente',    'Asistente'),
+    ('revisor',      'Revisor'),
+    ('apoyo',        'Apoyo'),
+]
+
 TIPO_BITACORA_CHOICES = [
     ('reunion',  'Reunión'),
     ('llamada',  'Llamada'),
@@ -237,6 +254,82 @@ class AsignacionEquipo(models.Model):
 
     def __str__(self):
         return f"{self.empleado} → {self.empresa.razon_social} ({self.get_rol_display()})"
+
+
+class Equipo(models.Model):
+    """Equipo de trabajo asignado a un cliente para un proceso o servicio."""
+
+    empresa      = models.ForeignKey(
+        EmpresaCliente, on_delete=models.CASCADE,
+        related_name='equipos'
+    )
+    area         = models.ForeignKey(
+        'empleados.DatosArea', on_delete=models.PROTECT,
+        related_name='equipos', null=True, blank=True
+    )
+    servicio     = models.ForeignKey(
+        ServicioContratado, on_delete=models.SET_NULL,
+        related_name='equipos', null=True, blank=True
+    )
+    equipo_padre = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        related_name='sub_equipos', null=True, blank=True,
+        verbose_name='equipo padre'
+    )
+    nombre       = models.CharField(max_length=150)
+    descripcion  = models.TextField(blank=True, null=True)
+    estado       = models.CharField(
+        max_length=15, choices=ESTADO_EQUIPO_CHOICES, default='activo'
+    )
+    fecha_inicio = models.DateField()
+    fecha_fin    = models.DateField(blank=True, null=True)
+    activo       = models.BooleanField(default=True)
+    especial     = models.BooleanField(
+        default=False,
+        help_text='Contrato especial que no cumple la triarquía estándar (gerente, senior y analista/asistente).'
+    )
+    created_at   = models.DateTimeField(auto_now_add=True)
+    updated_at   = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = '"clientes"."cli_equipo"'
+        ordering = ['-activo', 'nombre']
+
+    def __str__(self):
+        return f"{self.nombre} — {self.empresa.razon_social}"
+
+
+class MiembroEquipo(models.Model):
+    """Miembro de un equipo con rol y vigencia."""
+
+    equipo       = models.ForeignKey(
+        Equipo, on_delete=models.CASCADE,
+        related_name='miembros'
+    )
+    empleado     = models.ForeignKey(
+        'empleados.DatosEmpleado', on_delete=models.PROTECT,
+        related_name='membresias_equipo'
+    )
+    rol          = models.CharField(max_length=25, choices=ROL_MIEMBRO_CHOICES)
+    fecha_inicio = models.DateField()
+    fecha_fin    = models.DateField(blank=True, null=True)
+    activo       = models.BooleanField(default=True)
+    created_at   = models.DateTimeField(auto_now_add=True)
+    updated_at   = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = '"clientes"."cli_miembro_equipo"'
+        ordering = ['-activo', 'rol']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['equipo', 'empleado'],
+                condition=models.Q(activo=True),
+                name='unique_miembro_activo_por_equipo',
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.empleado} → {self.equipo.nombre} ({self.get_rol_display()})"
 
 
 class BitacoraCliente(models.Model):
