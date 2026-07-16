@@ -76,12 +76,27 @@ const ZOOM_STEP = 0.15;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function nivelEmpleado(cargo = '') {
-  const t = cargo.toUpperCase();
+// Mapa exacto por valor de rol del MiembroEquipo
+const ROL_NIVEL = {
+  gerente:     1,
+  senior:      2,
+  lider_equipo: 3,
+  semi_senior: 3,
+  revisor:     3,
+  analista:    4,
+  asistente:   4,
+  apoyo:       4,
+};
+
+function nivelEmpleado(rol = '') {
+  if (ROL_NIVEL[rol] !== undefined) return ROL_NIVEL[rol];
+  // Fallback para cargos en texto libre (nombre del cargo del empleado)
+  const t = rol.toUpperCase();
   if (t.includes('SOCIO')) return 0;
   if (t.includes('GERENTE')) return 1;
+  // Importante: SEMI antes que SENIOR para que 'semi_senior' no caiga en nivel 2
+  if (t.includes('SEMI') || t.includes('LIDER') || t.includes('LÍDER') || t.includes('REVISOR')) return 3;
   if (t.includes('SENIOR')) return 2;
-  if (t.includes('LÍDER') || t.includes('LIDER') || t.includes('SEMI') || t.includes('REVISOR')) return 3;
   if (t.includes('ANALISTA') || t.includes('ASISTENTE') || t.includes('APOYO')) return 4;
   return 5;
 }
@@ -112,24 +127,18 @@ function Badge({ children, className = '' }) {
 // ── Construcción de nodos y filtros ─────────────────────────────────────────
 
 function buildJerarquiaEmpleados(members = [], clienteId, areaId, equipoId = null) {
-  const sorted = [...members].sort(
-    (a, b) => nivelEmpleado(a.rol || a.cargo) - nivelEmpleado(b.rol || b.cargo)
-  );
-  if (!sorted.length) return [];
+  if (!members.length) return [];
 
-  const roots = [];
-  const lastByLevel = {};
-  const nodeMap = {};
-
-  sorted.forEach((m) => {
-    const level = nivelEmpleado(m.rol || m.cargo);
-    const node = {
-      key: `emp-${m.empleado_id}-c${clienteId}-a${areaId}-eq${equipoId || 0}`,
+  // 1. Asignar nivel y crear nodos
+  const withLevel = members.map((m) => ({
+    nivel: nivelEmpleado(m.rol),
+    node: {
+      key: `emp-${m.empleado_id}-c${clienteId}-a${areaId}-eq${equipoId || 0}-${m.rol}`,
       tipo: 'empleado',
       id: m.empleado_id,
       nombre: m.empleado_nombre,
-      subtitulo: m.cargo,
-      color: NIVEL_COLORES[level] || BRAND.empleado,
+      subtitulo: m.empleado_cargo || m.rol_display,
+      color: NIVEL_COLORES[nivelEmpleado(m.rol)] || BRAND.empleado,
       icon: <User size={14} />,
       data: m,
       badge: (
@@ -138,22 +147,40 @@ function buildJerarquiaEmpleados(members = [], clienteId, areaId, equipoId = nul
         </Badge>
       ),
       children: [],
-    };
+    },
+  }));
 
-    let parentLevel = level - 1;
-    while (parentLevel >= 0 && !lastByLevel[parentLevel]) parentLevel -= 1;
+  // 2. Ordenar por nivel y agrupar niveles consecutivos (mismos niveles = paralelos)
+  withLevel.sort((a, b) => a.nivel - b.nivel);
 
-    if (parentLevel >= 0 && nodeMap[lastByLevel[parentLevel]]) {
-      nodeMap[lastByLevel[parentLevel]].children.push(node);
+  const levelGroups = [];
+  for (const { nivel, node } of withLevel) {
+    const last = levelGroups[levelGroups.length - 1];
+    if (last && last.nivel === nivel) {
+      last.nodes.push(node);
     } else {
-      roots.push(node);
+      levelGroups.push({ nivel, nodes: [node] });
     }
+  }
 
-    lastByLevel[level] = node.key;
-    nodeMap[node.key] = node;
-  });
+  if (!levelGroups.length) return [];
 
-  return roots;
+  // 3. Conectar niveles: los nodos de cada grupo son hijos de los del grupo anterior.
+  //    Si hay varios padres, distribuimos los hijos entre ellos (round-robin).
+  for (let i = 1; i < levelGroups.length; i++) {
+    const parents = levelGroups[i - 1].nodes;
+    const children = levelGroups[i].nodes;
+    if (parents.length === 1) {
+      parents[0].children.push(...children);
+    } else {
+      // Repartir children en round-robin entre los padres
+      children.forEach((child, idx) => {
+        parents[idx % parents.length].children.push(child);
+      });
+    }
+  }
+
+  return levelGroups[0].nodes;
 }
 
 function buildEquipoNode(equipo, clienteId, areaId) {
@@ -878,7 +905,7 @@ function EquipoDrawer({ node, onClose }) {
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                    style={{ background: NIVEL_COLORES[nivelEmpleado(m.rol || m.cargo)] || BRAND.empleado }}
+                    style={{ background: NIVEL_COLORES[nivelEmpleado(m.rol)] || BRAND.empleado }}
                   >
                     {m.empleado_nombre?.charAt(0)?.toUpperCase()}
                   </div>
@@ -997,7 +1024,7 @@ function MiembroCard({ m, onClick }) {
     >
       <div
         className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-        style={{ background: NIVEL_COLORES[nivelEmpleado(m.rol || m.cargo)] || BRAND.empleado }}
+        style={{ background: NIVEL_COLORES[nivelEmpleado(m.rol)] || BRAND.empleado }}
       >
         {m.empleado_nombre?.charAt(0)?.toUpperCase()}
       </div>
