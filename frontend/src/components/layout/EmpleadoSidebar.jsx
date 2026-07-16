@@ -43,14 +43,14 @@ export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, 
   }, [])
 
   useEffect(() => {
-    if (!empleadoData?.id) return
-    getMisClientes(empleadoData.id)
+    if (!empleadoData?.id_empleado) return
+    getMisClientes(empleadoData.id_empleado)
       .then((data) => {
         const lista = Array.isArray(data) ? data : data?.results || []
         setTieneClientes(lista.length > 0)
       })
       .catch(() => { })
-  }, [empleadoData?.id])
+  }, [empleadoData?.id_empleado])
 
   const handleLogout = async () => {
     try {

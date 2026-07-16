@@ -56,7 +56,7 @@ const deleteEquipo = (id) =>
 const assignAreasToCliente = (empresaId, areaIds) =>
   fetchApi(`/clientes/empresas/${empresaId}/asignar_areas/`, {
     method: 'POST',
-    body: JSON.stringify({ area_ids: areaIds }),
+    body: JSON.stringify({ areas: areaIds }),
   });
 
 const desasignarArea = (empresaId, areaId) =>
@@ -1679,12 +1679,11 @@ function Directorio({ areaId = null, readOnly = false }) {
                   onClick={() => setSelected(em)}
                   className={`bg-white rounded-2xl border p-4 cursor-pointer transition-all hover:shadow-md ${selected?.id === em.id ? 'border-blue-500 ring-1 ring-blue-500 shadow-sm' : 'border-slate-200'}`}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0 mb-2">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-slate-800 truncate">{em.razon_social}</p>
                       <p className="text-xs text-slate-400 truncate">NIT: {em.nit}</p>
                     </div>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${ESTADO_C[em.estado]?.bg} ${ESTADO_C[em.estado]?.text}`}>{em.estado_display}</span>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap mb-2">
                     {em.nivel_riesgo !== 'bajo' && (
