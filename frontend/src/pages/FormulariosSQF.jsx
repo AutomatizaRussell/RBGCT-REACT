@@ -599,7 +599,7 @@ export default function FormulariosSQF({ onBack }) {
 
         try {
             const res = await fetch(N8N_WEBHOOKS.client, { method: 'POST', body: formData });
-            if ( res.status === 409 && res.statusText === 'pending_validation' ) {
+            if ( res.status === 409 && res.internal_status === 'pending_validation' ) {
                 showToastMsg('error', 'Cliente ya registrado', 'El cliente ya se encuentra registrado, pero actualmente está pendiente de validación.');
             } 
             else if (res.status === 409 ) {
