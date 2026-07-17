@@ -101,7 +101,7 @@ export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, 
       items: [
         { tab: 'dashboard', label: 'Mi resumen', icon: LayoutDashboard },
         { tab: 'tasks', label: 'Auto gestión', icon: ClipboardList },
-        { tab: 'clientes', label: 'Mis clientes', icon: Building2, visible: tieneClientes || Boolean(empleadoData?.acceso_formularios_sqf) },
+        { tab: 'clientes', label: 'Mis clientes', icon: Building2, visible: true },
         { tab: 'profile', label: 'Mi perfil', icon: UserCircle },
       ],
     },

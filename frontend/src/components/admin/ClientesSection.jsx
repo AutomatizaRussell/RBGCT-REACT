@@ -853,55 +853,59 @@ function EquipoTree({ equipo, bloque, empresaId, empleados, onRefresh, puedeGest
 
   return (
     <div className={`rounded-xl border border-slate-100 bg-white overflow-hidden ${nivel > 0 ? 'ml-4' : ''}`}>
-      <div className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 gap-2">
-        <button type="button" onClick={() => setOpen((o) => !o)} className="flex-1 flex items-center gap-2 text-left min-w-0">
-          <Briefcase size={14} className={`flex-shrink-0 ${nivel > 0 ? 'text-teal-600' : 'text-purple-600'}`} />
-          <span className="text-xs font-semibold text-slate-700 truncate">{equipo.nombre}</span>
+      <div className="flex flex-col gap-1 px-3 py-2 hover:bg-slate-50">
+        <div className="flex items-center justify-between gap-2">
+          <button type="button" onClick={() => setOpen((o) => !o)} className="flex-1 flex items-center gap-2 text-left min-w-0">
+            <Briefcase size={14} className={`flex-shrink-0 ${nivel > 0 ? 'text-teal-600' : 'text-purple-600'}`} />
+            <span className="text-xs font-semibold text-slate-700 truncate">{equipo.nombre}</span>
+          </button>
+          <div className="flex items-center justify-end gap-1 flex-shrink-0 flex-wrap">
+            {puedeGestionar && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowAddMembers(true)}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-md whitespace-nowrap flex-shrink-0"
+                  title="Agregar al contrato"
+                >
+                  <Plus size={12} />
+                  <span>Contrato</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSubcontract(true)}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-teal-600 hover:text-teal-800 hover:bg-teal-50 rounded-md whitespace-nowrap flex-shrink-0"
+                  title="Crear sub-contrato"
+                >
+                  <GitBranch size={12} />
+                  <span>Sub-contrato</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteContract}
+                  className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md"
+                  title="Eliminar contrato"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => setOpen((o) => !o)}
+              className="p-1 text-slate-400 hover:text-slate-600 rounded-md"
+              title={open ? 'Contraer' : 'Expandir'}
+            >
+              {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
           {equipo.especial && <Badge className="bg-amber-100 text-amber-700 border border-amber-200 flex-shrink-0">Especial</Badge>}
           <span className="text-[10px] text-slate-400 flex-shrink-0">
             {miembros.length} miembro{miembros.length === 1 ? '' : 's'}
             {subEquipos.length > 0 && ` · ${subEquipos.length} sub-contrato${subEquipos.length === 1 ? '' : 's'}`}
           </span>
-        </button>
-        <div className="flex items-center justify-end gap-1 flex-shrink-0">
-          {puedeGestionar && (
-            <>
-              <button
-                type="button"
-                onClick={() => setShowAddMembers(true)}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-md whitespace-nowrap"
-                title="Agregar miembro"
-              >
-                <Plus size={12} />
-                <span>Miembro</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowSubcontract(true)}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-teal-600 hover:text-teal-800 hover:bg-teal-50 rounded-md whitespace-nowrap"
-                title="Crear sub-contrato"
-              >
-                <GitBranch size={12} />
-                <span>Sub-contrato</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteContract}
-                className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md"
-                title="Eliminar contrato"
-              >
-                <Trash2 size={12} />
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            onClick={() => setOpen((o) => !o)}
-            className="p-1 text-slate-400 hover:text-slate-600 rounded-md"
-            title={open ? 'Contraer' : 'Expandir'}
-          >
-            {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
         </div>
       </div>
       {open && (
@@ -910,21 +914,21 @@ function EquipoTree({ equipo, bloque, empresaId, empleados, onRefresh, puedeGest
             <p className="text-xs text-slate-300 italic">Sin miembros ni sub-contratos</p>
           )}
           {miembros.map((m) => (
-            <div key={m.id} className="flex items-center justify-between py-1.5 px-2 bg-slate-50 rounded-lg">
-              <button type="button" onClick={() => setSelectedEmpleado(m)} className="flex items-center gap-2 text-left">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-[9px] font-bold">
+            <div key={m.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-1.5 px-2 bg-slate-50 rounded-lg gap-2">
+              <button type="button" onClick={() => setSelectedEmpleado(m)} className="flex items-center gap-2 text-left min-w-0">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
                   {initials(m.empleado_nombre)}
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-700">{m.empleado_nombre}</p>
-                  <Badge className="bg-purple-100 text-purple-700">{ROL_LABELS[m.rol] || m.rol}</Badge>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-slate-700 truncate">{m.empleado_nombre}</p>
+                  <Badge className="bg-purple-100 text-purple-700 inline-block max-w-full truncate">{ROL_LABELS[m.rol] || m.rol}</Badge>
                 </div>
               </button>
               {puedeGestionar && (
                 <button
                   type="button"
                   onClick={() => handleDeactivateMember(m.id)}
-                  className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded"
+                  className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded self-end sm:self-auto"
                   title="Quitar miembro"
                 >
                   <X size={13} />
@@ -1054,7 +1058,7 @@ function AreaCard({ bloque, empresaId, empleados, onRefresh, colorIdx, puedeGest
       </div>
       {open && (
         <div className="px-4 pb-4 border-t border-slate-50">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-3">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-3">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-bold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
@@ -1723,9 +1727,9 @@ function Directorio({ areaId = null, readOnly = false }) {
 // ── ClientesSection (root) ────────────────────────────────────────────────────
 
 export default function ClientesSection({ onGoToSQF, modoEmpleado }) {
-  const { empleadoData } = useAuth();
-  const esGerente = isGerente(empleadoData);
+  const { empleadoData, isAdmin, isSuperAdmin } = useAuth();
   const esGerenteOSocio = isGerenteOSocio(empleadoData);
+  const esAdmin = isAdmin || isSuperAdmin;
   const [view, setView] = useState('directorio');
 
   const TABS = [
@@ -1767,7 +1771,7 @@ export default function ClientesSection({ onGoToSQF, modoEmpleado }) {
       </div>
       <div className="flex-1 overflow-hidden">
         {view === 'directorio' && <Directorio areaId={null} readOnly={modoEmpleado && !esGerenteOSocio} />}
-        {view === 'organigrama' && <OrganigramaClientes areaId={esGerenteOSocio ? null : empleadoData?.area_id} />}
+        {view === 'organigrama' && <OrganigramaClientes areaId={esGerenteOSocio ? empleadoData?.area_id : null} isAdmin={esAdmin} />}
       </div>
     </div>
   );

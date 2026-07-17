@@ -168,7 +168,7 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
         y los equipos de trabajo asignados desde esa área.
         """
         empresa = self.get_object()
-        from api.models import DatosArea
+        from empleados.models import DatosArea
 
         # Áreas presentes vía servicios activos o equipos activos
         area_ids = set()
@@ -447,13 +447,13 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
             except EmpresaCliente.DoesNotExist:
                 pass
         if area_id:
-            from api.models import DatosArea
+            from empleados.models import DatosArea
             try:
                 filtro_info['area_nombre'] = DatosArea.objects.get(id_area=area_id).nombre_area
             except DatosArea.DoesNotExist:
                 pass
         if empleado_id:
-            from api.models import DatosEmpleado
+            from empleados.models import DatosEmpleado
             try:
                 emp = DatosEmpleado.objects.select_related('persona').get(id_empleado=empleado_id)
                 p = emp.persona
@@ -501,6 +501,31 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
 
         qs = EmpresaCliente.objects.filter(id__in=empresas_ids).prefetch_related('contactos')
 
+        # Equipos (contratos) donde el empleado es miembro activo, agrupados por empresa
+        miembros_qs = MiembroEquipo.objects.filter(
+            empleado_id=empleado_id,
+            activo=True,
+            equipo__activo=True,
+            equipo__empresa_id__in=empresas_ids,
+        ).select_related('equipo__servicio', 'equipo__area')
+
+        equipos_por_empresa = {}
+        for m in miembros_qs:
+            eid = m.equipo.empresa_id
+            equipos_por_empresa.setdefault(eid, []).append({
+                'id': m.equipo.id,
+                'nombre': m.equipo.nombre,
+                'estado': m.equipo.estado,
+                'estado_display': m.equipo.get_estado_display(),
+                'area_id': m.equipo.area_id,
+                'area_nombre': m.equipo.area.nombre_area if m.equipo.area else '',
+                'servicio_id': m.equipo.servicio_id,
+                'servicio_nombre': m.equipo.servicio.nombre if m.equipo.servicio else '',
+                'rol': m.rol,
+                'rol_display': m.get_rol_display(),
+                'cargo': m.empleado.cargo.nombre_cargo if m.empleado.cargo else '',
+            })
+
         estado = request.query_params.get('estado')
         if estado:
             if estado.lower() == 'activo':
@@ -511,10 +536,14 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(estado=estado)
 
         serializer = EmpresaClienteListSerializer(qs, many=True)
+        clientes = serializer.data
+        for c in clientes:
+            c['equipos'] = equipos_por_empresa.get(c['id'], [])
+
         return Response({
             'count': qs.count(),
             'empleado_id': empleado_id,
-            'clientes': serializer.data
+            'clientes': clientes
         })
 
     @action(detail=False, methods=['get'])
@@ -535,11 +564,19 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError):
             filtro_area_id = None
 
+        # Determinar alcance según el rol del usuario autenticado
+        user = self.request.user
+        es_admin_editor_gerente = (
+            _es_superadmin(user)
+            or _es_admin_editor(user)
+            or _es_gerente(user)
+        )
+
         empresas_qs = EmpresaCliente.objects.filter(equipos__activo=True).distinct()
 
         empresas = _filtrar_clientes_por_usuario(
             empresas_qs,
-            self.request.user,
+            user,
             filtro_area_id,
         ).prefetch_related(
             'servicios__area',
@@ -552,6 +589,30 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
             'equipos__sub_equipos__miembros__empleado__cargo',
             'equipos__sub_equipos__miembros__empleado__area',
         )
+
+        # Para empleados sin privilegios de admin/editor/gerente, restringir a
+        # los equipos (y sus sub-equipos) donde el usuario es miembro activo.
+        equipo_ids_permitidos = None
+        if not es_admin_editor_gerente and _es_empleado(user):
+            empleado_id = getattr(user, 'id_empleado', None)
+            equipo_ids_permitidos = set(
+                MiembroEquipo.objects.filter(
+                    empleado_id=empleado_id,
+                    activo=True,
+                    equipo__activo=True,
+                ).values_list('equipo_id', flat=True)
+            )
+            # Incluir los equipos padres de los equipos permitidos si son sub-equipos
+            sub_equipos_padre = Equipo.objects.filter(
+                id__in=equipo_ids_permitidos,
+                equipo_padre__isnull=False,
+            ).values_list('equipo_padre_id', flat=True)
+            equipo_ids_permitidos.update(sub_equipos_padre)
+
+        def _equipo_visible(eq):
+            if equipo_ids_permitidos is None:
+                return True
+            return eq.id in equipo_ids_permitidos
 
         # {empresa_id: {area_id: [servicio_dict]}}
         servicios_por_empresa_area = {}
@@ -604,7 +665,11 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
                         }
                         for m in eq.miembros.filter(activo=True)
                     ],
-                    'sub_equipos': [_equipo_dict(sub) for sub in eq.sub_equipos.filter(activo=True)],
+                    'sub_equipos': [
+                        _equipo_dict(sub)
+                        for sub in eq.sub_equipos.filter(activo=True)
+                        if _equipo_visible(sub)
+                    ],
                 }
 
             equipos_padre_qs = e.equipos.filter(activo=True, equipo_padre__isnull=True)
@@ -612,6 +677,8 @@ class EmpresaClienteViewSet(viewsets.ModelViewSet):
                 equipos_padre_qs = equipos_padre_qs.filter(area_id=filtro_area_id)
 
             for eq in equipos_padre_qs:
+                if not _equipo_visible(eq):
+                    continue
                 aid = eq.area_id
                 equipo_dict = _equipo_dict(eq)
                 equipos_por_empresa[eid].append(equipo_dict)
