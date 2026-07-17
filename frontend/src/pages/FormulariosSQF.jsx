@@ -599,9 +599,13 @@ export default function FormulariosSQF({ onBack }) {
 
         try {
             const res = await fetch(N8N_WEBHOOKS.client, { method: 'POST', body: formData });
-            if (res.status === 409) {
-                showToastMsg('error', 'Cliente Duplicado', 'El cliente ya se encuentra registrado.');
-            } else if (!res.ok) {
+            if (res.status === 409 && res.statusText === 'pending_validation') {
+                showToastMsg('error', 'Cliente Duplicado', 'El cliente ya se encuentra registrado, pero actualmente está pendiente de validación.');
+            } 
+            else if (!res.ok) {
+                showToastMsg('error', 'Error', 'Ocurrió un error al registrar el cliente.');
+            }     
+            else if (!res.ok) {
                 showToastMsg('error', 'Error', 'Ocurrió un error al registrar el cliente.');
             } else {
                 showToastMsg('success', 'Cliente Creado', 'El cliente fue registrado exitosamente.');
