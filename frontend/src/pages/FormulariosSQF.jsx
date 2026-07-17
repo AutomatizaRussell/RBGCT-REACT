@@ -597,22 +597,29 @@ export default function FormulariosSQF({ onBack }) {
         formData.append('status', 'Pendiente de revisión');
         appendLoggedUserMeta(formData);
 
-        try {
-            const res = await fetch(N8N_WEBHOOKS.client, { method: 'POST', body: formData });
-            if ( res.status === 409 && res.internal_status === 'pending_validation' ) {
-                showToastMsg('error', 'Cliente ya registrado', 'El cliente ya se encuentra registrado, pero actualmente está pendiente de validación.');
-            } 
-            else if (res.status === 409 ) {
-                showToastMsg('error', 'Cliente Duplicado', 'El cliente ya se encuentra registrado.');
-            }
-            else if (!res.ok) {
-                showToastMsg('error', 'Error', 'Ocurrió un error al registrar el cliente.');
-            } else {
-                showToastMsg('success', 'Cliente Creado', 'El cliente fue registrado exitosamente.');
-                form.reset();
-                resetClientForm();
-                setTimeout(loadDataFromWebhooks, 1000);
-            }
+       try {
+    const res = await fetch(N8N_WEBHOOKS.client, { method: 'POST', body: formData });
+    
+    // Primero evaluamos el estado HTTP
+    if (res.status === 409) {
+        // Extraemos explícitamente el JSON que envió n8n
+        const data = await res.json();
+        
+        // Ahora sí podemos leer el estado interno desde el 'data' extraído
+        if (data.internal_status === 'pending_validation') {
+            showToastMsg('error', 'Cliente ya registrado', 'El cliente ya se encuentra registrado, pero actualmente está pendiente de validación.');
+        } else {
+            showToastMsg('error', 'Cliente Duplicado', 'El cliente ya se encuentra registrado.');
+        }
+    }
+    else if (!res.ok) {
+        showToastMsg('error', 'Error', 'Ocurrió un error al registrar el cliente.');
+    } else {
+        showToastMsg('success', 'Cliente Creado', 'El cliente fue registrado exitosamente.');
+        form.reset();
+        resetClientForm();
+        setTimeout(loadDataFromWebhooks, 1000);
+    }
         } catch {
             showToastMsg('error', 'Error de Conexión', 'Ocurrió un error al conectar con n8n.');
         } finally {
