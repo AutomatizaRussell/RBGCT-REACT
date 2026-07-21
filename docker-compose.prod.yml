@@ -78,25 +78,9 @@ services:
     # NOTA: en primer despliegue con este cambio, si los volúmenes existentes
     # fueron creados por root, ejecutar una vez:
     #   docker exec -u root rbgct-backend-prod chown -R 1001:1001 /app/staticfiles /app/media
-    user: "1001:1001"
+    # user: "1001:1001"
     command: >
-      sh -c "
-        python manage.py migrate --noinput &&
-        python create_superadmin.py &&
-        python manage.py collectstatic --noinput &&
-        gunicorn
-          --bind 0.0.0.0:8000
-          --workers ${GUNICORN_WORKERS:-4}
-          --worker-class sync
-          --threads ${GUNICORN_THREADS:-4}
-          --timeout ${GUNICORN_TIMEOUT:-120}
-          --keep-alive 5
-          --max-requests 1000
-          --max-requests-jitter 100
-          --access-logfile -
-          --error-logfile -
-          rbgct.wsgi:application
-      "
+      sh -c "python manage.py migrate --noinput && python create_superadmin.py && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-4} --worker-class sync --threads ${GUNICORN_THREADS:-4} --timeout ${GUNICORN_TIMEOUT:-120} --keep-alive 5 --max-requests 1000 --max-requests-jitter 100 --access-logfile - --error-logfile - rbgct.wsgi:application"
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -195,18 +179,14 @@ services:
       dockerfile: Dockerfile.nginx
     container_name: rbgct-nginx-prod
     restart: always
-    labels:
-      # Habilitar exposición vía Traefik (Coolify).
-      - traefik.enable=true
-      # IMPORTANTE: reemplazar ${COOLIFY_NETWORK} por la red de Traefik de tu
-      # servidor Coolify (se ve en el dashboard de Coolify o con `docker network ls`).
-      # Esta etiqueta evita 504s intermitentes cuando el contenedor está en dos redes.
-      - traefik.docker.network=${COOLIFY_NETWORK}
-      # Router + service mínimos para Coolify si no se configuran desde la UI.
-      # Coolify suele crear los suyos propios; estos labels actúan como respaldo.
-      - traefik.http.routers.rbgct.rule=Host(`${DOMAIN:-conecta-gct.rbgct.cloud}`)
-      - traefik.http.routers.rbgct.entrypoints=web,websecure
-      - traefik.http.services.rbgct.loadbalancer.server.port=80
+    # Deja que Coolify gestione las etiquetas de Traefik desde la UI.
+    # Configura el dominio en: Settings > Domains (para el servicio nginx).
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.docker.network=${COOLIFY_NETWORK}
+    #   - traefik.http.routers.rbgct.rule=Host(`${DOMAIN:-conecta-gct.rbgct.cloud}`)
+    #   - traefik.http.routers.rbgct.entrypoints=web,websecure
+    #   - traefik.http.services.rbgct.loadbalancer.server.port=80
     volumes:
       - 'media_volume_prod:/app/media:ro'
       - 'static_volume_prod:/app/staticfiles:ro'
