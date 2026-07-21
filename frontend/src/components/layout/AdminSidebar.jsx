@@ -8,7 +8,8 @@ import {
   UserCircle,
   CalendarDays,
   FileText,
-  Building2,
+  FileSpreadsheet,
+  // Building2, // Pausado temporalmente
   ClipboardList,
   Briefcase,
   GraduationCap,
@@ -22,8 +23,15 @@ import { SidebarShell } from './SidebarShell'
 
 export const AdminSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, onClose, onToggleCollapse }) => {
   const navigate = useNavigate()
-  const { logout, empleadoData } = useAuth()
+  const { logout, empleadoData, isAdmin, isSuperAdmin } = useAuth()
   const [puedeExpedirCert, setPuedeExpedirCert] = useState(false)
+
+  const puedeVerSQF = isAdmin || isSuperAdmin || Boolean(
+    empleadoData?.acceso_formularios_sqf ||
+    empleadoData?.acceso_sqf_contratos ||
+    empleadoData?.acceso_sqf_facturacion ||
+    empleadoData?.acceso_sqf_auditoria
+  )
 
   useEffect(() => {
     if (!empleadoData?.id_empleado) return
@@ -61,8 +69,9 @@ export const AdminSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, onC
         { tab: 'tasks', label: 'Calendario', icon: CalendarDays },
         { tab: 'autogestion', label: 'Auto Gestión', icon: ClipboardList },
         { tab: 'contratos', label: 'Gestión Personas', icon: FileText },
-        { tab: 'clientes', label: 'Clientes', icon: Building2 },
-        { tab: 'vacantes', label: 'Portal de Vacantes', icon: Briefcase },
+        // { tab: 'clientes', label: 'Clientes', icon: Building2 }, // Pausado temporalmente
+        { tab: 'formularios-sqf', label: 'Formularios SQF', icon: FileSpreadsheet, visible: puedeVerSQF },
+        { tab: 'vacantes', label: 'Gestión Vacante', icon: Briefcase },
         { tab: 'cursos',     label: 'Formación',  icon: GraduationCap },
         { tab: 'mis-cursos', label: 'Mis Cursos', icon: BookOpen },
         { tab: 'herramientas', label: 'Herramientas', icon: Wrench },

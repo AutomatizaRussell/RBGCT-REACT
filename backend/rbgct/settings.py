@@ -77,7 +77,7 @@ INSTALLED_APPS = [
     'contratos',
     'formacion',
     'tareas',
-    'clientes',
+    # 'clientes',  # Pausado temporalmente
     # Views / serializers / URLs (sin modelos propios)
     'api',
 ]

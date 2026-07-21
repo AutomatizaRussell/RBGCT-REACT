@@ -80,37 +80,26 @@ export function SidebarShell({
       )}
     >
       <div className="flex h-full flex-col">
-        <div className={cn('border-b border-slate-200', isCollapsed ? 'px-3 py-6' : 'px-6 py-5')}>
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
+        <div className={cn('border-b border-slate-200', isCollapsed ? 'px-3 py-4' : 'px-6 py-5')}>
+          <div className="flex items-center justify-between gap-2">
+            {/* Logo — solo visual, no hace toggle */}
+            <div className="min-w-0 flex-1">
               {isCollapsed ? (
-                <button
-                  type="button"
-                  onClick={onToggleCollapse}
-                  className="flex h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16 items-center justify-center rounded-full bg-slate-100 p-1.5 text-slate-600 transition hover:bg-slate-200"
-                  aria-label="Expandir menú"
-                >
+                <div className="flex h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16 items-center justify-center rounded-full bg-slate-100 p-1.5 mx-auto">
                   <img
                     src={rbLogo}
                     alt="Russell Bedford GCT"
                     className="h-full w-full object-contain"
                     loading="lazy"
                   />
-                </button>
+                </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={onToggleCollapse}
-                  className="text-left transition hover:opacity-80"
-                  aria-label="Minimizar menú"
-                >
-                  <img
-                    src={rbLogo}
-                    alt="Russell Bedford GCT"
-                    className="h-auto w-[240px] max-w-full object-contain"
-                    loading="lazy"
-                  />
-                </button>
+                <img
+                  src={rbLogo}
+                  alt="Russell Bedford GCT"
+                  className="h-auto w-[200px] max-w-full object-contain"
+                  loading="lazy"
+                />
               )}
 
               {hasTextHeader ? (
@@ -139,7 +128,8 @@ export function SidebarShell({
               ) : null}
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Controles: cerrar (móvil) + flecha colapso (desktop) */}
+            <div className="flex shrink-0 flex-col items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
@@ -147,6 +137,15 @@ export function SidebarShell({
                 aria-label="Cerrar menú"
               >
                 <X size={20} />
+              </button>
+
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className="hidden lg:flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800"
+                aria-label={isCollapsed ? 'Expandir menú' : 'Minimizar menú'}
+              >
+                {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
               </button>
             </div>
           </div>

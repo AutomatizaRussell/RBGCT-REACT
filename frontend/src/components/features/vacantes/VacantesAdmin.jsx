@@ -118,6 +118,10 @@ export default function VacantesAdmin() {
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${tab === 'gestion-vacantes' ? 'bg-corporate-blue text-white shadow-md' : 'text-gray-600 hover:bg-blue-50 hover:text-corporate-blue'}`}>
                                 <i className="fa-solid fa-briefcase w-5"></i> Vacantes
                             </button>
+                            <a href="/vacantes" target="_blank" rel="noopener noreferrer"
+                                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-gray-600 hover:bg-blue-50 hover:text-corporate-blue">
+                                <i className="fa-solid fa-arrow-up-right-from-square w-5"></i> Portal
+                            </a>
                         </nav>
                     </div>
                 </aside>
@@ -126,6 +130,7 @@ export default function VacantesAdmin() {
                 <div className="md:hidden absolute top-2 right-2 left-2 flex gap-2 z-10">
                     <button onClick={() => setTab('postulaciones')} className={`flex-1 rounded-xl text-sm font-medium px-4 py-2 ${tab === 'postulaciones' ? 'bg-corporate-blue text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>Postulaciones</button>
                     <button onClick={() => setTab('gestion-vacantes')} className={`flex-1 rounded-xl text-sm font-medium px-4 py-2 ${tab === 'gestion-vacantes' ? 'bg-corporate-blue text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>Vacantes</button>
+                    <a href="/vacantes" target="_blank" rel="noopener noreferrer" className={`flex-1 rounded-xl text-sm font-medium px-4 py-2 text-center bg-slate-100 text-slate-600`}>Portal</a>
                 </div>
 
                 <main className="flex-1 overflow-auto p-4 md:p-8">

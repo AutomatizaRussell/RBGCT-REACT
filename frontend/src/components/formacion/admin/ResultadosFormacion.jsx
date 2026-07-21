@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   Search, ChevronDown, ChevronRight, CheckCircle2, Circle,
   Trophy, BarChart2, Users, BookOpen, Loader2, RefreshCw,
-  GraduationCap, ClipboardList, XCircle, Filter, X,
+  GraduationCap, ClipboardList, XCircle, Filter, X, Clock,
 } from 'lucide-react';
 import { getResumenEmpleadosFormacion, getAllAreas, getAllCargos } from '../../../lib/api';
 
@@ -13,6 +13,14 @@ const TIPO_BADGE = {
 
 function inicial(nombre) {
   return (nombre || '?').charAt(0).toUpperCase();
+}
+
+function fmtSegundos(segundos) {
+  if (!segundos || segundos <= 0) return '—';
+  const m = Math.floor(segundos / 60);
+  const s = Math.floor(segundos % 60);
+  if (m === 0) return `${s}s`;
+  return `${m}m ${s.toString().padStart(2, '0')}s`;
 }
 
 function PctRing({ pct, completo }) {
@@ -90,6 +98,12 @@ function CursoCard({ c }) {
               <span className="flex-1 truncate">{q.cuestionario}</span>
               <span className="font-black tabular-nums">{q.mejor_puntaje}%</span>
               <span className="text-[10px] opacity-60">{q.num_intentos} int.</span>
+              <span className="text-[10px] opacity-60 flex items-center gap-0.5" title="Tiempo total">
+                <Clock size={10} /> {fmtSegundos(q.tiempo_total)}
+              </span>
+              <span className="text-[10px] opacity-60" title="Tiempo promedio por intento">
+                prom. {fmtSegundos(q.tiempo_promedio)}
+              </span>
             </div>
           ))}
         </div>
@@ -221,12 +235,34 @@ export default function ResultadosFormacion() {
     return d;
   }, [datos, filtroArea, filtroCargo, busqueda, soloActivos]);
 
-  const stats = useMemo(() => ({
-    total:        filtrados.length,
-    conActividad: filtrados.filter(e => e.cursos_iniciados  > 0).length,
-    completaron:  filtrados.filter(e => e.cursos_completados > 0).length,
-    sinActividad: filtrados.filter(e => e.cursos_iniciados  === 0).length,
-  }), [filtrados]);
+  const stats = useMemo(() => {
+    const totalTiempo = filtrados.reduce((acc, emp) => {
+      const t = emp.cursos?.reduce((cacc, c) => {
+        const qt = c.quizzes?.reduce((qacc, q) => qacc + (q.tiempo_total || 0), 0) || 0;
+        return cacc + qt;
+      }, 0) || 0;
+      return acc + t;
+    }, 0);
+
+    const { totalIntentos, totalQuizzes } = filtrados.reduce((acc, emp) => {
+      emp.cursos?.forEach(c => {
+        c.quizzes?.forEach(q => {
+          acc.totalQuizzes += 1;
+          acc.totalIntentos += q.num_intentos || 0;
+        });
+      });
+      return acc;
+    }, { totalIntentos: 0, totalQuizzes: 0 });
+
+    return {
+      total:        filtrados.length,
+      conActividad: filtrados.filter(e => e.cursos_iniciados  > 0).length,
+      completaron:  filtrados.filter(e => e.cursos_completados > 0).length,
+      sinActividad: filtrados.filter(e => e.cursos_iniciados  === 0).length,
+      tiempoTotal:  totalTiempo,
+      promedioIntentos: totalQuizzes > 0 ? Math.round(totalIntentos / totalQuizzes * 10) / 10 : 0,
+    };
+  }, [filtrados]);
 
   const hayFiltros = filtroArea || filtroCargo || busqueda || soloActivos;
 
@@ -254,12 +290,14 @@ export default function ResultadosFormacion() {
       </div>
 
       {/* ── Estadísticas ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: 'Empleados',      value: stats.total,        Icon: Users,         hex: '#001871' },
-          { label: 'Con actividad',  value: stats.conActividad, Icon: BookOpen,      hex: '#00bfb3' },
-          { label: 'Completaron',    value: stats.completaron,  Icon: Trophy,        hex: '#981d97' },
-          { label: 'Sin actividad',  value: stats.sinActividad, Icon: Circle,        hex: '#ed8b00' },
+          { label: 'Empleados',      value: stats.total,                Icon: Users,         hex: '#001871' },
+          { label: 'Con actividad',  value: stats.conActividad,         Icon: BookOpen,      hex: '#00bfb3' },
+          { label: 'Completaron',    value: stats.completaron,          Icon: Trophy,        hex: '#981d97' },
+          { label: 'Sin actividad',  value: stats.sinActividad,         Icon: Circle,        hex: '#ed8b00' },
+          { label: 'Tiempo total',   value: fmtSegundos(stats.tiempoTotal), Icon: Clock,      hex: '#001871' },
+          { label: 'Prom. intentos', value: stats.promedioIntentos,     Icon: BarChart2,     hex: '#00bfb3' },
         ].map(({ label, value, Icon, hex }) => (
           <div key={label} className="bg-white rounded-2xl px-4 py-4 flex items-center gap-3 border border-slate-100 shadow-sm">
             <div className="p-2 rounded-xl flex-shrink-0" style={{ backgroundColor: hex + '15' }}>

@@ -46,7 +46,7 @@ import CursosAdmin from '../components/formacion/admin/CursosAdmin';
 import ManualesCargo from '../components/formacion/portal/ManualesCargo';
 import UtilidadesSection from '../components/herramientas/UtilidadesSection';
 import ContratosSection from '../components/admin/ContratosSection';
-import ClientesSection from '../components/admin/ClientesSection';
+// import ClientesSection from '../components/admin/ClientesSection'; // Pausado temporalmente
 import FormulariosSQF from '../components/features/FormulariosSQF/FormulariosSQF';
 import VacantesAdmin from '../components/features/vacantes/VacantesAdmin';
 import AutoGestion from '../components/empleados/portal/AutoGestion';
@@ -321,16 +321,16 @@ const Admin2Dashboard = () => {
             <ContratosSection />
           </div>
         );
-      case 'clientes':
-        return (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-full -m-8">
-            <ClientesSection onGoToSQF={() => setActiveTab('formularios-sqf')} modoEmpleado={false} />
-          </div>
-        );
+      // case 'clientes':
+      //   return (
+      //     <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-full -m-8">
+      //       <ClientesSection onGoToSQF={() => setActiveTab('formularios-sqf')} modoEmpleado={false} />
+      //     </div>
+      //   );
       case 'formularios-sqf':
         return (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <FormulariosSQF onBack={() => setActiveTab('clientes')} />
+            <FormulariosSQF onBack={() => setActiveTab('dashboard')} />
           </div>
         );
       case 'vacantes':
@@ -643,9 +643,9 @@ const Admin2Dashboard = () => {
       case 'autogestion': return 'Auto Gestión';
       case 'profile': return 'Mi Perfil';
       case 'contratos': return 'Gestión Personas';
-      case 'clientes': return 'Clientes';
+      // case 'clientes': return 'Clientes'; // Pausado temporalmente
       case 'formularios-sqf': return 'Formulario creacion clientes/contratos';
-      case 'vacantes': return 'Portal de Vacantes';
+      case 'vacantes': return 'Gestión Vacante';
       case 'cursos': return 'Formación';
       case 'mis-cursos': return 'Mis Cursos';
       case 'herramientas': return 'Herramientas';

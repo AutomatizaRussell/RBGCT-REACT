@@ -25,9 +25,9 @@ const AutoGestion = lazy(() => import('./components/empleados/portal/AutoGestion
 const UserProfile = lazy(() => import('./components/empleados/portal/UserProfile'));
 const ManualesCargo = lazy(() => import('./components/formacion/portal/ManualesCargo'));
 const ComunicadosInternos = lazy(() => import('./components/empleados/portal/ComunicadosInternos'));
-const MisClientes = lazy(() => import('./components/empleados/portal/MisClientes'));
-const MisClienteDetalle = lazy(() => import('./components/empleados/portal/MisClienteDetalle'));
-const OrganigramaClientes = lazy(() => import('./components/clientes/OrganigramaClientes'));
+// const MisClientes = lazy(() => import('./components/empleados/portal/MisClientes'));
+// const MisClienteDetalle = lazy(() => import('./components/empleados/portal/MisClienteDetalle'));
+// const OrganigramaClientes = lazy(() => import('./components/clientes/OrganigramaClientes'));
 const EditorCursos = lazy(() => import('./components/formacion/editor/EditorCursos'));
 const EditorHistorial = lazy(() => import('./components/editor/EditorHistorial'));
 
@@ -217,10 +217,11 @@ function App() {
               <Route path="utilidades" element={<WelcomeUser />} />
               <Route path="sqf" element={<WelcomeUser />} />
               <Route path="gestor-pdf" element={<GestorPDFPage />} />
+              {/* Rutas de clientes pausadas temporalmente
               <Route path="mis-clientes" element={<MisClientes />} />
               <Route path="clientes/organigrama" element={<OrganigramaClientes />} />
               <Route path="cliente/:id" element={<MisClienteDetalle />} />
-
+              */}
 
 
             </Route>

@@ -166,12 +166,14 @@ export default function Topbar({
         </div>
       </div>
 
+      {/*
       <div className="grid h-1 grid-cols-4">
         <div style={{ backgroundColor: BRAND.purple }} />
         <div style={{ backgroundColor: BRAND.teal }} />
         <div style={{ backgroundColor: BRAND.navy }} />
         <div style={{ backgroundColor: BRAND.orange }} />
       </div>
+      */}
     </header>
   )
 }

@@ -6,13 +6,14 @@ import {
   BookOpen,
   PlayCircle,
   Wrench,
-  Building2,
+  FileSpreadsheet,
+  // Building2, // Pausado temporalmente
 } from 'lucide-react'
 
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { getAllCursos, getMisClientes } from '../../lib/api'
+import { getAllCursos } from '../../lib/api'
 import { SidebarShell } from './SidebarShell'
 
 export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, onClose, onToggleCollapse }) => {
@@ -31,7 +32,13 @@ export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, 
     'Colaborador'
 
   const [tieneCursos, setTieneCursos] = useState(false)
-  const [tieneClientes, setTieneClientes] = useState(false)
+
+  const puedeVerSQF = Boolean(
+    empleadoData?.acceso_formularios_sqf ||
+    empleadoData?.acceso_sqf_contratos ||
+    empleadoData?.acceso_sqf_facturacion ||
+    empleadoData?.acceso_sqf_auditoria
+  )
 
   useEffect(() => {
     getAllCursos()
@@ -41,16 +48,6 @@ export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, 
       })
       .catch(() => { })
   }, [])
-
-  useEffect(() => {
-    if (!empleadoData?.id_empleado) return
-    getMisClientes(empleadoData.id_empleado)
-      .then((data) => {
-        const lista = Array.isArray(data) ? data : data?.results || []
-        setTieneClientes(lista.length > 0)
-      })
-      .catch(() => { })
-  }, [empleadoData?.id_empleado])
 
   const handleLogout = async () => {
     try {
@@ -84,9 +81,9 @@ export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, 
       case 'utilidades':
         navigate('/app/utilidades')
         break
-      case 'clientes':
-        navigate('/app/mis-clientes')
-        break
+      // case 'clientes':
+      //   navigate('/app/mis-clientes')
+      //   break
       case 'sqf':
         navigate('/app/sqf')
         break
@@ -101,7 +98,8 @@ export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, 
       items: [
         { tab: 'dashboard', label: 'Mi resumen', icon: LayoutDashboard },
         { tab: 'tasks', label: 'Auto gestión', icon: ClipboardList },
-        { tab: 'clientes', label: 'Mis clientes', icon: Building2, visible: true },
+        { tab: 'sqf', label: 'Formularios SQF', icon: FileSpreadsheet, visible: puedeVerSQF },
+        // { tab: 'clientes', label: 'Mis clientes', icon: Building2, visible: true }, // Pausado temporalmente
         { tab: 'profile', label: 'Mi perfil', icon: UserCircle },
       ],
     },

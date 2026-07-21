@@ -70,9 +70,7 @@ const UserDashboard = () => {
     else if (path.includes('comunicados')) setActiveTab('reglamento')
     else if (path.includes('utilidades')) setActiveTab('utilidades')
     else if (path.includes('sqf')) setActiveTab('sqf')
-    else if (path.includes('mis-clientes') || path.includes('/app/cliente/') || path.includes('/app/clientes/')) {
-      setActiveTab('clientes')
-    } else {
+    else {
       setActiveTab('dashboard')
     }
   }, [location.pathname, location.state, empleadoData?.acceso_formularios_sqf])
@@ -183,11 +181,6 @@ const UserDashboard = () => {
     if (activeTab === 'profile') return 'Mi Perfil'
     if (activeTab === 'cursos') return 'Cursos y Capacitaciones'
     if (activeTab === 'reglamento') return 'Reglamento Interno'
-
-    if (activeTab === 'clientes') {
-      if (location.pathname.includes('/app/cliente/')) return 'Detalle del cliente'
-      return 'Mis Clientes Asignados'
-    }
 
     return 'Portal Empleado'
   }
@@ -493,8 +486,8 @@ const UserDashboard = () => {
             <div className="animate-in fade-in duration-500">
               <FormulariosSQF
                 onBack={() => {
-                  setActiveTab('clientes')
-                  navigate('/app/mis-clientes')
+                  setActiveTab('dashboard')
+                  navigate('/app')
                 }}
               />
             </div>

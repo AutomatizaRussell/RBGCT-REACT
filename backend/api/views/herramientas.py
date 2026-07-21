@@ -238,6 +238,51 @@ def convertir_archivo(request):
                         'instrucciones': 'pip install markitdown'
                     }, status=503)
 
+            # === PDF a XLSX ===
+            elif formato_origen == 'pdf' and formato_destino == 'xlsx':
+                try:
+                    import re
+                    import openpyxl
+                    from pypdf import PdfReader
+
+                    reader = PdfReader(input_path)
+                    wb = openpyxl.Workbook()
+
+                    for page_idx, page in enumerate(reader.pages):
+                        sheet_name = f'Pagina {page_idx + 1}'
+                        ws = wb.create_sheet(title=sheet_name)
+
+                        text = page.extract_text() or ''
+                        lines = [l for l in text.splitlines() if l.strip()]
+
+                        for line in lines:
+                            # Intentar detectar columnas separadas por múltiples espacios o tabuladores
+                            if '\t' in line:
+                                cells = [c.strip() for c in line.split('\t')]
+                            elif re.search(r'  {2,}', line):
+                                cells = [c.strip() for c in re.split(r' {2,}', line)]
+                            else:
+                                cells = [line.strip()]
+                            ws.append(cells)
+
+                    # Quitar la hoja vacía inicial de openpyxl
+                    if 'Sheet' in wb.sheetnames:
+                        del wb['Sheet']
+
+                    wb.save(output_path)
+                    resultado = output_path
+
+                except ImportError as e:
+                    return Response({
+                        'error': f'Librería no instalada: {str(e)}',
+                        'instrucciones': 'pip install pypdf openpyxl'
+                    }, status=503)
+                except BaseException as e:
+                    return Response({
+                        'error': 'No se pudo convertir el PDF a Excel.',
+                        'detalle': str(e)
+                    }, status=422)
+
             # === DOCX a PDF (usando reportlab - pura Python, sin dependencias externas) ===
             elif formato_origen == 'docx' and formato_destino == 'pdf':
                 try:

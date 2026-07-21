@@ -308,7 +308,7 @@ class CursoViewSet(viewsets.ModelViewSet):
         ):
             return Response({'error': 'Sin permisos.'}, status=403)
 
-        from django.db.models import Count, Max, Q as DQ
+        from django.db.models import Count, Max, Q as DQ, Sum, Avg
         from ..models import DatosArea, DatosCargo
 
         area_id  = request.query_params.get('area_id')
@@ -347,12 +347,16 @@ class CursoViewSet(viewsets.ModelViewSet):
             mejor_puntaje=Max('puntaje'),
             aprobados=Count('id', filter=DQ(aprobado=True)),
             num_intentos=Count('id'),
+            tiempo_total=Sum('tiempo_segundos'),
+            tiempo_promedio=Avg('tiempo_segundos'),
         ):
             intento_map.setdefault(i['empleado_id'], {}).setdefault(i['curso_id'], []).append({
                 'cuestionario':  i['contenido__titulo'] or '—',
                 'mejor_puntaje': round(float(i['mejor_puntaje']), 1),
                 'aprobado':      i['aprobados'] > 0,
                 'num_intentos':  i['num_intentos'],
+                'tiempo_total':  i['tiempo_total'] or 0,
+                'tiempo_promedio': round(float(i['tiempo_promedio'] or 0), 1),
             })
 
         result = []

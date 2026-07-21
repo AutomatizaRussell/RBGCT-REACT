@@ -20,6 +20,7 @@ const FORMATOS = {
 
 const CONVERSIONES_SOPORTADAS = [
   { desde: 'pdf', hasta: 'docx', descripcion: 'PDF a Word' },
+  { desde: 'pdf', hasta: 'xlsx', descripcion: 'PDF a Excel' },
   { desde: 'pdf', hasta: 'txt', descripcion: 'PDF a Texto' },
   { desde: 'docx', hasta: 'pdf', descripcion: 'Word a PDF' },
   { desde: 'docx', hasta: 'html', descripcion: 'Word a HTML' },
@@ -280,7 +281,7 @@ export default function ConvertidorArchivos() {
         )}
 
         <p className="text-[10px] text-slate-400 text-center">
-          Soporta: PDF ↔ Word, Excel ↔ CSV, HTML ↔ PDF, Imágenes → PDF
+          Soporta: PDF → Word / Excel / Texto, Excel ↔ CSV, HTML ↔ PDF, Imágenes → PDF
         </p>
       </div>
     </div>

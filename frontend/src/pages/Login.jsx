@@ -248,12 +248,6 @@ const Login = () => {
             className="w-52 mb-8 brightness-0 invert drop-shadow-xl"
             loading="lazy"
           />
-          <h2 className="text-white text-2xl font-bold tracking-wide">
-            Gestión de Capital de Talento
-          </h2>
-          <p className="text-white/50 text-sm mt-3 max-w-xs leading-relaxed">
-            Plataforma interna de recursos humanos para Russell Bedford RBG S.A.S
-          </p>
         </div>
         {/* Franja de colores corporativos en la parte inferior */}
         <div className="absolute bottom-0 left-0 right-0 flex h-1">
