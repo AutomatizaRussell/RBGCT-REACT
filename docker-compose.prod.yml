@@ -75,28 +75,11 @@ services:
     container_name: rbgct-backend-prod
     restart: always
     # Usuario no-root (UID/GID 1001 creado en Dockerfile.backend).
-    # NOTA: en primer despliegue con este cambio, si los volúmenes existentes
-    # fueron creados por root, ejecutar una vez:
-    #   docker exec -u root rbgct-backend-prod chown -R 1001:1001 /app/staticfiles /app/media
-    user: "1001:1001"
-    command: >
-      sh -c "
-        python manage.py migrate --noinput &&
-        python create_superadmin.py &&
-        python manage.py collectstatic --noinput &&
-        gunicorn
-          --bind 0.0.0.0:8000
-          --workers ${GUNICORN_WORKERS:-4}
-          --worker-class sync
-          --threads ${GUNICORN_THREADS:-4}
-          --timeout ${GUNICORN_TIMEOUT:-120}
-          --keep-alive 5
-          --max-requests 1000
-          --max-requests-jitter 100
-          --access-logfile -
-          --error-logfile -
-          rbgct.wsgi:application
-      "
+    # NOTA: desactivado temporalmente para evitar problemas de permisos en
+    # /app/staticfiles y /app/media al usar volúmenes nuevos. Reactivar cuando
+    # los volúmenes tengan chown 1001:1001.
+    # user: "1001:1001"
+    command: sh -c "python manage.py migrate --noinput && python create_superadmin.py && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-4} --worker-class sync --threads ${GUNICORN_THREADS:-4} --timeout ${GUNICORN_TIMEOUT:-120} --keep-alive 5 --max-requests 1000 --max-requests-jitter 100 --access-logfile - --error-logfile - rbgct.wsgi:application"
     environment:
       DB_HOST: db
       DB_PORT: 5432
