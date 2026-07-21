@@ -69,12 +69,14 @@ echo "[3/3] Cargando datos en stiben ..."
 {
   echo "SET search_path = empleados, public;"
   echo "BEGIN;"
-  # Truncar tablas destino sin CASCADE, en orden correcto
-  echo "TRUNCATE TABLE empleados.empleado;"
-  echo "TRUNCATE TABLE empleados.datos_contacto;"
-  echo "TRUNCATE TABLE empleados.persona;"
-  echo "TRUNCATE TABLE empleados.datos_area;"
-  echo "TRUNCATE TABLE empleados.datos_cargo;"
+  # Truncar tablas destino. Usamos CASCADE individualmente porque empleado y persona
+  # son referenciadas por otras tablas (movimiento_laboral, hijo, datos_academicos, etc.).
+  # stiben es nuevo, así que esas tablas dependientes están vacías.
+  echo "TRUNCATE TABLE empleados.empleado CASCADE;"
+  echo "TRUNCATE TABLE empleados.datos_contacto CASCADE;"
+  echo "TRUNCATE TABLE empleados.persona CASCADE;"
+  echo "TRUNCATE TABLE empleados.datos_area CASCADE;"
+  echo "TRUNCATE TABLE empleados.datos_cargo CASCADE;"
   # Reemplazar esquemas y nombres de tabla
   sed \
     -e 's/INSERT INTO "\?public\.\?datos_area"\?/INSERT INTO empleados.datos_area/g' \
