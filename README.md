@@ -2,7 +2,7 @@
 
 Sistema integral para **Russell Bedford RBG S.A.S** que cubre empleados, contratos, seguridad social, CRM de clientes, formación, tareas, vacantes, automatización de workflows y herramientas documentales.
 
-- **Producción:** `https://conecta.rbgct.cloud`
+- **Producción:** `https://conecta-gct.rbgct.cloud`
 - **Deploy:** Coolify (VPS) — rama `main`
 - **Correo:** AUTOMATIZACIONMEDELLIN@rbcol.co
 
@@ -623,7 +623,7 @@ Usuario  (DatosEmpleado, id_permisos=3)
 
 ## 8. API REST — Endpoints
 
-**Base URL producción:** `https://conecta.rbgct.cloud`  
+**Base URL producción:** `https://conecta-gct.rbgct.cloud`  
 **Base URL local:** `http://localhost:8000`  
 **Auth:** `Authorization: Bearer <access_token>` · `X-API-Key: <key>`
 
@@ -955,7 +955,7 @@ DB_USER=rbgct
 DB_PASSWORD=tu_password
 
 # ── Frontend ─────────────────────────────────────────────────────────
-FRONTEND_URL=https://conecta.rbgct.cloud
+FRONTEND_URL=https://conecta-gct.rbgct.cloud
 
 # ── Email ────────────────────────────────────────────────────────────
 EMAIL_HOST_USER=correo@gmail.com
@@ -1031,7 +1031,7 @@ npm run dev                    # http://localhost:5173
 # Copiar y editar variables de entorno
 cp .env.docker.example .env.docker
 
-docker-compose up -d
+docker compose up -d
 # Frontend: http://localhost
 # API:      http://localhost/api/
 ```
@@ -1054,7 +1054,7 @@ docker-compose up -d
 
 1. Coolify apunta a la rama `main` del repositorio.
 2. Hacer push a `main` **no** dispara el deploy automáticamente — lanzarlo manualmente desde la UI de Coolify.
-3. Traefik (proxy de Coolify) enruta `conecta.rbgct.cloud` → nginx interno del stack.
+3. Traefik (proxy de Coolify) enruta `conecta-gct.rbgct.cloud` → nginx interno del stack.
 
 > **Label crítica en nginx:** `traefik.docker.network=hqso6bdpvt7izvvlu2fq541t`  
 > No eliminarla — sin ella Traefik elige la IP de la red incorrecta y produce 504s intermitentes.
@@ -1161,8 +1161,8 @@ admin.save()
 systemctl status postgresql
 
 # En Docker
-docker-compose ps db
-docker-compose logs db
+docker compose ps db
+docker compose logs db
 ```
 
 ### `relation "clientes.cli_empresa" does not exist`

@@ -40,7 +40,7 @@ ALLOWED_HOSTS = os.getenv(
 # Permitir hosts internos de infraestructura (reverse proxy / health checks)
 # y el dominio de producción, aunque el env de Coolify no los incluya.
 for _infra_host in ('127.0.0.1', 'localhost', 'backend', 'django', 'nginx',
-                    'conecta.rbgct.cloud'):
+                    'conecta-gct.rbgct.cloud'):
     if _infra_host not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(_infra_host)
 
@@ -49,8 +49,8 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
     'http://localhost:5173'
 ).split(',')
 
-if 'https://conecta.rbgct.cloud' not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append('https://conecta.rbgct.cloud')
+if 'https://conecta-gct.rbgct.cloud' not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append('https://conecta-gct.rbgct.cloud')
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -259,7 +259,7 @@ DEFAULT_FROM_EMAIL = os.getenv(
 
 FRONTEND_URL = os.getenv(
     'FRONTEND_URL',
-    'http://localhost:5173'
+    'https://conecta-gct.rbgct.cloud'
 )
 
 # =============================================================================
@@ -282,15 +282,15 @@ CORS_ALLOWED_ORIGINS = [
 # (Nunca allow-all con credenciales habilitadas.)
 if not CORS_ALLOWED_ORIGINS:
     CORS_ALLOWED_ORIGINS = [
-        'https://conecta.rbgct.cloud',
+        'https://conecta-gct.rbgct.cloud',
         'http://localhost:5173',
         'http://localhost',
     ]
 
 # Blindaje: el dominio de producción siempre permitido aunque el env apunte
 # al dominio viejo (mismo criterio que ALLOWED_HOSTS).
-if 'https://conecta.rbgct.cloud' not in CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS.append('https://conecta.rbgct.cloud')
+if 'https://conecta-gct.rbgct.cloud' not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append('https://conecta-gct.rbgct.cloud')
 
 # En producción: eliminar cualquier origen localhost para evitar
 # que un atacante local abuse de CORS con credenciales.

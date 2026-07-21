@@ -16,7 +16,7 @@
 ├─────────────────────────────────────────────────────────────────┤
 │  Routes:                                                         │
 │  ├─ /api/*           → backend:8000/api/*  (Django REST)        │
-│  ├─ /admin/*         → backend:8000/admin/ (Django Admin)       │
+│  ├─ /sys-admin/*     → backend:8000/sys-admin/ (Django Admin)       │
 │  ├─ /media/*         → /app/media/ (uploaded files)             │
 │  ├─ /static/*        → /app/staticfiles/ (CSS, JS)              │
 │  └─ /*               → frontend (React SPA)                     │
@@ -266,23 +266,23 @@ docker stack deploy -c docker-compose.prod.yml gct
 
 ```bash
 # Ver todo
-docker-compose logs -f
+docker compose logs -f
 
 # Específico
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Últimas líneas
-docker-compose logs backend --tail=50
+docker compose logs backend --tail=50
 
 # Formato
-docker-compose logs --timestamps backend
+docker compose logs --timestamps backend
 ```
 
 ### Health Checks
 
 ```bash
 # Ver estado
-docker-compose ps
+docker compose ps
 
 # Detalles
 docker inspect rbgct-backend
@@ -318,8 +318,8 @@ Pull Request: Build + Test
    ↓
 Merge: Deploy a dev server
    ↓
-docker-compose pull
-docker-compose -f docker-compose.yml up -d
+docker compose pull
+docker compose -f docker-compose.yml up -d
 ```
 
 ### Producción
@@ -330,8 +330,8 @@ Merge to main
 Trigger production deployment
    ↓
 docker pull latest
-docker-compose -f docker-compose.prod.yml pull
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
    ↓
 Migrate database
 python manage.py migrate
@@ -370,27 +370,27 @@ ports:
 ### Problema: "database does not exist"
 ```bash
 # Verificar conexión
-docker-compose logs db
+docker compose logs db
 
 # Ejecutar init script manualmente
-docker-compose exec -T db psql -U rbgct < docker/init-db.sql
+docker compose exec -T db psql -U rbgct < docker/init-db.sql
 
 # Ejecutar migraciones
-docker-compose exec backend python manage.py migrate
+docker compose exec backend python manage.py migrate
 ```
 
 ### Problema: Frontend no puede conectar al backend
 ```bash
 # Verificar DNS container
-docker-compose exec frontend ping backend
+docker compose exec frontend ping backend
 
 # Verificar CORS
 # Backend debe tener FRONTEND_URL correcto
 # Nginx debe proxear /api/ a backend
 
 # Revisar logs
-docker-compose logs nginx
-docker-compose logs backend
+docker compose logs nginx
+docker compose logs backend
 ```
 
 ---

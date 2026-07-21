@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Watchdog GCT (conecta.rbgct.cloud) — auto-recuperación del stack Coolify.
+# Watchdog GCT (conecta-gct.rbgct.cloud) — auto-recuperación del stack Coolify.
 #
 # Instalación (cron del host, cada minuto):
 #   * * * * * /home/gct/scripts/gct-watchdog.sh >> /var/log/gct-watchdog.log 2>&1
@@ -19,7 +19,7 @@
 set -u
 
 RESOURCE_LABEL="coolify.resourceName=conecta"
-EXT_HOST="${EXT_HOST:-conecta.rbgct.cloud}"
+EXT_HOST="${EXT_HOST:-conecta-gct.rbgct.cloud}"
 EXT_URL="${EXT_URL:-https://$EXT_HOST/api/health/}"
 STATE_DIR=/var/tmp/gct-watchdog
 COOLDOWN_S=300         # 5 min entre acciones

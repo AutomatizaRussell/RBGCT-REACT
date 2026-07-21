@@ -163,7 +163,7 @@ def enviar_bienvenida(email: str, codigo: str, password: str | None, nombre: str
     <div style="background:#001871;color:#fff;padding:20px;text-align:center;font-size:12px;line-height:1.6;">
       <p style="margin:0;font-size:14px;"><strong>GCT - Sistema de Gestión</strong></p>
       <p style="margin:5px 0 0;color:#e2e8f0;">Russell Bedford Colombia</p>
-      <p style="margin:10px 0 0;"><a href="https://conecta.rbgct.cloud" style="color:#00a9ce;text-decoration:none;font-size:13px;font-weight:bold;">🌐 conecta.rbgct.cloud</a></p>
+      <p style="margin:10px 0 0;"><a href="https://conecta-gct.rbgct.cloud" style="color:#00a9ce;text-decoration:none;font-size:13px;font-weight:bold;">🌐 conecta-gct.rbgct.cloud</a></p>
     </div>
   </div>
 </div>"""
@@ -224,7 +224,7 @@ def enviar_recuperacion_password(email: str, codigo: str, nombre: str | None = N
     <div style="background:#001871;color:#fff;padding:20px;text-align:center;font-size:12px;line-height:1.6;">
       <p style="margin:0;font-size:14px;"><strong>GCT - Sistema de Gestión</strong></p>
       <p style="margin:5px 0 0;color:#e2e8f0;">Russell Bedford Colombia</p>
-      <p style="margin:10px 0 0;"><a href="https://conecta.rbgct.cloud" style="color:#00a9ce;text-decoration:none;font-size:13px;font-weight:bold;">🌐 conecta.rbgct.cloud</a></p>
+      <p style="margin:10px 0 0;"><a href="https://conecta-gct.rbgct.cloud" style="color:#00a9ce;text-decoration:none;font-size:13px;font-weight:bold;">🌐 conecta-gct.rbgct.cloud</a></p>
     </div>
   </div>
 </div>"""

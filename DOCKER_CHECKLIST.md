@@ -60,7 +60,7 @@
    ```
    - [ ] Frontend accesible: http://localhost:5173
    - [ ] Backend API: http://localhost:8000/api/
-   - [ ] Admin: http://localhost:8000/admin/
+   - [ ] Admin: http://localhost:8000/sys-admin/
    - [ ] Base de datos funciona
 
 ### Para producción
@@ -85,7 +85,7 @@
    ```bash
    bash deploy.sh prod
    # o
-   docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
+   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
    ```
 
 9. **Backup automático**
@@ -154,7 +154,7 @@ c:\GCT\
 - [ ] Frontend carga en http://localhost:5173
 - [ ] Backend accesible en http://localhost:8000
 - [ ] API está disponible: http://localhost:8000/api/
-- [ ] Admin Django: http://localhost:8000/admin/
+- [ ] Admin Django: http://localhost:8000/sys-admin/
 - [ ] BD conecta correctamente
 - [ ] Migraciones completadas
 - [ ] Archivos media servidos
@@ -184,12 +184,12 @@ c:\GCT\
 ### Iniciar
 ```bash
 # Desarrollo
-docker-compose up -d
+docker compose up -d
 # o
 make dev
 
 # Producción
-docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 # o
 make prod
 ```
@@ -197,10 +197,10 @@ make prod
 ### Monitoreo
 ```bash
 # Logs
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Estado
-docker-compose ps
+docker compose ps
 
 # Recursos
 docker stats
@@ -253,13 +253,13 @@ make clean
 
 ### Si la BD no se conecta
 1. Verificar red: `docker network ls`
-2. Revisar logs: `docker-compose logs db`
-3. Reiniciar: `docker-compose down && docker-compose up -d`
+2. Revisar logs: `docker compose logs db`
+3. Reiniciar: `docker compose down && docker compose up -d`
 
 ### Si el frontend no carga
-1. Verificar Nginx: `docker-compose logs nginx`
-2. Verificar React build: `docker-compose logs frontend`
-3. Limpiar build: `docker-compose build --no-cache frontend`
+1. Verificar Nginx: `docker compose logs nginx`
+2. Verificar React build: `docker compose logs frontend`
+3. Limpiar build: `docker compose build --no-cache frontend`
 
 ### Documentación
 - [docker/README.md](docker/README.md) - Guía completa

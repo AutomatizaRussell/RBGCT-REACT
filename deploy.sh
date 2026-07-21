@@ -33,8 +33,8 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    print_error "docker-compose no está instalado."
+if ! command -v docker compose &> /dev/null; then
+    print_error "docker compose no está instalado."
     exit 1
 fi
 
@@ -64,16 +64,16 @@ fi
 case "$1" in
     dev)
         print_header "Iniciando ambiente de DESARROLLO"
-        docker-compose -f docker-compose.yml up -d
+        docker compose -f docker-compose.yml up -d
         print_success "Contenedores iniciados"
         echo ""
         echo "URLs disponibles:"
         echo "  - Frontend:  http://localhost:5173"
         echo "  - Backend:   http://localhost:8000"
-        echo "  - Admin:     http://localhost:8000/admin"
+        echo "  - Admin:     http://localhost:8000/sys-admin"
         echo "  - Nginx:     http://localhost"
         echo ""
-        docker-compose ps
+        docker compose ps
         ;;
 
     prod)
@@ -82,43 +82,43 @@ case "$1" in
             print_error ".env.prod no existe. Crea uno con las variables documentadas en CLAUDE.md"
             exit 1
         fi
-        docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
+        docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
         print_success "Contenedores iniciados en producción"
-        docker-compose --env-file .env.prod -f docker-compose.prod.yml ps
+        docker compose --env-file .env.prod -f docker-compose.prod.yml ps
         ;;
 
     build)
         print_header "Construyendo imágenes Docker"
-        docker-compose -f docker-compose.yml build --no-cache
+        docker compose -f docker-compose.yml build --no-cache
         print_success "Imágenes construidas"
         ;;
 
     stop)
         print_header "Deteniendo contenedores"
-        docker-compose stop
+        docker compose stop
         print_success "Contenedores detenidos"
         ;;
 
     logs)
         print_header "Mostrando logs en tiempo real"
-        docker-compose logs -f
+        docker compose logs -f
         ;;
 
     logs-backend)
-        docker-compose logs -f backend
+        docker compose logs -f backend
         ;;
 
     logs-frontend)
-        docker-compose logs -f frontend
+        docker compose logs -f frontend
         ;;
 
     logs-db)
-        docker-compose logs -f db
+        docker compose logs -f db
         ;;
 
     migrate)
         print_header "Ejecutando migraciones"
-        docker-compose exec backend python manage.py migrate
+        docker compose exec backend python manage.py migrate
         print_success "Migraciones completadas"
         ;;
 
@@ -126,7 +126,7 @@ case "$1" in
         print_header "Realizando backup de la base de datos"
         mkdir -p docker/backup
         BACKUP_FILE="docker/backup/rbgct_$(date +%Y%m%d_%H%M%S).sql"
-        docker-compose exec -T db pg_dump -U rbgct rbgct > "$BACKUP_FILE"
+        docker compose exec -T db pg_dump -U rbgct rbgct > "$BACKUP_FILE"
         print_success "Backup creado: $BACKUP_FILE"
         ;;
 
@@ -143,18 +143,18 @@ case "$1" in
             print_error "Archivo no encontrado: $2"
             exit 1
         fi
-        docker-compose exec -T db psql -U rbgct rbgct < "$2"
+        docker compose exec -T db psql -U rbgct rbgct < "$2"
         print_success "Base de datos restaurada desde: $2"
         ;;
 
     shell-django)
         print_header "Entrando a Django shell"
-        docker-compose exec backend python manage.py shell
+        docker compose exec backend python manage.py shell
         ;;
 
     shell-db)
         print_header "Conectando a la base de datos"
-        docker-compose exec db psql -U rbgct -d rbgct
+        docker compose exec db psql -U rbgct -d rbgct
         ;;
 
     clean)
@@ -167,7 +167,7 @@ case "$1" in
         read -p "¿Estás seguro? (s/n) " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Ss]$ ]]; then
-            docker-compose down -v
+            docker compose down -v
             docker system prune -f
             print_success "Limpieza completada"
         else

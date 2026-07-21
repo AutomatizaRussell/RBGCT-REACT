@@ -136,7 +136,7 @@ El servidor estará disponible en: http://localhost:8000
 
 Django tiene un panel de admin integrado:
 
-1. Ve a: http://localhost:8000/admin/
+1. Ve a: http://localhost:8000/sys-admin/
 2. Inicia sesión con el superusuario creado
 3. Gestiona todos los datos desde la interfaz web
 

@@ -27,7 +27,7 @@ bash deploy.sh dev
 ```
 Frontend:  http://localhost:5173
 Backend:   http://localhost:8000
-Admin:     http://localhost:8000/admin/
+Admin:     http://localhost:8000/sys-admin/
 ```
 
 ---
@@ -45,22 +45,22 @@ Password: admin123
 
 ```bash
 # Ver logs
-docker-compose logs -f
+docker compose logs -f
 
 # Ejecutar migraciones
-docker-compose exec backend python manage.py migrate
+docker compose exec backend python manage.py migrate
 
 # Crear superadmin
-docker-compose exec backend python manage.py createsuperuser
+docker compose exec backend python manage.py createsuperuser
 
 # Conectar a BD
-docker-compose exec db psql -U rbgct -d rbgct
+docker compose exec db psql -U rbgct -d rbgct
 
 # Detener
-docker-compose stop
+docker compose stop
 
 # Eliminar todo
-docker-compose down -v
+docker compose down -v
 ```
 
 ---
@@ -69,10 +69,10 @@ docker-compose down -v
 
 | Problema | Solución |
 |----------|----------|
-| Puerto 8000 en uso | `docker-compose ps` → `docker kill <ID>` |
-| BD no responde | `docker-compose restart db` |
-| Frontend no carga | `docker-compose logs frontend` |
-| Media no se ve | `docker-compose exec backend python manage.py collectstatic` |
+| Puerto 8000 en uso | `docker compose ps` → `docker kill <ID>` |
+| BD no responde | `docker compose restart db` |
+| Frontend no carga | `docker compose logs frontend` |
+| Media no se ve | `docker compose exec backend python manage.py collectstatic` |
 
 ---
 

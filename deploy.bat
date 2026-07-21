@@ -34,7 +34,7 @@ if "%1%"=="" (
 
 if "%1%"=="dev" (
     echo %YELLOW%Iniciando ambiente de DESARROLLO%NC%
-    docker-compose -f docker-compose.yml up -d
+    docker compose -f docker-compose.yml up -d
     echo %GREEN%✓ Contenedores iniciados%NC%
     echo.
     echo URLs disponibles:
@@ -42,7 +42,7 @@ if "%1%"=="dev" (
     echo   - Backend:   http://localhost:8000
     echo   - Nginx:     http://localhost
     echo.
-    docker-compose ps
+    docker compose ps
     exit /b 0
 )
 
@@ -53,44 +53,44 @@ if "%1%"=="prod" (
         echo Crea uno desde .env.production.example y vuelve a intentar.
         exit /b 1
     )
-    docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
+    docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
     echo %GREEN%✓ Contenedores iniciados en producción%NC%
-    docker-compose --env-file .env.prod -f docker-compose.prod.yml ps
+    docker compose --env-file .env.prod -f docker-compose.prod.yml ps
     exit /b 0
 )
 
 if "%1%"=="build" (
     echo %YELLOW%Construyendo imágenes Docker%NC%
-    docker-compose -f docker-compose.yml build --no-cache
+    docker compose -f docker-compose.yml build --no-cache
     echo %GREEN%✓ Imágenes construidas%NC%
     exit /b 0
 )
 
 if "%1%"=="stop" (
     echo %YELLOW%Deteniendo contenedores%NC%
-    docker-compose stop
+    docker compose stop
     echo %GREEN%✓ Contenedores detenidos%NC%
     exit /b 0
 )
 
 if "%1%"=="logs" (
-    docker-compose logs -f
+    docker compose logs -f
     exit /b 0
 )
 
 if "%1%"=="logs-backend" (
-    docker-compose logs -f backend
+    docker compose logs -f backend
     exit /b 0
 )
 
 if "%1%"=="logs-db" (
-    docker-compose logs -f db
+    docker compose logs -f db
     exit /b 0
 )
 
 if "%1%"=="migrate" (
     echo %YELLOW%Ejecutando migraciones%NC%
-    docker-compose exec backend python manage.py migrate
+    docker compose exec backend python manage.py migrate
     echo %GREEN%✓ Migraciones completadas%NC%
     exit /b 0
 )
@@ -101,19 +101,19 @@ if "%1%"=="backup-db" (
     for /f "tokens=2-4 delims=/ " %%a in ('date /t') do (set mydate=%%c%%a%%b)
     for /f "tokens=1-2 delims=/:" %%a in ('time /t') do (set mytime=%%a%%b)
     set BACKUP_FILE=docker\backup\rbgct_!mydate!_!mytime!.sql
-    docker-compose exec -T db pg_dump -U rbgct rbgct > !BACKUP_FILE!
+    docker compose exec -T db pg_dump -U rbgct rbgct > !BACKUP_FILE!
     echo %GREEN%✓ Backup creado: !BACKUP_FILE!%NC%
     exit /b 0
 )
 
 if "%1%"=="shell-django" (
-    docker-compose exec backend python manage.py shell
+    docker compose exec backend python manage.py shell
     exit /b 0
 )
 
 if "%1%"=="clean" (
     echo %YELLOW%Limpiando contenedores y volúmenes%NC%
-    docker-compose down -v
+    docker compose down -v
     docker system prune -f
     echo %GREEN%✓ Limpieza completada%NC%
     exit /b 0

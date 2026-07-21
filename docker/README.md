@@ -36,7 +36,7 @@ deploy.bat dev
 ### 4. Acceder a la aplicación
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8000/api/
-- **Admin Django**: http://localhost:8000/admin/
+- **Admin Django**: http://localhost:8000/sys-admin/
 - **Nginx Reverse Proxy**: http://localhost
 
 ---
@@ -187,7 +187,7 @@ Para cambiar, edita `docker/entrypoint.sh`
 deploy.sh shell-db
 
 # Opción 2: Directamente
-docker-compose exec db psql -U rbgct -d rbgct
+docker compose exec db psql -U rbgct -d rbgct
 
 # Comandos útiles en psql:
 \dt              # Listar tablas
@@ -201,13 +201,13 @@ SELECT * FROM persona;  # Consultar tabla
 
 ```bash
 # Django
-docker-compose exec backend python manage.py <comando>
+docker compose exec backend python manage.py <comando>
 
 # Ejemplo: crear superadmin
-docker-compose exec backend python manage.py createsuperuser
+docker compose exec backend python manage.py createsuperuser
 
 # Bash
-docker-compose exec backend bash
+docker compose exec backend bash
 ```
 
 ### Ver uso de recursos
@@ -225,7 +225,7 @@ docker stats
 ```bash
 # En tu servidor (Linux)
 apt-get update
-apt-get install -y docker.io docker-compose
+apt-get install -y docker.io docker-compose-plugin
 
 # Clonar código
 git clone <tu-repo> /opt/gct
@@ -254,7 +254,7 @@ nano .env.prod
 deploy.sh prod
 
 # O directamente
-docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 ```
 
 ### 4. Configurar SSL con Let's Encrypt
@@ -271,7 +271,7 @@ cp /etc/letsencrypt/live/tu-dominio.com/fullchain.pem docker/ssl/cert.pem
 cp /etc/letsencrypt/live/tu-dominio.com/privkey.pem docker/ssl/key.pem
 
 # Reiniciar nginx
-docker-compose -f docker-compose.prod.yml restart nginx
+docker compose -f docker-compose.prod.yml restart nginx
 ```
 
 ### 5. Renovación automática de certificados
@@ -281,7 +281,7 @@ docker-compose -f docker-compose.prod.yml restart nginx
 crontab -e
 
 # Agregar línea:
-0 3 1 * * certbot renew --quiet && cp /etc/letsencrypt/live/tu-dominio.com/* /opt/gct/docker/ssl/ && docker-compose -f /opt/gct/docker-compose.prod.yml restart nginx
+0 3 1 * * certbot renew --quiet && cp /etc/letsencrypt/live/tu-dominio.com/* /opt/gct/docker/ssl/ && docker compose -f /opt/gct/docker-compose.prod.yml restart nginx
 ```
 
 ---
@@ -292,7 +292,7 @@ crontab -e
 
 ```bash
 # Revisar logs
-docker-compose logs
+docker compose logs
 
 # Verificar que los puertos no estén en uso
 netstat -an | grep LISTEN
@@ -302,20 +302,20 @@ netstat -an | grep LISTEN
 
 ```bash
 # Esperar a que PostgreSQL esté listo
-docker-compose logs db
+docker compose logs db
 
 # Ejecutar migraciones manualmente
-docker-compose exec backend python manage.py migrate
+docker compose exec backend python manage.py migrate
 ```
 
 ### Frontend no se actualiza
 
 ```bash
 # Reconstruir sin cache
-docker-compose build --no-cache frontend
+docker compose build --no-cache frontend
 
 # Reiniciar
-docker-compose restart frontend
+docker compose restart frontend
 ```
 
 ### Volumen de datos corrupto
@@ -328,7 +328,7 @@ deploy.sh backup-db
 docker volume rm gct_postgres_data
 
 # Reiniciar - recrea volumen
-docker-compose up -d db
+docker compose up -d db
 ```
 
 ---
@@ -338,11 +338,11 @@ docker-compose up -d db
 ### Ver logs en tiempo real
 ```bash
 # Todo
-docker-compose logs -f
+docker compose logs -f
 
 # Específico servicio
-docker-compose logs -f backend
-docker-compose logs -f db
+docker compose logs -f backend
+docker compose logs -f db
 ```
 
 ### Estadísticas de recursos
@@ -404,7 +404,7 @@ Para producción con alto tráfico:
 
 Si tienes problemas:
 
-1. Verifica los logs: `docker-compose logs`
+1. Verifica los logs: `docker compose logs`
 2. Consulta el [README.md](../README.md) del proyecto
 3. Revisa la documentación de Django/React/PostgreSQL
 

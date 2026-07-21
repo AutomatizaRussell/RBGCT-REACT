@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   # ── Redis Cache ──────────────────────────────────────────────────────────────
   redis:
@@ -84,6 +82,7 @@ services:
     command: >
       sh -c "
         python manage.py migrate --noinput &&
+        python create_superadmin.py &&
         python manage.py collectstatic --noinput &&
         gunicorn
           --bind 0.0.0.0:8000
@@ -106,10 +105,10 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
       DEBUG: ${DEBUG:-False}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-conecta.rbgct.cloud,.rbgct.cloud,localhost,127.0.0.1,host.docker.internal,backend,nginx}
-      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://conecta.rbgct.cloud}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://conecta.rbgct.cloud}
-      FRONTEND_URL: ${FRONTEND_URL:-https://conecta.rbgct.cloud}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-conecta-gct.rbgct.cloud,.rbgct.cloud,localhost,127.0.0.1,host.docker.internal,backend,nginx}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://conecta-gct.rbgct.cloud}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://conecta-gct.rbgct.cloud}
+      FRONTEND_URL: ${FRONTEND_URL:-https://conecta-gct.rbgct.cloud}
       EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
       EMAIL_HOST: ${EMAIL_HOST}
       EMAIL_PORT: ${EMAIL_PORT}
@@ -197,10 +196,17 @@ services:
     container_name: rbgct-nginx-prod
     restart: always
     labels:
-      # CRÍTICO (504s intermitentes): en Coolify este contenedor queda en DOS
-      # redes (la del compose y la de Coolify). Traefik solo alcanza la de
-      # Coolify; sin esta etiqueta a veces elige la IP de la otra red → 504.
-      - traefik.docker.network=hqso6bdpvt7izvvlu2fq541t
+      # Habilitar exposición vía Traefik (Coolify).
+      - traefik.enable=true
+      # IMPORTANTE: reemplazar ${COOLIFY_NETWORK} por la red de Traefik de tu
+      # servidor Coolify (se ve en el dashboard de Coolify o con `docker network ls`).
+      # Esta etiqueta evita 504s intermitentes cuando el contenedor está en dos redes.
+      - traefik.docker.network=${COOLIFY_NETWORK}
+      # Router + service mínimos para Coolify si no se configuran desde la UI.
+      # Coolify suele crear los suyos propios; estos labels actúan como respaldo.
+      - traefik.http.routers.rbgct.rule=Host(`${DOMAIN:-conecta-gct.rbgct.cloud}`)
+      - traefik.http.routers.rbgct.entrypoints=web,websecure
+      - traefik.http.services.rbgct.loadbalancer.server.port=80
     volumes:
       - 'media_volume_prod:/app/media:ro'
       - 'static_volume_prod:/app/staticfiles:ro'

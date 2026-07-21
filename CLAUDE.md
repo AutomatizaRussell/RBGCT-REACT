@@ -4,15 +4,15 @@
 
 **GCT** es el sistema integral de gestión interna para **Russell Bedford RBG S.A.S**, una empresa colombiana de servicios profesionales. Es una plataforma HR + CRM que centraliza empleados, contratos, seguridad social, clientes, capacitación, tareas y herramientas documentales.
 
-- **Dominio producción:** `conecta.rbgct.cloud`
+- **Dominio producción:** `conecta-gct.rbgct.cloud`
 - **Correo:** AUTOMATIZACIONMEDELLIN@rbcol.co
 - **Rama activa:** `main` (rama de producción — migración UI corporativa completada y mergeada)
 
 ### Despliegue real (IMPORTANTE)
-- Producción corre en **Coolify** en esta VPS: contenedores `*-hqso6bdpvt7izvvlu2fq541t-*` (db, backend, frontend, nginx, redis). Traefik (`coolify-proxy`) enruta `conecta.rbgct.cloud` → nginx del stack Coolify.
-- El stack manual `rbgct-*-prod` (docker-compose) está **detenido y obsoleto** — no recibe tráfico. No usarlo ni confundir sus volúmenes/BD con los de Coolify.
+- Producción corre en **Coolify** en esta VPS: contenedores `*-hqso6bdpvt7izvvlu2fq541t-*` (db, backend, frontend, nginx, redis). Traefik (`coolify-proxy`) enruta `conecta-gct.rbgct.cloud` → nginx del stack Coolify.
+- El stack manual `rbgct-*-prod` (docker compose) está **detenido y obsoleto** — no recibe tráfico. No usarlo ni confundir sus volúmenes/BD con los de Coolify.
 - Coolify construye desde la rama `main`; el deploy **no** se dispara automáticamente con `git push` (lanzarlo manualmente desde la UI de Coolify).
-- Proxy: Traefik (TLS) → nginx interno (`nginx/nginx-proxy.conf`) → Django/React. En `location /api/` los `proxy_set_header` se repiten explícitamente (definir uno anula la herencia del bloque `server` — no eliminarlos). `settings.py` añade `conecta.rbgct.cloud` a `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` como blindaje aunque el env de Coolify no lo incluya.
+- Proxy: Traefik (TLS) → nginx interno (`nginx/nginx-proxy.conf`) → Django/React. En `location /api/` los `proxy_set_header` se repiten explícitamente (definir uno anula la herencia del bloque `server` — no eliminarlos). `settings.py` añade `conecta-gct.rbgct.cloud` a `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` como blindaje aunque el env de Coolify no lo incluya.
 - Ojo: tras cambiar la conf del nginx interno en caliente, usar `docker restart` del contenedor nginx (un `nginx -s reload` dejó conexiones colgadas con Traefik y produjo 504s).
 - **Causa raíz de 504s intermitentes (resuelta jun 2026):** los servicios quedan en DOS redes (la del compose `gct-network-prod` y la de Coolify `hqso6...`); Traefik solo está en la de Coolify y a veces elegía la IP de la otra → timeout/504. Fijado con la label `traefik.docker.network=hqso6bdpvt7izvvlu2fq541t` en el servicio nginx del compose. No quitar esa label ni la red de Coolify.
 - **Watchdog de auto-recuperación:** cron del host cada minuto ejecuta `scripts/gct-watchdog.sh` (log en `/var/log/gct-watchdog.log`): reinicia contenedores unhealthy, y si la ruta externa Traefik→nginx falla 3 min con la interna sana, reinicia nginx solo. Health endpoint: `GET /api/health/` (público, verifica BD+cache).
@@ -375,7 +375,7 @@ DB_USER=rbgct
 DB_PASSWORD=<password>
 
 # Frontend
-FRONTEND_URL=http://localhost:5173  # dev, o https://conecta.rbgct.cloud prod
+FRONTEND_URL=http://localhost:5173  # dev, o https://conecta-gct.rbgct.cloud prod
 
 # Email
 EMAIL_HOST_USER=<gmail-address>
@@ -469,7 +469,7 @@ cd /home/gct
 cp backend/.env.example backend/.env
 
 # Docker compose
-docker-compose up -d
+docker compose up -d
 
 # Frontend (si quieres dev HMR)
 cd frontend
@@ -503,7 +503,7 @@ python manage.py loaddata backup.json
 ### Deployment
 ```bash
 # Build
-docker-compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml build
 
 # Push to registry (si aplica)
 docker tag gct-backend:latest <registry>/gct-backend:latest
@@ -513,7 +513,7 @@ docker push <registry>/gct-backend:latest
 ./deploy.sh
 
 # Or manual compose on VPS
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 ---

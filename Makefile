@@ -23,12 +23,12 @@ help:
 
 dev:
 	@echo "🚀 Iniciando ambiente de DESARROLLO..."
-	docker-compose -f docker-compose.yml up -d
+	docker compose -f docker-compose.yml up -d
 	@echo "✓ Frontend:  http://localhost:5173"
 	@echo "✓ Backend:   http://localhost:8000"
-	@echo "✓ Admin:     http://localhost:8000/admin"
+	@echo "✓ Admin:     http://localhost:8000/sys-admin"
 	@echo "✓ Nginx:     http://localhost"
-	docker-compose ps
+	docker compose ps
 
 prod:
 	@echo "🚀 Iniciando ambiente de PRODUCCIÓN..."
@@ -36,40 +36,40 @@ prod:
 		echo "❌ .env.prod no existe"; \
 		exit 1; \
 	fi
-	docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
-	docker-compose --env-file .env.prod -f docker-compose.prod.yml ps
+	docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+	docker compose --env-file .env.prod -f docker-compose.prod.yml ps
 
 build:
 	@echo "🔨 Construyendo imágenes..."
-	docker-compose build --no-cache
+	docker compose build --no-cache
 	@echo "✓ Imágenes construidas"
 
 stop:
 	@echo "⏹️  Deteniendo contenedores..."
-	docker-compose stop
+	docker compose stop
 	@echo "✓ Contenedores detenidos"
 
 logs:
-	docker-compose logs -f
+	docker compose logs -f
 
 logs-backend:
-	docker-compose logs -f backend
+	docker compose logs -f backend
 
 logs-frontend:
-	docker-compose logs -f frontend
+	docker compose logs -f frontend
 
 logs-db:
-	docker-compose logs -f db
+	docker compose logs -f db
 
 migrate:
 	@echo "📦 Ejecutando migraciones..."
-	docker-compose exec backend python manage.py migrate
+	docker compose exec backend python manage.py migrate
 	@echo "✓ Migraciones completadas"
 
 backup:
 	@echo "💾 Realizando backup..."
 	@mkdir -p docker/backup
-	@docker-compose exec -T db pg_dump -U rbgct rbgct > docker/backup/rbgct_$$(date +%Y%m%d_%H%M%S).sql
+	@docker compose exec -T db pg_dump -U rbgct rbgct > docker/backup/rbgct_$$(date +%Y%m%d_%H%M%S).sql
 	@echo "✓ Backup creado en docker/backup/"
 
 restore:
@@ -78,14 +78,14 @@ restore:
 		echo "Uso: make restore FILE=docker/backup/rbgct_YYYYMMDD_HHMMSS.sql"; \
 		exit 1; \
 	fi
-	docker-compose exec -T db psql -U rbgct rbgct < $(FILE)
+	docker compose exec -T db psql -U rbgct rbgct < $(FILE)
 	@echo "✓ Base de datos restaurada"
 
 shell-django:
-	docker-compose exec backend python manage.py shell
+	docker compose exec backend python manage.py shell
 
 shell-db:
-	docker-compose exec db psql -U rbgct -d rbgct
+	docker compose exec db psql -U rbgct -d rbgct
 
 clean:
 	@echo "🧹 Limpiando contenedores y volúmenes..."
@@ -93,7 +93,7 @@ clean:
 	@read -p "¿Estás seguro? [s/N] " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Ss]$$ ]]; then \
-		docker-compose down -v; \
+		docker compose down -v; \
 		docker system prune -f; \
 		echo "✓ Limpieza completada"; \
 	else \

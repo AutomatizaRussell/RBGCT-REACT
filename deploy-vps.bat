@@ -1,10 +1,13 @@
 @echo off
 setlocal
 
-REM VPS configuration
-set VPS_IP=72.60.165.161
-set VPS_USER=root
-set VPS_PATH=/home/gct
+REM VPS configuration: sobrescribir con variables de entorno o editar antes de usar.
+set VPS_IP=%VPS_IP%
+if "%VPS_IP%"=="" set VPS_IP=72.60.165.161
+set VPS_USER=%VPS_USER%
+if "%VPS_USER%"=="" set VPS_USER=root
+set VPS_PATH=%VPS_PATH%
+if "%VPS_PATH%"=="" set VPS_PATH=/home/gct
 set SSH=%VPS_USER%@%VPS_IP%
 
 if "%1"=="upload" goto UPLOAD

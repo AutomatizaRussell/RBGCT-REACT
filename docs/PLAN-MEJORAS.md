@@ -1,4 +1,4 @@
-# Plan de Mejoras — GCT (conecta.rbgct.cloud)
+# Plan de Mejoras — GCT (conecta-gct.rbgct.cloud)
 
 > Generado tras revisión profunda del código (backend, frontend, proxy, configs).
 > Fecha: 2026-06-10 · Rama: `ui/redesign-rb`
