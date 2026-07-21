@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.." || exit 1
 # Cargar variables de entorno del proyecto stiben si existe un .env
 [ -f .env ] && source .env
 
-DB_USER="${DB_USER:-postgres}"
+DB_USER="${DB_USER:-rbgct}"
 DB_NAME="${DB_NAME:-rbgct}"
 DB_PASSWORD="${DB_PASSWORD:-}"
 
