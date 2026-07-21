@@ -66,10 +66,20 @@ echo "[3/6] Transformando SQL para insertar en esquemas 'empleados.*' ..."
 {
   echo "SET search_path = empleados, public;"
   echo "BEGIN;"
-  # Truncar tablas destino para evitar duplicados (el usuario pidió "traer" los datos)
-  echo "TRUNCATE TABLE empleados.datos_area, empleados.datos_cargo, empleados.persona, empleados.datos_contacto, empleados.empleado CASCADE;"
-  # Forzar nombres de tabla con schema empleados
+  # Truncar tablas destino en orden inverso a las dependencias, sin CASCADE,
+  # para no borrar tablas de otros módulos que tengan FK a persona/empleado.
+  echo "TRUNCATE TABLE empleados.empleado;"
+  echo "TRUNCATE TABLE empleados.datos_contacto;"
+  echo "TRUNCATE TABLE empleados.persona;"
+  echo "TRUNCATE TABLE empleados.datos_area;"
+  echo "TRUNCATE TABLE empleados.datos_cargo;"
+  # Forzar nombres de tabla con schema empleados (con o sin schema public)
   sed \
+    -e 's/INSERT INTO "\?public\.\?datos_area"\?/INSERT INTO empleados.datos_area/g' \
+    -e 's/INSERT INTO "\?public\.\?datos_cargo"\?/INSERT INTO empleados.datos_cargo/g' \
+    -e 's/INSERT INTO "\?public\.\?persona"\?/INSERT INTO empleados.persona/g' \
+    -e 's/INSERT INTO "\?public\.\?datos_contacto"\?/INSERT INTO empleados.datos_contacto/g' \
+    -e 's/INSERT INTO "\?public\.\?empleado"\?/INSERT INTO empleados.empleado/g' \
     -e 's/INSERT INTO "\?datos_area"\?/INSERT INTO empleados.datos_area/g' \
     -e 's/INSERT INTO "\?datos_cargo"\?/INSERT INTO empleados.datos_cargo/g' \
     -e 's/INSERT INTO "\?persona"\?/INSERT INTO empleados.persona/g' \
