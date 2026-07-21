@@ -344,6 +344,7 @@ const UserTable = () => {
       id_permisos: user.id_permisos || 3,
       estado: user.estado || 'ACTIVA',
       permitir_edicion_datos: user.permitir_edicion_datos || false,
+      acceso_sqf_clientes: user.acceso_sqf_clientes || false,
       acceso_sqf_contratos: user.acceso_sqf_contratos || false,
       acceso_sqf_facturacion: user.acceso_sqf_facturacion || false,
       acceso_sqf_auditoria: user.acceso_sqf_auditoria || false
@@ -1455,7 +1456,7 @@ const UserTable = () => {
                     <h4 className="text-xs font-black text-[#001871] uppercase tracking-widest border-b border-slate-200 pb-2 mb-4">Accesos SQF</h4>
                     <div className="bg-amber-50 rounded-xl border border-amber-100 p-4 grid grid-cols-2 gap-3">
                       {[
-                        // { key:'acceso_sqf_clientes', label:'Clientes' }, // Pausado temporalmente
+                        { key:'acceso_sqf_clientes', label:'Clientes' },
                         { key:'acceso_sqf_contratos', label:'Contratos' },
                         { key:'acceso_sqf_facturacion', label:'Facturación' },
                         { key:'acceso_sqf_auditoria', label:'Auditoría' },

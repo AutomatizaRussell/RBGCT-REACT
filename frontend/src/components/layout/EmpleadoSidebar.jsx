@@ -34,7 +34,7 @@ export const EmpleadoSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, 
   const [tieneCursos, setTieneCursos] = useState(false)
 
   const puedeVerSQF = Boolean(
-    empleadoData?.acceso_formularios_sqf ||
+    empleadoData?.acceso_sqf_clientes ||
     empleadoData?.acceso_sqf_contratos ||
     empleadoData?.acceso_sqf_facturacion ||
     empleadoData?.acceso_sqf_auditoria

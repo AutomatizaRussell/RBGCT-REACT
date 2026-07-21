@@ -27,7 +27,7 @@ export const AdminSidebar = ({ activeTab, setActiveTab, isOpen, isCollapsed, onC
   const [puedeExpedirCert, setPuedeExpedirCert] = useState(false)
 
   const puedeVerSQF = isAdmin || isSuperAdmin || Boolean(
-    empleadoData?.acceso_formularios_sqf ||
+    empleadoData?.acceso_sqf_clientes ||
     empleadoData?.acceso_sqf_contratos ||
     empleadoData?.acceso_sqf_facturacion ||
     empleadoData?.acceso_sqf_auditoria

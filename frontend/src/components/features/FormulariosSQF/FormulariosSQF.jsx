@@ -185,15 +185,12 @@ export default function FormulariosSQF({ onBack }) {
     const navigate = useNavigate();
     const { user, empleadoData, isSuperAdmin, isAdmin } = useAuth();
 
-    // Secciones visibles: admins ven todo; empleados 
-    //  sus flags por sección.
-    // Fallback legacy: localStorage anterior al despliegue sin los flags nuevos
-    // pero con acceso general (se corrige solo cuando AuthContext sincroniza).
-    const legacyAccess = Boolean(empleadoData?.acceso_formularios_sqf)
-        && SQF_SECTIONS.every(s => empleadoData?.[s.flag] === undefined);
-    const allowedSections = (isSuperAdmin || isAdmin || legacyAccess)
+    // Secciones visibles: SuperAdmin/Admin ven todo; empleados regulares
+    // ven ÚNICAMENTE las secciones cuyo flag individual esté explícitamente en true.
+    // Si no tiene ningún flag, no ve ninguna pestaña (y el sidebar tampoco debe mostrar SQF).
+    const allowedSections = (isSuperAdmin || isAdmin)
         ? SQF_SECTIONS.map(s => s.id)
-        : SQF_SECTIONS.filter(s => Boolean(empleadoData?.[s.flag])).map(s => s.id);
+        : SQF_SECTIONS.filter(s => empleadoData?.[s.flag] === true).map(s => s.id);
     const canSee = (sectionId) => allowedSections.includes(sectionId);
 
     // ==========================================
@@ -1299,6 +1296,14 @@ export default function FormulariosSQF({ onBack }) {
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
                             </svg> Contratos
+                        </button>}
+                        {/* Pestaña Facturación: faltaba en el nav; se muestra según permiso acceso_sqf_facturacion */}
+                        {canSee('billing') && <button className={`nav-btn ${activeSection === 'billing' ? 'active' : ''}`} onClick={() => setActiveSection('billing')} role="tab">
+                            <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="1" y="4" width="22" height="16" rx="2" />
+                                <line x1="1" y1="10" x2="23" y2="10" />
+                                <line x1="12" y1="14" x2="12" y2="14" />
+                            </svg> Facturación
                         </button>}
                         {canSee('auditor') && <button className={`nav-btn ${activeSection === 'auditor' ? 'active' : ''}`} onClick={() => setActiveSection('auditor')} role="tab">
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -145,7 +145,7 @@ export default function MisClientes() {
   if (clientesFiltrados.length === 0) {
     return (
       <div className="relative animate-in fade-in duration-500">
-        {empleadoData?.acceso_formularios_sqf && (
+        {empleadoData?.acceso_sqf_clientes && (
           <div className="flex justify-end">
             <button
               type="button"
@@ -234,7 +234,7 @@ export default function MisClientes() {
               })}
             </div>
 
-            {empleadoData?.acceso_formularios_sqf && (
+            {empleadoData?.acceso_sqf_clientes && (
               <button
                 type="button"
                 onClick={() => navigate('/app/sqf')}
