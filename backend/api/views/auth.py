@@ -12,6 +12,8 @@ from rest_framework import status
 from django.core.cache import cache
 import bcrypt
 
+from django.db import transaction, IntegrityError
+
 from ..models import SuperAdmin, DatosEmpleado, Persona, DatosContacto
 from ..jwt_utils import generate_tokens, decode_token, build_superadmin_payload, build_empleado_payload, revoke_token
 from ..permissions import IsSuperAdminUser, IsAdminOrSuperAdmin
@@ -226,21 +228,23 @@ def crear_usuario_superadmin(request):
     except PasswordValidationError as exc:
         return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Validar datos básicos obligatorios del colaborador
-    campos_basicos = {
-        'primer_nombre': 'Primer nombre',
-        'primer_apellido': 'Primer apellido',
-        'tipo_documento': 'Tipo de documento',
-        'numero_documento': 'Número de documento',
-        'area_id': 'Área / Departamento',
-        'cargo_id': 'Cargo',
-    }
-    faltantes = [label for campo, label in campos_basicos.items() if not request.data.get(campo)]
-    if faltantes:
-        return Response(
-            {'error': f'Datos básicos requeridos: {", ".join(faltantes)}'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    # Validar datos básicos solo si se enviaron (modo con datos básicos)
+    datos_basicos_activos = bool(request.data.get('primer_nombre'))
+    if datos_basicos_activos:
+        campos_basicos = {
+            'primer_nombre': 'Primer nombre',
+            'primer_apellido': 'Primer apellido',
+            'tipo_documento': 'Tipo de documento',
+            'numero_documento': 'Número de documento',
+            'area_id': 'Área / Departamento',
+            'cargo_id': 'Cargo',
+        }
+        faltantes = [label for campo, label in campos_basicos.items() if not request.data.get(campo)]
+        if faltantes:
+            return Response(
+                {'error': f'Datos básicos requeridos: {", ".join(faltantes)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     # Verificar si el email ya existe
     if DatosEmpleado.objects.filter(correo_corporativo=email).exists():
@@ -323,7 +327,7 @@ def crear_usuario_superadmin(request):
         'message': 'Usuario creado exitosamente',
         'id_empleado': empleado.id_empleado,
         'correo_corporativo': empleado.correo_corporativo,
-        'tipo_creacion': 'basico',
+        'tipo_creacion': 'basico' if datos_basicos_activos else 'minimo',
         'primer_login': empleado.primer_login,
         'email_sent': email_sent,
     }, status=status.HTTP_201_CREATED)
@@ -383,8 +387,6 @@ def completar_datos_empleado(request):
                     'error': 'El número de documento ya está registrado por otro empleado. '
                              'Verifica el dato o contacta al administrador.'
                 }, status=status.HTTP_409_CONFLICT)
-
-    from django.db import transaction, IntegrityError
 
     try:
         with transaction.atomic():

@@ -33,13 +33,14 @@ const CreateUserPage = () => {
   const [codigoVerificacion, setCodigoVerificacion] = useState('');
   const [nuevoUsuarioEmail, setNuevoUsuarioEmail] = useState('');
 
-  // Form data: solo datos básicos del colaborador + autenticación
+  // Form data: datos de autenticación + opcionales datos básicos
   const [formData, setFormData] = useState({
     admin_password: '',
     correo_corporativo: '',
     password: '',
     confirmPassword: '',
     id_permisos: 3, // Default: Usuario
+    crearConDatosBasicos: false,
     primer_nombre: '',
     segundo_nombre: '',
     primer_apellido: '',
@@ -115,7 +116,7 @@ const CreateUserPage = () => {
     setError(null);
     setSuccess(false);
 
-    // Validaciones de autenticación
+    // Validaciones comunes de autenticación
     if (!formData.admin_password) {
       setError('Debe ingresar su contraseña de administrador para confirmar');
       return;
@@ -133,43 +134,51 @@ const CreateUserPage = () => {
       return;
     }
 
-    // Validaciones de datos básicos del colaborador
-    if (!formData.primer_nombre || !formData.primer_apellido) {
-      setError('Nombre y apellido del colaborador son obligatorios');
-      return;
-    }
-    if (!formData.tipo_documento || !formData.numero_documento) {
-      setError('Tipo y número de documento son obligatorios');
-      return;
-    }
-    if (!formData.area_id) {
-      setError('Debe seleccionar un área/departamento');
-      return;
-    }
-    if (!formData.cargo_id) {
-      setError('Debe seleccionar un cargo');
-      return;
+    // Validaciones de datos básicos solo si se seleccionó esa opción
+    if (formData.crearConDatosBasicos) {
+      if (!formData.primer_nombre || !formData.primer_apellido) {
+        setError('Nombre y apellido del colaborador son obligatorios');
+        return;
+      }
+      if (!formData.tipo_documento || !formData.numero_documento) {
+        setError('Tipo y número de documento son obligatorios');
+        return;
+      }
+      if (!formData.area_id) {
+        setError('Debe seleccionar un área/departamento');
+        return;
+      }
+      if (!formData.cargo_id) {
+        setError('Debe seleccionar un cargo');
+        return;
+      }
     }
 
     setSaving(true);
 
     try {
-      // Preparar datos para enviar siempre como creación básica
+      // Preparar datos base
       const userData = {
         correo_corporativo: formData.correo_corporativo,
         password: formData.password,
-        id_permisos: parseInt(formData.id_permisos),
-        primer_nombre: formData.primer_nombre,
-        segundo_nombre: formData.segundo_nombre,
-        primer_apellido: formData.primer_apellido,
-        segundo_apellido: formData.segundo_apellido,
-        apodo: formData.apodo,
-        tipo_documento: formData.tipo_documento,
-        numero_documento: formData.numero_documento,
-        fecha_ingreso: formData.fecha_ingreso || null,
-        area_id: formData.area_id ? parseInt(formData.area_id) : null,
-        cargo_id: formData.cargo_id ? parseInt(formData.cargo_id) : null
+        id_permisos: parseInt(formData.id_permisos)
       };
+
+      // Si eligió datos básicos, agregarlos
+      if (formData.crearConDatosBasicos) {
+        Object.assign(userData, {
+          primer_nombre: formData.primer_nombre,
+          segundo_nombre: formData.segundo_nombre,
+          primer_apellido: formData.primer_apellido,
+          segundo_apellido: formData.segundo_apellido,
+          apodo: formData.apodo,
+          tipo_documento: formData.tipo_documento,
+          numero_documento: formData.numero_documento,
+          fecha_ingreso: formData.fecha_ingreso || null,
+          area_id: formData.area_id ? parseInt(formData.area_id) : null,
+          cargo_id: formData.cargo_id ? parseInt(formData.cargo_id) : null
+        });
+      }
 
       const result = await crearUsuarioSuperAdmin(
         empleadoData?.correo_corporativo || user?.email,
@@ -254,6 +263,26 @@ const CreateUserPage = () => {
 
         {/* CUERPO FORMULARIO */}
         <form className="p-4 sm:p-10 space-y-6 sm:space-y-8" onSubmit={handleSubmit} autoComplete="off" translate="no">
+
+          {/* OPCIÓN: CREAR CON DATOS BÁSICOS O MÍNIMOS */}
+          <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="crearConDatosBasicos"
+                checked={formData.crearConDatosBasicos}
+                onChange={handleChange}
+                className="mt-1 w-4 h-4 text-[#001871] rounded border-slate-300 focus:ring-[#001871]"
+              />
+              <div>
+                <span className="font-medium text-[#001871]">Crear usuario con datos básicos</span>
+                <p className="text-xs text-slate-500 mt-1">
+                  Si no se selecciona, se creará solo con correo y contraseña.
+                  El usuario deberá completar sus datos en el primer login.
+                </p>
+              </div>
+            </label>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
             {/* EMAIL - SIEMPRE REQUERIDO */}
@@ -350,208 +379,210 @@ const CreateUserPage = () => {
             </div>
           </div>
 
-          {/* DATOS BÁSICOS DEL COLABORADOR */}
-          <div className="pt-6 border-t border-slate-100">
-            <h4 className="text-sm font-bold text-[#001871] mb-6">Datos Básicos del Colaborador</h4>
+          {/* DATOS BÁSICOS - SOLO SI SE SELECCIONÓ */}
+          {formData.crearConDatosBasicos && (
+            <div className="pt-6 border-t border-slate-100">
+              <h4 className="text-sm font-bold text-[#001871] mb-6">Datos Básicos del Colaborador</h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
-              {/* NOMBRES */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                  <User size={12} /> Primer Nombre *
-                </label>
-                <input
-                  required
-                  type="text"
-                  name="primer_nombre"
-                  value={formData.primer_nombre}
-                  onChange={handleChange} autoComplete="off"
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
-                  placeholder="Ej. Juan"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                  <User size={12} /> Segundo Nombre
-                </label>
-                <input
-                  type="text"
-                  name="segundo_nombre"
-                  value={formData.segundo_nombre}
-                  onChange={handleChange} autoComplete="off"
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
-                  placeholder="Ej. Carlos"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                  <User size={12} /> Apodo / Nombre de Usuario
-                </label>
-                <input
-                  type="text"
-                  name="apodo"
-                  value={formData.apodo}
-                  onChange={handleChange} autoComplete="off"
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
-                  placeholder="Ej. Juancho, JG, Stiben..."
-                />
-                <p className="text-[10px] text-slate-400 ml-1">Cómo prefiere ser llamado/a en el sistema</p>
-              </div>
-
-              {/* APELLIDOS */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                  <User size={12} /> Primer Apellido *
-                </label>
-                <input
-                  required
-                  type="text"
-                  name="primer_apellido"
-                  value={formData.primer_apellido}
-                  onChange={handleChange} autoComplete="off"
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
-                  placeholder="Ej. García"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                  <User size={12} /> Segundo Apellido
-                </label>
-                <input
-                  type="text"
-                  name="segundo_apellido"
-                  value={formData.segundo_apellido}
-                  onChange={handleChange} autoComplete="off"
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
-                  placeholder="Ej. López"
-                />
-              </div>
-
-              {/* TIPO DE DOCUMENTO */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                  <User size={12} /> Tipo de Documento *
-                </label>
-                <div className="relative">
-                  <select
-                    required
-                    name="tipo_documento"
-                    value={formData.tipo_documento}
-                    onChange={handleChange}
-                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
-                  >
-                    {TIPOS_DOCUMENTO.map(tipo => (
-                      <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    <User size={14} />
-                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
+                {/* NOMBRES */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                    <User size={12} /> Primer Nombre *
+                  </label>
+                  <input
+                    required={formData.crearConDatosBasicos}
+                    type="text"
+                    name="primer_nombre"
+                    value={formData.primer_nombre}
+                    onChange={handleChange} autoComplete="off"
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
+                    placeholder="Ej. Juan"
+                  />
                 </div>
-              </div>
 
-              {/* NÚMERO DE DOCUMENTO */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                  <User size={12} /> Número de Documento *
-                </label>
-                <input
-                  required
-                  type="text"
-                  name="numero_documento"
-                  value={formData.numero_documento}
-                  onChange={handleChange} autoComplete="off"
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
-                  placeholder="Ej. 1234567890"
-                />
-              </div>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                    <User size={12} /> Segundo Nombre
+                  </label>
+                  <input
+                    type="text"
+                    name="segundo_nombre"
+                    value={formData.segundo_nombre}
+                    onChange={handleChange} autoComplete="off"
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
+                    placeholder="Ej. Carlos"
+                  />
+                </div>
 
-              {/* FECHA DE INGRESO */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                  <Briefcase size={12} /> Fecha de Ingreso
-                </label>
-                <input
-                  type="date"
-                  name="fecha_ingreso"
-                  value={formData.fecha_ingreso}
-                  onChange={handleChange} autoComplete="off"
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
-                />
-              </div>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                    <User size={12} /> Apodo / Nombre de Usuario
+                  </label>
+                  <input
+                    type="text"
+                    name="apodo"
+                    value={formData.apodo}
+                    onChange={handleChange} autoComplete="off"
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
+                    placeholder="Ej. Juancho, JG, Stiben..."
+                  />
+                  <p className="text-[10px] text-slate-400 ml-1">Cómo prefiere ser llamado/a en el sistema</p>
+                </div>
 
-              {/* ÁREA/DEPARTAMENTO */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                  <Briefcase size={12} /> Área / Departamento *
-                </label>
-                <div className="relative">
-                  {loadingAreas ? (
-                    <div className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm text-slate-400 flex items-center gap-2">
-                      <Loader2 size={14} className="animate-spin" />
-                      Cargando áreas...
-                    </div>
-                  ) : (
+                {/* APELLIDOS */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                    <User size={12} /> Primer Apellido *
+                  </label>
+                  <input
+                    required={formData.crearConDatosBasicos}
+                    type="text"
+                    name="primer_apellido"
+                    value={formData.primer_apellido}
+                    onChange={handleChange} autoComplete="off"
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
+                    placeholder="Ej. García"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                    <User size={12} /> Segundo Apellido
+                  </label>
+                  <input
+                    type="text"
+                    name="segundo_apellido"
+                    value={formData.segundo_apellido}
+                    onChange={handleChange} autoComplete="off"
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
+                    placeholder="Ej. López"
+                  />
+                </div>
+
+                {/* TIPO DE DOCUMENTO */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                    <User size={12} /> Tipo de Documento *
+                  </label>
+                  <div className="relative">
                     <select
-                      required
-                      name="area_id"
-                      value={formData.area_id}
+                      required={formData.crearConDatosBasicos}
+                      name="tipo_documento"
+                      value={formData.tipo_documento}
                       onChange={handleChange}
                       className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
                     >
-                      <option value="">Seleccionar área...</option>
-                      {areas.map(area => (
-                        <option key={area.id_area} value={area.id_area}>
-                          {area.nombre_area}
-                        </option>
+                      {TIPOS_DOCUMENTO.map(tipo => (
+                        <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>
                       ))}
                     </select>
-                  )}
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    <Briefcase size={14} />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                      <User size={14} />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* CARGO */}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                  <Briefcase size={12} /> Cargo *
-                </label>
-                <div className="relative">
-                  {loadingCargos ? (
-                    <div className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm text-slate-400 flex items-center gap-2">
-                      <Loader2 size={14} className="animate-spin" />
-                      Cargando cargos...
+                {/* NÚMERO DE DOCUMENTO */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                    <User size={12} /> Número de Documento *
+                  </label>
+                  <input
+                    required={formData.crearConDatosBasicos}
+                    type="text"
+                    name="numero_documento"
+                    value={formData.numero_documento}
+                    onChange={handleChange} autoComplete="off"
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
+                    placeholder="Ej. 1234567890"
+                  />
+                </div>
+
+                {/* FECHA DE INGRESO */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                    <Briefcase size={12} /> Fecha de Ingreso
+                  </label>
+                  <input
+                    type="date"
+                    name="fecha_ingreso"
+                    value={formData.fecha_ingreso}
+                    onChange={handleChange} autoComplete="off"
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
+                  />
+                </div>
+
+                {/* ÁREA/DEPARTAMENTO */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                    <Briefcase size={12} /> Área / Departamento *
+                  </label>
+                  <div className="relative">
+                    {loadingAreas ? (
+                      <div className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm text-slate-400 flex items-center gap-2">
+                        <Loader2 size={14} className="animate-spin" />
+                        Cargando áreas...
+                      </div>
+                    ) : (
+                      <select
+                        required={formData.crearConDatosBasicos}
+                        name="area_id"
+                        value={formData.area_id}
+                        onChange={handleChange}
+                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
+                      >
+                        <option value="">Seleccionar área...</option>
+                        {areas.map(area => (
+                          <option key={area.id_area} value={area.id_area}>
+                            {area.nombre_area}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                      <Briefcase size={14} />
                     </div>
-                  ) : (
-                    <select
-                      required
-                      name="cargo_id"
-                      value={formData.cargo_id}
-                      onChange={handleChange}
-                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
-                    >
-                      <option value="">
-                        {formData.area_id ? 'Seleccionar cargo...' : 'Primero selecciona un área'}
-                      </option>
-                      {filteredCargos.map(cargo => (
-                        <option key={cargo.id_cargo} value={cargo.id_cargo}>
-                          {cargo.nombre_cargo}
+                  </div>
+                </div>
+
+                {/* CARGO */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                    <Briefcase size={12} /> Cargo *
+                  </label>
+                  <div className="relative">
+                    {loadingCargos ? (
+                      <div className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm text-slate-400 flex items-center gap-2">
+                        <Loader2 size={14} className="animate-spin" />
+                        Cargando cargos...
+                      </div>
+                    ) : (
+                      <select
+                        required={formData.crearConDatosBasicos}
+                        name="cargo_id"
+                        value={formData.cargo_id}
+                        onChange={handleChange}
+                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] appearance-none text-sm font-medium cursor-pointer"
+                      >
+                        <option value="">
+                          {formData.area_id ? 'Seleccionar cargo...' : 'Primero selecciona un área'}
                         </option>
-                      ))}
-                    </select>
-                  )}
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    <Briefcase size={14} />
+                        {filteredCargos.map(cargo => (
+                          <option key={cargo.id_cargo} value={cargo.id_cargo}>
+                            {cargo.nombre_cargo}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                      <Briefcase size={14} />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* ACCIONES FINAL */}
           <div className="flex justify-end items-center gap-6 pt-6 border-t border-slate-50">
@@ -576,7 +607,7 @@ const CreateUserPage = () => {
               ) : (
                 <>
                   <Save size={16} />
-                  Crear Usuario
+                  {formData.crearConDatosBasicos ? 'Crear Usuario' : 'Crear Usuario (Datos Mínimos)'}
                 </>
               )}
             </button>
