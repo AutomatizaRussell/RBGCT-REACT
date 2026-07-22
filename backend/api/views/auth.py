@@ -275,6 +275,8 @@ def crear_usuario_superadmin(request):
         'direccion': request.data.get('direccion') or None,
     }
 
+    datos_basicos_activos = bool(request.data.get('primer_nombre'))
+
     try:
         with transaction.atomic():
             persona = Persona.objects.create(**persona_data)
@@ -289,11 +291,11 @@ def crear_usuario_superadmin(request):
                 cargo_id=request.data.get('cargo_id'),
                 fecha_ingreso=request.data.get('fecha_ingreso') or None,
                 estado='ACTIVA',
-                # Siempre se crea con primer login activo para que el usuario complete su perfil.
-                # El permiso de edición se revoca automáticamente la primera vez que complete.
-                primer_login=True,
-                datos_completados=False,
-                permitir_edicion_datos=True,
+                # Datos mínimos: el usuario debe completar su perfil en primer login.
+                # Datos básicos: ya tiene la información mínima, entra directamente.
+                primer_login=not datos_basicos_activos,
+                datos_completados=datos_basicos_activos,
+                permitir_edicion_datos=not datos_basicos_activos,
             )
     except IntegrityError as e:
         logger.error(f"[CREAR USUARIO] Error de integridad: {e}")
@@ -302,26 +304,28 @@ def crear_usuario_superadmin(request):
             status=status.HTTP_409_CONFLICT
         )
 
-    # Generar código de verificación para primer login
-    codigo_verificacion = generar_codigo_verificacion()
-    cache_key = f"verificacion_{email}"
-    cache.set(cache_key, {
-        'codigo': codigo_verificacion,
-        'empleado_id': empleado.id_empleado,
-        'intentos': 0
-    }, timeout=900)  # 15 minutos
+    # Generar código de verificación solo para el flujo de datos mínimos
+    codigo_verificacion = None
+    if not datos_basicos_activos:
+        codigo_verificacion = generar_codigo_verificacion()
+        cache_key = f"verificacion_{email}"
+        cache.set(cache_key, {
+            'codigo': codigo_verificacion,
+            'empleado_id': empleado.id_empleado,
+            'intentos': 0
+        }, timeout=900)  # 15 minutos
 
     nombre_usuario = empleado.primer_nombre if empleado.primer_nombre != 'Por' else None
     email_sent, email_result = enviar_bienvenida(
         email=email,
-        codigo=codigo_verificacion,
+        codigo=codigo_verificacion or '',
         password=password,
         nombre=nombre_usuario,
     )
     if email_sent:
-        logger.info(f"[CREAR USUARIO] Código de verificación enviado a {email}")
+        logger.info(f"[CREAR USUARIO] Email de bienvenida enviado a {email}")
     else:
-        logger.error(f"[CREAR USUARIO] Error enviando código: {email_result}")
+        logger.error(f"[CREAR USUARIO] Error enviando email: {email_result}")
 
     return Response({
         'message': 'Usuario creado exitosamente',

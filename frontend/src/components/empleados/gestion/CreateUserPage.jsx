@@ -230,7 +230,7 @@ const CreateUserPage = () => {
             Usuario creado exitosamente
           </div>
 
-          {codigoVerificacion && (
+          {codigoVerificacion ? (
             <div className="p-6 bg-[#001871] rounded-2xl text-white">
               <p className="text-sm text-white/70 mb-3">
                 Comparte este código con el usuario para su primer login:
@@ -258,6 +258,11 @@ const CreateUserPage = () => {
               >
                 Volver a usuarios
               </button>
+            </div>
+          ) : (
+            <div className="p-4 bg-slate-50 rounded-xl text-slate-600 text-sm">
+              <p>El usuario puede ingresar directamente con su correo y contraseña temporal.</p>
+              <p className="text-xs text-slate-400 mt-1">Email: {nuevoUsuarioEmail}</p>
             </div>
           )}
         </div>
