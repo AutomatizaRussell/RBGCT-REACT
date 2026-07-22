@@ -129,8 +129,17 @@ const CreateUserPage = () => {
       setError('Las contraseñas del nuevo usuario no coinciden');
       return;
     }
-    if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    if (formData.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    // Validar política de contraseña del backend
+    const hasLower = /[a-z]/.test(formData.password);
+    const hasUpper = /[A-Z]/.test(formData.password);
+    const hasDigit = /\d/.test(formData.password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>[\]\\\-_=+`~'";]/.test(formData.password);
+    if (!hasLower || !hasUpper || !hasDigit || !hasSpecial) {
+      setError('La contraseña debe incluir mayúscula, minúscula, número y carácter especial');
       return;
     }
 
@@ -313,7 +322,7 @@ const CreateUserPage = () => {
                 value={formData.password}
                 onChange={handleChange} autoComplete="new-password"
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#001871] focus:bg-white transition-all text-sm font-medium"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres, mayúscula, minúscula, número y especial"
               />
             </div>
 
