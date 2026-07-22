@@ -1,7 +1,7 @@
 """
 Autenticación OAuth con Microsoft Azure AD.
 Recibe el code del frontend, lo intercambia con Microsoft, valida el email
-contra DatosEmpleado y emite el JWT de GCT.
+contra DatosEmpleado (o SuperAdmin) y emite el JWT de GCT.
 """
 import logging
 import urllib.request
@@ -15,11 +15,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
-from django.db import transaction
-from ..models import DatosEmpleado, SuperAdmin, Persona, DatosContacto
+from ..models import DatosEmpleado, SuperAdmin
 from ..jwt_utils import generate_tokens, build_empleado_payload, build_superadmin_payload, ROLE_MAP
-
-DOMINIOS_PERMITIDOS = {'rbcol.co', 'russellbedford.com'}
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +118,8 @@ def microsoft_auth_callback(request):
     """
     POST /api/auth/microsoft/
     Body: { code, redirect_uri }
-    Retorna JWT de GCT si el email de Microsoft está registrado como empleado.
+    Retorna JWT de GCT si el email de Microsoft está registrado como empleado
+    o superadmin en GCT.
     """
     code = request.data.get("code", "").strip()
     redirect_uri = request.data.get("redirect_uri", "").strip()
@@ -154,7 +152,7 @@ def microsoft_auth_callback(request):
             status=status.HTTP_401_UNAUTHORIZED,
         )
 
-    # 2. Extraer email y nombre del id_token
+    # 2. Extraer email del id_token
     try:
         ms_user = _decode_id_token(ms_response)
     except Exception as e:
@@ -192,35 +190,17 @@ def microsoft_auth_callback(request):
     except SuperAdmin.DoesNotExist:
         pass
 
-    # 3b. Buscar empleado por correo corporativo
+    # 3b. Segunda condición: el email debe existir como correo corporativo de un empleado
     try:
         empleado = DatosEmpleado.objects.select_related("persona", "area", "cargo").get(
             correo_corporativo=email
         )
     except DatosEmpleado.DoesNotExist:
-        # Auto-registro si el dominio es corporativo
-        dominio = email.split("@")[-1].lower()
-        if dominio not in DOMINIOS_PERMITIDOS:
-            logger.warning(f"[MICROSOFT AUTH] Dominio no permitido: {email}")
-            return Response(
-                {"error": f"La cuenta {email} no está autorizada para acceder a GCT."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        logger.info(f"[MICROSOFT AUTH] Auto-registrando nuevo usuario: {email}")
-        with transaction.atomic():
-            persona = Persona.objects.create(
-                primer_nombre=ms_user["nombre"] or email.split("@")[0],
-                primer_apellido=ms_user["apellido"] or "",
-            )
-            DatosContacto.objects.create(persona=persona)
-            empleado = DatosEmpleado.objects.create(
-                persona=persona,
-                correo_corporativo=email,
-                primer_login=True,
-                id_permisos=3,
-                estado="ACTIVA",
-            )
+        logger.warning(f"[MICROSOFT AUTH] Correo no autorizado: {email}")
+        return Response(
+            {"error": "Su correo no está autorizado para acceder a GCT."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
     # 4. Verificar que la cuenta esté activa
     if empleado.estado != "ACTIVA":

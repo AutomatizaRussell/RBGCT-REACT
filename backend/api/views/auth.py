@@ -186,7 +186,8 @@ def login_view(request):
 def crear_usuario_superadmin(request):
     """
     Solo SuperAdmin puede crear usuarios.
-    Puede crear con datos completos o solo correo+contraseña.
+    Se crea un empleado con los datos básicos del colaborador y se deja habilitado
+    el primer login para que el usuario complete el resto de su perfil.
     """
     request_keys = sorted(list(request.data.keys()))
     logger.info(f"[CREAR USUARIO] Request recibido con campos: {request_keys}")
@@ -225,6 +226,22 @@ def crear_usuario_superadmin(request):
     except PasswordValidationError as exc:
         return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    # Validar datos básicos obligatorios del colaborador
+    campos_basicos = {
+        'primer_nombre': 'Primer nombre',
+        'primer_apellido': 'Primer apellido',
+        'tipo_documento': 'Tipo de documento',
+        'numero_documento': 'Número de documento',
+        'area_id': 'Área / Departamento',
+        'cargo_id': 'Cargo',
+    }
+    faltantes = [label for campo, label in campos_basicos.items() if not request.data.get(campo)]
+    if faltantes:
+        return Response(
+            {'error': f'Datos básicos requeridos: {", ".join(faltantes)}'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     # Verificar si el email ya existe
     if DatosEmpleado.objects.filter(correo_corporativo=email).exists():
         logger.error(f"[CREAR USUARIO] Email ya existe: {email}")
@@ -233,45 +250,53 @@ def crear_usuario_superadmin(request):
     # Encriptar contraseña
     password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-    # Separar datos en capas: Persona / Contacto / Vínculo laboral
-    tiene_datos_completos = bool(request.data.get('primer_nombre'))
-
+    # Datos básicos de Persona / Contacto / Vínculo laboral
     persona_data = {
         'primer_nombre': request.data.get('primer_nombre') or 'Por',
         'segundo_nombre': request.data.get('segundo_nombre') or '',
         'primer_apellido': request.data.get('primer_apellido') or 'Completar',
         'segundo_apellido': request.data.get('segundo_apellido') or '',
         'apodo': request.data.get('apodo') or '',
-        'fecha_nacimiento': request.data.get('fecha_nacimiento') or None,
-        'sexo': request.data.get('sexo') or None,
-        'tipo_sangre': request.data.get('tipo_sangre') or None,
+        'tipo_documento': request.data.get('tipo_documento') or 'CC',
+        'numero_documento': request.data.get('numero_documento') or None,
         'lugar_expedicion': request.data.get('lugar_expedicion') or None,
         'fecha_expedicion': request.data.get('fecha_expedicion') or None,
     }
     contacto_data = {
-        'correo_personal':             request.data.get('correo_personal') or None,
-        'telefono':                    request.data.get('telefono') or None,
-        'telefono_emergencia':         request.data.get('telefono_emergencia') or None,
-        'nombre_contacto_emergencia':  request.data.get('nombre_contacto_emergencia') or None,
-        'parentesco_emergencia':       request.data.get('parentesco_emergencia') or None,
-        'direccion':                   request.data.get('direccion') or None,
+        'correo_personal': request.data.get('correo_personal') or None,
+        'telefono': request.data.get('telefono') or None,
+        'telefono_emergencia': request.data.get('telefono_emergencia') or None,
+        'nombre_contacto_emergencia': request.data.get('nombre_contacto_emergencia') or None,
+        'parentesco_emergencia': request.data.get('parentesco_emergencia') or None,
+        'direccion': request.data.get('direccion') or None,
     }
-    persona = Persona.objects.create(**persona_data)
-    DatosContacto.objects.create(persona=persona, **contacto_data)
 
-    empleado = DatosEmpleado.objects.create(
-        persona=persona,
-        correo_corporativo=email,
-        password_hash=password_hash,
-        id_permisos=id_permisos,
-        area_id=request.data.get('area_id'),
-        cargo_id=request.data.get('cargo_id'),
-        fecha_ingreso=request.data.get('fecha_ingreso') or None,
-        estado='ACTIVA',
-        primer_login=not tiene_datos_completos,
-        datos_completados=tiene_datos_completos,
-        permitir_edicion_datos=False,
-    )
+    try:
+        with transaction.atomic():
+            persona = Persona.objects.create(**persona_data)
+            DatosContacto.objects.create(persona=persona, **contacto_data)
+
+            empleado = DatosEmpleado.objects.create(
+                persona=persona,
+                correo_corporativo=email,
+                password_hash=password_hash,
+                id_permisos=id_permisos,
+                area_id=request.data.get('area_id'),
+                cargo_id=request.data.get('cargo_id'),
+                fecha_ingreso=request.data.get('fecha_ingreso') or None,
+                estado='ACTIVA',
+                # Siempre se crea con primer login activo para que el usuario complete su perfil.
+                # El permiso de edición se revoca automáticamente la primera vez que complete.
+                primer_login=True,
+                datos_completados=False,
+                permitir_edicion_datos=True,
+            )
+    except IntegrityError as e:
+        logger.error(f"[CREAR USUARIO] Error de integridad: {e}")
+        return Response(
+            {'error': 'El número de documento ya está registrado. Verifica el dato o contacta al administrador.'},
+            status=status.HTTP_409_CONFLICT
+        )
 
     # Generar código de verificación para primer login
     codigo_verificacion = generar_codigo_verificacion()
@@ -298,7 +323,7 @@ def crear_usuario_superadmin(request):
         'message': 'Usuario creado exitosamente',
         'id_empleado': empleado.id_empleado,
         'correo_corporativo': empleado.correo_corporativo,
-        'tipo_creacion': 'completo' if empleado.datos_completados else 'minimo',
+        'tipo_creacion': 'basico',
         'primer_login': empleado.primer_login,
         'email_sent': email_sent,
     }, status=status.HTTP_201_CREATED)
