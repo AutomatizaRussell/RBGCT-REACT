@@ -80,7 +80,7 @@ export function SidebarShell({
       )}
     >
       <div className="flex h-full flex-col">
-        <div className={cn('border-b border-slate-200', isCollapsed ? 'px-3 py-4' : 'px-6 py-5')}>
+        <div className={cn('relative border-b border-slate-200', isCollapsed ? 'px-3 py-4' : 'px-6 py-5')}>
           <div className="flex items-center justify-between gap-2">
             {/* Logo — solo visual, no hace toggle */}
             <div className="min-w-0 flex-1">
@@ -128,7 +128,7 @@ export function SidebarShell({
               ) : null}
             </div>
 
-            {/* Controles: cerrar (móvil) + flecha colapso (desktop) */}
+            {/* Controles: cerrar (móvil) */}
             <div className="flex shrink-0 flex-col items-center gap-2">
               <button
                 type="button"
@@ -138,17 +138,18 @@ export function SidebarShell({
               >
                 <X size={20} />
               </button>
-
-              <button
-                type="button"
-                onClick={onToggleCollapse}
-                className="hidden lg:flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800"
-                aria-label={isCollapsed ? 'Expandir menú' : 'Minimizar menú'}
-              >
-                {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
-              </button>
             </div>
           </div>
+
+          {/* Flecha colapsar/expandir (desktop) — fuera del flujo del logo */}
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="absolute -right-3 top-1/2 z-10 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800 lg:flex"
+            aria-label={isCollapsed ? 'Expandir menú' : 'Minimizar menú'}
+          >
+            {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+          </button>
         </div>
 
         {userCard && !isCollapsed ? (

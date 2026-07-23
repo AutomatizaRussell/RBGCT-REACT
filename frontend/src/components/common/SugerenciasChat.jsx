@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Send, MessageSquarePlus, Loader2, CheckCheck, Check } from 'lucide-react';
+import { cn } from '../../lib/cn';
 import { enviarSugerencia, getMisSugerencias } from '../../lib/api';
 
 const fechaCorta = (iso) => {
@@ -153,7 +154,6 @@ const SugerenciasChat = ({ desplazado = false }) => {
     <>
       {!open && (
         <button
-          onPointerDown={(event) => iniciarArrastre(event, 'button')}
           onClick={(event) => {
             event.preventDefault();
             if (event.button !== 2 && !suppressOpenRef.current) {
@@ -163,8 +163,11 @@ const SugerenciasChat = ({ desplazado = false }) => {
           }}
           onContextMenu={(event) => event.preventDefault()}
           title="Sugerencias, dudas o problemas"
-          className="fixed z-50 w-14 h-14 bg-[#00a9ce] text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-[#0090b0] hover:scale-105 transition-all touch-none"
-          style={{ left: `${position.x}px`, top: `${position.y}px`, transition: dragging ? 'none' : 'left 160ms ease-out, top 160ms ease-out, transform 160ms ease-out, box-shadow 160ms ease-out' }}
+          className={cn(
+            'fixed z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all touch-none',
+            'text-white hover:scale-105 bg-[#00a9ce]/70 hover:bg-[#00a9ce] backdrop-blur-sm',
+            desplazado ? 'right-24 bottom-6' : 'right-6 bottom-6'
+          )}
         >
           <MessageSquarePlus size={22} />
         </button>

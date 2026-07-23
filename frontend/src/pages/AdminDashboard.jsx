@@ -254,6 +254,11 @@ const Admin2Dashboard = () => {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  // Retrae el sidebar automáticamente al entrar al formulario SQF.
+  useEffect(() => {
+    setSidebarCollapsed(activeTab === 'formularios-sqf')
+  }, [activeTab])
+
   useEffect(() => {
     const refreshDashboard = () => {
       if (document.visibilityState !== 'visible') return;

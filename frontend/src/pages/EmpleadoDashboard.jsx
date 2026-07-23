@@ -80,6 +80,11 @@ const UserDashboard = () => {
     else setActiveTab('dashboard')
   }, [location.pathname, location.state, tieneAccesoSQF])
 
+  // Retrae el sidebar automáticamente al entrar al formulario SQF.
+  useEffect(() => {
+    setSidebarCollapsed(isSQF)
+  }, [isSQF])
+
   // Carga las estadísticas de tareas del empleado autenticado.
   useEffect(() => {
     if (!empleadoData?.id_empleado) return
