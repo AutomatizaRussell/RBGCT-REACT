@@ -80,9 +80,9 @@ export function SidebarShell({
       )}
     >
       <div className="flex h-full flex-col">
-        <div className={cn('relative border-b border-slate-200', isCollapsed ? 'px-3 py-4' : 'px-6 py-5')}>
-          <div className="flex items-center justify-between gap-2">
-            {/* Logo — solo visual, no hace toggle */}
+        <div className={cn('border-b border-slate-200', isCollapsed ? 'px-3 py-4' : 'px-6 py-5')}>
+          <div className="flex items-start justify-between gap-2">
+            {/* Logo + flecha de colapso debajo */}
             <div className="min-w-0 flex-1">
               {isCollapsed ? (
                 <div className="flex h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16 items-center justify-center rounded-full bg-slate-100 p-1.5 mx-auto">
@@ -126,6 +126,18 @@ export function SidebarShell({
                   ) : null}
                 </div>
               ) : null}
+
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className={cn(
+                  'mt-3 hidden lg:flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800',
+                  isCollapsed ? 'mx-auto' : 'ml-auto'
+                )}
+                aria-label={isCollapsed ? 'Expandir menú' : 'Minimizar menú'}
+              >
+                {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+              </button>
             </div>
 
             {/* Controles: cerrar (móvil) */}
@@ -140,16 +152,6 @@ export function SidebarShell({
               </button>
             </div>
           </div>
-
-          {/* Flecha colapsar/expandir (desktop) — fuera del flujo del logo */}
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className="absolute -right-3 top-1/2 z-10 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800 lg:flex"
-            aria-label={isCollapsed ? 'Expandir menú' : 'Minimizar menú'}
-          >
-            {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
-          </button>
         </div>
 
         {userCard && !isCollapsed ? (
