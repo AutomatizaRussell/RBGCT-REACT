@@ -1056,8 +1056,8 @@ docker compose up -d
 2. Hacer push a `main` **no** dispara el deploy automáticamente — lanzarlo manualmente desde la UI de Coolify.
 3. Traefik (proxy de Coolify) enruta `conecta-gct.rbgct.cloud` → nginx interno del stack.
 
-> **Label crítica en nginx:** `traefik.docker.network=${COOLIFY_NETWORK}`
-> `COOLIFY_NETWORK` debe contener la red de ingreso del recurso actual. No eliminarla: sin ella Traefik puede elegir la IP incorrecta y producir 504s intermitentes.
+> **Label crítica en nginx:** `traefik.docker.network=n10dvijz47as7ci0jt97btt2`
+> No eliminarla: sin ella Traefik puede elegir la IP incorrecta y producir 504s intermitentes.
 
 ### Watchdog de auto-recuperación
 
@@ -1180,7 +1180,7 @@ Access token expirado. El frontend debería renovarlo automáticamente. Verifica
 ### `504 Gateway Timeout` intermitentes en producción
 
 Causa más común: Traefik elige la IP de la red `gct-network-prod` en lugar de la red de Coolify.  
-Verificar que `COOLIFY_NETWORK` coincide con la red de ingreso del recurso y que la label `traefik.docker.network=${COOLIFY_NETWORK}` está presente en nginx. Ver también `/var/log/gct-watchdog.log`.
+Verificar que la label `traefik.docker.network=n10dvijz47as7ci0jt97btt2` está presente en nginx. Ver también `/var/log/gct-watchdog.log`.
 
 ### `AppwriteException` al subir documentos
 
