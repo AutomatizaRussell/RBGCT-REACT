@@ -3,10 +3,10 @@
 # Watchdog GCT (conecta-gct.rbgct.cloud) — auto-recuperación del stack Coolify.
 #
 # Instalación (cron del host, cada minuto):
-#   * * * * * /home/gct/scripts/gct-watchdog.sh >> /var/log/gct-watchdog.log 2>&1
+#   * * * * * /opt/rbgct/scripts/gct-watchdog.sh >> /var/log/gct-watchdog.log 2>&1
 #
 # Qué hace:
-#  1. Reinicia contenedores del recurso 'conecta' que Docker marque unhealthy.
+#  1. Reinicia contenedores del recurso 'conecta-gct' que Docker marque unhealthy.
 #  2. Chequeo interno (nginx del stack): si falla, el problema es nginx→backend.
 #  3. Chequeo externo (Traefik/HTTPS): si falla 3 veces seguidas CON el interno
 #     sano, el problema es Traefik→nginx (keepalive colgado) → reinicia nginx.
@@ -18,7 +18,7 @@
 # =============================================================================
 set -u
 
-RESOURCE_LABEL="coolify.resourceName=conecta"
+RESOURCE_LABEL="coolify.resourceName=conecta-gct"
 EXT_HOST="${EXT_HOST:-conecta-gct.rbgct.cloud}"
 EXT_URL="${EXT_URL:-https://$EXT_HOST/api/health/}"
 STATE_DIR=/var/tmp/gct-watchdog
